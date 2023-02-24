@@ -64,6 +64,18 @@ VkImageMemoryBarrier transferDstToGeneralBarrier(const VkImage &image) {
   return memoryBarrier;
 }
 
+VkImageMemoryBarrier transferDstToTransferSrcBarrier(const VkImage &image) {
+  VkImageMemoryBarrier memoryBarrier = {};
+  memoryBarrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  memoryBarrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  memoryBarrier.newLayout            = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+  memoryBarrier.image                = image;
+  memoryBarrier.subresourceRange     = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  memoryBarrier.srcAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
+  memoryBarrier.dstAccessMask        = VK_ACCESS_TRANSFER_READ_BIT;
+  return memoryBarrier;
+}
+
 VkImageMemoryBarrier transferSrcToReadOnlyBarrier(const VkImage &image) {
   VkImageMemoryBarrier memoryBarrier = {};
   memoryBarrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -76,6 +88,17 @@ VkImageMemoryBarrier transferSrcToReadOnlyBarrier(const VkImage &image) {
   return memoryBarrier;
 }
 
+VkImageMemoryBarrier transferDstToReadOnlyBarrier(const VkImage &image) {
+  VkImageMemoryBarrier memoryBarrier = {};
+  memoryBarrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  memoryBarrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  memoryBarrier.newLayout            = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  memoryBarrier.image                = image;
+  memoryBarrier.subresourceRange     = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  memoryBarrier.srcAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
+  memoryBarrier.dstAccessMask        = VK_ACCESS_SHADER_READ_BIT;
+  return memoryBarrier;
+}
 
 VkImageCopy imageCopyRegion(uint32_t width, uint32_t height) {
   VkImageCopy region;

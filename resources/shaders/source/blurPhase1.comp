@@ -2,6 +2,8 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
+#include "include/blurCommon.glsl"
+
 // bigger phi indicates bigger tolerence to apply blur
 layout(binding = 0) uniform UniformBufferObject {
   bool bypassBluring;
@@ -9,23 +11,25 @@ layout(binding = 0) uniform UniformBufferObject {
   float cPhi;
   float nPhi;
   float pPhi;
+  int sampleDist;
 }
 ubo;
 
-layout(binding = 1, rgba8) uniform image2D beforeBlurTex;
+// 78 fps in the past
+
+layout(binding = 1, rgba8) uniform image2D aTrousTex1;
 layout(binding = 2, rgba8) uniform image2D normalTex;
 layout(binding = 3, rgba32f) uniform image2D posTex;
 layout(binding = 4, rgba8) uniform image2D blurHTex;
 
-const float pi = 3.1415926535897932385;
-const float epsilon = 1e-5;
 
-int kernelSize = int(ceil(2 * 3 * ubo.sigma + 1));
+
+// int kernelSize = int(ceil(2 * 3 * ubo.sigma + 1));
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
 
-  vec4 colorAtUV = imageLoad(beforeBlurTex, uv);
+  vec4 colorAtUV = imageLoad(aTrousTex1, uv);
   vec3 positionAtUV = imageLoad(posTex, uv).xyz;
   vec3 normalAtUV = imageLoad(normalTex, uv).xyz;
 
@@ -37,19 +41,21 @@ void main() {
   float n2Inv = 1 / (2 * ubo.nPhi * ubo.nPhi + epsilon);
   float p2Inv = 1 / (2 * ubo.pPhi * ubo.pPhi + epsilon);
 
-  int kernalHalfSize = (kernelSize - 1) / 2;
   float sumOfWeights = 0;
   vec4 sumOfWeightedValues = vec4(0);
   vec4 weightedColor = vec4(0);
 
-  for (int x = -kernalHalfSize; x <= kernalHalfSize; x++) {
-    vec4 colorAtSample = imageLoad(beforeBlurTex, ivec2(x + uv.x, uv.y));
+  for (int index = 0; index < kernelSize; index++) {
+    int x = (index - kernalHalfSize) * ubo.sampleDist;
+
+    vec4 colorAtSample = imageLoad(aTrousTex1, ivec2(x + uv.x, uv.y));
     vec4 differenceInColorVec = colorAtSample - colorAtUV;
     float differenceInColorFloat2 =
         dot(differenceInColorVec, differenceInColorVec);
     float weightDIC = exp(-differenceInColorFloat2 * c2Inv);
 
-    float weightDistFalloff = exp(-x * x * sig2Inv);
+    // float weightDistFalloff = exp(-x * x * sig2Inv);
+    float weightDistFalloff = weightsATrous[index];
 
     vec3 normalAtSample = imageLoad(normalTex, ivec2(x + uv.x, uv.y)).xyz;
     vec3 differenceInNormalVec = normalAtSample - normalAtUV;
@@ -63,10 +69,11 @@ void main() {
         dot(differenceInPositionVec, differenceInPositionVec);
     float weightDIP = exp(-differenceInPositionFloat2 * p2Inv);
 
-    float weight = weightDistFalloff * weightDIC * weightDIN * weightDIP;
+    // float weight = weightDistFalloff * weightDIC * weightDIN * weightDIP;
+    float weight = weightDistFalloff;
 
     sumOfWeightedValues +=
-        weight * imageLoad(beforeBlurTex, ivec2(x + uv.x, uv.y));
+        weight * imageLoad(aTrousTex1, ivec2(x + uv.x, uv.y));
     sumOfWeights += weight;
   }
   weightedColor = sumOfWeightedValues / sumOfWeights;

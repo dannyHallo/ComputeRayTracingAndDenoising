@@ -15,7 +15,7 @@ layout(binding = 3, rgba8) uniform image2D accumTex;
 layout(binding = 4, rgba8) uniform image2D normalTex;
 layout(binding = 5, r32i) uniform iimage2D triIdTex1;
 layout(binding = 6, r32i) uniform iimage2D triIdTex2;
-layout(binding = 7, rgba8) uniform image2D beforeBlurTex;
+layout(binding = 7, rgba8) uniform image2D aTrousTex1;
 
 const bool bypassTemporalFiltering = false;
 
@@ -34,7 +34,7 @@ void main() {
 
   if (bypassTemporalFiltering) {
     colToWrite = thisTimeTracingResult;
-    imageStore(beforeBlurTex, uv, colToWrite);
+    imageStore(aTrousTex1, uv, colToWrite);
     return;
   }
 
@@ -62,5 +62,5 @@ void main() {
   colToWrite =
       (alpha * thisTimeTracingResult + (1 - alpha) * accumTracingResult);
 
-  imageStore(beforeBlurTex, uv, colToWrite);
+  imageStore(aTrousTex1, uv, colToWrite);
 }

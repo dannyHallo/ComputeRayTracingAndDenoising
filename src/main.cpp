@@ -66,6 +66,7 @@ struct BlurFilterUniformBufferObject {
   float cPhi;
   float nPhi;
   float pPhi;
+  int sampleDist;
 };
 
 class HelloComputeApplication {
@@ -96,8 +97,9 @@ private:
   std::shared_ptr<mcvkp::Image> normalImage;
   std::shared_ptr<mcvkp::Image> triIdImage1;
   std::shared_ptr<mcvkp::Image> triIdImage2;
-  std::shared_ptr<mcvkp::Image> beforeBlurImage;
   std::shared_ptr<mcvkp::Image> blurHImage;
+  std::shared_ptr<mcvkp::Image> aTrousImage1;
+  std::shared_ptr<mcvkp::Image> aTrousImage2;
 
   std::vector<VkCommandBuffer> commandBuffers;
 
@@ -157,8 +159,7 @@ private:
     mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
                                    VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
                                    VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                                       VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                   VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                                    VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, targetImage);
     mcvkp::ImageUtils::transitionImageLayout(targetImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_GENERAL, 1);
@@ -172,13 +173,22 @@ private:
     mcvkp::ImageUtils::transitionImageLayout(blurHImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    beforeBlurImage = std::make_shared<mcvkp::Image>();
+    aTrousImage1 = std::make_shared<mcvkp::Image>();
     mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
                                    VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
                                    VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, beforeBlurImage);
-    mcvkp::ImageUtils::transitionImageLayout(beforeBlurImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+                                   VMA_MEMORY_USAGE_GPU_ONLY, aTrousImage1);
+    mcvkp::ImageUtils::transitionImageLayout(aTrousImage1->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+
+    aTrousImage2 = std::make_shared<mcvkp::Image>();
+    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
+                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
+                                   VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                   VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, aTrousImage2);
+    mcvkp::ImageUtils::transitionImageLayout(aTrousImage2->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_GENERAL, 1);
 
     positionImage = std::make_shared<mcvkp::Image>();
@@ -256,7 +266,7 @@ private:
       temporalFilterMat->addStorageImage(triIdImage1, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(triIdImage2, VK_SHADER_STAGE_COMPUTE_BIT);
       // output
-      temporalFilterMat->addStorageImage(beforeBlurImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      temporalFilterMat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
     }
     temporalFilterModel = std::make_shared<ComputeModel>(temporalFilterMat);
 
@@ -264,7 +274,7 @@ private:
     {
       blurFilterPhase1Mat->addUniformBufferBundle(blurFilterBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
       // input
-      blurFilterPhase1Mat->addStorageImage(beforeBlurImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase1Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
       blurFilterPhase1Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
       blurFilterPhase1Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
       // output
@@ -276,12 +286,12 @@ private:
     {
       blurFilterPhase2Mat->addUniformBufferBundle(blurFilterBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
       // input
-      blurFilterPhase2Mat->addStorageImage(beforeBlurImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase2Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
       blurFilterPhase2Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
       blurFilterPhase2Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
       blurFilterPhase2Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
       // output
-      blurFilterPhase2Mat->addStorageImage(targetImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase2Mat->addStorageImage(aTrousImage2, VK_SHADER_STAGE_COMPUTE_BIT);
     }
     blurFilterPhase2Model = std::make_shared<ComputeModel>(blurFilterPhase2Mat);
 
@@ -337,15 +347,6 @@ private:
                  camera.getViewMatrix();
     }
 
-    BlurFilterUniformBufferObject bfUbo = {false, 10, 0.6, 0.6, 0.1};
-    {
-      auto &allocation = blurFilterBufferBundle->buffers[currentImage]->allocation;
-      void *data;
-      vmaMapMemory(VulkanGlobal::context.getAllocator(), allocation, &data);
-      memcpy(data, &bfUbo, sizeof(bfUbo));
-      vmaUnmapMemory(VulkanGlobal::context.getAllocator(), allocation);
-    }
-
     currentSample++;
   }
 
@@ -361,12 +362,18 @@ private:
       throw std::runtime_error("failed to allocate command buffers!");
     }
 
-    VkImageMemoryBarrier targetTexGeneral2TransSrc  = mcvkp::ImageUtils::generalToTransferSrcBarrier(targetImage->image);
-    VkImageMemoryBarrier targetTexTransSrc2ReadOnly = mcvkp::ImageUtils::transferSrcToReadOnlyBarrier(targetImage->image);
+    VkImageMemoryBarrier targetTexTransDst2ReadOnly = mcvkp::ImageUtils::transferDstToReadOnlyBarrier(targetImage->image);
     VkImageMemoryBarrier targetTexReadOnly2General  = mcvkp::ImageUtils::readOnlyToGeneralBarrier(targetImage->image);
+    VkImageMemoryBarrier targetTexGeneral2TransDst  = mcvkp::ImageUtils::generalToTransferDstBarrier(targetImage->image);
+    VkImageMemoryBarrier targetTexTransDst2General  = mcvkp::ImageUtils::transferDstToGeneralBarrier(targetImage->image);
 
     VkImageMemoryBarrier accumTexGeneral2TransDst = mcvkp::ImageUtils::generalToTransferDstBarrier(accumulationImage->image);
     VkImageMemoryBarrier accumTexTransDst2General = mcvkp::ImageUtils::transferDstToGeneralBarrier(accumulationImage->image);
+
+    VkImageMemoryBarrier aTrousTex1General2TransDst = mcvkp::ImageUtils::generalToTransferDstBarrier(aTrousImage1->image);
+    VkImageMemoryBarrier aTrousTex1TransDst2General = mcvkp::ImageUtils::transferDstToGeneralBarrier(aTrousImage1->image);
+    VkImageMemoryBarrier aTrousTex2General2TransSrc = mcvkp::ImageUtils::generalToTransferSrcBarrier(aTrousImage2->image);
+    VkImageMemoryBarrier aTrousTex2TransSrc2General = mcvkp::ImageUtils::transferSrcToGeneralBarrier(aTrousImage2->image);
 
     VkImageMemoryBarrier triIdTex1General2TransSrc = mcvkp::ImageUtils::generalToTransferSrcBarrier(triIdImage1->image);
     VkImageMemoryBarrier triIdTex1TransSrc2General = mcvkp::ImageUtils::transferSrcToGeneralBarrier(triIdImage1->image);
@@ -377,76 +384,111 @@ private:
                                                                    VulkanGlobal::swapchainContext.getExtent().height);
 
     for (size_t i = 0; i < commandBuffers.size(); i++) {
+      VkCommandBuffer &currentCommandBuffer = commandBuffers[i];
+
       VkCommandBufferBeginInfo beginInfo{};
       beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
       beginInfo.flags            = 0;       // Optional
       beginInfo.pInheritanceInfo = nullptr; // Optional
 
-      if (vkBeginCommandBuffer(commandBuffers[i], &beginInfo) != VK_SUCCESS) {
+      if (vkBeginCommandBuffer(currentCommandBuffer, &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("failed to begin recording command buffer!");
       }
 
       VkClearColorValue clearColor{0, 0, 0, 0};
       VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-      vkCmdClearColorImage(commandBuffers[i], positionImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
-      vkCmdClearColorImage(commandBuffers[i], targetImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
-      vkCmdClearColorImage(commandBuffers[i], normalImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
-      vkCmdClearColorImage(commandBuffers[i], beforeBlurImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
-      vkCmdClearColorImage(commandBuffers[i], blurHImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+      vkCmdClearColorImage(currentCommandBuffer, positionImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+      vkCmdClearColorImage(currentCommandBuffer, targetImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+      vkCmdClearColorImage(currentCommandBuffer, normalImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+      vkCmdClearColorImage(currentCommandBuffer, aTrousImage1->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+      vkCmdClearColorImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+      vkCmdClearColorImage(currentCommandBuffer, blurHImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
 
-      rtxModel->computeCommand(commandBuffers[i], static_cast<uint32_t>(i), targetImage->width / 32, targetImage->height / 32, 1);
+      rtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32, targetImage->height / 32,
+                               1);
 
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
                            nullptr, 0, nullptr, 0, nullptr);
 
-      temporalFilterModel->computeCommand(commandBuffers[i], static_cast<uint32_t>(i), targetImage->width / 32,
+      temporalFilterModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
                                           targetImage->height / 32, 1);
 
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
                            nullptr, 0, nullptr, 0, nullptr);
 
-      blurFilterPhase1Model->computeCommand(commandBuffers[i], static_cast<uint32_t>(i), targetImage->width / 32,
-                                            targetImage->height / 32, 1);
+      for (int j = 0; j < 5; j++) {
+        // update ubo for the sampleDistance
+        BlurFilterUniformBufferObject bfUbo = {false, 10, 0.1, 0.6, 0.1, static_cast<int>(pow(2, j))};
+        {
+          auto &allocation = blurFilterBufferBundle->buffers[i]->allocation;
+          void *data;
+          vmaMapMemory(VulkanGlobal::context.getAllocator(), allocation, &data);
+          memcpy(data, &bfUbo, sizeof(bfUbo));
+          vmaUnmapMemory(VulkanGlobal::context.getAllocator(), allocation);
+        }
 
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
-                           nullptr, 0, nullptr, 0, nullptr);
+        // dispatch 2 stages of separate shaders
+        blurFilterPhase1Model->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
+                                              targetImage->height / 32, 1);
+        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+                             0, nullptr, 0, nullptr, 0, nullptr);
+        blurFilterPhase2Model->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
+                                              targetImage->height / 32, 1);
 
-      blurFilterPhase2Model->computeCommand(commandBuffers[i], static_cast<uint32_t>(i), targetImage->width / 32,
-                                            targetImage->height / 32, 1);
+        // copy aTrousImage2 to aTrousImage1
+        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                             nullptr, 0, nullptr, 1, &aTrousTex1General2TransDst);
+        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                             nullptr, 0, nullptr, 1, &aTrousTex2General2TransSrc);
+        vkCmdCopyImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, aTrousImage1->image,
+                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                             nullptr, 0, nullptr, 1, &aTrousTex1TransDst2General);
+        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                             nullptr, 0, nullptr, 1, &aTrousTex2TransSrc2General);
 
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
-                           0, nullptr, 1, &targetTexGeneral2TransSrc);
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
-                           0, nullptr, 1, &accumTexGeneral2TransDst);
+        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                             nullptr, 0, nullptr, 0, nullptr);
+      }
 
-      vkCmdCopyImage(commandBuffers[i], targetImage->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, accumulationImage->image,
+      // copy aTrousImage2 to targetTex
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &aTrousTex2General2TransSrc);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &targetTexGeneral2TransDst);
+      vkCmdCopyImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, targetImage->image,
                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &targetTexTransDst2ReadOnly);
 
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
-                           nullptr, 0, nullptr, 1, &targetTexTransSrc2ReadOnly);
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr,
-                           0, nullptr, 1, &accumTexTransDst2General);
-
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
-                           0, nullptr, 1, &triIdTex1General2TransSrc);
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
-                           0, nullptr, 1, &triIdTex2General2TransDst);
-
-      vkCmdCopyImage(commandBuffers[i], triIdImage1->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, triIdImage2->image,
+      // copy aTrousImage2 to accumTex
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &accumTexGeneral2TransDst);
+      vkCmdCopyImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, accumulationImage->image,
                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &aTrousTex2TransSrc2General);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &accumTexTransDst2General);
 
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr,
-                           0, nullptr, 1, &triIdTex1TransSrc2General);
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr,
-                           0, nullptr, 1, &triIdTex2TransDst2General);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &triIdTex1General2TransSrc);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &triIdTex2General2TransDst);
+      vkCmdCopyImage(currentCommandBuffer, triIdImage1->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, triIdImage2->image,
+                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &triIdTex1TransSrc2General);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &triIdTex2TransDst2General);
 
       // Bind graphics pipeline and dispatch draw command.
-      postProcessScene->writeRenderCommand(commandBuffers[i], i);
+      postProcessScene->writeRenderCommand(currentCommandBuffer, i);
 
-      vkCmdPipelineBarrier(commandBuffers[i], VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
-                           nullptr, 0, nullptr, 1, &targetTexReadOnly2General);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
+                           0, nullptr, 0, nullptr, 1, &targetTexReadOnly2General);
 
-      if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
+      if (vkEndCommandBuffer(currentCommandBuffer) != VK_SUCCESS) {
         throw std::runtime_error("failed to record command buffer!");
       }
     }
