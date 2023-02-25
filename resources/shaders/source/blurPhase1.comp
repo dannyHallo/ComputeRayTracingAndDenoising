@@ -24,6 +24,7 @@ layout(binding = 4, rgba8) uniform image2D blurHTex;
 
 // int kernelSize = int(ceil(2 * 3 * ubo.sigma + 1));
 int kernalHalfSize = (kernelSize - 1) / 2;
+// 56, 180 fps
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
@@ -46,33 +47,33 @@ void main() {
 
   for (int index = 0; index < kernelSize; index++) {
     int x = int((index - kernalHalfSize) * pow(2, ubo.i));
+    int y = 0;
 
     // float weightDistFalloff = exp(-x * x * sig2Inv);
     float weightDistFalloff = weightsATrous[index];
 
-    vec4 colorAtSample = imageLoad(aTrousTex1, ivec2(x + uv.x, uv.y));
+    vec4 colorAtSample = imageLoad(aTrousTex1, ivec2(x + uv.x, y + uv.y));
     vec4 differenceInColorVec = colorAtSample - colorAtUV;
     float differenceInColorFloat2 =
         dot(differenceInColorVec, differenceInColorVec);
     float weightDIC = exp(-differenceInColorFloat2 * c2Inv);
 
-    vec3 normalAtSample = imageLoad(normalTex, ivec2(x + uv.x, uv.y)).xyz;
+    vec3 normalAtSample = imageLoad(normalTex, ivec2(x + uv.x, y + uv.y)).xyz;
     vec3 differenceInNormalVec = normalAtSample - normalAtUV;
     float differenceInNormalFloat2 =
         dot(differenceInNormalVec, differenceInNormalVec);
     float weightDIN = exp(-differenceInNormalFloat2 * n2Inv);
 
-    vec3 positionAtSample = imageLoad(posTex, ivec2(x + uv.x, uv.y)).xyz;
+    vec3 positionAtSample = imageLoad(posTex, ivec2(x + uv.x, y + uv.y)).xyz;
     vec3 differenceInPositionVec = positionAtSample - positionAtUV;
     float differenceInPositionFloat2 =
         dot(differenceInPositionVec, differenceInPositionVec);
     float weightDIP = exp(-differenceInPositionFloat2 * p2Inv);
 
     float weight = weightDistFalloff * weightDIC * weightDIN * weightDIP;
-    // float weight = weightDistFalloff;
 
     sumOfWeightedValues +=
-        weight * imageLoad(aTrousTex1, ivec2(x + uv.x, uv.y));
+        weight * imageLoad(aTrousTex1, ivec2(x + uv.x, y + uv.y));
     sumOfWeights += weight;
   }
 

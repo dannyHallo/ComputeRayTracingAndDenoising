@@ -48,34 +48,34 @@ void main() {
   vec4 weightedColor = vec4(0);
 
   for (int index = 0; index < kernelSize; index++) {
+    int x = 0;
     int y = int((index - kernalHalfSize) * pow(2, ubo.i));
 
-    // float weightDistFalloff = exp(-y * y * sig2Inv);
+    // float weightDistFalloff = exp(-x * x * sig2Inv);
     float weightDistFalloff = weightsATrous[index];
 
-    // use original image to calculate color variance here
-    vec4 colorAtSample = imageLoad(aTrousTex1, ivec2(uv.x, y + uv.y));
+    vec4 colorAtSample = imageLoad(aTrousTex1, ivec2(x + uv.x, y + uv.y));
     vec4 differenceInColorVec = colorAtSample - colorAtUV;
     float differenceInColorFloat2 =
         dot(differenceInColorVec, differenceInColorVec);
     float weightDIC = exp(-differenceInColorFloat2 * c2Inv);
 
-    vec3 normalAtSample = imageLoad(normalTex, ivec2(uv.x, y + uv.y)).xyz;
+    vec3 normalAtSample = imageLoad(normalTex, ivec2(x + uv.x, y + uv.y)).xyz;
     vec3 differenceInNormalVec = normalAtSample - normalAtUV;
     float differenceInNormalFloat2 =
         dot(differenceInNormalVec, differenceInNormalVec);
     float weightDIN = exp(-differenceInNormalFloat2 * n2Inv);
 
-    vec3 positionAtSample = imageLoad(posTex, ivec2(uv.x, y + uv.y)).xyz;
+    vec3 positionAtSample = imageLoad(posTex, ivec2(x + uv.x, y + uv.y)).xyz;
     vec3 differenceInPositionVec = positionAtSample - positionAtUV;
     float differenceInPositionFloat2 =
         dot(differenceInPositionVec, differenceInPositionVec);
     float weightDIP = exp(-differenceInPositionFloat2 * p2Inv);
 
     float weight = weightDistFalloff * weightDIC * weightDIN * weightDIP;
-    // float weight = weightDistFalloff;
 
-    sumOfWeightedValues += weight * imageLoad(blurHTex, ivec2(uv.x, y + uv.y));
+    sumOfWeightedValues +=
+        weight * imageLoad(blurHTex, ivec2(x + uv.x, y + uv.y));
     sumOfWeights += weight;
   }
 
