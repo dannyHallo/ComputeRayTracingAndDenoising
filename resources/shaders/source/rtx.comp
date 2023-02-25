@@ -22,7 +22,7 @@ ubo;
 layout(binding = 1, rgba32f) uniform image2D posTex;
 layout(binding = 2, rgba32f) uniform image2D normalTex;
 layout(binding = 3, r32i) uniform iimage2D triIdTexture1;
-layout(binding = 4, rgba8) uniform image2D targetTex;
+layout(binding = 4, rgba32f) uniform image2D rawTex;
 
 layout(std430, binding = 5) readonly buffer TriangleBufferObject {
   triangle[] triangles;
@@ -356,7 +356,7 @@ vec2 tinyDriftInPixelGenerator(uint seed) {
 }
 
 ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right) {
-  vec2 imageSize = vec2(imageSize(targetTex));
+  vec2 imageSize = vec2(imageSize(rawTex));
 
   float theta = ubo.vfov * deg2Rad;
   float h = tan(theta / 2);
@@ -387,7 +387,7 @@ void main() {
   int hitTriId;
   pathTracing(camRay, hitColor, hitWorldPos, hitNormal, hitTriId);
 
-  imageStore(targetTex, uv, vec4(hitColor, 1));
+  imageStore(rawTex, uv, vec4(hitColor, 1));
   imageStore(posTex, uv, hitWorldPos);  // w: -1 (invalid) or 1 (valid)
   imageStore(normalTex, uv, hitNormal); // w: -1 (invalid) or 0 (valid)
   imageStore(triIdTexture1, uv,

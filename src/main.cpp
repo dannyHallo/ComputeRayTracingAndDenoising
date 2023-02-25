@@ -93,6 +93,7 @@ private:
   std::vector<std::shared_ptr<mcvkp::BufferBundle>> blurFilterBufferBundles;
 
   std::shared_ptr<mcvkp::Image> positionImage;
+  std::shared_ptr<mcvkp::Image> rawImage;
   std::shared_ptr<mcvkp::Image> targetImage;
   std::shared_ptr<mcvkp::Image> accumulationImage;
   std::shared_ptr<mcvkp::Image> normalImage;
@@ -166,6 +167,14 @@ private:
                                    VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                                    VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, targetImage);
     mcvkp::ImageUtils::transitionImageLayout(targetImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+
+    rawImage = std::make_shared<mcvkp::Image>();
+    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
+                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
+                                   VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
+                                   VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, rawImage);
+    mcvkp::ImageUtils::transitionImageLayout(rawImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_GENERAL, 1);
 
     blurHImage = std::make_shared<mcvkp::Image>();
@@ -249,7 +258,7 @@ private:
       rtxMat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
       rtxMat->addStorageImage(triIdImage1, VK_SHADER_STAGE_COMPUTE_BIT);
       // output
-      rtxMat->addStorageImage(targetImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      rtxMat->addStorageImage(rawImage, VK_SHADER_STAGE_COMPUTE_BIT);
       rtxMat->addStorageBufferBundle(triangleBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
       rtxMat->addStorageBufferBundle(materialBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
       rtxMat->addStorageBufferBundle(aabbBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
@@ -264,7 +273,7 @@ private:
       temporalFilterMat->addUniformBufferBundle(temperalFilterBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
       // input
       temporalFilterMat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      temporalFilterMat->addStorageImage(targetImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      temporalFilterMat->addStorageImage(rawImage, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(accumulationImage, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(triIdImage1, VK_SHADER_STAGE_COMPUTE_BIT);
@@ -428,7 +437,7 @@ private:
 
       for (int j = 0; j < 5; j++) {
         // update ubo for the sampleDistance
-        BlurFilterUniformBufferObject bfUbo = {false, 4, 1, 0.6, 0.1, j};
+        BlurFilterUniformBufferObject bfUbo = {false, 4, 0.8, 0.6, 0.1, j};
         {
           auto &allocation = blurFilterBufferBundles[j]->buffers[i]->allocation;
           void *data;

@@ -11,7 +11,7 @@ layout(binding = 0) uniform UniformBufferObject {
 ubo;
 
 layout(binding = 1, rgba32f) uniform image2D posTex;
-layout(binding = 2, rgba8) uniform image2D targetTex;
+layout(binding = 2, rgba32f) uniform image2D rawTex;
 layout(binding = 3, rgba8) uniform image2D accumTex;
 layout(binding = 4, rgba8) uniform image2D normalTex;
 layout(binding = 5, r32i) uniform iimage2D triIdTex1;
@@ -22,7 +22,7 @@ void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   vec4 pixPos = imageLoad(posTex, uv);
 
-  vec4 thisTimeTracingResult = imageLoad(targetTex, uv);
+  vec4 thisTimeTracingResult = imageLoad(rawTex, uv);
 
   // invalid pos culling
   if (pixPos.a == -1) {
