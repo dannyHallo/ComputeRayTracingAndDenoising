@@ -4,4 +4,3 @@ const float epsilon = 1e-5;
 const float weightsATrous[5] = float[](.0625, .25, .375, .25, .0625);
 
 const int kernelSize = 5;
-const int kernalHalfSize = 2;

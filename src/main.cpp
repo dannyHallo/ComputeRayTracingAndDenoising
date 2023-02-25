@@ -54,6 +54,7 @@ struct RtxUniformBufferObject {
 };
 
 struct TemporalFilterUniformBufferObject {
+  int bypassTemporalFiltering;
   alignas(16) glm::mat4 lastMvpe;
   float swapchainWidth;
   float swapchainHeight;
@@ -66,7 +67,7 @@ struct BlurFilterUniformBufferObject {
   float cPhi;
   float nPhi;
   float pPhi;
-  int sampleDist;
+  int i;
 };
 
 class HelloComputeApplication {
@@ -82,14 +83,14 @@ private:
 
   std::shared_ptr<mcvkp::ComputeModel> rtxModel;
   std::shared_ptr<mcvkp::ComputeModel> temporalFilterModel;
-  std::shared_ptr<mcvkp::ComputeModel> blurFilterPhase1Model;
-  std::shared_ptr<mcvkp::ComputeModel> blurFilterPhase2Model;
+  std::vector<std::shared_ptr<mcvkp::ComputeModel>> blurFilterPhase1Models;
+  std::vector<std::shared_ptr<mcvkp::ComputeModel>> blurFilterPhase2Models;
 
   std::shared_ptr<mcvkp::Scene> postProcessScene;
 
   std::shared_ptr<mcvkp::BufferBundle> rtxBufferBundle;
   std::shared_ptr<mcvkp::BufferBundle> temperalFilterBufferBundle;
-  std::shared_ptr<mcvkp::BufferBundle> blurFilterBufferBundle;
+  std::vector<std::shared_ptr<mcvkp::BufferBundle>> blurFilterBufferBundles;
 
   std::shared_ptr<mcvkp::Image> positionImage;
   std::shared_ptr<mcvkp::Image> targetImage;
@@ -129,9 +130,12 @@ private:
                                                                  TemporalFilterUniformBufferObject{},
                                                                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-    blurFilterBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
-    BufferUtils::createBundle<BlurFilterUniformBufferObject>(blurFilterBufferBundle.get(), BlurFilterUniformBufferObject{},
-                                                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    for (int i = 0; i < 5; i++) {
+      auto blurFilterBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
+      BufferUtils::createBundle<BlurFilterUniformBufferObject>(blurFilterBufferBundle.get(), BlurFilterUniformBufferObject{},
+                                                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+      blurFilterBufferBundles.emplace_back(blurFilterBufferBundle);
+    }
 
     auto triangleBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
     BufferUtils::createBundle<GpuModel::Triangle>(triangleBufferBundle.get(), rtScene->triangles.data(),
@@ -270,30 +274,34 @@ private:
     }
     temporalFilterModel = std::make_shared<ComputeModel>(temporalFilterMat);
 
-    auto blurFilterPhase1Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase1.spv");
-    {
-      blurFilterPhase1Mat->addUniformBufferBundle(blurFilterBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
-      // input
-      blurFilterPhase1Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase1Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase1Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      // output
-      blurFilterPhase1Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
+    for (int i = 0; i < 5; i++) {
+      auto blurFilterPhase1Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase1.spv");
+      {
+        blurFilterPhase1Mat->addUniformBufferBundle(blurFilterBufferBundles[i], VK_SHADER_STAGE_COMPUTE_BIT);
+        // input
+        blurFilterPhase1Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase1Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase1Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        // output
+        blurFilterPhase1Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      }
+      blurFilterPhase1Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase1Mat));
     }
-    blurFilterPhase1Model = std::make_shared<ComputeModel>(blurFilterPhase1Mat);
 
-    auto blurFilterPhase2Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase2.spv");
-    {
-      blurFilterPhase2Mat->addUniformBufferBundle(blurFilterBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
-      // input
-      blurFilterPhase2Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase2Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase2Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase2Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      // output
-      blurFilterPhase2Mat->addStorageImage(aTrousImage2, VK_SHADER_STAGE_COMPUTE_BIT);
+    for (int i = 0; i < 5; i++) {
+      auto blurFilterPhase2Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase2.spv");
+      {
+        blurFilterPhase2Mat->addUniformBufferBundle(blurFilterBufferBundles[i], VK_SHADER_STAGE_COMPUTE_BIT);
+        // input
+        blurFilterPhase2Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase2Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase2Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase2Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        // output
+        blurFilterPhase2Mat->addStorageImage(aTrousImage2, VK_SHADER_STAGE_COMPUTE_BIT);
+      }
+      blurFilterPhase2Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase2Mat));
     }
-    blurFilterPhase2Model = std::make_shared<ComputeModel>(blurFilterPhase2Mat);
 
     postProcessScene = std::make_shared<Scene>(RenderPassType::eFlat);
 
@@ -333,7 +341,7 @@ private:
       vmaUnmapMemory(VulkanGlobal::context.getAllocator(), allocation);
     }
 
-    TemporalFilterUniformBufferObject tfUbo = {lastMvpe, VulkanGlobal::swapchainContext.getExtent().width,
+    TemporalFilterUniformBufferObject tfUbo = {false, lastMvpe, VulkanGlobal::swapchainContext.getExtent().width,
                                                VulkanGlobal::swapchainContext.getExtent().height};
     {
       auto &allocation = temperalFilterBufferBundle->buffers[currentImage]->allocation;
@@ -416,11 +424,13 @@ private:
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
                            nullptr, 0, nullptr, 0, nullptr);
 
+      /////////////////////////////////////////////
+
       for (int j = 0; j < 5; j++) {
         // update ubo for the sampleDistance
-        BlurFilterUniformBufferObject bfUbo = {false, 10, 0.1, 0.6, 0.1, static_cast<int>(pow(2, j))};
+        BlurFilterUniformBufferObject bfUbo = {false, 4, 1, 0.6, 0.1, j};
         {
-          auto &allocation = blurFilterBufferBundle->buffers[i]->allocation;
+          auto &allocation = blurFilterBufferBundles[j]->buffers[i]->allocation;
           void *data;
           vmaMapMemory(VulkanGlobal::context.getAllocator(), allocation, &data);
           memcpy(data, &bfUbo, sizeof(bfUbo));
@@ -428,12 +438,12 @@ private:
         }
 
         // dispatch 2 stages of separate shaders
-        blurFilterPhase1Model->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
-                                              targetImage->height / 32, 1);
+        blurFilterPhase1Models[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
+                                                  targetImage->height / 32, 1);
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
                              0, nullptr, 0, nullptr, 0, nullptr);
-        blurFilterPhase2Model->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
-                                              targetImage->height / 32, 1);
+        blurFilterPhase2Models[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
+                                                  targetImage->height / 32, 1);
 
         // copy aTrousImage2 to aTrousImage1
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
@@ -446,10 +456,8 @@ private:
                              nullptr, 0, nullptr, 1, &aTrousTex1TransDst2General);
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
                              nullptr, 0, nullptr, 1, &aTrousTex2TransSrc2General);
-
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
-                             nullptr, 0, nullptr, 0, nullptr);
       }
+      /////////////////////////////////////////////
 
       // copy aTrousImage2 to targetTex
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,

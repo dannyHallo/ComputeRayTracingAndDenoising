@@ -11,7 +11,7 @@ layout(binding = 0) uniform UniformBufferObject {
   float cPhi;
   float nPhi;
   float pPhi;
-  int sampleDist;
+  int i;
 }
 ubo;
 
@@ -22,9 +22,8 @@ layout(binding = 2, rgba8) uniform image2D normalTex;
 layout(binding = 3, rgba32f) uniform image2D posTex;
 layout(binding = 4, rgba8) uniform image2D blurHTex;
 
-
-
 // int kernelSize = int(ceil(2 * 3 * ubo.sigma + 1));
+int kernalHalfSize = (kernelSize - 1) / 2;
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
@@ -37,7 +36,8 @@ void main() {
     return;
 
   float sig2Inv = 1 / (2 * ubo.sigma * ubo.sigma + epsilon);
-  float c2Inv = 1 / (2 * ubo.cPhi * ubo.cPhi + epsilon);
+  float c2Inv =
+      1 / (2 * pow(2, -ubo.i) * ubo.cPhi * pow(2, -ubo.i) * ubo.cPhi + epsilon);
   float n2Inv = 1 / (2 * ubo.nPhi * ubo.nPhi + epsilon);
   float p2Inv = 1 / (2 * ubo.pPhi * ubo.pPhi + epsilon);
 
@@ -46,16 +46,16 @@ void main() {
   vec4 weightedColor = vec4(0);
 
   for (int index = 0; index < kernelSize; index++) {
-    int x = (index - kernalHalfSize) * ubo.sampleDist;
+    int x = int((index - kernalHalfSize) * pow(2, ubo.i));
+
+    // float weightDistFalloff = exp(-x * x * sig2Inv);
+    float weightDistFalloff = weightsATrous[index];
 
     vec4 colorAtSample = imageLoad(aTrousTex1, ivec2(x + uv.x, uv.y));
     vec4 differenceInColorVec = colorAtSample - colorAtUV;
     float differenceInColorFloat2 =
         dot(differenceInColorVec, differenceInColorVec);
     float weightDIC = exp(-differenceInColorFloat2 * c2Inv);
-
-    // float weightDistFalloff = exp(-x * x * sig2Inv);
-    float weightDistFalloff = weightsATrous[index];
 
     vec3 normalAtSample = imageLoad(normalTex, ivec2(x + uv.x, uv.y)).xyz;
     vec3 differenceInNormalVec = normalAtSample - normalAtUV;
@@ -69,13 +69,54 @@ void main() {
         dot(differenceInPositionVec, differenceInPositionVec);
     float weightDIP = exp(-differenceInPositionFloat2 * p2Inv);
 
-    // float weight = weightDistFalloff * weightDIC * weightDIN * weightDIP;
-    float weight = weightDistFalloff;
+    float weight = weightDistFalloff * weightDIC * weightDIN * weightDIP;
+    // float weight = weightDistFalloff;
 
     sumOfWeightedValues +=
         weight * imageLoad(aTrousTex1, ivec2(x + uv.x, uv.y));
     sumOfWeights += weight;
   }
+
+  // for (int indexY = 0; indexY < kernelSize; indexY++) {
+  //   for (int indexX = 0; indexX < kernelSize; indexX++) {
+  //     int x = int((indexX - kernalHalfSize) * pow(2, ubo.i));
+  //     int y = int((indexY - kernalHalfSize) * pow(2, ubo.i));
+
+  //     // vec4 colorAtSample = imageLoad(aTrousTex1, ivec2(x + uv.x, y +
+  //     uv.y));
+  //     // vec4 differenceInColorVec = colorAtSample - colorAtUV;
+  //     // float differenceInColorFloat2 =
+  //     //     dot(differenceInColorVec, differenceInColorVec);
+  //     // float weightDIC = exp(-differenceInColorFloat2 * c2Inv);
+
+  //     // float weightDistFalloff = exp(-x * x * sig2Inv);
+  //     // float weightDistFalloff = exp(-ubo.i * ubo.i * sig2Inv);
+  //     float weightDistFalloff = weightsATrous[indexX] *
+  //     weightsATrous[indexY];
+
+  //     // vec3 normalAtSample = imageLoad(normalTex, ivec2(x + uv.x,
+  //     uv.y)).xyz;
+  //     // vec3 differenceInNormalVec = normalAtSample - normalAtUV;
+  //     // float differenceInNormalFloat2 =
+  //     //     dot(differenceInNormalVec, differenceInNormalVec);
+  //     // float weightDIN = exp(-differenceInNormalFloat2 * n2Inv);
+
+  //     // vec3 positionAtSample = imageLoad(posTex, ivec2(x + uv.x,
+  //     uv.y)).xyz;
+  //     // vec3 differenceInPositionVec = positionAtSample - positionAtUV;
+  //     // float differenceInPositionFloat2 =
+  //     //     dot(differenceInPositionVec, differenceInPositionVec);
+  //     // float weightDIP = exp(-differenceInPositionFloat2 * p2Inv);
+
+  //     // float weight = weightDistFalloff * weightDIC * weightDIN *
+  //     weightDIP; float weight = weightDistFalloff;
+
+  //     sumOfWeightedValues +=
+  //         weight * imageLoad(aTrousTex1, ivec2(x + uv.x, y + uv.y));
+  //     sumOfWeights += weight;
+  //   }
+  // }
+
   weightedColor = sumOfWeightedValues / sumOfWeights;
   imageStore(blurHTex, uv, weightedColor);
 }

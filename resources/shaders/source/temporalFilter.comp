@@ -3,6 +3,7 @@
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(binding = 0) uniform UniformBufferObject {
+  bool bypassTemporalFiltering;
   mat4 lastMvpe;
   float swapchainWidth;
   float swapchainHeight;
@@ -17,8 +18,6 @@ layout(binding = 5, r32i) uniform iimage2D triIdTex1;
 layout(binding = 6, r32i) uniform iimage2D triIdTex2;
 layout(binding = 7, rgba8) uniform image2D aTrousTex1;
 
-const bool bypassTemporalFiltering = false;
-
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   vec4 pixPos = imageLoad(posTex, uv);
@@ -32,7 +31,7 @@ void main() {
 
   vec4 colToWrite;
 
-  if (bypassTemporalFiltering) {
+  if (ubo.bypassTemporalFiltering) {
     colToWrite = thisTimeTracingResult;
     imageStore(aTrousTex1, uv, colToWrite);
     return;
