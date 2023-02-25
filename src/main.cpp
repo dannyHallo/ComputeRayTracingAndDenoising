@@ -437,7 +437,8 @@ private:
 
       for (int j = 0; j < 5; j++) {
         // update ubo for the sampleDistance
-        BlurFilterUniformBufferObject bfUbo = {false, 4, 0.8, 0.6, 0.1, j};
+        BlurFilterUniformBufferObject bfUbo = {false, 4, 10000, 0.1, 0.03, j};
+        // BlurFilterUniformBufferObject bfUbo = {false, 4, 100, 0.1, 0.03, j};
         {
           auto &allocation = blurFilterBufferBundles[j]->buffers[i]->allocation;
           void *data;

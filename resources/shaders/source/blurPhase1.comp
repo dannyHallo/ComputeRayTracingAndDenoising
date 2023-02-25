@@ -36,8 +36,7 @@ void main() {
     return;
 
   float sig2Inv = 1 / (2 * ubo.sigma * ubo.sigma + epsilon);
-  float c2Inv =
-      1 / (2 * pow(2, -ubo.i) * ubo.cPhi * pow(2, -ubo.i) * ubo.cPhi + epsilon);
+  float c2Inv = 1 / (2 * ubo.cPhi * ubo.cPhi + epsilon);
   float n2Inv = 1 / (2 * ubo.nPhi * ubo.nPhi + epsilon);
   float p2Inv = 1 / (2 * ubo.pPhi * ubo.pPhi + epsilon);
 
