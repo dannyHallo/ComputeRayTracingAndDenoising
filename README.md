@@ -20,11 +20,8 @@ The [scene](https://github.com/grigoryoskin/vulkan-compute-ray-tracing/blob/mast
 
 ## TODOs:
 
-- [x] Glass materials.
-- [x] Render spheres.
-- [ ] Try "roped" bvh to see how it improves performance.
 - [ ] Blue noise / Sobol sequence
-- [ ] A-Trous
+- [X] A-Trous
 
 ## References
 

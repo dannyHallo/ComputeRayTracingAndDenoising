@@ -21,7 +21,7 @@ layout(binding = 3, rgba8) uniform image2D normalTex;
 layout(binding = 4, rgba32f) uniform image2D posTex;
 layout(binding = 5, rgba8) uniform image2D aTrousTex2;
 
-const float alpha = 0.8;
+const float alpha = 1;
 
 // int kernelSize = int(ceil(2 * 3 * ubo.sigma + 1));
 int kernalHalfSize = (kernelSize - 1) / 2;
