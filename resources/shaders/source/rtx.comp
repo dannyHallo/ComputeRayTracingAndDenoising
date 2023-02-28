@@ -211,8 +211,12 @@ vec3 pathTracingRayColorIndirect(ray r) {
     vec3 lightNormal = normalize(
         cross(e1, e2)); // CAUTION: direction is unfixed! lit from both sides!
 
-    float x = random();
-    float y = random();
+    vec2 randomUV = random_uv();
+    float x = randomUV.x;
+    float y = randomUV.y;
+
+    // float x = random();
+    // float y = random();
 
     if (x + y > 1) {
       x = 1 - x;
@@ -264,36 +268,37 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
   }
 
   // direct lighting
-  for (int i = 0; i < ubo.numLights; i++) {
-    uint lightId = lights[i].triangleIndex;
-    float lightArea = lights[i].area;
+  vec2 randomUV = random_uv();
+  float x = randomUV.x;
+  float y = randomUV.y;
 
-    vec3 e1 = triangles[lightId].v1 - triangles[lightId].v0;
-    vec3 e2 = triangles[lightId].v2 - triangles[lightId].v0;
-    vec3 lightNormal = normalize(
-        cross(e1, e2)); // CAUTION: direction is unfixed! lit from both sides!
+  int i = 0;
+  if (x + y > 1) {
+    x = 1 - x;
+    y = 1 - y;
+    i = 1;
+  }
 
-    float x = random();
-    float y = random();
-    
-    if (x + y > 1) {
-      x = 1 - x;
-      y = 1 - y;
-    }
-    vec3 randomSamplingPointOnLight = triangles[lightId].v0 + e1 * x + e2 * y;
+  uint lightId = lights[i].triangleIndex;
+  float lightArea = lights[i].area;
 
-    vec3 o2l = randomSamplingPointOnLight - rec.p;
-    float distSqr = dot(o2l, o2l);
-    float dist = sqrt(distSqr);
+  vec3 e1 = triangles[lightId].v1 - triangles[lightId].v0;
+  vec3 e2 = triangles[lightId].v2 - triangles[lightId].v0;
+  vec3 lightNormal = normalize(
+      cross(e1, e2)); // CAUTION: direction is unfixed! lit from both sides!
 
-    o2l /= dist;
-    hitRecord rec2;
-    if (hit_bvh(ray(rec.p + rec.normal * 0.0001, o2l), rec2)) {
-      if (materials[rec2.materialIndex].materialType == LIGHT_MATERIAL) {
-        colReturn += materials[rec2.materialIndex].albedo *
-                     dot(o2l, rec.normal) * abs(dot(o2l, lightNormal)) /
-                     distSqr * lightArea;
-      }
+  vec3 randomSamplingPointOnLight = triangles[lightId].v0 + e1 * x + e2 * y;
+
+  vec3 o2l = randomSamplingPointOnLight - rec.p;
+  float distSqr = dot(o2l, o2l);
+  float dist = sqrt(distSqr);
+
+  o2l /= dist;
+  hitRecord rec2;
+  if (hit_bvh(ray(rec.p + rec.normal * 0.0001, o2l), rec2)) {
+    if (materials[rec2.materialIndex].materialType == LIGHT_MATERIAL) {
+      colReturn += materials[rec2.materialIndex].albedo * dot(o2l, rec.normal) *
+                   abs(dot(o2l, lightNormal)) / distSqr * lightArea;
     }
   }
 

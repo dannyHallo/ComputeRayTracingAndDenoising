@@ -47,7 +47,7 @@ void main() {
   ivec2 uv2 =
       ivec2(uvCoord.x * ubo.swapchainWidth, uvCoord.y * ubo.swapchainHeight);
 
-  float alpha = 0.1;
+  float alpha = 0.05;
 
   vec4 accumTracingResult = imageLoad(accumTex, uv2);
   // invalid accumTex

@@ -62,7 +62,7 @@ struct Scene {
     Material pink  = {MaterialType::Lambertian, glm::vec3(1.f, .3f, .36f)};
     Material cyan  = {MaterialType::Lambertian, glm::vec3(.3f, .9f, .6f)};
 
-    Material whiteLight = {MaterialType::LightSource, glm::vec3(1.0f, 1.0f, 1.0f)};
+    Material whiteLight = {MaterialType::LightSource, glm::vec3(1.3f, 1.3f, 1.3f)};
 
     Material metal = {MaterialType::Metal, glm::vec3(1.0f, 1.0f, 1.0f)};
     Material glass = {MaterialType::Glass, glm::vec3(1.0f, 1.0f, 1.0f)};
@@ -74,6 +74,7 @@ struct Scene {
     materials.push_back(green);
     materials.push_back(pink);
     materials.push_back(cyan);
+    materials.push_back(metal);
 
     glm::vec3 cornellBoxScale = {1 / 552.8f, 1 / 548.8f, 1 / 559.2f};
     glm::vec3 cornellBoxPos   = {-0.5f, -0.5f, 1};

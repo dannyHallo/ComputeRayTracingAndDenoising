@@ -2,8 +2,8 @@
 
 const float pi = 3.1415926535897932385;
 
-uint index =
-    ubo.currentSample + gl_GlobalInvocationID.x + imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
+uint index = ubo.currentSample + gl_GlobalInvocationID.x +
+             imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
 
 uint rngState = index * ubo.currentSample + 1;
 
@@ -52,19 +52,24 @@ float random() {
 // Returns a random real in [min,max).
 float random(float min, float max) { return min + (max - min) * random(); }
 
+// pesudo low discrepancy Rx random according to screen coord
+vec2 random_uv() {
+  vec2 seed = r2_seed(gl_GlobalInvocationID.xy);
+  vec2 rand = r2(seed, ubo.currentSample);
+  return rand;
+}
+
 // ---- Low discrepancy noise
 vec3 random_in_unit_sphere() {
-  float seed2[2];
-  float rand2[2];
+  // Rx random
+  vec2 randomUV = random_uv();
 
-  // r2_seed(gl_GlobalInvocationID.xy, seed2);
-  // r2(seed2, ubo.currentSample, rand2);
-
-  for(int i = 0; i < 2; i++)
-    rand2[i] = random();
-
-  float phi = acos(1 - 2 * rand2[0]);
-  float theta = 2 * pi * rand2[1];
+  // // pure random (converges slower)
+  // randomUV.x = random();
+  // randomUV.y = random();
+  
+  float phi = acos(1 - 2 * randomUV.x);
+  float theta = 2 * pi * randomUV.y;
 
   float x = sin(phi) * cos(theta);
   float y = sin(phi) * sin(theta);
