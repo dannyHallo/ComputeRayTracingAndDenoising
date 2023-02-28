@@ -40,6 +40,9 @@ const float fpsUpdateTime = 0.5f;
 bool hasMoved   = false;
 float deltaTime = 0, frameRecordLastTime = 0;
 
+const bool bypassTemporal = false;
+const bool bypassBlur     = false;
+
 struct RtxUniformBufferObject {
   alignas(16) glm::vec3 camPosition;
   alignas(16) glm::vec3 camFront;
@@ -350,7 +353,7 @@ private:
       vmaUnmapMemory(VulkanGlobal::context.getAllocator(), allocation);
     }
 
-    TemporalFilterUniformBufferObject tfUbo = {false, lastMvpe, VulkanGlobal::swapchainContext.getExtent().width,
+    TemporalFilterUniformBufferObject tfUbo = {bypassTemporal, lastMvpe, VulkanGlobal::swapchainContext.getExtent().width,
                                                VulkanGlobal::swapchainContext.getExtent().height};
     {
       auto &allocation = temperalFilterBufferBundle->buffers[currentImage]->allocation;
@@ -437,8 +440,7 @@ private:
 
       for (int j = 0; j < 5; j++) {
         // update ubo for the sampleDistance
-        BlurFilterUniformBufferObject bfUbo = {false, 4, 10000, 0.1, 0.03, j};
-        // BlurFilterUniformBufferObject bfUbo = {false, 4, 100, 0.1, 0.03, j};
+        BlurFilterUniformBufferObject bfUbo = {bypassBlur, 4, 10000, 0.1, 0.03, j};
         {
           auto &allocation = blurFilterBufferBundles[j]->buffers[i]->allocation;
           void *data;

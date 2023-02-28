@@ -211,8 +211,9 @@ vec3 pathTracingRayColorIndirect(ray r) {
     vec3 lightNormal = normalize(
         cross(e1, e2)); // CAUTION: direction is unfixed! lit from both sides!
 
-    float x = random(0, 1);
-    float y = random(0, 1);
+    float x = random();
+    float y = random();
+
     if (x + y > 1) {
       x = 1 - x;
       y = 1 - y;
@@ -272,8 +273,9 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
     vec3 lightNormal = normalize(
         cross(e1, e2)); // CAUTION: direction is unfixed! lit from both sides!
 
-    float x = random(0, 1);
-    float y = random(0, 1);
+    float x = random();
+    float y = random();
+    
     if (x + y > 1) {
       x = 1 - x;
       y = 1 - y;

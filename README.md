@@ -20,8 +20,8 @@ The [scene](https://github.com/grigoryoskin/vulkan-compute-ray-tracing/blob/mast
 
 ## TODOs:
 
-- [ ] Blue noise / Sobol sequence
-- [X] A-Trous
+- [ ] Blue noise / Sobol sequence / Halton sequence
+- [V] A-Trous
 
 ## References
 

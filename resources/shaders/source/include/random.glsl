@@ -1,31 +1,76 @@
+#include "plasticRandom.glsl"
+
 const float pi = 3.1415926535897932385;
 
-// Random number generation using pcg32i_random_t, using inc = 1. Our random
-// state is a uint.
-uint stepRNG(uint rngState) { return rngState * 747796405 + 1; }
+uint index =
+    ubo.currentSample + gl_GlobalInvocationID.x + imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
 
-// Steps the RNG and returns a floating-point value between 0 and 1 inclusive.
-float stepAndOutputRNGFloat(inout uint rngState) {
-  // Condensed version of pcg_output_rxs_m_xs_32_32, with simple conversion to
-  // floating-point [0,1].
-  rngState = stepRNG(rngState);
-  uint word = ((rngState >> ((rngState >> 28) + 4)) ^ rngState) * 277803737;
-  word = (word >> 22) ^ word;
-  return float(word) / 4294967295.0f;
+uint rngState = index * ubo.currentSample + 1;
+
+// ---- Random
+// A single iteration of Bob Jenkins' One-At-A-Time hashing algorithm.
+uint hash(uint x) {
+  x += (x << 10u);
+  x ^= (x >> 6u);
+  x += (x << 3u);
+  x ^= (x >> 11u);
+  x += (x << 15u);
+  return x;
 }
 
-uint rngState = (600 * gl_GlobalInvocationID.x + gl_GlobalInvocationID.y) *
-                (ubo.currentSample + 1);
-float random() { return stepAndOutputRNGFloat(rngState); }
+// Compound versions of the hashing algorithm I whipped together.
+uint hash(uvec2 v) { return hash(v.x ^ hash(v.y)); }
+uint hash(uvec3 v) { return hash(v.x ^ hash(v.y) ^ hash(v.z)); }
+uint hash(uvec4 v) { return hash(v.x ^ hash(v.y) ^ hash(v.z) ^ hash(v.w)); }
 
-float random(float min, float max) {
-  // Returns a random real in [min,max).
-  return min + (max - min) * random();
+// Construct a float with half-open range [0:1] using low 23 bits.
+// All zeroes yields 0.0, all ones yields the next smallest representable value
+// below 1.0.
+float floatConstruct(uint m) {
+  const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask
+  const uint ieeeOne = 0x3F800000u;      // 1.0 in IEEE binary32
+
+  m &= ieeeMantissa; // Keep only mantissa bits (fractional part)
+  m |= ieeeOne;      // Add fractional part to 1.0
+
+  float f = uintBitsToFloat(m); // Range [1:2]
+  return f - 1.0;               // Range [0:1]
 }
 
+// Pseudo-random value in half-open range [0:1].
+float random(uint x) { return floatConstruct(hash(x)); }
+float random(float x) { return floatConstruct(hash(floatBitsToUint(x))); }
+float random(vec2 v) { return floatConstruct(hash(floatBitsToUint(v))); }
+float random(vec3 v) { return floatConstruct(hash(floatBitsToUint(v))); }
+float random(vec4 v) { return floatConstruct(hash(floatBitsToUint(v))); }
+
+float random() {
+  rngState = hash(rngState);
+  return random(rngState);
+}
+
+// Returns a random real in [min,max).
+float random(float min, float max) { return min + (max - min) * random(); }
+
+// ---- Low discrepancy noise
 vec3 random_in_unit_sphere() {
-  vec3 p = vec3(random(-1, 1), random(-1, 1), random(-1, 1));
-  return normalize(p);
+  float seed2[2];
+  float rand2[2];
+
+  // r2_seed(gl_GlobalInvocationID.xy, seed2);
+  // r2(seed2, ubo.currentSample, rand2);
+
+  for(int i = 0; i < 2; i++)
+    rand2[i] = random();
+
+  float phi = acos(1 - 2 * rand2[0]);
+  float theta = 2 * pi * rand2[1];
+
+  float x = sin(phi) * cos(theta);
+  float y = sin(phi) * sin(theta);
+  float z = cos(phi);
+
+  return vec3(x, y, z);
 }
 
 vec3 random_in_hemisphere(vec3 normal) {
