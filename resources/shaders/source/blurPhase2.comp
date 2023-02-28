@@ -18,8 +18,10 @@ ubo;
 layout(binding = 1, rgba8) uniform image2D aTrousTex1;
 layout(binding = 2, rgba8) uniform image2D blurHTex;
 layout(binding = 3, rgba8) uniform image2D normalTex;
-layout(binding = 4, rgba32f) uniform image2D posTex;
-layout(binding = 5, rgba8) uniform image2D aTrousTex2;
+layout(binding = 4, rgba8) uniform image2D depthTex;
+layout(binding = 5, rgba32f) uniform image2D posTex;
+layout(binding = 6, rgba32f) uniform image2D rayDirTex;
+layout(binding = 7, rgba8) uniform image2D aTrousTex2;
 
 const float alpha = 1;
 
@@ -28,58 +30,55 @@ int kernalHalfSize = (kernelSize - 1) / 2;
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  vec4 colorAtUV = imageLoad(aTrousTex1, uv);
+  // vec4 colorAtUV = imageLoad(aTrousTex1, uv);
 
-  if (ubo.bypassBluring) {
-    imageStore(aTrousTex2, uv, colorAtUV);
-    return;
-  }
+  // if (ubo.bypassBluring) {
+  //   imageStore(aTrousTex2, uv, colorAtUV);
+  //   return;
+  // }
 
-  vec3 positionAtUV = imageLoad(posTex, uv).xyz;
-  vec3 normalAtUV = imageLoad(normalTex, uv).xyz;
+  // vec3 positionAtUV = imageLoad(posTex, uv).xyz;
+  // vec3 normalAtUV = imageLoad(normalTex, uv).xyz;
 
-  float sig2Inv = 1 / (2 * ubo.sigma * ubo.sigma + epsilon);
-  float c2Inv = 1 / (2 * alpha * alpha * ubo.cPhi * ubo.cPhi + epsilon);
-  float n2Inv = 1 / (2 * alpha * alpha * ubo.nPhi * ubo.nPhi + epsilon);
-  float p2Inv = 1 / (2 * alpha * alpha * ubo.pPhi * ubo.pPhi + epsilon);
+  // float sig2Inv = 1 / (2 * ubo.sigma * ubo.sigma + epsilon);
+  // float c2Inv = 1 / (2 * alpha * alpha * ubo.cPhi * ubo.cPhi + epsilon);
+  // float p2Inv = 1 / (2 * alpha * alpha * ubo.pPhi * ubo.pPhi + epsilon);
 
-  float sumOfWeights = 0;
-  vec4 sumOfWeightedValues = vec4(0);
-  vec4 weightedColor = vec4(0);
+  // float sumOfWeights = 0;
+  // vec4 sumOfWeightedValues = vec4(0);
+  // vec4 weightedColor = vec4(0);
 
-  for (int index = 0; index < kernelSize; index++) {
-    int x = 0;
-    int y = int((index - kernalHalfSize) * pow(2, ubo.i));
+  // for (int index = 0; index < kernelSize; index++) {
+  //   int x = 0;
+  //   int y = int((index - kernalHalfSize) * pow(2, ubo.i));
 
-    // float weightDistFalloff = exp(-x * x * sig2Inv);
-    float weightDistFalloff = weightsATrous[index];
+  //   // float weightDistFalloff = exp(-x * x * sig2Inv);
+  //   float weightDistFalloff = weightsATrous[index];
 
-    vec4 colorAtSample = imageLoad(aTrousTex1, ivec2(x + uv.x, y + uv.y));
-    vec4 differenceInColorVec = colorAtSample - colorAtUV;
-    float differenceInColorFloat2 =
-        dot(differenceInColorVec, differenceInColorVec);
-    float weightDIC = exp(-differenceInColorFloat2 * c2Inv);
+  //   vec4 colorAtSample = imageLoad(aTrousTex1, ivec2(x + uv.x, y + uv.y));
+  //   vec4 differenceInColorVec = colorAtSample - colorAtUV;
+  //   float differenceInColorFloat2 =
+  //       dot(differenceInColorVec, differenceInColorVec);
+  //   float weightDIC = exp(-differenceInColorFloat2 * c2Inv);
 
-    vec3 normalAtSample = imageLoad(normalTex, ivec2(x + uv.x, y + uv.y)).xyz;
-    vec3 differenceInNormalVec = normalAtSample - normalAtUV;
-    float differenceInNormalFloat2 =
-        dot(differenceInNormalVec, differenceInNormalVec);
-    float weightDIN = exp(-differenceInNormalFloat2 * n2Inv);
+  //   vec3 normalAtSample = imageLoad(normalTex, ivec2(x + uv.x, y +
+  //   uv.y)).xyz; float weightDIN = max(0., pow(dot(normalAtSample,
+  //   normalAtUV), ubo.nPhi));
 
-    vec3 positionAtSample = imageLoad(posTex, ivec2(x + uv.x, y + uv.y)).xyz;
-    vec3 differenceInPositionVec = positionAtSample - positionAtUV;
-    float differenceInPositionFloat2 =
-        dot(differenceInPositionVec, differenceInPositionVec);
-    float weightDIP = exp(-differenceInPositionFloat2 * p2Inv);
+  //   vec3 positionAtSample = imageLoad(posTex, ivec2(x + uv.x, y + uv.y)).xyz;
+  //   vec3 differenceInPositionVec = positionAtSample - positionAtUV;
+  //   float differenceInPositionFloat2 =
+  //       dot(differenceInPositionVec, differenceInPositionVec);
+  //   float weightDIP = exp(-differenceInPositionFloat2 * p2Inv);
 
-    float weight = weightDistFalloff * weightDIC * weightDIN * weightDIP;
+  //   float weight = weightDistFalloff * weightDIC * weightDIN * weightDIP;
 
-    sumOfWeightedValues +=
-        weight * imageLoad(blurHTex, ivec2(x + uv.x, y + uv.y));
-    sumOfWeights += weight;
-  }
+  //   sumOfWeightedValues +=
+  //       weight * imageLoad(blurHTex, ivec2(x + uv.x, y + uv.y));
+  //   sumOfWeights += weight;
+  // }
 
-  weightedColor = sumOfWeightedValues / sumOfWeights;
-  imageStore(aTrousTex2, uv, weightedColor);
-  // imageStore(aTrousTex2, uv, imageLoad(blurHTex, uv));
+  // weightedColor = sumOfWeightedValues / sumOfWeights;
+  // imageStore(aTrousTex2, uv, weightedColor);
+  imageStore(aTrousTex2, uv, imageLoad(blurHTex, uv));
 }

@@ -99,7 +99,9 @@ private:
   std::shared_ptr<mcvkp::Image> rawImage;
   std::shared_ptr<mcvkp::Image> targetImage;
   std::shared_ptr<mcvkp::Image> accumulationImage;
+  std::shared_ptr<mcvkp::Image> depthImage;
   std::shared_ptr<mcvkp::Image> normalImage;
+  std::shared_ptr<mcvkp::Image> rayDirImage;
   std::shared_ptr<mcvkp::Image> triIdImage1;
   std::shared_ptr<mcvkp::Image> triIdImage2;
   std::shared_ptr<mcvkp::Image> blurHImage;
@@ -122,7 +124,7 @@ private:
 
     rtScene = std::make_shared<GpuModel::Scene>();
 
-    // uniform buffers are faster to be filled compared to storage buffers, but they are restricted in their size
+    // uniform buffers are faster to fill compared to storage buffers, but they are restricted in their size
 
     // Buffer bundle is an array of buffers, one per each swapchain image/descriptor set.
     rtxBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
@@ -216,6 +218,24 @@ private:
     mcvkp::ImageUtils::transitionImageLayout(positionImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_GENERAL, 1);
 
+    rayDirImage = std::make_shared<mcvkp::Image>();
+    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
+                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
+                                   VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                                   VMA_MEMORY_USAGE_GPU_ONLY, rayDirImage);
+    mcvkp::ImageUtils::transitionImageLayout(rayDirImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+
+    depthImage = std::make_shared<mcvkp::Image>();
+    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
+                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
+                                   VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                                   VMA_MEMORY_USAGE_GPU_ONLY, depthImage);
+    mcvkp::ImageUtils::transitionImageLayout(depthImage->image, VK_FORMAT_R32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+
     normalImage = std::make_shared<mcvkp::Image>();
     mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
                                    VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
@@ -258,10 +278,13 @@ private:
       rtxMat->addUniformBufferBundle(rtxBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
       // input
       rtxMat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      rtxMat->addStorageImage(rayDirImage, VK_SHADER_STAGE_COMPUTE_BIT);
       rtxMat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      rtxMat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
       rtxMat->addStorageImage(triIdImage1, VK_SHADER_STAGE_COMPUTE_BIT);
       // output
       rtxMat->addStorageImage(rawImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      // buffers
       rtxMat->addStorageBufferBundle(triangleBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
       rtxMat->addStorageBufferBundle(materialBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
       rtxMat->addStorageBufferBundle(aabbBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
@@ -279,6 +302,7 @@ private:
       temporalFilterMat->addStorageImage(rawImage, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(accumulationImage, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      temporalFilterMat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(triIdImage1, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(triIdImage2, VK_SHADER_STAGE_COMPUTE_BIT);
       // output
@@ -293,14 +317,14 @@ private:
         // input
         blurFilterPhase1Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
         blurFilterPhase1Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase1Mat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
         blurFilterPhase1Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase1Mat->addStorageImage(rayDirImage, VK_SHADER_STAGE_COMPUTE_BIT);
         // output
         blurFilterPhase1Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
       }
       blurFilterPhase1Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase1Mat));
-    }
 
-    for (int i = 0; i < 5; i++) {
       auto blurFilterPhase2Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase2.spv");
       {
         blurFilterPhase2Mat->addUniformBufferBundle(blurFilterBufferBundles[i], VK_SHADER_STAGE_COMPUTE_BIT);
@@ -308,7 +332,9 @@ private:
         blurFilterPhase2Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
         blurFilterPhase2Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
         blurFilterPhase2Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase2Mat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
         blurFilterPhase2Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase2Mat->addStorageImage(rayDirImage, VK_SHADER_STAGE_COMPUTE_BIT);
         // output
         blurFilterPhase2Mat->addStorageImage(aTrousImage2, VK_SHADER_STAGE_COMPUTE_BIT);
       }
@@ -417,9 +443,7 @@ private:
 
       VkClearColorValue clearColor{0, 0, 0, 0};
       VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-      vkCmdClearColorImage(currentCommandBuffer, positionImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
       vkCmdClearColorImage(currentCommandBuffer, targetImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
-      vkCmdClearColorImage(currentCommandBuffer, normalImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
       vkCmdClearColorImage(currentCommandBuffer, aTrousImage1->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
       vkCmdClearColorImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
       vkCmdClearColorImage(currentCommandBuffer, blurHImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
@@ -440,7 +464,7 @@ private:
 
       for (int j = 0; j < 5; j++) {
         // update ubo for the sampleDistance
-        BlurFilterUniformBufferObject bfUbo = {bypassBlur, 4, 10000, 0.1, 0.03, j};
+        BlurFilterUniformBufferObject bfUbo = {bypassBlur, 4, 4, 128, 0.03, j};
         {
           auto &allocation = blurFilterBufferBundles[j]->buffers[i]->allocation;
           void *data;

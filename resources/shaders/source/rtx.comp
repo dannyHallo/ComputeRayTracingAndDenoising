@@ -20,25 +20,27 @@ layout(binding = 0) uniform UniformBufferObject {
 ubo;
 
 layout(binding = 1, rgba32f) uniform image2D posTex;
-layout(binding = 2, rgba32f) uniform image2D normalTex;
-layout(binding = 3, r32i) uniform iimage2D triIdTexture1;
-layout(binding = 4, rgba32f) uniform image2D rawTex;
+layout(binding = 2, rgba32f) uniform image2D rayDirTex;
+layout(binding = 3, rgba32f) uniform image2D normalTex;
+layout(binding = 4, r32f) uniform image2D depthTex;
+layout(binding = 5, r32i) uniform iimage2D triIdTexture1;
+layout(binding = 6, rgba32f) uniform image2D rawTex;
 
-layout(std430, binding = 5) readonly buffer TriangleBufferObject {
+layout(std430, binding = 7) readonly buffer TriangleBufferObject {
   triangle[] triangles;
 };
 
-layout(std430, binding = 6) readonly buffer MaterialBufferObject {
+layout(std430, binding = 8) readonly buffer MaterialBufferObject {
   material[] materials;
 };
 
-layout(std430, binding = 7) readonly buffer AabbBufferObject { bvhNode[] bvh; };
+layout(std430, binding = 9) readonly buffer AabbBufferObject { bvhNode[] bvh; };
 
-layout(std430, binding = 8) readonly buffer LightsBufferObject {
+layout(std430, binding = 10) readonly buffer LightsBufferObject {
   light[] lights;
 };
 
-layout(std430, binding = 9) readonly buffer SpheresBufferObject {
+layout(std430, binding = 11) readonly buffer SpheresBufferObject {
   sphere[] spheres;
 };
 
@@ -243,12 +245,13 @@ vec3 pathTracingRayColorIndirect(ray r) {
 }
 
 void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
-                 out vec4 hitNormal, out int hitTriId) {
+                 out vec4 hitNormal, out float hitDepth, out int hitTriId) {
   hitRecord rec;
 
   colReturn = vec3(0, 0, 0);
   hitWorldPos = vec4(0, 0, 0, -1);
   hitNormal = vec4(0, 0, 0, -1);
+  hitDepth = -1;
   hitTriId = -1;
 
   // not hit bvh
@@ -259,6 +262,7 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
 
   hitWorldPos = vec4(rec.p, 1);
   hitNormal = vec4(rec.normal, 0);
+  hitDepth = rec.t;
   hitTriId = rec.triIndex;
 
   // hit light directly
@@ -362,7 +366,7 @@ vec2 tinyDriftInPixelGenerator(uint seed) {
   return drift;
 }
 
-ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right) {
+ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right, out vec3 rayDir) {
   vec2 imageSize = vec2(imageSize(rawTex));
 
   float theta = ubo.vfov * deg2Rad;
@@ -377,26 +381,32 @@ ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right) {
              tinyDriftInPixelGenerator(ubo.currentSample)) /
             imageSize.xy;
 
-  ray r = {origin, normalize(top_left_corner + viewport_width * right * uv.x -
-                             viewport_height * up * uv.y)};
+  rayDir = normalize(top_left_corner + viewport_width * right * uv.x -
+                     viewport_height * up * uv.y);
+  ray r = {origin, rayDir};
 
   return r;
 }
 
 void main() {
-  ray camRay = rayGen(ubo.camPos, ubo.camFront, ubo.camUp, ubo.camRight);
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+
+  vec3 rayDir;
+  ray camRay =
+      rayGen(ubo.camPos, ubo.camFront, ubo.camUp, ubo.camRight, rayDir);
 
   // vec3 hitColor = ray_tracing_ray_color(camRay); // ~ 400fps
   vec3 hitColor;
   vec4 hitWorldPos;
   vec4 hitNormal;
+  float hitDepth;
   int hitTriId;
-  pathTracing(camRay, hitColor, hitWorldPos, hitNormal, hitTriId);
+  pathTracing(camRay, hitColor, hitWorldPos, hitNormal, hitDepth, hitTriId);
 
   imageStore(rawTex, uv, vec4(hitColor, 1));
-  imageStore(posTex, uv, hitWorldPos);  // w: -1 (invalid) or 1 (valid)
+  imageStore(posTex, uv, hitWorldPos); // w: -1 (invalid) or 1 (valid)
+  imageStore(rayDirTex, uv, vec4(rayDir, 0));
   imageStore(normalTex, uv, hitNormal); // w: -1 (invalid) or 0 (valid)
-  imageStore(triIdTexture1, uv,
-             ivec4(hitTriId, 0, 0, 0)); // element: -1 (invalid)
+  imageStore(depthTex, uv, vec4(hitDepth, 0, 0, 0));       // -1 (invalid)
+  imageStore(triIdTexture1, uv, ivec4(hitTriId, 0, 0, 0)); // -1 (invalid)
 }
