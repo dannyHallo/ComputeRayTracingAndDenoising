@@ -7,6 +7,7 @@
 #include "utils/debug.h"
 #include "utils/glm.h"
 
+#include <functional> //for std::hash
 #include <iostream>
 #include <vector>
 
@@ -24,6 +25,9 @@ std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex, 
                                    glm::vec3 scale = {1, 1, 1}) {
   Mesh mesh(path);
 
+  std::hash<std::string> hasher;
+  uint32_t meshId = static_cast<uint32_t>(hasher(path));
+
   std::vector<Triangle> triangles;
   size_t numTris = mesh.indices.size() / 3;
 
@@ -34,7 +38,7 @@ std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex, 
 
     Triangle t{multiplyAccordingly(mesh.vertices[i0].pos, scale) + offset,
                multiplyAccordingly(mesh.vertices[i1].pos, scale) + offset,
-               multiplyAccordingly(mesh.vertices[i2].pos, scale) + offset, materialIndex};
+               multiplyAccordingly(mesh.vertices[i2].pos, scale) + offset, materialIndex, meshId};
     triangles.push_back(t);
   }
   return triangles;

@@ -35,7 +35,8 @@ struct Triangle {
   alignas(16) glm::vec3 v0;
   alignas(16) glm::vec3 v1;
   alignas(16) glm::vec3 v2;
-  alignas(4) uint materialIndex;
+  uint materialIndex;
+  uint meshHash;
 };
 
 struct Sphere {

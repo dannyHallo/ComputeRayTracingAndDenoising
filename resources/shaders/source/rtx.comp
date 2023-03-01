@@ -20,27 +20,26 @@ layout(binding = 0) uniform UniformBufferObject {
 ubo;
 
 layout(binding = 1, rgba32f) uniform image2D posTex;
-layout(binding = 2, rgba32f) uniform image2D rayDirTex;
-layout(binding = 3, rgba32f) uniform image2D normalTex;
-layout(binding = 4, r32f) uniform image2D depthTex;
-layout(binding = 5, r32i) uniform iimage2D triIdTexture1;
-layout(binding = 6, rgba32f) uniform image2D rawTex;
+layout(binding = 2, rgba32f) uniform image2D normalTex;
+layout(binding = 3, r32f) uniform image2D depthTex;
+layout(binding = 4, r32ui) uniform uimage2D meshHashTex1;
+layout(binding = 5, rgba32f) uniform image2D rawTex;
 
-layout(std430, binding = 7) readonly buffer TriangleBufferObject {
+layout(std430, binding = 6) readonly buffer TriangleBufferObject {
   triangle[] triangles;
 };
 
-layout(std430, binding = 8) readonly buffer MaterialBufferObject {
+layout(std430, binding = 7) readonly buffer MaterialBufferObject {
   material[] materials;
 };
 
-layout(std430, binding = 9) readonly buffer AabbBufferObject { bvhNode[] bvh; };
+layout(std430, binding = 8) readonly buffer AabbBufferObject { bvhNode[] bvh; };
 
-layout(std430, binding = 10) readonly buffer LightsBufferObject {
+layout(std430, binding = 9) readonly buffer LightsBufferObject {
   light[] lights;
 };
 
-layout(std430, binding = 11) readonly buffer SpheresBufferObject {
+layout(std430, binding = 10) readonly buffer SpheresBufferObject {
   sphere[] spheres;
 };
 
@@ -58,7 +57,7 @@ struct hitRecord {
   vec3 normal;
   uint materialIndex;
   float t;
-  int triIndex;
+  uint meshHash;
   // representing whetether backface or not with an integer to decrease
   // branches.
   int backFaceInt;
@@ -102,6 +101,7 @@ bool hit_triangle(int triangle_index, ray r, float tMin, float tMax,
     rec.p = r.origin + tNear * r.dir;
     rec.t = tNear;
     rec.materialIndex = tri.materialIndex;
+    rec.meshHash = tri.meshHash;
 
     return tNear > tMin && tNear < tMax;
   }
@@ -180,7 +180,6 @@ bool hit_bvh(ray r, inout hitRecord rec) {
         hit_anything = true;
         closest_so_far = temp_rec.t;
         rec = temp_rec;
-        rec.triIndex = ti;
       }
     }
 
@@ -245,14 +244,14 @@ vec3 pathTracingRayColorIndirect(ray r) {
 }
 
 void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
-                 out vec4 hitNormal, out float hitDepth, out int hitTriId) {
+                 out vec4 hitNormal, out float hitDepth, out uint meshHash) {
   hitRecord rec;
 
   colReturn = vec3(0, 0, 0);
   hitWorldPos = vec4(0, 0, 0, -1);
   hitNormal = vec4(0, 0, 0, -1);
   hitDepth = -1;
-  hitTriId = -1;
+  meshHash = 0;
 
   // not hit bvh
   if (!hit_bvh(r, rec)) {
@@ -263,7 +262,7 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
   hitWorldPos = vec4(rec.p, 1);
   hitNormal = vec4(rec.normal, 0);
   hitDepth = rec.t;
-  hitTriId = rec.triIndex;
+  meshHash = rec.meshHash;
 
   // hit light directly
   if (materials[rec.materialIndex].materialType == LIGHT_MATERIAL) {
@@ -323,7 +322,7 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
   return;
 }
 
-// simple whitted-style ray tracing 400fps @ 2k
+// whitted-style ray tracing for validation @ 400fps, 2k
 vec3 ray_tracing_ray_color(ray r) {
   vec3 lightPos = vec3(0, 0.48, 1.5);
 
@@ -366,7 +365,7 @@ vec2 tinyDriftInPixelGenerator(uint seed) {
   return drift;
 }
 
-ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right, out vec3 rayDir) {
+ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right) {
   vec2 imageSize = vec2(imageSize(rawTex));
 
   float theta = ubo.vfov * deg2Rad;
@@ -381,32 +380,27 @@ ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right, out vec3 rayDir) {
              tinyDriftInPixelGenerator(ubo.currentSample)) /
             imageSize.xy;
 
-  rayDir = normalize(top_left_corner + viewport_width * right * uv.x -
-                     viewport_height * up * uv.y);
+  vec3 rayDir = normalize(top_left_corner + viewport_width * right * uv.x -
+                          viewport_height * up * uv.y);
   ray r = {origin, rayDir};
-
   return r;
 }
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
 
-  vec3 rayDir;
-  ray camRay =
-      rayGen(ubo.camPos, ubo.camFront, ubo.camUp, ubo.camRight, rayDir);
+  ray camRay = rayGen(ubo.camPos, ubo.camFront, ubo.camUp, ubo.camRight);
 
-  // vec3 hitColor = ray_tracing_ray_color(camRay); // ~ 400fps
   vec3 hitColor;
   vec4 hitWorldPos;
   vec4 hitNormal;
   float hitDepth;
-  int hitTriId;
-  pathTracing(camRay, hitColor, hitWorldPos, hitNormal, hitDepth, hitTriId);
+  uint meshHash;
+  pathTracing(camRay, hitColor, hitWorldPos, hitNormal, hitDepth, meshHash);
 
   imageStore(rawTex, uv, vec4(hitColor, 1));
-  imageStore(posTex, uv, hitWorldPos); // w: -1 (invalid) or 1 (valid)
-  imageStore(rayDirTex, uv, vec4(rayDir, 0));
+  imageStore(posTex, uv, hitWorldPos);  // w: -1 (invalid) or 1 (valid)
   imageStore(normalTex, uv, hitNormal); // w: -1 (invalid) or 0 (valid)
-  imageStore(depthTex, uv, vec4(hitDepth, 0, 0, 0));       // -1 (invalid)
-  imageStore(triIdTexture1, uv, ivec4(hitTriId, 0, 0, 0)); // -1 (invalid)
+  imageStore(depthTex, uv, vec4(hitDepth, 0, 0, 0));      // -1 (invalid)
+  imageStore(meshHashTex1, uv, ivec4(meshHash, 0, 0, 0)); // -1 (invalid)
 }

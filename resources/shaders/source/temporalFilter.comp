@@ -15,13 +15,29 @@ layout(binding = 2, rgba32f) uniform image2D rawTex;
 layout(binding = 3, rgba8) uniform image2D accumTex;
 layout(binding = 4, rgba8) uniform image2D normalTex;
 layout(binding = 5, r32f) uniform image2D depthTex;
-layout(binding = 6, r32i) uniform iimage2D triIdTex1;
-layout(binding = 7, r32i) uniform iimage2D triIdTex2;
-layout(binding = 8, rgba8) uniform image2D aTrousTex1;
+layout(binding = 6, r32ui) uniform uimage2D meshHashTex1;
+layout(binding = 7, r32ui) uniform uimage2D meshHashTex2;
+layout(binding = 8, r32i) uniform iimage2D historySampleTex;
+layout(binding = 9, rgba8) uniform image2D aTrousTex1;
+
+float alpha = 0.05;
+
+vec4 pixPos;
+
+ivec2 historyProjection() {
+  vec4 screenBoxCoord = ubo.lastMvpe * pixPos;
+  // points are bounded in [-1, 1] in x, y, z after the following
+  screenBoxCoord /= screenBoxCoord.w;
+  // points are bounded in [0, 1] in x, y, meanwhile z, w are thrown away
+  screenBoxCoord = (screenBoxCoord + vec4(1)) / 2;
+  // to vulkan uv coord, starts from top left corner, range is [0, 1]
+  vec2 uvCoord = vec2(screenBoxCoord.x, 1 - screenBoxCoord.y);
+  return ivec2(uvCoord.x * ubo.swapchainWidth, uvCoord.y * ubo.swapchainHeight);
+}
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  vec4 pixPos = imageLoad(posTex, uv);
+  pixPos = imageLoad(posTex, uv);
 
   vec4 thisTimeTracingResult = imageLoad(rawTex, uv);
 
@@ -38,29 +54,16 @@ void main() {
     return;
   }
 
-  vec4 screenBoxCoord = ubo.lastMvpe * pixPos;
-  // points are bounded in [-1, 1] in x, y, z after the following
-  screenBoxCoord /= screenBoxCoord.w;
-  // points are bounded in [0, 1] in x, y, meanwhile z, w are thrown away
-  screenBoxCoord = (screenBoxCoord + vec4(1)) / 2;
-  // to vulkan uv coord, starts from top left corner, range is [0, 1]
-  vec2 uvCoord = vec2(screenBoxCoord.x, 1 - screenBoxCoord.y);
-  ivec2 uv2 =
-      ivec2(uvCoord.x * ubo.swapchainWidth, uvCoord.y * ubo.swapchainHeight);
-
-  float alpha = 0.05;
+  ivec2 uv2 = historyProjection();
 
   vec4 accumTracingResult = imageLoad(accumTex, uv2);
-  // invalid accumTex
-  if (accumTracingResult.a == 0)
-    alpha = 1;
 
-  // occlution happened last frame
-  if (imageLoad(triIdTex1, uv) != imageLoad(triIdTex2, uv2))
+  // invalid prev accumTex || occlution happened last frame
+  if (accumTracingResult.a == 0 ||
+      imageLoad(meshHashTex1, uv) != imageLoad(meshHashTex2, uv2)) {
     alpha = 1;
-
-  colToWrite =
-      (alpha * thisTimeTracingResult + (1 - alpha) * accumTracingResult);
+  }
+  colToWrite = mix(accumTracingResult, thisTimeTracingResult, alpha);
 
   imageStore(aTrousTex1, uv, colToWrite);
 }
