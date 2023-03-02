@@ -10,6 +10,7 @@ echo Compiling shaders...
 %GLSLC% resources/shaders/source/rtx.comp -o resources/shaders/generated/rtx.spv
 %GLSLC% resources/shaders/source/blurPhase1.comp -o resources/shaders/generated/blurPhase1.spv
 %GLSLC% resources/shaders/source/blurPhase2.comp -o resources/shaders/generated/blurPhase2.spv
+%GLSLC% resources/shaders/source/blurPhase3.comp -o resources/shaders/generated/blurPhase3.spv
 %GLSLC% resources/shaders/source/temporalFilter.comp -o resources/shaders/generated/temporalFilter.spv
 
 echo done

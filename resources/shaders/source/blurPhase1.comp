@@ -40,24 +40,24 @@ void blurKernel(int indexX, inout float sumOfWeights,
   float luminanceAtSample =
       rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
-  float weightC = exp(-differenceInColorVec * 6);
+  float weightC = exp(-differenceInColorVec * 3.5);
 
   // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
-  float weightN = max(0., pow(dot(normalAtSample, normalAtUV), ubo.nPhi));
+  float weightN = max(0., pow(dot(normalAtSample, normalAtUV), 128.));
 
   // ---- method SVGF
-  // float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  // float weightZ = exp(-(abs(depthAtUV - depthAtSample) /
-  //                       (1 * abs(dot(gradientAtUV, vec2(x, y))) + epsilon)));
-  // ---- end of method SVGF
+  float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
+  float weightZ = exp(-(abs(depthAtUV - depthAtSample) /
+                        (1 * abs(dot(gradientAtUV, vec2(x, y))) + epsilon)));
+  // ---- end of SVGF
 
-  // ---- method A-Trous
-  vec3 positionAtSample = imageLoad(posTex, uv + ivec2(x, y)).xyz;
-  vec3 differenceInPositionVec = positionAtUV - positionAtSample;
-  float differenceInPositionFloat2 =
-      dot(differenceInPositionVec, differenceInPositionVec);
-  float weightZ = exp(-differenceInPositionFloat2 * 80);
+  // ---- method A-Trous (cannot keep shadow area)
+  // vec3 positionAtSample = imageLoad(posTex, uv + ivec2(x, y)).xyz;
+  // vec3 differenceInPositionVec = positionAtUV - positionAtSample;
+  // float differenceInPositionFloat2 =
+  //     dot(differenceInPositionVec, differenceInPositionVec);
+  // float weightZ = exp(-differenceInPositionFloat2 * 80);
   // ---- end of method A-Trous
 
   float weight = weightDistFalloff * weightN * weightZ * weightC;
@@ -84,6 +84,8 @@ void main() {
 
   if (ubo.bypassBluring) {
     imageStore(blurHTex, uv, colorAtUV);
+    float depExp = exp(-dep4);
+    imageStore(blurHTex, uv, vec4(gradientAtUV, 0, 1));
     return;
   }
 

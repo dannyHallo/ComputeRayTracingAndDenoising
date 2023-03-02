@@ -88,6 +88,7 @@ private:
   std::shared_ptr<mcvkp::ComputeModel> temporalFilterModel;
   std::vector<std::shared_ptr<mcvkp::ComputeModel>> blurFilterPhase1Models;
   std::vector<std::shared_ptr<mcvkp::ComputeModel>> blurFilterPhase2Models;
+  std::shared_ptr<mcvkp::ComputeModel> blurFilterPhase3Model;
 
   std::shared_ptr<mcvkp::Scene> postProcessScene;
 
@@ -337,6 +338,18 @@ private:
       blurFilterPhase2Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase2Mat));
     }
 
+    auto blurFilterPhase3Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase3.spv");
+    {
+      // input
+      blurFilterPhase3Mat->addStorageImage(aTrousImage2, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase3Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase3Mat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase3Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      // output
+      blurFilterPhase3Mat->addStorageImage(targetImage, VK_SHADER_STAGE_COMPUTE_BIT);
+    }
+    blurFilterPhase3Model = make_shared<ComputeModel>(blurFilterPhase3Mat);
+
     postProcessScene = std::make_shared<Scene>(RenderPassType::eFlat);
 
     auto screenTex      = std::make_shared<Texture>(targetImage);
@@ -406,6 +419,7 @@ private:
 
     VkImageMemoryBarrier targetTexTransDst2ReadOnly = mcvkp::ImageUtils::transferDstToReadOnlyBarrier(targetImage->image);
     VkImageMemoryBarrier targetTexReadOnly2General  = mcvkp::ImageUtils::readOnlyToGeneralBarrier(targetImage->image);
+    VkImageMemoryBarrier targetTexGeneral2ReadOnly  = mcvkp::ImageUtils::generalToReadOnlyBarrier(targetImage->image);
     VkImageMemoryBarrier targetTexGeneral2TransDst  = mcvkp::ImageUtils::generalToTransferDstBarrier(targetImage->image);
     VkImageMemoryBarrier targetTexTransDst2General  = mcvkp::ImageUtils::transferDstToGeneralBarrier(targetImage->image);
 
@@ -478,8 +492,8 @@ private:
                                                   targetImage->height / 32, 1);
 
         // accum texture when the first filter is done
-        // copy aTrousImage2 to aTrousImage1
-        // copy aTrousImage2 to accumTex
+        // (from SVGF) accumulation image should use a properly smoothed image,
+        // the presented one is always not ideal due to the over-blur over time
         if (j == 0) {
           vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
                                nullptr, 0, nullptr, 1, &aTrousTex2General2TransSrc);
@@ -498,8 +512,8 @@ private:
           vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
                                nullptr, 0, nullptr, 1, &accumTexTransDst2General);
         }
-        // copy aTrousImage2 to aTrousImage1
-        else {
+        // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
+        else if (j != 4) {
           vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
                                nullptr, 0, nullptr, 1, &aTrousTex1General2TransDst);
           vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
@@ -512,20 +526,28 @@ private:
                                nullptr, 0, nullptr, 1, &aTrousTex2TransSrc2General);
         }
       }
+
       /////////////////////////////////////////////
 
-      // copy aTrousImage2 to targetTex
-      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
-                           nullptr, 0, nullptr, 1, &aTrousTex2General2TransSrc);
-      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
-                           nullptr, 0, nullptr, 1, &targetTexGeneral2TransDst);
-      vkCmdCopyImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, targetImage->image,
-                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
-                           nullptr, 0, nullptr, 1, &targetTexTransDst2ReadOnly);
-      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
-                           nullptr, 0, nullptr, 1, &aTrousTex2TransSrc2General);
+      blurFilterPhase3Model->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
+                                            targetImage->height / 32, 1);
 
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 1, &targetTexGeneral2ReadOnly);
+
+      // // copy aTrousImage2 to targetTex
+      // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+      //                      nullptr, 0, nullptr, 1, &aTrousTex2General2TransSrc);
+      // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+      //                      nullptr, 0, nullptr, 1, &targetTexGeneral2TransDst);
+      // vkCmdCopyImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, targetImage->image,
+      //                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+      // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+      //                      nullptr, 0, nullptr, 1, &targetTexTransDst2ReadOnly);
+      // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+      //                      nullptr, 0, nullptr, 1, &aTrousTex2TransSrc2General);
+
+      // sync mesh hash image for next frame
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
                            nullptr, 0, nullptr, 1, &triIdTex1General2TransSrc);
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,

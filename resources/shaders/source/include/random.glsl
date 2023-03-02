@@ -55,7 +55,7 @@ float random(float min, float max) { return min + (max - min) * random(); }
 // pesudo low discrepancy Rx random according to screen coord
 vec2 random_uv() {
   vec2 seed = r2_seed(gl_GlobalInvocationID.xy);
-  vec2 rand = r2(seed, ubo.currentSample);
+  vec2 rand = r2(seed, random(float(ubo.currentSample)));
   return rand;
 }
 
