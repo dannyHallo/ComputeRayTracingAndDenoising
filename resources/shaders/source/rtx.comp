@@ -386,6 +386,11 @@ ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right) {
   return r;
 }
 
+// no clamping applied here
+const vec3 maxRadiance = vec3(2);
+// component vise min()
+vec3 fireflyRejectionClamp(vec3 radiance) { return min(radiance, maxRadiance); }
+
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
 
@@ -398,7 +403,7 @@ void main() {
   uint meshHash;
   pathTracing(camRay, hitColor, hitWorldPos, hitNormal, hitDepth, meshHash);
 
-  imageStore(rawTex, uv, vec4(hitColor, 1));
+  imageStore(rawTex, uv, vec4(fireflyRejectionClamp(hitColor), 1));
   imageStore(posTex, uv, hitWorldPos);  // w: -1 (invalid) or 1 (valid)
   imageStore(normalTex, uv, hitNormal); // w: -1 (invalid) or 0 (valid)
   imageStore(depthTex, uv, vec4(hitDepth, 0, 0, 0));      // -1 (invalid)

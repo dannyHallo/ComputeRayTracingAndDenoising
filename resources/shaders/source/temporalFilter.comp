@@ -17,16 +17,12 @@ layout(binding = 4, rgba8) uniform image2D normalTex;
 layout(binding = 5, r32f) uniform image2D depthTex;
 layout(binding = 6, r32ui) uniform uimage2D meshHashTex1;
 layout(binding = 7, r32ui) uniform uimage2D meshHashTex2;
-layout(binding = 11, rgba8) uniform image2D aTrousTex1;
+layout(binding = 8, rgba8) uniform image2D aTrousTex1;
 
-float alpha = 0.05;
-
+float alpha = 0.15;
 
 ivec2 uv;
-
 vec4 pixPos;
-
-
 
 ivec2 backwardProjection() {
   vec4 screenBoxCoord = ubo.lastMvpe * pixPos;

@@ -31,8 +31,8 @@ void main() {
   vec2 sigmaVariancePairThisTime = vec2(0);
   for (int indexY = 0; indexY < varianceKernelSize; indexY++) {
     for (int indexX = 0; indexX < varianceKernelSize; indexX++) {
-      int x = int((indexX - varianceKernelHalfSize));
-      int y = int((indexY - varianceKernelHalfSize));
+      int x = indexX - varianceKernelHalfSize;
+      int y = indexY - varianceKernelHalfSize;
       sigmaVariancePairThisTime += getVariancePairAtPoint(ivec2(x, y));
       samplesThisTime++;
     }

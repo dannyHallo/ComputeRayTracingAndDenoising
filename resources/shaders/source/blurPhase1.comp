@@ -17,8 +17,7 @@ layout(binding = 1, rgba8) uniform image2D aTrousTex1;
 layout(binding = 2, rgba8) uniform image2D normalTex;
 layout(binding = 3, r32f) uniform image2D depthTex;
 layout(binding = 4, rgba32f) uniform image2D posTex;
-layout(binding = 5, r32f) uniform image2D varFilteredTex;
-layout(binding = 6, rgba8) uniform image2D blurHTex;
+layout(binding = 5, rgba8) uniform image2D blurHTex;
 
 // 56, 180 fps
 // 44, 100 fps without separation
@@ -29,20 +28,19 @@ ivec2 uv;
 vec2 gradientAtUV;
 vec3 positionAtUV, normalAtUV;
 vec4 colorAtUV;
-float luminanceAtUV, varianceAtUV, depthAtUV, p2Inv, c2Inv;
+float luminanceAtUV, depthAtUV;
 
-void blurKernel(int indexX, int indexY, inout float sumOfWeights,
+void blurKernel(int indexX, inout float sumOfWeights,
                 inout vec4 sumOfWeightedValues) {
   int x = int((indexX - kernalHalfSize) * pow(2, ubo.i));
-  int y = int((indexY - kernalHalfSize) * pow(2, ubo.i));
+  int y = 0;
 
-  float weightDistFalloff = weightsATrous[indexX] * weightsATrous[indexY];
+  float weightDistFalloff = weightsATrous[indexX];
 
   float luminanceAtSample =
       rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
-  float weightC = exp(-differenceInColorVec / max(1e-5, 4 * varianceAtUV));
-  // weightC = exp(-differenceInColorVec / (0.2 * 1 + epsilon));
+  float weightC = exp(-differenceInColorVec * 6);
 
   // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
@@ -59,7 +57,7 @@ void blurKernel(int indexX, int indexY, inout float sumOfWeights,
   vec3 differenceInPositionVec = positionAtUV - positionAtSample;
   float differenceInPositionFloat2 =
       dot(differenceInPositionVec, differenceInPositionVec);
-  float weightZ = 1;
+  float weightZ = exp(-differenceInPositionFloat2 * 80);
   // ---- end of method A-Trous
 
   float weight = weightDistFalloff * weightN * weightZ * weightC;
@@ -70,6 +68,7 @@ void blurKernel(int indexX, int indexY, inout float sumOfWeights,
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
+  // vec2 imageSize = vec2(imageSize(blurHTex));
 
   colorAtUV = imageLoad(aTrousTex1, uv);
   luminanceAtUV = rgbToLuminance(colorAtUV);
@@ -77,32 +76,23 @@ void main() {
   normalAtUV = imageLoad(normalTex, uv).xyz;
   depthAtUV = imageLoad(depthTex, uv).x;
 
-  varianceAtUV = imageLoad(varFilteredTex, uv).x;
-
   float dep4 = imageLoad(depthTex, uv + ivec2(0, 0)).x;
   float dep5 = imageLoad(depthTex, uv + ivec2(1, 0)).x;
   float dep7 = imageLoad(depthTex, uv + ivec2(0, 1)).x;
   gradientAtUV.x = dep5 - dep4;
   gradientAtUV.y = dep7 - dep4;
 
-  if (false) {
+  if (ubo.bypassBluring) {
     imageStore(blurHTex, uv, colorAtUV);
-    imageStore(blurHTex, uv, vec4(varianceAtUV, varianceAtUV, varianceAtUV, 1));
     return;
   }
-
-  // float sig2Inv = 1 / (2 * ubo.sigma * ubo.sigma + epsilon);
-  c2Inv = 1 / (2 * ubo.cPhi * ubo.cPhi + epsilon);
-  float p2Inv = 1 / (2 * ubo.pPhi * ubo.pPhi + epsilon);
 
   float sumOfWeights = 0;
   vec4 sumOfWeightedValues = vec4(0);
   vec4 weightedColor = vec4(0);
 
-  for (int indexY = 0; indexY < kernelSize; indexY++) {
-    for (int indexX = 0; indexX < kernelSize; indexX++) {
-      blurKernel(indexX, indexY, sumOfWeights, sumOfWeightedValues);
-    }
+  for (int indexX = 0; indexX < kernelSize; indexX++) {
+    blurKernel(indexX, sumOfWeights, sumOfWeightedValues);
   }
 
   weightedColor = sumOfWeightedValues / sumOfWeights;
