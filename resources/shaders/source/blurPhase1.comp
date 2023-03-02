@@ -17,7 +17,7 @@ layout(binding = 1, rgba8) uniform image2D aTrousTex1;
 layout(binding = 2, rgba8) uniform image2D normalTex;
 layout(binding = 3, r32f) uniform image2D depthTex;
 layout(binding = 4, rgba32f) uniform image2D posTex;
-layout(binding = 5, r32f) uniform image2D varTex;
+layout(binding = 5, r32f) uniform image2D varFilteredTex;
 layout(binding = 6, rgba8) uniform image2D blurHTex;
 
 // 56, 180 fps
@@ -29,7 +29,7 @@ ivec2 uv;
 vec2 gradientAtUV;
 vec3 positionAtUV, normalAtUV;
 vec4 colorAtUV;
-float luminanceAtUV, varianceAtUV, depthAtUV, c2Inv;
+float luminanceAtUV, varianceAtUV, depthAtUV, p2Inv, c2Inv;
 
 void blurKernel(int indexX, int indexY, inout float sumOfWeights,
                 inout vec4 sumOfWeightedValues) {
@@ -41,31 +41,30 @@ void blurKernel(int indexX, int indexY, inout float sumOfWeights,
   float luminanceAtSample =
       rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
-  float weightC = exp(-differenceInColorVec / (0.8 * sqrt(varianceAtUV) + epsilon));
-  // float weightC = exp(-differenceInColorVec / (0.2 * 1 + epsilon));
+  float weightC = exp(-differenceInColorVec / max(1e-5, 4 * varianceAtUV));
+  // weightC = exp(-differenceInColorVec / (0.2 * 1 + epsilon));
 
   // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
   float weightN = max(0., pow(dot(normalAtSample, normalAtUV), ubo.nPhi));
 
   // ---- method SVGF
-  float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float weightZ = exp(-(abs(depthAtUV - depthAtSample) /
-                        (1 * abs(dot(gradientAtUV, vec2(x, y))) + epsilon)));
+  // float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
+  // float weightZ = exp(-(abs(depthAtUV - depthAtSample) /
+  //                       (1 * abs(dot(gradientAtUV, vec2(x, y))) + epsilon)));
   // ---- end of method SVGF
 
   // ---- method A-Trous
-  //   vec3 positionAtSample = imageLoad(posTex, uv + ivec2(x, y)).xyz;
-  //   vec3 differenceInPositionVec = positionAtUV - positionAtSample;
-  //   float differenceInPositionFloat2 =
-  //       dot(differenceInPositionVec, differenceInPositionVec);
-  //   float weightZ = exp(-differenceInPositionFloat2 * p2Inv);
+  vec3 positionAtSample = imageLoad(posTex, uv + ivec2(x, y)).xyz;
+  vec3 differenceInPositionVec = positionAtUV - positionAtSample;
+  float differenceInPositionFloat2 =
+      dot(differenceInPositionVec, differenceInPositionVec);
+  float weightZ = 1;
   // ---- end of method A-Trous
 
-  float weight = weightDistFalloff * weightZ * weightN * weightC;
+  float weight = weightDistFalloff * weightN * weightZ * weightC;
 
-  sumOfWeightedValues +=
-      weight * imageLoad(aTrousTex1, uv + ivec2(x, y));
+  sumOfWeightedValues += weight * imageLoad(aTrousTex1, uv + ivec2(x, y));
   sumOfWeights += weight;
 }
 
@@ -77,7 +76,8 @@ void main() {
   positionAtUV = imageLoad(posTex, uv).xyz;
   normalAtUV = imageLoad(normalTex, uv).xyz;
   depthAtUV = imageLoad(depthTex, uv).x;
-  varianceAtUV = imageLoad(varTex, uv).x;
+
+  varianceAtUV = imageLoad(varFilteredTex, uv).x;
 
   float dep4 = imageLoad(depthTex, uv + ivec2(0, 0)).x;
   float dep5 = imageLoad(depthTex, uv + ivec2(1, 0)).x;
@@ -85,15 +85,15 @@ void main() {
   gradientAtUV.x = dep5 - dep4;
   gradientAtUV.y = dep7 - dep4;
 
-  if (ubo.bypassBluring) {
+  if (false) {
     imageStore(blurHTex, uv, colorAtUV);
-    // imageStore(blurHTex, uv, vec4(varianceAtUV, varianceAtUV, varianceAtUV, 1));
+    imageStore(blurHTex, uv, vec4(varianceAtUV, varianceAtUV, varianceAtUV, 1));
     return;
   }
 
   // float sig2Inv = 1 / (2 * ubo.sigma * ubo.sigma + epsilon);
   c2Inv = 1 / (2 * ubo.cPhi * ubo.cPhi + epsilon);
-  // float p2Inv = 1 / (2 * ubo.pPhi * ubo.pPhi + epsilon);
+  float p2Inv = 1 / (2 * ubo.pPhi * ubo.pPhi + epsilon);
 
   float sumOfWeights = 0;
   vec4 sumOfWeightedValues = vec4(0);

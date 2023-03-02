@@ -85,8 +85,9 @@ private:
   std::shared_ptr<GpuModel::Scene> rtScene;
 
   std::shared_ptr<mcvkp::ComputeModel> rtxModel;
-  std::shared_ptr<mcvkp::ComputeModel> varianceModel;
   std::shared_ptr<mcvkp::ComputeModel> temporalFilterModel;
+  std::shared_ptr<mcvkp::ComputeModel> varianceModel;
+  std::shared_ptr<mcvkp::ComputeModel> varianceFilterModel;
   std::vector<std::shared_ptr<mcvkp::ComputeModel>> blurFilterPhase1Models;
   std::vector<std::shared_ptr<mcvkp::ComputeModel>> blurFilterPhase2Models;
 
@@ -98,7 +99,9 @@ private:
 
   std::shared_ptr<mcvkp::Image> positionImage;
   std::shared_ptr<mcvkp::Image> rawImage;
-  std::shared_ptr<mcvkp::Image> varianceImage;
+  std::shared_ptr<mcvkp::Image> variancePairImage;
+  std::shared_ptr<mcvkp::Image> varianceFilteredImage;
+  std::shared_ptr<mcvkp::Image> variancePairAccumImage;
   std::shared_ptr<mcvkp::Image> targetImage;
   std::shared_ptr<mcvkp::Image> accumulationImage;
   std::shared_ptr<mcvkp::Image> depthImage;
@@ -223,9 +226,9 @@ private:
     historySamplesImage = std::make_shared<mcvkp::Image>();
     mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
                                    VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
+                                   VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
                                    VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, historySamplesImage);
-    mcvkp::ImageUtils::transitionImageLayout(historySamplesImage->image, VK_FORMAT_R32_SINT, VK_IMAGE_LAYOUT_UNDEFINED,
+    mcvkp::ImageUtils::transitionImageLayout(historySamplesImage->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_GENERAL, 1);
 
     depthImage = std::make_shared<mcvkp::Image>();
@@ -237,13 +240,31 @@ private:
     mcvkp::ImageUtils::transitionImageLayout(depthImage->image, VK_FORMAT_R32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    varianceImage = std::make_shared<mcvkp::Image>();
+    variancePairImage = std::make_shared<mcvkp::Image>();
+    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
+                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
+                                   VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                                   VMA_MEMORY_USAGE_GPU_ONLY, variancePairImage);
+    mcvkp::ImageUtils::transitionImageLayout(variancePairImage->image, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+
+    varianceFilteredImage = std::make_shared<mcvkp::Image>();
     mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
                                    VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
                                    VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, varianceImage);
-    mcvkp::ImageUtils::transitionImageLayout(varianceImage->image, VK_FORMAT_R32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                   VMA_MEMORY_USAGE_GPU_ONLY, varianceFilteredImage);
+    mcvkp::ImageUtils::transitionImageLayout(varianceFilteredImage->image, VK_FORMAT_R32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+
+    variancePairAccumImage = std::make_shared<mcvkp::Image>();
+    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
+                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
+                                   VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                                   VMA_MEMORY_USAGE_GPU_ONLY, variancePairAccumImage);
+    mcvkp::ImageUtils::transitionImageLayout(variancePairAccumImage->image, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
                                              VK_IMAGE_LAYOUT_GENERAL, 1);
 
     normalImage = std::make_shared<mcvkp::Image>();
@@ -302,13 +323,6 @@ private:
     }
     rtxModel = std::make_shared<ComputeModel>(rtxMat);
 
-    auto varianceMat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/variance.spv");
-    {
-      varianceMat->addStorageImage(rawImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      varianceMat->addStorageImage(varianceImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    }
-    varianceModel = std::make_shared<ComputeModel>(varianceMat);
-
     // temporalFilter.comp
     auto temporalFilterMat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/temporalFilter.spv");
     {
@@ -322,10 +336,28 @@ private:
       temporalFilterMat->addStorageImage(meshHashImage1, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(meshHashImage2, VK_SHADER_STAGE_COMPUTE_BIT);
       temporalFilterMat->addStorageImage(historySamplesImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      temporalFilterMat->addStorageImage(variancePairImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      temporalFilterMat->addStorageImage(variancePairAccumImage, VK_SHADER_STAGE_COMPUTE_BIT);
       // output
       temporalFilterMat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
     }
     temporalFilterModel = std::make_shared<ComputeModel>(temporalFilterMat);
+
+    // variance.comp
+    auto variance = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/variance.spv");
+    {
+      variance->addStorageImage(rawImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      variance->addStorageImage(variancePairImage, VK_SHADER_STAGE_COMPUTE_BIT);
+    }
+    varianceModel = std::make_shared<ComputeModel>(variance);
+
+    // varianceFilter.comp
+    auto varianceFilter = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/varianceFilter.spv");
+    {
+      varianceFilter->addStorageImage(variancePairImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      varianceFilter->addStorageImage(varianceFilteredImage, VK_SHADER_STAGE_COMPUTE_BIT);
+    }
+    varianceFilterModel = std::make_shared<ComputeModel>(varianceFilter);
 
     for (int i = 0; i < 5; i++) {
       auto blurFilterPhase1Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase1.spv");
@@ -336,7 +368,7 @@ private:
         blurFilterPhase1Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
         blurFilterPhase1Mat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
         blurFilterPhase1Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
-        blurFilterPhase1Mat->addStorageImage(varianceImage, VK_SHADER_STAGE_COMPUTE_BIT);
+        blurFilterPhase1Mat->addStorageImage(varianceFilteredImage, VK_SHADER_STAGE_COMPUTE_BIT);
         // output
         blurFilterPhase1Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
       }
@@ -463,6 +495,7 @@ private:
       vkCmdClearColorImage(currentCommandBuffer, aTrousImage1->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
       vkCmdClearColorImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
       vkCmdClearColorImage(currentCommandBuffer, blurHImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+      vkCmdClearColorImage(currentCommandBuffer, variancePairImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
 
       rtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32, targetImage->height / 32,
                                1);
@@ -470,13 +503,19 @@ private:
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
                            nullptr, 0, nullptr, 0, nullptr);
 
-      varianceModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
-                                    targetImage->height / 32, 1);
+      temporalFilterModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
+                                          targetImage->height / 32, 1);
 
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
                            nullptr, 0, nullptr, 0, nullptr);
 
-      temporalFilterModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
+      varianceModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
+                                          targetImage->height / 32, 1);
+
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                           nullptr, 0, nullptr, 0, nullptr);
+
+      varianceFilterModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
                                           targetImage->height / 32, 1);
 
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,

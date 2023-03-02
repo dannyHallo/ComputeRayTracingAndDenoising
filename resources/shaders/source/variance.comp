@@ -2,39 +2,41 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout(binding = 0, rgba32f) uniform image2D rawTex;
-layout(binding = 1, r32f) uniform image2D varTex;
+layout(binding = 0, rgba8) uniform image2D textureForVarianceCalc;
+layout(binding = 1, rg32f) uniform image2D varPairTex;
 
-const int kernelSize = 7;                  // 7x7 kernel
-int kernalHalfSize = (kernelSize - 1) / 2; // 3 <- if using 7x7 kernel
-vec2 sigmaVariancePair = vec2(0);
-int sampCount = 0;
+const int varianceKernelSize = 7; // 7x7 kernel
+int varianceKernelHalfSize =
+    (varianceKernelSize - 1) / 2; // 3 <- if using 7x7 kernel
+
 ivec2 uv;
 
 float rgbToLuminance(vec4 rgba) {
   return rgba.x * 0.2989 + rgba.y * 0.5870 + rgba.z * 0.1140;
 }
 
+vec2 getVariancePairAtPoint(ivec2 offset) {
+  ivec2 p = uv + offset;
+  vec4 pxCol = imageLoad(textureForVarianceCalc, p);
+
+  float samp = rgbToLuminance(pxCol);
+  float samp2 = samp * samp;
+  return vec2(samp, samp2);
+}
+
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
 
-  for (int indexY = 0; indexY < kernelSize; indexY++) {
-    for (int indexX = 0; indexX < kernelSize; indexX++) {
-      int x = int((indexX - kernalHalfSize));
-      int y = int((indexY - kernalHalfSize));
-
-      ivec2 p = uv + ivec2(x, y);
-      vec4 pxCol = imageLoad(rawTex, p);
-
-      float samp = rgbToLuminance(pxCol);
-      float samp2 = samp * samp;
-      sigmaVariancePair += vec2(samp, samp2);
-      sampCount++;
+  uint samplesThisTime = 0;
+  vec2 sigmaVariancePairThisTime = vec2(0);
+  for (int indexY = 0; indexY < varianceKernelSize; indexY++) {
+    for (int indexX = 0; indexX < varianceKernelSize; indexX++) {
+      int x = int((indexX - varianceKernelHalfSize));
+      int y = int((indexY - varianceKernelHalfSize));
+      sigmaVariancePairThisTime += getVariancePairAtPoint(ivec2(x, y));
+      samplesThisTime++;
     }
   }
-  sigmaVariancePair /= float(sampCount);
-  float variance =
-      max(0., sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x);
-
-  imageStore(varTex, uv, vec4(variance, 0, 0, 0));
+  sigmaVariancePairThisTime /= float(samplesThisTime);
+  imageStore(varPairTex, uv, vec4(sigmaVariancePairThisTime, 0, 0));
 }
