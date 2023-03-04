@@ -53,7 +53,6 @@ float random() {
 float random(float min, float max) { return min + (max - min) * random(); }
 
 // uint imagePixelSize = 2560 * 1440;
-
 // pesudo low discrepancy Rx random according to screen coord
 vec2 random_uv() {
   uint randOffsetInPixel =

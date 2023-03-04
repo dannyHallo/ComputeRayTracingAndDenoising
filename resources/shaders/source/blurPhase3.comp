@@ -11,7 +11,6 @@ layout(binding = 3, rgba32f) uniform image2D posTex;
 layout(binding = 4, rgba8) uniform image2D targetTex;
 
 ivec2 uv;
-vec2 gradientAtUV;
 vec3 positionAtUV, normalAtUV;
 vec4 colorAtUV;
 float luminanceAtUV, depthAtUV;
@@ -21,32 +20,16 @@ void blurKernel(int indexX, int indexY, inout float sumOfWeights,
   int x = indexX - kernalHalfSize;
   int y = indexY - kernalHalfSize;
 
-  float weightDistFalloff = weightsATrous[indexX] * weightsATrous[indexY];
-
   float luminanceAtSample =
       rgbToLuminance(imageLoad(aTrousTex2, uv + ivec2(x, y)));
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
-  float weightC = exp(-differenceInColorVec * 5);
+  float weightC = exp(-differenceInColorVec * 10);
 
   // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
   float weightN = max(0., pow(dot(normalAtSample, normalAtUV), 128.));
 
-  // ---- method SVGF
-  float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float weightZ = exp(-(abs(depthAtUV - depthAtSample) /
-                        (1 * abs(dot(gradientAtUV, vec2(x, y))) + epsilon)));
-  // ---- end of method SVGF
-
-  // ---- method A-Trous
-  // vec3 positionAtSample = imageLoad(posTex, uv + ivec2(x, y)).xyz;
-  // vec3 differenceInPositionVec = positionAtUV - positionAtSample;
-  // float differenceInPositionFloat2 =
-  //     dot(differenceInPositionVec, differenceInPositionVec);
-  // float weightZ = exp(-differenceInPositionFloat2 * 80);
-  // ---- end of method A-Trous
-
-  float weight = weightDistFalloff * weightN * 1 * 1;
+  float weight = weightN * weightC;
 
   sumOfWeightedValues += weight * imageLoad(aTrousTex2, uv + ivec2(x, y));
   sumOfWeights += weight;
@@ -61,12 +44,6 @@ void main() {
   normalAtUV = imageLoad(normalTex, uv).xyz;
   depthAtUV = imageLoad(depthTex, uv).x;
 
-  float dep4 = imageLoad(depthTex, uv + ivec2(0, 0)).x;
-  float dep5 = imageLoad(depthTex, uv + ivec2(1, 0)).x;
-  float dep7 = imageLoad(depthTex, uv + ivec2(0, 1)).x;
-  gradientAtUV.x = dep5 - dep4;
-  gradientAtUV.y = dep7 - dep4;
-
   float sumOfWeights = 0;
   vec4 sumOfWeightedValues = vec4(0);
   vec4 weightedColor = vec4(0);
@@ -78,4 +55,5 @@ void main() {
   }
   weightedColor = sumOfWeightedValues / sumOfWeights;
   imageStore(targetTex, uv, weightedColor);
+  // imageStore(targetTex, uv, colorAtUV);
 }

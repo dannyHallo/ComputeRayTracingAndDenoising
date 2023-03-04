@@ -495,7 +495,7 @@ private:
 
         // accum texture when the first filter is done
         // (from SVGF) accumulation image should use a properly smoothed image,
-        // the presented one is always not ideal due to the over-blur over time
+        // the presented one is not ideal due to the over-blur over time
         if (j == 0) {
           vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
                                nullptr, 0, nullptr, 1, &aTrousTex2General2TransSrc);

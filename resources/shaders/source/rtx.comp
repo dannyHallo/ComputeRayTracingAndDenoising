@@ -366,6 +366,7 @@ vec2 tinyDriftInPixelGenerator(uint seed) {
   seed %= 4;
   drift.x = driftXs[seed];
   drift.y = driftYs[seed];
+  drift = vec2(.5, .5);
 
   return drift;
 }
