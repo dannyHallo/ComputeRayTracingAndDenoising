@@ -1,5 +1,5 @@
 // guides to low descripancy sequence:
-// http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/
+// http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences
 // https://psychopath.io/post/2014_06_28_low_discrepancy_sequences
 
 // rounding off issues:

@@ -18,14 +18,23 @@ The [scene](https://github.com/grigoryoskin/vulkan-compute-ray-tracing/blob/mast
 
 [BVH](https://github.com/grigoryoskin/vulkan-compute-ray-tracing/blob/master/src/compute/Bvh.h) used to accelarate triangle search is a flat array too, since GPU doesn't support recursion.
 
+## Accomplished:
+
+- Temporal Accumulation
+- Low Discrepancy Noise
+- A-Trous
+- SVGF (but without variance calc)
+
 ## TODOs:
 
-- [ ] Blue noise / Sobol sequence / Halton sequence
-- [V] A-Trous
+- [ ] Vulkan hardware accelerated ray tracing
+- [ ] Sparse voxel octree
 
 ## References
 
 https://alain.xyz/blog/ray-tracing-filtering
+http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences
+https://psychopath.io/post/2014_06_28_low_discrepancy_sequences
 
 ## How to run
 
