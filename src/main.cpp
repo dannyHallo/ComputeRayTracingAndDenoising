@@ -43,7 +43,7 @@ float deltaTime = 0, frameRecordLastTime = 0;
 constexpr int aTrousSize = 5;
 
 const bool bypassTemporal = false;
-const bool bypassBlur     = true;
+const bool bypassBlur     = false;
 
 struct RtxUniformBufferObject {
   alignas(16) glm::vec3 camPosition;
@@ -61,17 +61,13 @@ struct RtxUniformBufferObject {
 struct TemporalFilterUniformBufferObject {
   int bypassTemporalFiltering;
   alignas(16) glm::mat4 lastMvpe;
-  float swapchainWidth;
-  float swapchainHeight;
+  uint swapchainWidth;
+  uint swapchainHeight;
 };
 
 // bigger phi indicates bigger tolerence to apply blur
 struct BlurFilterUniformBufferObject {
   int bypassBluring; // just a 4 bytes bool
-  float sigma;
-  float cPhi;
-  float nPhi;
-  float pPhi;
   int i;
 };
 
@@ -476,7 +472,7 @@ private:
 
       for (int j = 0; j < aTrousSize; j++) {
         // update ubo for the sampleDistance
-        BlurFilterUniformBufferObject bfUbo = {bypassBlur, 4, 0.1, 128, 0.03, j};
+        BlurFilterUniformBufferObject bfUbo = {bypassBlur, j};
         {
           auto &allocation = blurFilterBufferBundles[j]->buffers[i]->allocation;
           void *data;
