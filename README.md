@@ -1,6 +1,8 @@
 # Vulkan compute shader based ray tracer.
 
-<img width="500" alt="Screen Shot 2021-08-01 at 18 36 16" src="https://user-images.githubusercontent.com/44236259/127766493-e2402bde-48ca-462a-8110-d849151e9d18.png">
+<img width="500" src="https://github.com/dannyHallo/RTX-in-a-weekend-with-Vulkan/blob/main/imgs/1.%20raw.png">
+<img width="500" src="https://github.com/dannyHallo/RTX-in-a-weekend-with-Vulkan/blob/main/imgs/2.%20temporal.png">
+<img width="500" src="https://github.com/dannyHallo/RTX-in-a-weekend-with-Vulkan/blob/main/imgs/3.%20filtered.png">
 
 Ray tracer loosely based on [raytracing in one weekend series](https://raytracing.github.io), adapted for real time rendering on GPU.
 
