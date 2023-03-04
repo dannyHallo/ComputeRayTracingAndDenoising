@@ -21,7 +21,7 @@ layout(binding = 8, rgba8) uniform image2D aTrousTex1;
 
 // when alpha is too low, the image is over-smoothed -> loss of detail
 // when alpha is too high, the image is unstable     -> jitter of noise
-float alpha = 0.2;
+float alpha = 0.15;
 
 ivec2 uv;
 vec4 pixPos;
