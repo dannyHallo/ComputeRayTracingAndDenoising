@@ -43,7 +43,7 @@ float deltaTime = 0, frameRecordLastTime = 0;
 constexpr int aTrousSize = 5;
 
 const bool bypassTemporal = false;
-const bool bypassBlur     = false;
+const bool bypassBlur     = true;
 
 struct RtxUniformBufferObject {
   alignas(16) glm::vec3 camPosition;
