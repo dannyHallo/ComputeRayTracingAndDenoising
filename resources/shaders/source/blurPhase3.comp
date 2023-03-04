@@ -46,7 +46,7 @@ void blurKernel(int indexX, int indexY, inout float sumOfWeights,
   // float weightZ = exp(-differenceInPositionFloat2 * 80);
   // ---- end of method A-Trous
 
-  float weight = weightDistFalloff * weightN * weightZ * weightC;
+  float weight = weightDistFalloff * weightN * 1 * 1;
 
   sumOfWeightedValues += weight * imageLoad(aTrousTex2, uv + ivec2(x, y));
   sumOfWeights += weight;

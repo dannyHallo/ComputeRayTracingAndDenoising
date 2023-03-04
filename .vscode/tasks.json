@@ -2,9 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "compile and run",
+      "label": "compile shaders and run",
       "type": "shell",
-      "command": "${workspaceFolder}/compile_and_run.bat"
+      "command": "${workspaceFolder}/compile_shader.bat"
+    },
+    {
+      "label": "compile shaders and cpp and run",
+      "type": "shell",
+      "command": "${workspaceFolder}/compile_shader_cpp.bat"
     }
   ]
 }

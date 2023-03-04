@@ -38,7 +38,7 @@ void blurKernel(int indexY, inout float sumOfWeights,
   float luminanceAtSample =
       rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
-  float weightC = exp(-differenceInColorVec * 3.5);
+  float weightC = exp(-differenceInColorVec * 3);
 
   // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
@@ -46,17 +46,11 @@ void blurKernel(int indexY, inout float sumOfWeights,
 
   // ---- method SVGF
   float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float weightZ = exp(-(abs(depthAtUV - depthAtSample) /
-                        (1 * abs(dot(gradientAtUV, vec2(x, y))) + epsilon)));
-  // ---- end of method SVGF
-
-  // ---- method A-Trous
-  // vec3 positionAtSample = imageLoad(posTex, uv + ivec2(x, y)).xyz;
-  // vec3 differenceInPositionVec = positionAtUV - positionAtSample;
-  // float differenceInPositionFloat2 =
-  //     dot(differenceInPositionVec, differenceInPositionVec);
-  // float weightZ = exp(-differenceInPositionFloat2 * 80);
-  // ---- end of method A-Trous
+  float weightFac = abs(depthAtUV - depthAtSample) /
+                    (abs(dot(gradientAtUV, vec2(x, y))) + epsilon);
+  weightFac = min(weightFac, 1);
+  float weightZ = exp(-weightFac);
+  // ---- end of SVGF
 
   float weight = weightDistFalloff * weightN * weightZ * weightC;
 

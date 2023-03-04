@@ -216,8 +216,8 @@ vec3 pathTracingRayColorIndirect(ray r) {
     float x = randomUV.x;
     float y = randomUV.y;
 
-    // float x = random();
-    // float y = random();
+    x = random();
+    y = random();
 
     if (x + y > 1) {
       x = 1 - x;
@@ -275,6 +275,9 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
   float x = randomUV.x;
   float y = randomUV.y;
 
+  x = random();
+  y = random();
+
   int i = 0;
   if (x + y > 1) {
     x = 1 - x;
@@ -305,21 +308,23 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
     }
   }
 
+  vec3 secondaryRayDir;
   // indirect lighting
   if (materials[rec.materialIndex].materialType == METAL_MATERIAL) {
-    vec3 secondaryRayDir = reflect(r.dir, rec.normal);
+    secondaryRayDir = reflect(r.dir, rec.normal);
     colReturn += pathTracingRayColorIndirect(
                      ray(rec.p + rec.normal * 0.0001, secondaryRayDir)) *
                  dot(secondaryRayDir, rec.normal);
   } else {
-    vec3 secondaryRayDir = random_in_hemisphere(rec.normal);
+    secondaryRayDir = random_in_hemisphere(rec.normal);
     colReturn += pathTracingRayColorIndirect(
                      ray(rec.p + rec.normal * 0.0001, secondaryRayDir)) *
                  dot(secondaryRayDir, rec.normal) * 2 * pi;
   }
 
+  // colReturn *= materials[rec.materialIndex].albedo;
   colReturn *= materials[rec.materialIndex].albedo;
-  return;
+  // colReturn =  secondaryRayDir;
 }
 
 // whitted-style ray tracing for validation @ 400fps, 2k

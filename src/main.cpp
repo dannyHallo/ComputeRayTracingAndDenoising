@@ -40,8 +40,10 @@ const float fpsUpdateTime = 0.5f;
 bool hasMoved   = false;
 float deltaTime = 0, frameRecordLastTime = 0;
 
-const bool bypassTemporal = false;
-const bool bypassBlur     = false;
+constexpr int aTrousSize = 5;
+
+const bool bypassTemporal = true;
+const bool bypassBlur     = true;
 
 struct RtxUniformBufferObject {
   alignas(16) glm::vec3 camPosition;
@@ -137,7 +139,7 @@ private:
                                                                  TemporalFilterUniformBufferObject{},
                                                                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < aTrousSize; i++) {
       auto blurFilterBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
       BufferUtils::createBundle<BlurFilterUniformBufferObject>(blurFilterBufferBundle.get(), BlurFilterUniformBufferObject{},
                                                                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -309,7 +311,7 @@ private:
     }
     temporalFilterModel = std::make_shared<ComputeModel>(temporalFilterMat);
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < aTrousSize; i++) {
       auto blurFilterPhase1Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase1.spv");
       {
         blurFilterPhase1Mat->addUniformBufferBundle(blurFilterBufferBundles[i], VK_SHADER_STAGE_COMPUTE_BIT);
@@ -472,7 +474,7 @@ private:
 
       /////////////////////////////////////////////
 
-      for (int j = 0; j < 5; j++) {
+      for (int j = 0; j < aTrousSize; j++) {
         // update ubo for the sampleDistance
         BlurFilterUniformBufferObject bfUbo = {bypassBlur, 4, 0.1, 128, 0.03, j};
         {
@@ -513,7 +515,7 @@ private:
                                nullptr, 0, nullptr, 1, &accumTexTransDst2General);
         }
         // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
-        else if (j != 4) {
+        else if (j != aTrousSize - 1) {
           vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
                                nullptr, 0, nullptr, 1, &aTrousTex1General2TransDst);
           vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,

@@ -40,7 +40,7 @@ void blurKernel(int indexX, inout float sumOfWeights,
   float luminanceAtSample =
       rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
-  float weightC = exp(-differenceInColorVec * 3.5);
+  float weightC = exp(-differenceInColorVec * 3);
 
   // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
@@ -48,17 +48,11 @@ void blurKernel(int indexX, inout float sumOfWeights,
 
   // ---- method SVGF
   float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float weightZ = exp(-(abs(depthAtUV - depthAtSample) /
-                        (1 * abs(dot(gradientAtUV, vec2(x, y))) + epsilon)));
+  float weightFac = abs(depthAtUV - depthAtSample) /
+                    (abs(dot(gradientAtUV, vec2(x, y))) + epsilon);
+  weightFac = min(weightFac, 1);
+  float weightZ = exp(-weightFac);
   // ---- end of SVGF
-
-  // ---- method A-Trous (cannot keep shadow area)
-  // vec3 positionAtSample = imageLoad(posTex, uv + ivec2(x, y)).xyz;
-  // vec3 differenceInPositionVec = positionAtUV - positionAtSample;
-  // float differenceInPositionFloat2 =
-  //     dot(differenceInPositionVec, differenceInPositionVec);
-  // float weightZ = exp(-differenceInPositionFloat2 * 80);
-  // ---- end of method A-Trous
 
   float weight = weightDistFalloff * weightN * weightZ * weightC;
 
@@ -68,7 +62,7 @@ void blurKernel(int indexX, inout float sumOfWeights,
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
-  // vec2 imageSize = vec2(imageSize(blurHTex));
+  vec2 imageSize = vec2(imageSize(blurHTex));
 
   colorAtUV = imageLoad(aTrousTex1, uv);
   luminanceAtUV = rgbToLuminance(colorAtUV);
@@ -84,8 +78,8 @@ void main() {
 
   if (ubo.bypassBluring) {
     imageStore(blurHTex, uv, colorAtUV);
-    float depExp = exp(-dep4);
-    imageStore(blurHTex, uv, vec4(gradientAtUV, 0, 1));
+    // float depExp = exp(-dep4);
+    // imageStore(blurHTex, uv, vec4(gradientAtUV, 0, 1));
     return;
   }
 
@@ -98,5 +92,11 @@ void main() {
   }
 
   weightedColor = sumOfWeightedValues / sumOfWeights;
-  imageStore(blurHTex, uv, weightedColor);
+
+  // if (gl_GlobalInvocationID.x < imageSize.x / 2)
+  if (true)
+    imageStore(blurHTex, uv, weightedColor);
+  else
+    imageStore(blurHTex, uv,
+               vec4(exp(-depthAtUV), exp(-depthAtUV), exp(-depthAtUV), 1));
 }
