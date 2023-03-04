@@ -2,21 +2,7 @@
 
 <img width="500" alt="Screen Shot 2021-08-01 at 18 36 16" src="https://user-images.githubusercontent.com/44236259/127766493-e2402bde-48ca-462a-8110-d849151e9d18.png">
 
-![ezgif-7-7a97c6e30f17](https://user-images.githubusercontent.com/44236259/127881165-f86d19b0-65f0-4b07-81e6-2ff1b92eea1e.gif)
-
 Ray tracer loosely based on [raytracing in one weekend series](https://raytracing.github.io), adapted for real time rendering on GPU.
-
-## How it works.
-
-Overall project structure comes from my [project template](https://github.com/grigoryoskin/vulkan-project-starter) with some changes to enable compute functionality.
-
-[Compute shader](https://github.com/grigoryoskin/vulkan-compute-ray-tracing/blob/master/resources/shaders/source/ray-trace-compute.comp) renders the ray traced scene into a texture that gets displayed onto a screen quad with a fragment shader.
-
-[ComputeMaterial](https://github.com/grigoryoskin/vulkan-compute-ray-tracing/blob/master/src/main.cpp#L121) holds the target texture, data buffers, pipeline and descriptor sets.
-
-The [scene](https://github.com/grigoryoskin/vulkan-compute-ray-tracing/blob/master/src/compute/RtScene.h) consists of a an array of materials and an array of triangles. Each triangle holds a reference to the material. Reference is just material's index in the array for ease of use on GPU.
-
-[BVH](https://github.com/grigoryoskin/vulkan-compute-ray-tracing/blob/master/src/compute/Bvh.h) used to accelarate triangle search is a flat array too, since GPU doesn't support recursion.
 
 ## Accomplished:
 
