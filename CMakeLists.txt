@@ -14,21 +14,19 @@ configure_file(${CMAKE_SOURCE_DIR}/src/utils/RootDir.h.in ${CMAKE_SOURCE_DIR}/sr
 
 # Build dependencies
 add_subdirectory(dep/glfw)
-add_subdirectory(dep/vk-bootstrap)
 
 include_directories(
 	src
     dep
 	dep/glfw/include
 	dep/glm
+	dep/volk
 	dep/stb
 	dep/obj-loader
-	dep/memory-allocator-hpp
-	dep/vk-bootstrap/src)
+	dep/memory-allocator-hpp)
 
 add_executable(${PROJECT_NAME}
 	src/app-context/VulkanApplicationContext.cpp
-	src/app-context/VulkanSwapchain.cpp
 	src/main.cpp
 	src/memory/Image.cpp
 	src/render-context/FlatRenderPass.cpp
@@ -40,11 +38,16 @@ add_executable(${PROJECT_NAME}
 	src/scene/Material.cpp
 	src/scene/Scene.cpp
 	src/scene/mesh.cpp
-	src/utils/StbImageImpl.cpp)
+	src/utils/StbImageImpl.cpp
+	
+	dep/imgui/imgui_demo.cpp
+    dep/imgui/imgui_draw.cpp
+    dep/imgui/imgui_tables.cpp
+    dep/imgui/imgui_widgets.cpp
+    dep/imgui/imgui.cpp
+	)
 
 target_link_directories(${PROJECT_NAME}
-    PRIVATE ${PROJECT_BINARY_DIR}/dep/glfw/src/Release
-    PRIVATE ${PROJECT_BINARY_DIR}/dep/vk-bootstrap/Release
-	PRIVATE $ENV{VULKAN_SDK}/Lib)
+    PRIVATE ${PROJECT_BINARY_DIR}/dep/glfw/src/Release)
 
-target_link_libraries(${PROJECT_NAME} glfw3.lib vk-bootstrap.lib vulkan-1.lib)
+target_link_libraries(${PROJECT_NAME} glfw3.lib)

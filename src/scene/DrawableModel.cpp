@@ -8,7 +8,6 @@
 
 #include <vector>
 
-namespace mcvkp {
 DrawableModel::DrawableModel(std::shared_ptr<Material> material, std::string modelPath) : m_material(material) {
   Mesh m(modelPath);
 
@@ -26,7 +25,7 @@ DrawableModel::DrawableModel(std::shared_ptr<Material> material, MeshType type) 
 std::shared_ptr<Material> DrawableModel::getMaterial() { return m_material; }
 
 void DrawableModel::drawCommand(VkCommandBuffer &commandBuffer, size_t currentFrame) {
-  // mcvkp::Buffer<VkDrawIndexedIndirectCommand> indirectBuffer;
+  // Buffer<VkDrawIndexedIndirectCommand> indirectBuffer;
   // VkDrawIndexedIndirectCommand indirectCommand;
   // indirectCommand.indexCount = static_cast<uint32_t>(mesh.indices.size());
   // indirectCommand.instanceCount = 1;
@@ -62,4 +61,3 @@ void DrawableModel::initIndexBuffer(const Mesh &mesh) {
   BufferUtils::create<uint32_t>(&m_indexBuffer, mesh.indices.data(), mesh.indices.size(),
                                 VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 }
-} // namespace mcvkp

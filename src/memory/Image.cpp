@@ -8,7 +8,6 @@
 #include <iostream>
 #include <string>
 
-namespace mcvkp {
 Image::~Image() { destroy(); }
 
 void Image::destroy() {
@@ -244,7 +243,7 @@ void createTextureImage(const std::string &path, std::shared_ptr<Image> allocate
     throw std::runtime_error("failed to load texture image!");
   }
 
-  mcvkp::Buffer stagingBuffer;
+  Buffer stagingBuffer;
   BufferUtils::create(&stagingBuffer, tex.pixels, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                       VMA_MEMORY_USAGE_CPU_TO_GPU);
 
@@ -309,5 +308,3 @@ VkDescriptorImageInfo Texture::getDescriptorInfo() {
 
   return imageInfo;
 }
-
-} // namespace mcvkp

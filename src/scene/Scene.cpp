@@ -1,6 +1,5 @@
 #include "Scene.h"
 
-namespace mcvkp {
 Scene::Scene(RenderPassType RenderPassType) {
   switch (RenderPassType) {
   case RenderPassType::eFlat:
@@ -31,7 +30,7 @@ void Scene::writeRenderCommand(VkCommandBuffer &commandBuffer, const size_t curr
   renderPassInfo.renderPass        = *m_RenderPass->getBody();
   renderPassInfo.framebuffer       = *m_RenderPass->getFramebuffer(currentFrame);
   renderPassInfo.renderArea.offset = {0, 0};
-  renderPassInfo.renderArea.extent = VulkanGlobal::swapchainContext.getExtent();
+  renderPassInfo.renderArea.extent = VulkanGlobal::context.getSwapchainExtent();
   std::array<VkClearValue, 2> clearValues{};
   clearValues[0].color        = {0, 0, 0, 1};
   clearValues[1].depthStencil = {1.0f, 0};
@@ -47,4 +46,3 @@ void Scene::writeRenderCommand(VkCommandBuffer &commandBuffer, const size_t curr
 
   vkCmdEndRenderPass(commandBuffer);
 }
-} // namespace mcvkp

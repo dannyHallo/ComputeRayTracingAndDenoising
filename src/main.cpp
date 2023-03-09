@@ -1,9 +1,8 @@
-#include "app-context/VulkanApplicationContext.h"
+
 #include "app-context/VulkanGlobal.h"
-#include "app-context/VulkanSwapchain.h"
+
 #include "memory/ImageUtils.h"
 #include "ray-tracing/RtScene.h"
-// #include "render-context/FlatRenderPass.h"
 #include "render-context/RenderSystem.h"
 #include "scene/ComputeMaterial.h"
 #include "scene/ComputeModel.h"
@@ -13,7 +12,11 @@
 #include "utils/Camera.h"
 #include "utils/RootDir.h"
 #include "utils/glm.h"
+#include "utils/systemLog.h"
 #include "utils/vulkan.h"
+
+// #include "imgui_impl_glfw.h"
+// #include "imgui_impl_vulkan.h"
 
 #include <array>
 #include <cstdlib>
@@ -82,30 +85,30 @@ public:
 private:
   std::shared_ptr<GpuModel::Scene> rtScene;
 
-  std::shared_ptr<mcvkp::ComputeModel> rtxModel;
-  std::shared_ptr<mcvkp::ComputeModel> temporalFilterModel;
-  std::vector<std::shared_ptr<mcvkp::ComputeModel>> blurFilterPhase1Models;
-  std::vector<std::shared_ptr<mcvkp::ComputeModel>> blurFilterPhase2Models;
-  std::shared_ptr<mcvkp::ComputeModel> blurFilterPhase3Model;
+  std::shared_ptr<ComputeModel> rtxModel;
+  std::shared_ptr<ComputeModel> temporalFilterModel;
+  std::vector<std::shared_ptr<ComputeModel>> blurFilterPhase1Models;
+  std::vector<std::shared_ptr<ComputeModel>> blurFilterPhase2Models;
+  std::shared_ptr<ComputeModel> blurFilterPhase3Model;
 
-  std::shared_ptr<mcvkp::Scene> postProcessScene;
+  std::shared_ptr<Scene> postProcessScene;
 
-  std::shared_ptr<mcvkp::BufferBundle> rtxBufferBundle;
-  std::shared_ptr<mcvkp::BufferBundle> temperalFilterBufferBundle;
-  std::vector<std::shared_ptr<mcvkp::BufferBundle>> blurFilterBufferBundles;
+  std::shared_ptr<BufferBundle> rtxBufferBundle;
+  std::shared_ptr<BufferBundle> temperalFilterBufferBundle;
+  std::vector<std::shared_ptr<BufferBundle>> blurFilterBufferBundles;
 
-  std::shared_ptr<mcvkp::Image> positionImage;
-  std::shared_ptr<mcvkp::Image> rawImage;
-  std::shared_ptr<mcvkp::Image> targetImage;
-  std::shared_ptr<mcvkp::Image> accumulationImage;
-  std::shared_ptr<mcvkp::Image> depthImage;
-  std::shared_ptr<mcvkp::Image> normalImage;
-  std::shared_ptr<mcvkp::Image> historySamplesImage;
-  std::shared_ptr<mcvkp::Image> meshHashImage1;
-  std::shared_ptr<mcvkp::Image> meshHashImage2;
-  std::shared_ptr<mcvkp::Image> blurHImage;
-  std::shared_ptr<mcvkp::Image> aTrousImage1;
-  std::shared_ptr<mcvkp::Image> aTrousImage2;
+  std::shared_ptr<Image> positionImage;
+  std::shared_ptr<Image> rawImage;
+  std::shared_ptr<Image> targetImage;
+  std::shared_ptr<Image> accumulationImage;
+  std::shared_ptr<Image> depthImage;
+  std::shared_ptr<Image> normalImage;
+  std::shared_ptr<Image> historySamplesImage;
+  std::shared_ptr<Image> meshHashImage1;
+  std::shared_ptr<Image> meshHashImage2;
+  std::shared_ptr<Image> blurHImage;
+  std::shared_ptr<Image> aTrousImage1;
+  std::shared_ptr<Image> aTrousImage2;
 
   std::vector<VkCommandBuffer> commandBuffers;
 
@@ -117,158 +120,144 @@ private:
 
   // Initializing layouts and models.
   void initScene() {
-    using namespace mcvkp;
     // = descriptor sets size
-    uint32_t swapchainImageViewSize = static_cast<uint32_t>(VulkanGlobal::swapchainContext.getImageViews().size());
+    uint32_t swapchainImageViewSize = static_cast<uint32_t>(VulkanGlobal::context.getSwapchainImageViews().size());
 
     rtScene = std::make_shared<GpuModel::Scene>();
 
     // uniform buffers are faster to fill compared to storage buffers, but they are restricted in their size
-
     // Buffer bundle is an array of buffers, one per each swapchain image/descriptor set.
-    rtxBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
+    rtxBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
     BufferUtils::createBundle<RtxUniformBufferObject>(rtxBufferBundle.get(), RtxUniformBufferObject{},
                                                       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-    temperalFilterBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
+    temperalFilterBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
     BufferUtils::createBundle<TemporalFilterUniformBufferObject>(temperalFilterBufferBundle.get(),
                                                                  TemporalFilterUniformBufferObject{},
                                                                  VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
     for (int i = 0; i < aTrousSize; i++) {
-      auto blurFilterBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
+      auto blurFilterBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
       BufferUtils::createBundle<BlurFilterUniformBufferObject>(blurFilterBufferBundle.get(), BlurFilterUniformBufferObject{},
                                                                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
       blurFilterBufferBundles.emplace_back(blurFilterBufferBundle);
     }
 
-    auto triangleBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
+    auto triangleBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
     BufferUtils::createBundle<GpuModel::Triangle>(triangleBufferBundle.get(), rtScene->triangles.data(),
                                                   rtScene->triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                                   VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-    auto materialBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
+    auto materialBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
     BufferUtils::createBundle<GpuModel::Material>(materialBufferBundle.get(), rtScene->materials.data(),
                                                   rtScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                                   VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-    auto aabbBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
+    auto aabbBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
     BufferUtils::createBundle<GpuModel::BvhNode>(aabbBufferBundle.get(), rtScene->bvhNodes.data(), rtScene->bvhNodes.size(),
                                                  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-    auto lightsBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
+    auto lightsBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
     BufferUtils::createBundle<GpuModel::Light>(lightsBufferBundle.get(), rtScene->lights.data(), rtScene->lights.size(),
                                                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-    auto spheresBufferBundle = std::make_shared<mcvkp::BufferBundle>(swapchainImageViewSize);
+    auto spheresBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
     BufferUtils::createBundle<GpuModel::Sphere>(spheresBufferBundle.get(), rtScene->spheres.data(), rtScene->spheres.size(),
                                                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-    targetImage = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                                   VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, targetImage);
-    mcvkp::ImageUtils::transitionImageLayout(targetImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    targetImage = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                            VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, targetImage);
+    ImageUtils::transitionImageLayout(targetImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    rawImage = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
-                                   VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, rawImage);
-    mcvkp::ImageUtils::transitionImageLayout(rawImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    rawImage = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, rawImage);
+    ImageUtils::transitionImageLayout(rawImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    blurHImage = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, blurHImage);
-    mcvkp::ImageUtils::transitionImageLayout(blurHImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    blurHImage = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                            VMA_MEMORY_USAGE_GPU_ONLY, blurHImage);
+    ImageUtils::transitionImageLayout(blurHImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    aTrousImage1 = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, aTrousImage1);
-    mcvkp::ImageUtils::transitionImageLayout(aTrousImage1->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    aTrousImage1 = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                            VMA_MEMORY_USAGE_GPU_ONLY, aTrousImage1);
+    ImageUtils::transitionImageLayout(aTrousImage1->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    aTrousImage2 = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                                   VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, aTrousImage2);
-    mcvkp::ImageUtils::transitionImageLayout(aTrousImage2->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    aTrousImage2 = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                            VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, aTrousImage2);
+    ImageUtils::transitionImageLayout(aTrousImage2->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    positionImage = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, positionImage);
-    mcvkp::ImageUtils::transitionImageLayout(positionImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    positionImage = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                            VMA_MEMORY_USAGE_GPU_ONLY, positionImage);
+    ImageUtils::transitionImageLayout(positionImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    historySamplesImage = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
-                                   VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, historySamplesImage);
-    mcvkp::ImageUtils::transitionImageLayout(historySamplesImage->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    historySamplesImage = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
+                            VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, historySamplesImage);
+    ImageUtils::transitionImageLayout(historySamplesImage->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    depthImage = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, depthImage);
-    mcvkp::ImageUtils::transitionImageLayout(depthImage->image, VK_FORMAT_R32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    depthImage = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                            VMA_MEMORY_USAGE_GPU_ONLY, depthImage);
+    ImageUtils::transitionImageLayout(depthImage->image, VK_FORMAT_R32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                                      1);
 
-    normalImage = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, normalImage);
-    mcvkp::ImageUtils::transitionImageLayout(normalImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    normalImage = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                            VMA_MEMORY_USAGE_GPU_ONLY, normalImage);
+    ImageUtils::transitionImageLayout(normalImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    meshHashImage1 = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, meshHashImage1);
-    mcvkp::ImageUtils::transitionImageLayout(meshHashImage1->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    meshHashImage1 = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                            VMA_MEMORY_USAGE_GPU_ONLY, meshHashImage1);
+    ImageUtils::transitionImageLayout(meshHashImage1->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    meshHashImage2 = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, meshHashImage2);
-    mcvkp::ImageUtils::transitionImageLayout(meshHashImage2->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    meshHashImage2 = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                            VMA_MEMORY_USAGE_GPU_ONLY, meshHashImage2);
+    ImageUtils::transitionImageLayout(meshHashImage2->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
-    accumulationImage = std::make_shared<mcvkp::Image>();
-    mcvkp::ImageUtils::createImage(VulkanGlobal::swapchainContext.getExtent().width,
-                                   VulkanGlobal::swapchainContext.getExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                                   VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                                   VMA_MEMORY_USAGE_GPU_ONLY, accumulationImage);
-    mcvkp::ImageUtils::transitionImageLayout(accumulationImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                             VK_IMAGE_LAYOUT_GENERAL, 1);
+    accumulationImage = std::make_shared<Image>();
+    ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height,
+                            1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+                            VMA_MEMORY_USAGE_GPU_ONLY, accumulationImage);
+    ImageUtils::transitionImageLayout(accumulationImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
+                                      VK_IMAGE_LAYOUT_GENERAL, 1);
 
     // rtx.comp
     auto rtxMat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/rtx.spv");
@@ -347,7 +336,6 @@ private:
       blurFilterPhase3Mat->addStorageImage(targetImage, VK_SHADER_STAGE_COMPUTE_BIT);
     }
     blurFilterPhase3Model = make_shared<ComputeModel>(blurFilterPhase3Mat);
-
     postProcessScene = std::make_shared<Scene>(RenderPassType::eFlat);
 
     auto screenTex      = std::make_shared<Texture>(targetImage);
@@ -386,8 +374,8 @@ private:
       vmaUnmapMemory(VulkanGlobal::context.getAllocator(), allocation);
     }
 
-    TemporalFilterUniformBufferObject tfUbo = {bypassTemporal, lastMvpe, VulkanGlobal::swapchainContext.getExtent().width,
-                                               VulkanGlobal::swapchainContext.getExtent().height};
+    TemporalFilterUniformBufferObject tfUbo = {bypassTemporal, lastMvpe, VulkanGlobal::context.getSwapchainExtent().width,
+                                               VulkanGlobal::context.getSwapchainExtent().height};
     {
       auto &allocation = temperalFilterBufferBundle->buffers[currentImage]->allocation;
       void *data;
@@ -395,8 +383,8 @@ private:
       memcpy(data, &tfUbo, sizeof(tfUbo));
       vmaUnmapMemory(VulkanGlobal::context.getAllocator(), allocation);
 
-      lastMvpe = camera.getProjectionMatrix(static_cast<float>(VulkanGlobal::swapchainContext.getExtent().width) /
-                                            static_cast<float>(VulkanGlobal::swapchainContext.getExtent().height)) *
+      lastMvpe = camera.getProjectionMatrix(static_cast<float>(VulkanGlobal::context.getSwapchainExtent().width) /
+                                            static_cast<float>(VulkanGlobal::context.getSwapchainExtent().height)) *
                  camera.getViewMatrix();
     }
 
@@ -404,7 +392,7 @@ private:
   }
 
   void createCommandBuffers() {
-    commandBuffers.resize(VulkanGlobal::swapchainContext.getImageViews().size());
+    commandBuffers.resize(VulkanGlobal::context.getSwapchainImageViews().size());
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool        = VulkanGlobal::context.getCommandPool();
@@ -415,27 +403,27 @@ private:
       throw std::runtime_error("failed to allocate command buffers!");
     }
 
-    VkImageMemoryBarrier targetTexTransDst2ReadOnly = mcvkp::ImageUtils::transferDstToReadOnlyBarrier(targetImage->image);
-    VkImageMemoryBarrier targetTexReadOnly2General  = mcvkp::ImageUtils::readOnlyToGeneralBarrier(targetImage->image);
-    VkImageMemoryBarrier targetTexGeneral2ReadOnly  = mcvkp::ImageUtils::generalToReadOnlyBarrier(targetImage->image);
-    VkImageMemoryBarrier targetTexGeneral2TransDst  = mcvkp::ImageUtils::generalToTransferDstBarrier(targetImage->image);
-    VkImageMemoryBarrier targetTexTransDst2General  = mcvkp::ImageUtils::transferDstToGeneralBarrier(targetImage->image);
+    VkImageMemoryBarrier targetTexTransDst2ReadOnly = ImageUtils::transferDstToReadOnlyBarrier(targetImage->image);
+    VkImageMemoryBarrier targetTexReadOnly2General  = ImageUtils::readOnlyToGeneralBarrier(targetImage->image);
+    VkImageMemoryBarrier targetTexGeneral2ReadOnly  = ImageUtils::generalToReadOnlyBarrier(targetImage->image);
+    VkImageMemoryBarrier targetTexGeneral2TransDst  = ImageUtils::generalToTransferDstBarrier(targetImage->image);
+    VkImageMemoryBarrier targetTexTransDst2General  = ImageUtils::transferDstToGeneralBarrier(targetImage->image);
 
-    VkImageMemoryBarrier accumTexGeneral2TransDst = mcvkp::ImageUtils::generalToTransferDstBarrier(accumulationImage->image);
-    VkImageMemoryBarrier accumTexTransDst2General = mcvkp::ImageUtils::transferDstToGeneralBarrier(accumulationImage->image);
+    VkImageMemoryBarrier accumTexGeneral2TransDst = ImageUtils::generalToTransferDstBarrier(accumulationImage->image);
+    VkImageMemoryBarrier accumTexTransDst2General = ImageUtils::transferDstToGeneralBarrier(accumulationImage->image);
 
-    VkImageMemoryBarrier aTrousTex1General2TransDst = mcvkp::ImageUtils::generalToTransferDstBarrier(aTrousImage1->image);
-    VkImageMemoryBarrier aTrousTex1TransDst2General = mcvkp::ImageUtils::transferDstToGeneralBarrier(aTrousImage1->image);
-    VkImageMemoryBarrier aTrousTex2General2TransSrc = mcvkp::ImageUtils::generalToTransferSrcBarrier(aTrousImage2->image);
-    VkImageMemoryBarrier aTrousTex2TransSrc2General = mcvkp::ImageUtils::transferSrcToGeneralBarrier(aTrousImage2->image);
+    VkImageMemoryBarrier aTrousTex1General2TransDst = ImageUtils::generalToTransferDstBarrier(aTrousImage1->image);
+    VkImageMemoryBarrier aTrousTex1TransDst2General = ImageUtils::transferDstToGeneralBarrier(aTrousImage1->image);
+    VkImageMemoryBarrier aTrousTex2General2TransSrc = ImageUtils::generalToTransferSrcBarrier(aTrousImage2->image);
+    VkImageMemoryBarrier aTrousTex2TransSrc2General = ImageUtils::transferSrcToGeneralBarrier(aTrousImage2->image);
 
-    VkImageMemoryBarrier triIdTex1General2TransSrc = mcvkp::ImageUtils::generalToTransferSrcBarrier(meshHashImage1->image);
-    VkImageMemoryBarrier triIdTex1TransSrc2General = mcvkp::ImageUtils::transferSrcToGeneralBarrier(meshHashImage1->image);
-    VkImageMemoryBarrier triIdTex2General2TransDst = mcvkp::ImageUtils::generalToTransferDstBarrier(meshHashImage2->image);
-    VkImageMemoryBarrier triIdTex2TransDst2General = mcvkp::ImageUtils::transferDstToGeneralBarrier(meshHashImage2->image);
+    VkImageMemoryBarrier triIdTex1General2TransSrc = ImageUtils::generalToTransferSrcBarrier(meshHashImage1->image);
+    VkImageMemoryBarrier triIdTex1TransSrc2General = ImageUtils::transferSrcToGeneralBarrier(meshHashImage1->image);
+    VkImageMemoryBarrier triIdTex2General2TransDst = ImageUtils::generalToTransferDstBarrier(meshHashImage2->image);
+    VkImageMemoryBarrier triIdTex2TransDst2General = ImageUtils::transferDstToGeneralBarrier(meshHashImage2->image);
 
-    VkImageCopy imgCopyRegion = mcvkp::ImageUtils::imageCopyRegion(VulkanGlobal::swapchainContext.getExtent().width,
-                                                                   VulkanGlobal::swapchainContext.getExtent().height);
+    VkImageCopy imgCopyRegion = ImageUtils::imageCopyRegion(VulkanGlobal::context.getSwapchainExtent().width,
+                                                            VulkanGlobal::context.getSwapchainExtent().height);
 
     for (size_t i = 0; i < commandBuffers.size(); i++) {
       VkCommandBuffer &currentCommandBuffer = commandBuffers[i];
@@ -599,8 +587,8 @@ private:
     vkResetFences(VulkanGlobal::context.getDevice(), 1, &framesInFlightFences[currentFrame]);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(VulkanGlobal::context.getDevice(), VulkanGlobal::swapchainContext.getBody(),
-                                            UINT64_MAX, imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+    VkResult result = vkAcquireNextImageKHR(VulkanGlobal::context.getDevice(), VulkanGlobal::context.getSwapchain(), UINT64_MAX,
+                                            imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
       return;
@@ -642,7 +630,7 @@ private:
       presentInfo.waitSemaphoreCount = 1;
       presentInfo.pWaitSemaphores    = &renderFinishedSemaphores[currentFrame];
       presentInfo.swapchainCount     = 1;
-      presentInfo.pSwapchains        = &VulkanGlobal::swapchainContext.getBody();
+      presentInfo.pSwapchains        = &VulkanGlobal::context.getSwapchain();
       presentInfo.pImageIndices      = &imageIndex;
       presentInfo.pResults           = nullptr;
     }

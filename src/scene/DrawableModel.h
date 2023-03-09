@@ -7,8 +7,6 @@
 
 #include <vector>
 
-namespace mcvkp {
-
 class DrawableModel {
 public:
   DrawableModel(std::shared_ptr<Material> material, std::string modelPath);
@@ -20,12 +18,11 @@ public:
 
 private:
   std::shared_ptr<Material> m_material;
-  mcvkp::Buffer m_vertexBuffer;
-  mcvkp::Buffer m_indexBuffer;
+  Buffer m_vertexBuffer;
+  Buffer m_indexBuffer;
   uint32_t m_numIndices;
 
   void initVertexBuffer(const Mesh &mesh);
 
   void initIndexBuffer(const Mesh &mesh);
 };
-} // namespace mcvkp

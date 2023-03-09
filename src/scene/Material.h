@@ -1,14 +1,13 @@
 #pragma once
 
-#include "app-context/VulkanSwapchain.h"
 #include "memory/Buffer.h"
 #include "memory/Image.h"
 #include "utils/vulkan.h"
 
+
 #include <memory>
 #include <vector>
 
-namespace mcvkp {
 template <typename T> struct Descriptor {
   std::shared_ptr<T> data;
   VkShaderStageFlags shaderStageFlags;
@@ -71,4 +70,3 @@ protected:
   std::vector<VkDescriptorSet> m_descriptorSets;
   VkDescriptorSetLayout m_descriptorSetLayout;
 };
-} // namespace mcvkp

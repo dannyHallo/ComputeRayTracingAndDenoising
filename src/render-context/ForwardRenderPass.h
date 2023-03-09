@@ -1,44 +1,41 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
-#include <memory>
-#include "../utils/vulkan.h"
-#include "../memory/Image.h"
+#include "memory/Image.h"
+#include "utils/vulkan.h"
+
 #include "RenderPass.h"
+#include <iostream>
+#include <memory>
+#include <vector>
 
-namespace mcvkp
-{
-    class ForwardRenderPass : public RenderPass
-    {
-    public:
-        std::shared_ptr<VkRenderPass> getBody() override;
+class ForwardRenderPass : public RenderPass {
+public:
+  std::shared_ptr<VkRenderPass> getBody() override;
 
-        std::shared_ptr<VkFramebuffer> getFramebuffer(size_t index) override;
+  std::shared_ptr<VkFramebuffer> getFramebuffer(size_t index) override;
 
-        ForwardRenderPass();
+  ForwardRenderPass();
 
-        ~ForwardRenderPass();
+  ~ForwardRenderPass();
 
-        std::shared_ptr<mcvkp::Image> getColorImage() override ;
-        std::shared_ptr<mcvkp::Image> getDepthImage();
+  std::shared_ptr<Image> getColorImage() override;
+  std::shared_ptr<Image> getDepthImage();
 
-    private:
-        std::shared_ptr<mcvkp::Image> m_colorImage;
-        std::shared_ptr<mcvkp::Image> m_depthImage;
-        std::shared_ptr<VkRenderPass> m_renderPass;
-        std::shared_ptr<VkFramebuffer> m_framebuffer;
+private:
+  std::shared_ptr<Image> m_colorImage;
+  std::shared_ptr<Image> m_depthImage;
+  std::shared_ptr<VkRenderPass> m_renderPass;
+  std::shared_ptr<VkFramebuffer> m_framebuffer;
 
-        void createRenderPass();
-       
-        void createFramebuffers();
+  void createRenderPass();
 
-        VkFormat findDepthFormat();
+  void createFramebuffers();
 
-        bool hasStencilComponent(VkFormat format);
+  VkFormat findDepthFormat();
 
-        void createDepthResources();
+  bool hasStencilComponent(VkFormat format);
 
-        void createColorResources();
-    };
-}
+  void createDepthResources();
+
+  void createColorResources();
+};

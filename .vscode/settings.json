@@ -107,6 +107,7 @@
     "shared_mutex": "cpp",
     "span": "cpp",
     "stack": "cpp",
-    "*.rh": "cpp"
+    "*.rh": "cpp",
+    "volk.c": "cpp"
   }
 }

@@ -2,7 +2,6 @@
 
 #include "utils/vulkan.h"
 
-namespace mcvkp {
 namespace ImageUtils {
 VkImageMemoryBarrier readOnlyToGeneralBarrier(const VkImage &image) {
   VkImageMemoryBarrier memoryBarrier = {};
@@ -127,6 +126,4 @@ VkImageCopy imageCopyRegion(uint32_t width, uint32_t height) {
   region.extent                        = {width, height, 1};
   return region;
 }
-
 } // namespace ImageUtils
-} // namespace mcvkp

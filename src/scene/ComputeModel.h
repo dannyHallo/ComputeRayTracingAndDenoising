@@ -7,8 +7,6 @@
 
 #include <vector>
 
-namespace mcvkp {
-
 class ComputeModel {
 public:
   ComputeModel(std::shared_ptr<ComputeMaterial> material);
@@ -19,4 +17,3 @@ public:
 private:
   std::shared_ptr<ComputeMaterial> m_material;
 };
-} // namespace mcvkp

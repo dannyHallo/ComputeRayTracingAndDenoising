@@ -4,15 +4,12 @@
 #include <memory>
 #include <vector>
 
-namespace mcvkp {
 Material::Material(const std::string &vertexShaderPath, const std::string &fragmentShaderPath)
     : m_fragmentShaderPath(fragmentShaderPath), m_vertexShaderPath(vertexShaderPath), m_initialized(false) {
-  m_descriptorSetsSize = static_cast<uint32_t>(VulkanGlobal::swapchainContext.getImages().size());
+  m_descriptorSetsSize = static_cast<uint32_t>(VulkanGlobal::context.getSwapchainImages().size());
 }
 
-Material::Material() {
-  m_descriptorSetsSize = static_cast<uint32_t>(VulkanGlobal::swapchainContext.getImages().size());
-}
+Material::Material() { m_descriptorSetsSize = static_cast<uint32_t>(VulkanGlobal::context.getSwapchainImages().size()); }
 
 Material::~Material() {
   std::cout << "Destroying material"
@@ -40,13 +37,11 @@ void Material::addTexture(const std::shared_ptr<Texture> &texture, VkShaderStage
   m_textureDescriptors.push_back({texture, shaderStageFlags});
 }
 
-void Material::addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
-                                      VkShaderStageFlags shaderStageFlags) {
+void Material::addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle, VkShaderStageFlags shaderStageFlags) {
   m_uniformBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
 }
 
-void Material::addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
-                                      VkShaderStageFlags shaderStageFlags) {
+void Material::addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle, VkShaderStageFlags shaderStageFlags) {
   m_storageBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
 }
 
@@ -72,14 +67,14 @@ void Material::init(const VkRenderPass &renderPass) {
     return;
   }
   __initDescriptorSetLayout();
-  __initPipeline(VulkanGlobal::swapchainContext.getExtent(), renderPass, m_vertexShaderPath, m_fragmentShaderPath);
+  __initPipeline(VulkanGlobal::context.getSwapchainExtent(), renderPass, m_vertexShaderPath, m_fragmentShaderPath);
   __initDescriptorPool();
   __initDescriptorSets();
   m_initialized = true;
 }
 
-void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass,
-                              std::string vertexShaderPath, std::string fragmentShaderPath) {
+void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass, std::string vertexShaderPath,
+                              std::string fragmentShaderPath) {
   auto vertShaderCode             = readFile(vertexShaderPath);
   auto fragShaderCode             = readFile(fragmentShaderPath);
   VkShaderModule vertShaderModule = __createShaderModule(vertShaderCode);
@@ -187,8 +182,7 @@ void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderP
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts    = &m_descriptorSetLayout;
 
-  if (vkCreatePipelineLayout(VulkanGlobal::context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
-      VK_SUCCESS) {
+  if (vkCreatePipelineLayout(VulkanGlobal::context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
     throw std::runtime_error("failed to create pipeline layout!");
   }
 
@@ -223,8 +217,8 @@ void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderP
   pipelineInfo.basePipelineIndex   = -1;             // Optional
   pipelineInfo.pDepthStencilState  = &depthStencil;
 
-  if (vkCreateGraphicsPipelines(VulkanGlobal::context.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
-                                &m_pipeline) != VK_SUCCESS) {
+  if (vkCreateGraphicsPipelines(VulkanGlobal::context.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
+      VK_SUCCESS) {
     throw std::runtime_error("failed to create graphics pipeline!");
   }
 
@@ -430,9 +424,8 @@ void Material::__initDescriptorSets() {
 }
 
 void Material::bind(VkCommandBuffer &commandBuffer, size_t currentFrame) {
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
-                          &m_descriptorSets[currentFrame], 0, nullptr);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[currentFrame],
+                          0, nullptr);
 
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 }
-} // namespace mcvkp

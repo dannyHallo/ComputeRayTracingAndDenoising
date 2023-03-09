@@ -8,7 +8,6 @@
 #include <iostream>
 #include <vector>
 
-namespace mcvkp {
 class FlatRenderPass : public RenderPass {
 public:
   std::shared_ptr<VkRenderPass> getBody() override;
@@ -16,7 +15,7 @@ public:
   std::shared_ptr<VkFramebuffer> getFramebuffer(size_t index) override;
 
   // This shouldn't be called. Sorry for sloppy OOP.
-  std::shared_ptr<mcvkp::Image> getColorImage() override;
+  std::shared_ptr<Image> getColorImage() override;
 
   FlatRenderPass();
 
@@ -33,4 +32,3 @@ private:
 
   void createFramebuffers();
 };
-} // namespace mcvkp

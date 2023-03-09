@@ -2,6 +2,7 @@
 
 #include "app-context/VulkanApplicationContext.h"
 #include "scene/Mesh.h"
+#include "utils/systemLog.h"
 #include "utils/vulkan.h"
 #include "vk_mem_alloc.h"
 
@@ -10,7 +11,6 @@
 #include <string>
 #include <vector>
 
-namespace mcvkp {
 struct Buffer {
   VkBuffer buffer;
   VmaAllocation allocation;
@@ -55,8 +55,11 @@ void inline allocate(Buffer *buffer, VkDeviceSize size, VkBufferUsageFlags usage
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage                   = memoryUsage;
 
-  if (vmaCreateBuffer(VulkanGlobal::context.getAllocator(), &bufferInfo, &vmaallocInfo, &buffer->buffer,
-                      &buffer->allocation, nullptr) != VK_SUCCESS) {
+  // TODO:
+  VkResult result = vmaCreateBuffer(VulkanGlobal::context.getAllocator(), &bufferInfo, &vmaallocInfo, &buffer->buffer,
+                                    &buffer->allocation, nullptr);
+  if (result != VK_SUCCESS) {
+    std::cout << result << std::endl;
     throw std::runtime_error("failed to create buffer");
   }
 }
@@ -65,7 +68,6 @@ template <typename T>
 void inline create(Buffer *buffer, const T *elements, const size_t numElements, VkBufferUsageFlags usage,
                    VmaMemoryUsage memoryUsage) {
   buffer->size = numElements * sizeof(T);
-
   allocate(buffer, numElements * sizeof(T), usage, memoryUsage);
 
   void *data;
@@ -75,17 +77,15 @@ void inline create(Buffer *buffer, const T *elements, const size_t numElements, 
 }
 
 template <typename T>
-void inline createBundle(BufferBundle *bufferBundle, const T *elements, const size_t numElements,
-                         VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
+void inline createBundle(BufferBundle *bufferBundle, const T *elements, const size_t numElements, VkBufferUsageFlags usage,
+                         VmaMemoryUsage memoryUsage) {
   for (auto &buffer : bufferBundle->buffers) {
     create(buffer.get(), elements, numElements, usage, memoryUsage);
   }
 }
 
 template <typename T>
-void inline createBundle(BufferBundle *bufferBundle, const T &element, VkBufferUsageFlags usage,
-                         VmaMemoryUsage memoryUsage) {
+void inline createBundle(BufferBundle *bufferBundle, const T &element, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
   createBundle(bufferBundle, &element, 1, usage, memoryUsage);
 }
 }; // namespace BufferUtils
-} // namespace mcvkp

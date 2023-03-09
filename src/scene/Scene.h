@@ -9,7 +9,6 @@
 #include <memory>
 #include <vector>
 
-namespace mcvkp {
 enum class RenderPassType { eFlat, eForward };
 
 class Scene {
@@ -26,4 +25,3 @@ private:
   void _initFlatRenderPass();
   void _initForwardRenderPass();
 };
-} // namespace mcvkp

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "app-context/VulkanSwapchain.h"
 #include "memory/Buffer.h"
 #include "memory/Image.h"
 #include "scene/Material.h"
@@ -9,7 +8,6 @@
 #include <memory>
 #include <vector>
 
-namespace mcvkp {
 class ComputeMaterial : public Material {
 public:
   ComputeMaterial(const std::string &computeShaderPath);
@@ -24,4 +22,3 @@ private:
 private:
   std::string m_computeShaderPath;
 };
-} // namespace mcvkp
