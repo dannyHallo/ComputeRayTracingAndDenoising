@@ -20,6 +20,7 @@ include_directories(
     dep
 	dep/glfw/include
 	dep/glm
+	dep/imgui
 	dep/volk
 	dep/stb
 	dep/obj-loader
@@ -28,17 +29,25 @@ include_directories(
 add_executable(${PROJECT_NAME}
 	src/app-context/VulkanApplicationContext.cpp
 	src/main.cpp
+	src/Application.cpp
 	src/memory/Image.cpp
+	src/memory/ImageUtils.cpp
 	src/render-context/FlatRenderPass.cpp
 	src/render-context/ForwardRenderPass.cpp
 	src/render-context/RenderSystem.cpp
+	src/ray-tracing/Bvh.cpp
+	src/ray-tracing/RtScene.cpp
 	src/scene/ComputeMaterial.cpp
 	src/scene/ComputeModel.cpp
 	src/scene/DrawableModel.cpp
 	src/scene/Material.cpp
 	src/scene/Scene.cpp
 	src/scene/mesh.cpp
+	src/utils/Camera.cpp
+	src/utils/Window.cpp
 	src/utils/StbImageImpl.cpp
+	src/imgui/imgui_impl_glfw.cpp
+    src/imgui/imgui_impl_vulkan.cpp
 	
 	dep/imgui/imgui_demo.cpp
     dep/imgui/imgui_draw.cpp
@@ -48,6 +57,6 @@ add_executable(${PROJECT_NAME}
 	)
 
 target_link_directories(${PROJECT_NAME}
-    PRIVATE ${PROJECT_BINARY_DIR}/dep/glfw/src/Release)
+    PRIVATE ${PROJECT_BINARY_DIR}/dep/glfw/src/Debug)
 
 target_link_libraries(${PROJECT_NAME} glfw3.lib)

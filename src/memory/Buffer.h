@@ -20,7 +20,7 @@ struct Buffer {
     std::cout << "Destroying buffer"
               << "\n";
     if (buffer != VK_NULL_HANDLE) {
-      vmaDestroyBuffer(VulkanGlobal::context.getAllocator(), buffer, allocation);
+      vmaDestroyBuffer(vulkanApplicationContext.getAllocator(), buffer, allocation);
       buffer = VK_NULL_HANDLE;
     }
   }
@@ -56,7 +56,7 @@ void inline allocate(Buffer *buffer, VkDeviceSize size, VkBufferUsageFlags usage
   vmaallocInfo.usage                   = memoryUsage;
 
   // TODO:
-  VkResult result = vmaCreateBuffer(VulkanGlobal::context.getAllocator(), &bufferInfo, &vmaallocInfo, &buffer->buffer,
+  VkResult result = vmaCreateBuffer(vulkanApplicationContext.getAllocator(), &bufferInfo, &vmaallocInfo, &buffer->buffer,
                                     &buffer->allocation, nullptr);
   if (result != VK_SUCCESS) {
     std::cout << result << std::endl;
@@ -71,9 +71,9 @@ void inline create(Buffer *buffer, const T *elements, const size_t numElements, 
   allocate(buffer, numElements * sizeof(T), usage, memoryUsage);
 
   void *data;
-  vmaMapMemory(VulkanGlobal::context.getAllocator(), buffer->allocation, &data);
+  vmaMapMemory(vulkanApplicationContext.getAllocator(), buffer->allocation, &data);
   memcpy(data, elements, numElements * sizeof(T));
-  vmaUnmapMemory(VulkanGlobal::context.getAllocator(), buffer->allocation);
+  vmaUnmapMemory(vulkanApplicationContext.getAllocator(), buffer->allocation);
 }
 
 template <typename T>

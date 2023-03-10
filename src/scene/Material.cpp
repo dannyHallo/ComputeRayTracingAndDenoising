@@ -6,18 +6,18 @@
 
 Material::Material(const std::string &vertexShaderPath, const std::string &fragmentShaderPath)
     : m_fragmentShaderPath(fragmentShaderPath), m_vertexShaderPath(vertexShaderPath), m_initialized(false) {
-  m_descriptorSetsSize = static_cast<uint32_t>(VulkanGlobal::context.getSwapchainImages().size());
+  m_descriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size());
 }
 
-Material::Material() { m_descriptorSetsSize = static_cast<uint32_t>(VulkanGlobal::context.getSwapchainImages().size()); }
+Material::Material() { m_descriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size()); }
 
 Material::~Material() {
   std::cout << "Destroying material"
             << "\n";
-  vkDestroyDescriptorSetLayout(VulkanGlobal::context.getDevice(), m_descriptorSetLayout, nullptr);
-  vkDestroyPipeline(VulkanGlobal::context.getDevice(), m_pipeline, nullptr);
-  vkDestroyPipelineLayout(VulkanGlobal::context.getDevice(), m_pipelineLayout, nullptr);
-  vkDestroyDescriptorPool(VulkanGlobal::context.getDevice(), m_descriptorPool, nullptr);
+  vkDestroyDescriptorSetLayout(vulkanApplicationContext.getDevice(), m_descriptorSetLayout, nullptr);
+  vkDestroyPipeline(vulkanApplicationContext.getDevice(), m_pipeline, nullptr);
+  vkDestroyPipelineLayout(vulkanApplicationContext.getDevice(), m_pipelineLayout, nullptr);
+  vkDestroyDescriptorPool(vulkanApplicationContext.getDevice(), m_descriptorPool, nullptr);
 }
 
 VkShaderModule Material::__createShaderModule(const std::vector<char> &code) {
@@ -27,7 +27,7 @@ VkShaderModule Material::__createShaderModule(const std::vector<char> &code) {
   createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
 
   VkShaderModule shaderModule;
-  if (vkCreateShaderModule(VulkanGlobal::context.getDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+  if (vkCreateShaderModule(vulkanApplicationContext.getDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
     throw std::runtime_error("failed to create shader module!");
   }
   return shaderModule;
@@ -67,7 +67,7 @@ void Material::init(const VkRenderPass &renderPass) {
     return;
   }
   __initDescriptorSetLayout();
-  __initPipeline(VulkanGlobal::context.getSwapchainExtent(), renderPass, m_vertexShaderPath, m_fragmentShaderPath);
+  __initPipeline(vulkanApplicationContext.getSwapchainExtent(), renderPass, m_vertexShaderPath, m_fragmentShaderPath);
   __initDescriptorPool();
   __initDescriptorSets();
   m_initialized = true;
@@ -182,7 +182,8 @@ void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderP
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts    = &m_descriptorSetLayout;
 
-  if (vkCreatePipelineLayout(VulkanGlobal::context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+  if (vkCreatePipelineLayout(vulkanApplicationContext.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
+      VK_SUCCESS) {
     throw std::runtime_error("failed to create pipeline layout!");
   }
 
@@ -217,13 +218,13 @@ void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderP
   pipelineInfo.basePipelineIndex   = -1;             // Optional
   pipelineInfo.pDepthStencilState  = &depthStencil;
 
-  if (vkCreateGraphicsPipelines(VulkanGlobal::context.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
+  if (vkCreateGraphicsPipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to create graphics pipeline!");
   }
 
-  vkDestroyShaderModule(VulkanGlobal::context.getDevice(), fragShaderModule, nullptr);
-  vkDestroyShaderModule(VulkanGlobal::context.getDevice(), vertShaderModule, nullptr);
+  vkDestroyShaderModule(vulkanApplicationContext.getDevice(), fragShaderModule, nullptr);
+  vkDestroyShaderModule(vulkanApplicationContext.getDevice(), vertShaderModule, nullptr);
 }
 
 // creates the descriptor pool that the descriptor sets will be allocated into
@@ -254,7 +255,7 @@ void Material::__initDescriptorPool() {
   // the max number of descriptor sets that can be allocated from this pool
   poolInfo.maxSets = static_cast<uint32_t>(m_descriptorSetsSize);
 
-  if (vkCreateDescriptorPool(VulkanGlobal::context.getDevice(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
+  if (vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor pool!");
   }
 }
@@ -312,7 +313,7 @@ void Material::__initDescriptorSetLayout() {
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
   layoutInfo.pBindings    = bindings.data();
 
-  if (vkCreateDescriptorSetLayout(VulkanGlobal::context.getDevice(), &layoutInfo, nullptr, &m_descriptorSetLayout) !=
+  if (vkCreateDescriptorSetLayout(vulkanApplicationContext.getDevice(), &layoutInfo, nullptr, &m_descriptorSetLayout) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor set layout!");
   }
@@ -329,7 +330,7 @@ void Material::__initDescriptorSets() {
   allocInfo.pSetLayouts        = layouts.data();
 
   m_descriptorSets.resize(m_descriptorSetsSize);
-  if (vkAllocateDescriptorSets(VulkanGlobal::context.getDevice(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
+  if (vkAllocateDescriptorSets(vulkanApplicationContext.getDevice(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
 
@@ -418,7 +419,7 @@ void Material::__initDescriptorSets() {
       descriptorWrites.push_back(descriptorSet);
     }
 
-    vkUpdateDescriptorSets(VulkanGlobal::context.getDevice(), static_cast<uint32_t>(descriptorWrites.size()),
+    vkUpdateDescriptorSets(vulkanApplicationContext.getDevice(), static_cast<uint32_t>(descriptorWrites.size()),
                            descriptorWrites.data(), 0, nullptr);
   }
 }

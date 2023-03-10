@@ -5,7 +5,7 @@
 #include <vector>
 
 ComputeMaterial::ComputeMaterial(const std::string &computeShaderPath) : Material(), m_computeShaderPath(computeShaderPath) {
-  m_descriptorSetsSize = static_cast<uint32_t>(VulkanGlobal::context.getSwapchainImages().size());
+  m_descriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size());
   m_initialized        = false;
 }
 
@@ -27,7 +27,8 @@ void ComputeMaterial::__initComputePipeline(const std::string &computeShaderPath
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts    = &m_descriptorSetLayout;
 
-  if (vkCreatePipelineLayout(VulkanGlobal::context.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
+  if (vkCreatePipelineLayout(vulkanApplicationContext.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
+      VK_SUCCESS) {
     throw std::runtime_error("failed to create pipeline layout!");
   }
 
@@ -45,12 +46,12 @@ void ComputeMaterial::__initComputePipeline(const std::string &computeShaderPath
   computePipelineCreateInfo.flags  = 0;
   computePipelineCreateInfo.stage  = shaderStageInfo;
 
-  if (vkCreateComputePipelines(VulkanGlobal::context.getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr,
+  if (vkCreateComputePipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr,
                                &m_pipeline) != VK_SUCCESS) {
     throw std::runtime_error("failed to create graphics pipeline!");
   }
 
-  vkDestroyShaderModule(VulkanGlobal::context.getDevice(), shaderModule, nullptr);
+  vkDestroyShaderModule(vulkanApplicationContext.getDevice(), shaderModule, nullptr);
 }
 
 void ComputeMaterial::bind(VkCommandBuffer &commandBuffer, size_t currentFrame) {

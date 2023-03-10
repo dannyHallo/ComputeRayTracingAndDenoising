@@ -12,9 +12,9 @@ Image::~Image() { destroy(); }
 
 void Image::destroy() {
   if (image != VK_NULL_HANDLE) {
-    vkDestroyImageView(VulkanGlobal::context.getDevice(), imageView, nullptr);
-    vkDestroyImage(VulkanGlobal::context.getDevice(), image, nullptr);
-    vmaFreeMemory(VulkanGlobal::context.getAllocator(), allocation);
+    vkDestroyImageView(vulkanApplicationContext.getDevice(), imageView, nullptr);
+    vkDestroyImage(vulkanApplicationContext.getDevice(), image, nullptr);
+    vmaFreeMemory(vulkanApplicationContext.getAllocator(), allocation);
 
     image = VK_NULL_HANDLE;
   }
@@ -30,8 +30,7 @@ VkDescriptorImageInfo Image::getDescriptorInfo(VkImageLayout imageLayout) {
 
 namespace ImageUtils {
 
-VkImageView createImageView(VkImage &image, VkFormat format, VkImageAspectFlags aspectFlags,
-                            const uint32_t &mipLevels) {
+VkImageView createImageView(VkImage &image, VkFormat format, VkImageAspectFlags aspectFlags, const uint32_t &mipLevels) {
   VkImageViewCreateInfo viewInfo{};
   viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   viewInfo.image                           = image;
@@ -44,7 +43,7 @@ VkImageView createImageView(VkImage &image, VkFormat format, VkImageAspectFlags 
   viewInfo.subresourceRange.layerCount     = 1;
 
   VkImageView imageView;
-  if (vkCreateImageView(VulkanGlobal::context.getDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
+  if (vkCreateImageView(vulkanApplicationContext.getDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS) {
     throw std::runtime_error("failed to create texture image view!");
   }
 
@@ -52,8 +51,8 @@ VkImageView createImageView(VkImage &image, VkFormat format, VkImageAspectFlags 
 }
 
 void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format,
-                 VkImageTiling tiling, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags,
-                 VmaMemoryUsage memoryUsage, std::shared_ptr<Image> allocatedImage) {
+                 VkImageTiling tiling, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage,
+                 std::shared_ptr<Image> allocatedImage) {
   allocatedImage->width  = width;
   allocatedImage->height = height;
 
@@ -75,7 +74,7 @@ void createImage(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCo
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage                   = memoryUsage;
 
-  if (vmaCreateImage(VulkanGlobal::context.getAllocator(), &imageInfo, &vmaallocInfo, &allocatedImage->image,
+  if (vmaCreateImage(vulkanApplicationContext.getAllocator(), &imageInfo, &vmaallocInfo, &allocatedImage->image,
                      &allocatedImage->allocation, nullptr) != VK_SUCCESS) {
     throw std::runtime_error("failed to create buffer");
   }
@@ -107,8 +106,7 @@ void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayo
 
     sourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-  } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-             newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+  } else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     sourceStage           = VK_PIPELINE_STAGE_TRANSFER_BIT;
@@ -152,11 +150,10 @@ void copyBufferToImage(const VkBuffer &buffer, VkImage image, uint32_t width, ui
   RenderSystem::endSingleTimeCommands(commandBuffer);
 }
 
-void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight,
-                     const uint32_t &mipLevels) {
+void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, const uint32_t &mipLevels) {
   // Check if image format supports linear blitting
   VkFormatProperties formatProperties;
-  vkGetPhysicalDeviceFormatProperties(VulkanGlobal::context.getPhysicalDevice(), imageFormat, &formatProperties);
+  vkGetPhysicalDeviceFormatProperties(vulkanApplicationContext.getPhysicalDevice(), imageFormat, &formatProperties);
 
   if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
     throw std::runtime_error("texture image format does not support linear blitting!");
@@ -184,8 +181,8 @@ void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int3
     barrier.srcAccessMask                 = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask                 = VK_ACCESS_TRANSFER_READ_BIT;
 
-    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
-                         0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr,
+                         1, &barrier);
 
     VkImageBlit blit{};
     blit.srcOffsets[0]                 = {0, 0, 0};
@@ -201,16 +198,16 @@ void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int3
     blit.dstSubresource.baseArrayLayer = 0;
     blit.dstSubresource.layerCount     = 1;
 
-    vkCmdBlitImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image,
-                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
+    vkCmdBlitImage(commandBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                   &blit, VK_FILTER_LINEAR);
 
     barrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     barrier.newLayout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
-                         nullptr, 0, nullptr, 1, &barrier);
+    vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &barrier);
 
     if (mipWidth > 1)
       mipWidth /= 2;
@@ -224,8 +221,8 @@ void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int3
   barrier.srcAccessMask                 = VK_ACCESS_TRANSFER_WRITE_BIT;
   barrier.dstAccessMask                 = VK_ACCESS_SHADER_READ_BIT;
 
-  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
-                       nullptr, 0, nullptr, 1, &barrier);
+  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0,
+                       nullptr, 1, &barrier);
 
   RenderSystem::endSingleTimeCommands(commandBuffer);
 }
@@ -244,8 +241,7 @@ void createTextureImage(const std::string &path, std::shared_ptr<Image> allocate
   }
 
   Buffer stagingBuffer;
-  BufferUtils::create(&stagingBuffer, tex.pixels, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                      VMA_MEMORY_USAGE_CPU_TO_GPU);
+  BufferUtils::create(&stagingBuffer, tex.pixels, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
   createImage(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
               VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -278,7 +274,7 @@ void createTextureSampler(std::shared_ptr<VkSampler> textureSampler, uint32_t &m
   samplerInfo.maxLod                  = static_cast<float>(mipLevels);
   samplerInfo.mipLodBias              = 0.0f; // Optional
 
-  if (vkCreateSampler(VulkanGlobal::context.getDevice(), &samplerInfo, nullptr, textureSampler.get()) != VK_SUCCESS) {
+  if (vkCreateSampler(vulkanApplicationContext.getDevice(), &samplerInfo, nullptr, textureSampler.get()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create texture sampler!");
   }
 }
@@ -298,7 +294,7 @@ Texture::Texture(const std::shared_ptr<Image> &image) : m_image(image) {
   ImageUtils::createTextureSampler(m_sampler, m_mips);
 }
 
-Texture::~Texture() { vkDestroySampler(VulkanGlobal::context.getDevice(), *m_sampler, nullptr); }
+Texture::~Texture() { vkDestroySampler(vulkanApplicationContext.getDevice(), *m_sampler, nullptr); }
 
 VkDescriptorImageInfo Texture::getDescriptorInfo() {
   VkDescriptorImageInfo imageInfo{};

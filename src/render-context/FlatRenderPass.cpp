@@ -1,7 +1,7 @@
 #include "FlatRenderPass.h"
 #include "app-context/VulkanApplicationContext.h"
-#include "utils/vulkan.h"
 #include "utils/systemLog.h"
+#include "utils/vulkan.h"
 
 #include <array>
 #include <iostream>
@@ -16,7 +16,7 @@ std::shared_ptr<Image> FlatRenderPass::getColorImage() { return nullptr; }
 
 FlatRenderPass::FlatRenderPass() {
   m_renderPass = std::make_shared<VkRenderPass>();
-  for (size_t i = 0; i < VulkanGlobal::context.getSwapchainImages().size(); i++) {
+  for (size_t i = 0; i < vulkanApplicationContext.getSwapchainImages().size(); i++) {
     m_swapChainFramebuffers.push_back(std::make_shared<VkFramebuffer>());
   }
   createRenderPass();
@@ -27,10 +27,10 @@ FlatRenderPass::~FlatRenderPass() {
   std::cout << "Destroying flat pass"
             << "\n";
   for (size_t i = 0; i < m_swapChainFramebuffers.size(); i++) {
-    vkDestroyFramebuffer(VulkanGlobal::context.getDevice(), *m_swapChainFramebuffers[i], nullptr);
+    vkDestroyFramebuffer(vulkanApplicationContext.getDevice(), *m_swapChainFramebuffers[i], nullptr);
   }
 
-  vkDestroyRenderPass(VulkanGlobal::context.getDevice(), *m_renderPass, nullptr);
+  vkDestroyRenderPass(vulkanApplicationContext.getDevice(), *m_renderPass, nullptr);
 }
 
 void FlatRenderPass::createRenderPass() {
@@ -38,7 +38,7 @@ void FlatRenderPass::createRenderPass() {
 
   // attachment for a color buffer.
   VkAttachmentDescription colorAttachment{};
-  colorAttachment.format  = VulkanGlobal::context.getSwapchainImageFormat();
+  colorAttachment.format  = vulkanApplicationContext.getSwapchainImageFormat();
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
   // load option: clear before render
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -70,7 +70,7 @@ void FlatRenderPass::createRenderPass() {
 
   //   // Attachment for downsampling the final image.
   //   VkAttachmentDescription colorAttachmentResolve{};
-  //   colorAttachmentResolve.format         = VulkanGlobal::context.getSwapchainImageFormat();
+  //   colorAttachmentResolve.format         = context.getSwapchainImageFormat();
   //   colorAttachmentResolve.samples        = VK_SAMPLE_COUNT_1_BIT;
   //   colorAttachmentResolve.loadOp         = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
   //   colorAttachmentResolve.storeOp        = VK_ATTACHMENT_STORE_OP_STORE;
@@ -123,26 +123,26 @@ void FlatRenderPass::createRenderPass() {
   renderPassInfo.dependencyCount = 2;
   renderPassInfo.pDependencies   = dependencies.data();
 
-  if (vkCreateRenderPass(VulkanGlobal::context.getDevice(), &renderPassInfo, nullptr, m_renderPass.get()) != VK_SUCCESS) {
+  if (vkCreateRenderPass(vulkanApplicationContext.getDevice(), &renderPassInfo, nullptr, m_renderPass.get()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create render pass!");
   }
 }
 
 void FlatRenderPass::createFramebuffers() {
-  m_swapChainFramebuffers.resize(VulkanGlobal::context.getSwapchainImageViews().size());
-  for (size_t i = 0; i < VulkanGlobal::context.getSwapchainImageViews().size(); i++) {
-    std::array<VkImageView, 1> attachments = {VulkanGlobal::context.getSwapchainImageViews()[i]};
-  
+  m_swapChainFramebuffers.resize(vulkanApplicationContext.getSwapchainImageViews().size());
+  for (size_t i = 0; i < vulkanApplicationContext.getSwapchainImageViews().size(); i++) {
+    std::array<VkImageView, 1> attachments = {vulkanApplicationContext.getSwapchainImageViews()[i]};
+
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebufferInfo.renderPass      = *m_renderPass;
     framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
     framebufferInfo.pAttachments    = attachments.data();
-    framebufferInfo.width           = VulkanGlobal::context.getSwapchainExtent().width;
-    framebufferInfo.height          = VulkanGlobal::context.getSwapchainExtent().height;
+    framebufferInfo.width           = vulkanApplicationContext.getSwapchainExtent().width;
+    framebufferInfo.height          = vulkanApplicationContext.getSwapchainExtent().height;
     framebufferInfo.layers          = 1;
 
-    if (vkCreateFramebuffer(VulkanGlobal::context.getDevice(), &framebufferInfo, nullptr, m_swapChainFramebuffers[i].get()) !=
+    if (vkCreateFramebuffer(vulkanApplicationContext.getDevice(), &framebufferInfo, nullptr, m_swapChainFramebuffers[i].get()) !=
         VK_SUCCESS) {
       throw std::runtime_error("failed to create framebuffer!");
     }

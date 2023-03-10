@@ -35,6 +35,17 @@ void blurKernel(int indexX, int indexY, inout float sumOfWeights,
   sumOfWeights += weight;
 }
 
+// Converts a color from linear light gamma to sRGB gamma
+// https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
+vec4 fromLinear(vec4 linearRGB)
+{
+    bvec4 cutoff = lessThan(linearRGB, vec4(0.0031308));
+    vec4 higher = vec4(1.055)*pow(linearRGB, vec4(1.0/2.4)) - vec4(0.055);
+    vec4 lower = linearRGB * vec4(12.92);
+
+    return mix(higher, lower, cutoff);
+}
+
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
 
@@ -54,6 +65,7 @@ void main() {
     }
   }
   weightedColor = sumOfWeightedValues / sumOfWeights;
-  imageStore(targetTex, uv, weightedColor);
+  weightedColor = fromLinear(weightedColor);
+  imageStore(targetTex, uv, vec4(weightedColor.zyx, 1));
   // imageStore(targetTex, uv, colorAtUV);
 }

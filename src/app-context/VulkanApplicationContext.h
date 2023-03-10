@@ -8,6 +8,7 @@
 
 #include "GLFW/glfw3.h"
 #include "memory/Image.h"
+#include "utils/Window.h"
 #include "vk_mem_alloc.h"
 
 #include <iostream>
@@ -16,13 +17,6 @@
 #include <string>
 #include <vector>
 
-const uint32_t WIDTH  = 1280;
-const uint32_t HEIGHT = 1280;
-
-#define WINDOW_SIZE_FULLSCREEN 0
-#define WINDOW_SIZE_MAXIMAZED 1
-#define WINDOW_SIZE_HOVER 2
-
 class VulkanApplicationContext {
 public:
   VulkanApplicationContext();
@@ -30,14 +24,13 @@ public:
 
   VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
                                VkFormatFeatureFlags features) const;
+  const VkInstance &getInstance() const { return mInstance; }
   const VkDevice &getDevice() const { return mDevice; }
   const VkSurfaceKHR &getSurface() const { return mSurface; }
   const VkPhysicalDevice &getPhysicalDevice() const { return mPhysicalDevice; }
-  const VkQueue &getGraphicsQueue() const { return mGraphicsQueue; }
-  const VkQueue &getPresentQueue() const { return mPresentQueue; }
-  const VkQueue &getComputeQueue() const { return mComputeQueue; }
-  const VkQueue &getTransferQueue() const { return mTransferQueue; }
+
   const VkCommandPool &getCommandPool() const { return mCommandPool; }
+  const VkCommandPool &getGuiCommandPool() const { return mGuiCommandPool; }
   const VmaAllocator &getAllocator() const { return mAllocator; }
   const std::vector<VkImage> &getSwapchainImages() const { return mSwapchainImages; }
   const std::vector<VkImageView> &getSwapchainImageViews() const { return mSwapchainImageViews; }
@@ -45,7 +38,18 @@ public:
   const VkExtent2D &getSwapchainExtent() const { return mSwapchainExtent; }
   const VkSwapchainKHR &getSwapchain() const { return mSwapchain; }
 
-  GLFWwindow *getWindow() const { return mWindow; }
+  const VkQueue &getGraphicsQueue() const { return mGraphicsQueue; }
+  const VkQueue &getPresentQueue() const { return mPresentQueue; }
+  const VkQueue &getComputeQueue() const { return mComputeQueue; }
+  const VkQueue &getTransferQueue() const { return mTransferQueue; }
+
+  const uint32_t getGraphicsFamilyIndex() const { return queueFamilyIndices.graphicsFamily.value(); }
+  const uint32_t getPresentFamilyIndex() const { return queueFamilyIndices.presentFamily.value(); }
+  const uint32_t getComputeFamilyIndex() const { return queueFamilyIndices.computeFamily.value(); }
+  const uint32_t getTransferFamilyIndex() const { return queueFamilyIndices.transferFamily.value(); }
+
+  GLFWwindow *getWindow() const { return mWindow.getWindow(); }
+  GLFWmonitor *getMonitor() const { return mWindow.getMonitor(); }
 
 private:
   struct QueueFamilyIndices {
@@ -97,8 +101,7 @@ private:
       VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
       VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME};
 
-  GLFWwindow *mWindow;
-  GLFWmonitor *mMonitor;
+  Window mWindow;
   VkInstance mInstance;
   VkSurfaceKHR mSurface;
   VkPhysicalDevice mPhysicalDevice;
@@ -120,6 +123,7 @@ private:
   std::vector<VkImageView> mSwapchainImageViews;
 
   VkCommandPool mCommandPool;
+  VkCommandPool mGuiCommandPool;
 
 private:
   void initWindow(uint8_t windowSize);
@@ -141,6 +145,4 @@ private:
   VkExtent2D getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 };
 
-namespace VulkanGlobal {
-extern const VulkanApplicationContext context;
-}
+extern const VulkanApplicationContext vulkanApplicationContext;

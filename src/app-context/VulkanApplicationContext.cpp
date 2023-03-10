@@ -17,19 +17,9 @@
     }                                                                                                                            \
   }
 
-void showCursor(GLFWwindow *window) { glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL); }
-
-void hideCursor(GLFWwindow *window) {
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  if (glfwRawMouseMotionSupported()) {
-    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-  }
-}
-
-VulkanApplicationContext::VulkanApplicationContext() {
+VulkanApplicationContext::VulkanApplicationContext() : mWindow() {
   volkInitialize();
 
-  initWindow(WINDOW_SIZE_MAXIMAZED);
   createInstance();
 
   volkLoadInstance(mInstance);
@@ -43,21 +33,22 @@ VulkanApplicationContext::VulkanApplicationContext() {
   createSwapchain();
 
   createAllocator();
-  createCommandPool();
+  createCommandPool(); // both for rendering and imgui
 }
 
 VulkanApplicationContext::~VulkanApplicationContext() {
-  print("Cleaning up...");
+  print("Destroying object with type: VulkanApplicationContext");
 
   vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
   vmaDestroyAllocator(mAllocator);
-  vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
 
   for (size_t i = 0; i < mSwapchainImageViews.size(); i++)
     vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr);
   mSwapchainImageViews.clear();
 
   vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+
+  vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
 
   vkDestroyDevice(mDevice, nullptr);
   mDevice = nullptr;
@@ -66,38 +57,6 @@ VulkanApplicationContext::~VulkanApplicationContext() {
     vkDestroyDebugUtilsMessengerEXT(mInstance, mDebugMessager, nullptr);
 
   vkDestroyInstance(mInstance, nullptr);
-  glfwDestroyWindow(mWindow);
-}
-
-void VulkanApplicationContext::initWindow(uint8_t windowSize) {
-  glfwInit();
-
-  mMonitor                = glfwGetPrimaryMonitor();    // Get primary monitor for future maximize function
-  const GLFWvidmode *mode = glfwGetVideoMode(mMonitor); // May be used to change mode for this program
-
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Only OpenGL Api is supported, so no API here
-
-  glfwWindowHint(GLFW_RED_BITS, mode->redBits);
-  glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-  glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);       // Adapt colors (not needed)
-  glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // Adapt framerate
-
-  // Set window size
-  switch (windowSize) {
-  case WINDOW_SIZE_FULLSCREEN:
-    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading...", mMonitor, nullptr);
-    break;
-  case WINDOW_SIZE_MAXIMAZED:
-    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading...", nullptr, nullptr);
-    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-    break;
-  case WINDOW_SIZE_HOVER:
-    mWindow = glfwCreateWindow(WIDTH, HEIGHT, "Loading...", nullptr, nullptr);
-    break;
-  }
-
-  hideCursor(mWindow);
-  // window callbacks are in main.cpp
 }
 
 bool VulkanApplicationContext::checkValidationLayerSupport() {
@@ -245,7 +204,7 @@ void VulkanApplicationContext::setupDebugMessager() {
 }
 
 void VulkanApplicationContext::createSurface() {
-  if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS)
+  if (glfwCreateWindowSurface(mInstance, mWindow.getWindow(), nullptr, &mSurface) != VK_SUCCESS)
     throw std::runtime_error("failed to create window surface!");
 }
 
@@ -496,6 +455,7 @@ void VulkanApplicationContext::createDevice() {
   // create logical device from the physical device we've picked
   {
     queueFamilyIndices = findQueueFamilies(mPhysicalDevice);
+    queueFamilyIndices.print();
 
     std::set<uint32_t> queueFamilyIndicesSet = {
         queueFamilyIndices.graphicsFamily.value(), queueFamilyIndices.presentFamily.value(),
@@ -554,10 +514,10 @@ void VulkanApplicationContext::createDevice() {
     if (vkCreateDevice(mPhysicalDevice, &deviceCreateInfo, nullptr, &mDevice) != VK_SUCCESS)
       throw std::runtime_error("failed to create logical device!");
 
-    vkGetDeviceQueue(mDevice, queueFamilyIndices.graphicsFamily.value(), 0, &mGraphicsQueue);
-    vkGetDeviceQueue(mDevice, queueFamilyIndices.presentFamily.value(), 0, &mPresentQueue);
-    vkGetDeviceQueue(mDevice, queueFamilyIndices.computeFamily.value(), 0, &mComputeQueue);
-    vkGetDeviceQueue(mDevice, queueFamilyIndices.transferFamily.value(), 0, &mTransferQueue);
+    vkGetDeviceQueue(mDevice, getGraphicsFamilyIndex(), 0, &mGraphicsQueue);
+    vkGetDeviceQueue(mDevice, getPresentFamilyIndex(), 0, &mPresentQueue);
+    vkGetDeviceQueue(mDevice, getComputeFamilyIndex(), 0, &mComputeQueue);
+    vkGetDeviceQueue(mDevice, getTransferFamilyIndex(), 0, &mTransferQueue);
 
     // // if raytracing support requested - let's get raytracing properties to
     // // know shader header size and max recursion
@@ -602,7 +562,7 @@ VulkanApplicationContext::querySwapchainSupport(VkSurfaceKHR surface, VkPhysical
 VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
   for (const auto &availableFormat : availableFormats) {
     // format: VK_FORMAT_B8G8R8A8_SRGB
-    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB)
+    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB) // this is actually irretional bue to imgui impl
       return availableFormat;
   }
 
@@ -631,7 +591,7 @@ VkExtent2D VulkanApplicationContext::getSwapExtent(const VkSurfaceCapabilitiesKH
     return capabilities.currentExtent;
   } else {
     int width, height;
-    glfwGetFramebufferSize(mWindow, &width, &height);
+    glfwGetFramebufferSize(mWindow.getWindow(), &width, &height);
 
     VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
     actualExtent.width  = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
@@ -687,7 +647,6 @@ void VulkanApplicationContext::createSwapchain() {
   swapchainCreateInfo.presentMode = presentMode;
   swapchainCreateInfo.clipped     = VK_TRUE;
 
-  // window resize logic : null
   swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
   if (vkCreateSwapchainKHR(mDevice, &swapchainCreateInfo, nullptr, &mSwapchain) != VK_SUCCESS)
@@ -744,10 +703,18 @@ void VulkanApplicationContext::createAllocator() {
 }
 
 void VulkanApplicationContext::createCommandPool() {
-  VkCommandPoolCreateInfo poolInfo{};
-  poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-  if (vkCreateCommandPool(mDevice, &poolInfo, nullptr, &mCommandPool) != VK_SUCCESS) {
+  VkCommandPoolCreateInfo commandPoolCreateInfo1{};
+  commandPoolCreateInfo1.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  commandPoolCreateInfo1.queueFamilyIndex = getGraphicsFamilyIndex();
+  if (vkCreateCommandPool(mDevice, &commandPoolCreateInfo1, nullptr, &mCommandPool) != VK_SUCCESS) {
+    throw std::runtime_error("failed to create command pool!");
+  }
+
+  VkCommandPoolCreateInfo commandPoolCreateInfo2{};
+  commandPoolCreateInfo2.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  commandPoolCreateInfo2.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // allows the use of vkResetCommandBuffer
+  commandPoolCreateInfo2.queueFamilyIndex = getGraphicsFamilyIndex();
+  if (vkCreateCommandPool(mDevice, &commandPoolCreateInfo2, nullptr, &mGuiCommandPool) != VK_SUCCESS) {
     throw std::runtime_error("failed to create command pool!");
   }
 }

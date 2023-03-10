@@ -29,8 +29,8 @@ ForwardRenderPass::~ForwardRenderPass() {
 
   m_colorImage->destroy();
   m_depthImage->destroy();
-  vkDestroyFramebuffer(VulkanGlobal::context.getDevice(), *m_framebuffer, nullptr);
-  vkDestroyRenderPass(VulkanGlobal::context.getDevice(), *m_renderPass, nullptr);
+  vkDestroyFramebuffer(vulkanApplicationContext.getDevice(), *m_framebuffer, nullptr);
+  vkDestroyRenderPass(vulkanApplicationContext.getDevice(), *m_renderPass, nullptr);
 }
 
 std::shared_ptr<Image> ForwardRenderPass::getColorImage() { return m_colorImage; }
@@ -39,7 +39,7 @@ std::shared_ptr<Image> ForwardRenderPass::getDepthImage() { return m_depthImage;
 void ForwardRenderPass::createRenderPass() {
   // Color attachment for a framebuffer.
   VkAttachmentDescription colorAttachment{};
-  colorAttachment.format  = VulkanGlobal::context.getSwapchainImageFormat();
+  colorAttachment.format  = vulkanApplicationContext.getSwapchainImageFormat();
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
   // Clear the frame before render.
   colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -107,7 +107,7 @@ void ForwardRenderPass::createRenderPass() {
   renderPassInfo.dependencyCount = 2;
   renderPassInfo.pDependencies   = dependencies.data();
 
-  if (vkCreateRenderPass(VulkanGlobal::context.getDevice(), &renderPassInfo, nullptr, m_renderPass.get()) != VK_SUCCESS) {
+  if (vkCreateRenderPass(vulkanApplicationContext.getDevice(), &renderPassInfo, nullptr, m_renderPass.get()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create render pass!");
   }
 }
@@ -120,17 +120,17 @@ void ForwardRenderPass::createFramebuffers() {
   framebufferInfo.renderPass      = *m_renderPass;
   framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
   framebufferInfo.pAttachments    = attachments.data();
-  framebufferInfo.width           = VulkanGlobal::context.getSwapchainExtent().width;
-  framebufferInfo.height          = VulkanGlobal::context.getSwapchainExtent().height;
+  framebufferInfo.width           = vulkanApplicationContext.getSwapchainExtent().width;
+  framebufferInfo.height          = vulkanApplicationContext.getSwapchainExtent().height;
   framebufferInfo.layers          = 1;
 
-  if (vkCreateFramebuffer(VulkanGlobal::context.getDevice(), &framebufferInfo, nullptr, m_framebuffer.get()) != VK_SUCCESS) {
+  if (vkCreateFramebuffer(vulkanApplicationContext.getDevice(), &framebufferInfo, nullptr, m_framebuffer.get()) != VK_SUCCESS) {
     throw std::runtime_error("failed to create framebuffer!");
   }
 }
 
 VkFormat ForwardRenderPass::findDepthFormat() {
-  return VulkanGlobal::context.findSupportedFormat(
+  return vulkanApplicationContext.findSupportedFormat(
       {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT}, VK_IMAGE_TILING_OPTIMAL,
       VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
@@ -141,17 +141,17 @@ bool ForwardRenderPass::hasStencilComponent(VkFormat format) {
 
 void ForwardRenderPass::createDepthResources() {
   VkFormat depthFormat = findDepthFormat();
-  ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height, 1,
-                          VK_SAMPLE_COUNT_1_BIT, depthFormat, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
-                          m_depthImage);
+  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
+                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT, depthFormat,
+                          VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+                          VMA_MEMORY_USAGE_GPU_ONLY, m_depthImage);
 }
 
 void ForwardRenderPass::createColorResources() {
-  VkFormat colorFormat = VulkanGlobal::context.getSwapchainImageFormat();
+  VkFormat colorFormat = vulkanApplicationContext.getSwapchainImageFormat();
 
-  ImageUtils::createImage(VulkanGlobal::context.getSwapchainExtent().width, VulkanGlobal::context.getSwapchainExtent().height, 1,
-                          VK_SAMPLE_COUNT_1_BIT, colorFormat, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, m_colorImage);
+  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
+                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT, colorFormat,
+                          VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                          VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, m_colorImage);
 }
