@@ -46,9 +46,9 @@ add_executable(${PROJECT_NAME}
 	src/utils/Camera.cpp
 	src/utils/Window.cpp
 	src/utils/StbImageImpl.cpp
-	src/imgui/imgui_impl_glfw.cpp
-    src/imgui/imgui_impl_vulkan.cpp
-	
+
+	dep/imgui/backends/imgui_impl_glfw.cpp
+    dep/imgui/backends/imgui_impl_vulkan.cpp
 	dep/imgui/imgui_demo.cpp
     dep/imgui/imgui_draw.cpp
     dep/imgui/imgui_tables.cpp
@@ -57,6 +57,6 @@ add_executable(${PROJECT_NAME}
 	)
 
 target_link_directories(${PROJECT_NAME}
-    PRIVATE ${PROJECT_BINARY_DIR}/dep/glfw/src/Debug)
+    PRIVATE ${PROJECT_BINARY_DIR}/dep/glfw/src/Release)
 
 target_link_libraries(${PROJECT_NAME} glfw3.lib)

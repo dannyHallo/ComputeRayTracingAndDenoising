@@ -16,8 +16,8 @@
 #include "utils/systemLog.h"
 #include "utils/vulkan.h"
 
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_vulkan.h"
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
 
 #include <array>
 #include <cstdlib>
@@ -26,7 +26,6 @@
 #include <stdexcept>
 #include <stdint.h>
 #include <vector>
-
 
 class Application {
 public:
@@ -61,13 +60,12 @@ private:
   };
 
   const int aTrousSize           = 5;
-  bool bypassTemporal            = false;
-  bool bypassBlur                = false;
+  bool useTemporal               = true;
+  bool useBlur                   = true;
   const int MAX_FRAMES_IN_FLIGHT = 2;
   const std::string path_prefix  = std::string(ROOT_DIR) + "resources/";
   const float fpsUpdateTime      = 0.5f;
   float deltaTime = 0, frameRecordLastTime = 0;
-
 
   std::shared_ptr<GpuModel::Scene> rtScene;
 
@@ -139,6 +137,4 @@ private:
   void initVulkan();
 
   void cleanup();
-
-  void processInput();
 };

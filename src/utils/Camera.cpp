@@ -11,7 +11,38 @@ const glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear, floa
   return projection;
 }
 
+void Camera::processInput(float deltaTime) {
+  uint32_t inputBits = mWindow->getKeyInputs();
+
+  CameraMovement direction = NONE;
+  if (inputBits & ESC_BIT)
+    glfwSetWindowShouldClose(mWindow->getWindow(), true);
+  if (inputBits & TAB_BIT) {
+    mWindow->toggleCursor();
+    mWindow->disableInputBit(TAB_BIT);
+  }
+
+  if (inputBits & SPACE_BIT)
+    direction = UP;
+  if (inputBits & SHIFT_BIT)
+    direction = DOWN;
+  if (inputBits & W_BIT)
+    direction = FORWARD;
+  if (inputBits & S_BIT)
+    direction = BACKWARD;
+  if (inputBits & A_BIT)
+    direction = LEFT;
+  if (inputBits & D_BIT)
+    direction = RIGHT;
+
+  if (direction != NONE)
+    processKeyboard(direction, deltaTime);
+}
+
 void Camera::processKeyboard(CameraMovement direction, float deltaTime) {
+  if (!canMove())
+    return;
+
   float velocity = 10.f * movementSpeed * deltaTime;
   if (direction == FORWARD)
     position += front * velocity;
@@ -28,6 +59,8 @@ void Camera::processKeyboard(CameraMovement direction, float deltaTime) {
 }
 
 void Camera::processMouseMovement(float xoffset, float yoffset) {
+  if (!canMove())
+    return;
   xoffset *= -mouseSensitivity;
   yoffset *= mouseSensitivity;
 
@@ -45,6 +78,8 @@ void Camera::processMouseMovement(float xoffset, float yoffset) {
 }
 
 void Camera::processMouseScroll(float yoffset) {
+  if (!canMove())
+    return;
   zoom -= (float)yoffset;
   if (zoom < 1.0f)
     zoom = 1.0f;

@@ -1,7 +1,5 @@
 #pragma once
 
-#define VK_NO_PROTOTYPES // required in dynamic linking
-#define VK_USE_PLATFORM_WIN32_KHR
 #define NOMINMAX
 
 #include "utils/vulkan.h"
@@ -48,6 +46,7 @@ public:
   const uint32_t getComputeFamilyIndex() const { return queueFamilyIndices.computeFamily.value(); }
   const uint32_t getTransferFamilyIndex() const { return queueFamilyIndices.transferFamily.value(); }
 
+  Window &getWindowClass() { return mWindow; }
   GLFWwindow *getWindow() const { return mWindow.getWindow(); }
   GLFWmonitor *getMonitor() const { return mWindow.getMonitor(); }
 
@@ -86,7 +85,7 @@ private:
   } swapchainSupportDetails;
 
   const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
-  const bool enableDebug                           = true;
+  const bool enableDebug                           = false;
   const std::vector<const char *> deviceExtensions = {
       // 0
       VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -145,4 +144,4 @@ private:
   VkExtent2D getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 };
 
-extern const VulkanApplicationContext vulkanApplicationContext;
+extern VulkanApplicationContext vulkanApplicationContext;

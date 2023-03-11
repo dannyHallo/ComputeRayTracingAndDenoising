@@ -1,7 +1,7 @@
 #include "Application.h"
 
 Camera camera{};
-const VulkanApplicationContext vulkanApplicationContext{};
+VulkanApplicationContext vulkanApplicationContext{};
 
 void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
   static float lastX, lastY;
@@ -296,7 +296,7 @@ void Application::updateScene(uint32_t currentImage) {
     vmaUnmapMemory(vulkanApplicationContext.getAllocator(), allocation);
   }
 
-  TemporalFilterUniformBufferObject tfUbo = {bypassTemporal, lastMvpe, vulkanApplicationContext.getSwapchainExtent().width,
+  TemporalFilterUniformBufferObject tfUbo = {!useTemporal, lastMvpe, vulkanApplicationContext.getSwapchainExtent().width,
                                              vulkanApplicationContext.getSwapchainExtent().height};
   {
     auto &allocation = temperalFilterBufferBundle->buffers[currentImage]->allocation;
@@ -308,6 +308,18 @@ void Application::updateScene(uint32_t currentImage) {
     lastMvpe = camera.getProjectionMatrix(static_cast<float>(vulkanApplicationContext.getSwapchainExtent().width) /
                                           static_cast<float>(vulkanApplicationContext.getSwapchainExtent().height)) *
                camera.getViewMatrix();
+  }
+
+  for (int j = 0; j < aTrousSize; j++) {
+      // update ubo for the sampleDistance
+      BlurFilterUniformBufferObject bfUbo = {!useBlur, j};
+      {
+        auto &allocation = blurFilterBufferBundles[j]->buffers[currentImage]->allocation;
+        void *data;
+        vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
+        memcpy(data, &bfUbo, sizeof(bfUbo));
+        vmaUnmapMemory(vulkanApplicationContext.getAllocator(), allocation);
+      }
   }
 
   currentSample++;
@@ -389,7 +401,7 @@ void Application::createRenderCommandBuffers() {
 
     for (int j = 0; j < aTrousSize; j++) {
       // update ubo for the sampleDistance
-      BlurFilterUniformBufferObject bfUbo = {bypassBlur, j};
+      BlurFilterUniformBufferObject bfUbo = {!useBlur, j};
       {
         auto &allocation = blurFilterBufferBundles[j]->buffers[i]->allocation;
         void *data;
@@ -664,12 +676,12 @@ void Application::initGui() {
 
   // Does nothing, avoid compiler warning
   (void)io;
-  // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable
-  // Keyboard Controls io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-  // // Enable Gamepad Controls
+
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
   // Setup Dear ImGui style
-  ImGui::StyleColorsClassic();
+  ImGui::StyleColorsDark();
 
   // Setup Platform/Renderer bindings
   ImGui_ImplGlfw_InitForVulkan(vulkanApplicationContext.getWindow(), true);
@@ -683,10 +695,9 @@ void Application::initGui() {
   init_info.PipelineCache             = VK_NULL_HANDLE;
   init_info.DescriptorPool            = guiDescriptorPool;
   init_info.Allocator                 = VK_NULL_HANDLE;
-  // This is not used
-  init_info.MinImageCount   = vulkanApplicationContext.getSwapchainImageViews().size();
-  init_info.ImageCount      = vulkanApplicationContext.getSwapchainImageViews().size();
-  init_info.CheckVkResultFn = check_vk_result;
+  init_info.MinImageCount             = vulkanApplicationContext.getSwapchainImageViews().size();
+  init_info.ImageCount                = vulkanApplicationContext.getSwapchainImageViews().size();
+  init_info.CheckVkResultFn           = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&init_info, imGuiPass)) {
     print("failed to init impl");
   }
@@ -811,10 +822,13 @@ void Application::prepareGui() {
   ImGui::NewFrame();
 
   // ImGui::ShowDemoWindow();
-  // showOverlayWindow(&openFpsOverlay, 0);
+  // ImGui::ShowStackToolWindow();
 
   ImGui::Begin("little gui");
-  ImGui::Text("Test text XD");
+  // ImGui::Text("Test text XD");
+
+  ImGui::Checkbox("Temporal Accumulation", &useTemporal);
+  ImGui::Checkbox("A-Trous", &useBlur);
 
   // ImGui::Text("Cursor sensitivity:");
   // ImGui::SliderFloat("##cursor_sensitivity", &camera.mCursorSensitivity, 30.0f, 60.0f);
@@ -859,7 +873,7 @@ void Application::mainLoop() {
       fpsRecordLastTime = currentTime;
     }
 
-    processInput();
+    camera.processInput(deltaTime);
     drawFrame();
   }
 
@@ -867,11 +881,11 @@ void Application::mainLoop() {
 }
 
 void Application::initVulkan() {
+  camera.init(&vulkanApplicationContext.getWindowClass());
   initScene();
   createRenderCommandBuffers();
   createGuiCommandBuffers();
   createSyncObjects();
-
   createGuiRenderPass();
   createGuiFramebuffers();
   createGuiDescripterPool();
@@ -888,25 +902,4 @@ void Application::cleanup() {
   }
 
   glfwTerminate();
-}
-
-void Application::processInput() {
-  CameraMovement direction = NONE;
-  if (glfwGetKey(vulkanApplicationContext.getWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    glfwSetWindowShouldClose(vulkanApplicationContext.getWindow(), true);
-  if (glfwGetKey(vulkanApplicationContext.getWindow(), GLFW_KEY_SPACE) == GLFW_PRESS)
-    direction = UP;
-  if (glfwGetKey(vulkanApplicationContext.getWindow(), GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-    direction = DOWN;
-  if (glfwGetKey(vulkanApplicationContext.getWindow(), GLFW_KEY_W) == GLFW_PRESS)
-    direction = FORWARD;
-  if (glfwGetKey(vulkanApplicationContext.getWindow(), GLFW_KEY_S) == GLFW_PRESS)
-    direction = BACKWARD;
-  if (glfwGetKey(vulkanApplicationContext.getWindow(), GLFW_KEY_A) == GLFW_PRESS)
-    direction = LEFT;
-  if (glfwGetKey(vulkanApplicationContext.getWindow(), GLFW_KEY_D) == GLFW_PRESS)
-    direction = RIGHT;
-
-  if (direction != NONE)
-    camera.processKeyboard(direction, deltaTime);
 }

@@ -20,6 +20,6 @@ cd build
 cmake ..
 cd ..
 
-MSBuild build/vulkan.sln -p:Configuration=Debug
+MSBuild build/vulkan.sln -p:Configuration=Release
 
-start /d "./build/Debug" vulkan.exe
+start /d "./build/Release" vulkan.exe
