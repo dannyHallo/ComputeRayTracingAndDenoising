@@ -140,7 +140,7 @@ void VulkanApplicationContext::createInstance() {
   VkInstanceCreateInfo createInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
 
   if (enableDebug && !checkValidationLayerSupport())
-    throw std::runtime_error("Validation layers requested, but not available!");
+    throwErrorAndWaitForQuit("Validation layers requested, but not available!");
 
   VkApplicationInfo appInfo{};
   appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -187,8 +187,9 @@ void VulkanApplicationContext::createInstance() {
   }
 
   // Create VK Instance
-  if (vkCreateInstance(&createInfo, nullptr, &mInstance) != VK_SUCCESS)
-    throw std::runtime_error("failed to create instance!");
+  VkResult r = vkCreateInstance(&createInfo, nullptr, &mInstance);
+  if (r != VK_SUCCESS)
+    throwErrorAndWaitForQuit("failed to create instance!", r);
 }
 
 // setup runtime debug messager
@@ -199,13 +200,15 @@ void VulkanApplicationContext::setupDebugMessager() {
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessagerInfo(createInfo);
 
-  if (vkCreateDebugUtilsMessengerEXT(mInstance, &createInfo, nullptr, &mDebugMessager) != VK_SUCCESS)
-    throw std::runtime_error("failed to setup debug messager!");
+  VkResult r = vkCreateDebugUtilsMessengerEXT(mInstance, &createInfo, nullptr, &mDebugMessager);
+  if (r != VK_SUCCESS)
+    throwErrorAndWaitForQuit("failed to setup debug messager!", r);
 }
 
 void VulkanApplicationContext::createSurface() {
-  if (glfwCreateWindowSurface(mInstance, mWindow.getWindow(), nullptr, &mSurface) != VK_SUCCESS)
-    throw std::runtime_error("failed to create window surface!");
+  VkResult r = glfwCreateWindowSurface(mInstance, mWindow.getWindow(), nullptr, &mSurface);
+  if (r != VK_SUCCESS)
+    throwErrorAndWaitForQuit("failed to create window surface!", r);
 }
 
 VkSampleCountFlagBits getDeviceMaxUsableSampleCount(VkPhysicalDevice device) {
@@ -282,7 +285,7 @@ bool VulkanApplicationContext::checkDeviceSuitable(VkSurfaceKHR surface, VkPhysi
   if (indices.isComplete() && extensionSupported && swapChainAdequate) {
     return true;
   }
-  throw std::runtime_error("device is not suitable!");
+  throwErrorAndWaitForQuit("device is not suitable!");
   return false;
 }
 
@@ -347,7 +350,7 @@ VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysic
   }
 
   if (bestDevice == VK_NULL_HANDLE) {
-    throw std::runtime_error("failed to find a suitable GPU!");
+    throwErrorAndWaitForQuit("failed to find a suitable GPU!");
   } else {
     VkPhysicalDeviceProperties bestDeviceProperty;
     vkGetPhysicalDeviceProperties(bestDevice, &bestDeviceProperty);
@@ -444,7 +447,7 @@ void VulkanApplicationContext::createDevice() {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(mInstance, &deviceCount, nullptr);
     if (deviceCount == 0)
-      throw std::runtime_error("failed to find a single GPU with Vulkan support!");
+      throwErrorAndWaitForQuit("failed to find a single GPU with Vulkan support!");
 
     std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
     vkEnumeratePhysicalDevices(mInstance, &deviceCount, physicalDevices.data());
@@ -489,7 +492,7 @@ void VulkanApplicationContext::createDevice() {
 
     VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexing = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
-    descriptorIndexing.pNext = &rayTracingStructure;
+    // descriptorIndexing.pNext = &rayTracingStructure; // uncomment this to enable the features above
 
     physicalDeviceFeatures.pNext = &descriptorIndexing;
 
@@ -511,8 +514,10 @@ void VulkanApplicationContext::createDevice() {
     deviceCreateInfo.enabledLayerCount   = 0;
     deviceCreateInfo.ppEnabledLayerNames = nullptr;
 
-    if (vkCreateDevice(mPhysicalDevice, &deviceCreateInfo, nullptr, &mDevice) != VK_SUCCESS)
-      throw std::runtime_error("failed to create logical device!");
+    VkResult r = vkCreateDevice(mPhysicalDevice, &deviceCreateInfo, nullptr, &mDevice);
+    if (r != VK_SUCCESS) {
+      throwErrorAndWaitForQuit("failed to create logical device!", r);
+    }
 
     vkGetDeviceQueue(mDevice, getGraphicsFamilyIndex(), 0, &mGraphicsQueue);
     vkGetDeviceQueue(mDevice, getPresentFamilyIndex(), 0, &mPresentQueue);
@@ -649,8 +654,9 @@ void VulkanApplicationContext::createSwapchain() {
 
   swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-  if (vkCreateSwapchainKHR(mDevice, &swapchainCreateInfo, nullptr, &mSwapchain) != VK_SUCCESS)
-    throw std::runtime_error("failed to create swap chain!");
+  VkResult r = vkCreateSwapchainKHR(mDevice, &swapchainCreateInfo, nullptr, &mSwapchain);
+  if (r != VK_SUCCESS)
+    throwErrorAndWaitForQuit("failed to create swap chain!", r);
 
   // Get swap chain images from the swap chain created
   vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, nullptr);
@@ -697,8 +703,9 @@ void VulkanApplicationContext::createAllocator() {
   allocatorInfo.instance               = mInstance;
   allocatorInfo.pVulkanFunctions       = &vmaVulkanFunc;
 
-  if (vmaCreateAllocator(&allocatorInfo, &mAllocator) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create command memory allocator!");
+  VkResult r = vmaCreateAllocator(&allocatorInfo, &mAllocator);
+  if (r != VK_SUCCESS) {
+    throwErrorAndWaitForQuit("failed to create command memory allocator!", r);
   }
 }
 
@@ -706,16 +713,21 @@ void VulkanApplicationContext::createCommandPool() {
   VkCommandPoolCreateInfo commandPoolCreateInfo1{};
   commandPoolCreateInfo1.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   commandPoolCreateInfo1.queueFamilyIndex = getGraphicsFamilyIndex();
-  if (vkCreateCommandPool(mDevice, &commandPoolCreateInfo1, nullptr, &mCommandPool) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create command pool!");
+
+  VkResult r = vkCreateCommandPool(mDevice, &commandPoolCreateInfo1, nullptr, &mCommandPool);
+  if (r != VK_SUCCESS) {
+    throwErrorAndWaitForQuit("failed to create command pool!",
+                             vkCreateCommandPool(mDevice, &commandPoolCreateInfo1, nullptr, &mCommandPool));
   }
 
   VkCommandPoolCreateInfo commandPoolCreateInfo2{};
   commandPoolCreateInfo2.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   commandPoolCreateInfo2.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // allows the use of vkResetCommandBuffer
   commandPoolCreateInfo2.queueFamilyIndex = getGraphicsFamilyIndex();
-  if (vkCreateCommandPool(mDevice, &commandPoolCreateInfo2, nullptr, &mGuiCommandPool) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create command pool!");
+
+  r = vkCreateCommandPool(mDevice, &commandPoolCreateInfo2, nullptr, &mGuiCommandPool);
+  if (r != VK_SUCCESS) {
+    throwErrorAndWaitForQuit("failed to create command pool!", r);
   }
 }
 
@@ -732,5 +744,5 @@ VkFormat VulkanApplicationContext::findSupportedFormat(const std::vector<VkForma
     }
   }
 
-  throw std::runtime_error("failed to find supported format!");
+  throwErrorAndWaitForQuit("failed to find supported format!");
 }

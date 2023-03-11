@@ -18,6 +18,7 @@ add_subdirectory(dep/glfw)
 include_directories(
 	src
     dep
+    dep/spdlog/include
 	dep/glfw/include
 	dep/glm
 	dep/imgui

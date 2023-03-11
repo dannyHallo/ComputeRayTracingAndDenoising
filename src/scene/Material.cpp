@@ -270,7 +270,7 @@ void Material::__initDescriptorSetLayout() {
   // each binding is for each buffer BUNDLE
   for (const auto &d : m_uniformBufferBundleDescriptors) {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding            = binding++;
+    uboLayoutBinding.binding            = static_cast<uint32_t>(binding++);
     uboLayoutBinding.descriptorCount    = 1;
     uboLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.stageFlags         = d.shaderStageFlags;
@@ -280,7 +280,7 @@ void Material::__initDescriptorSetLayout() {
 
   for (const auto &t : m_textureDescriptors) {
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding            = binding++;
+    samplerLayoutBinding.binding            = static_cast<uint32_t>(binding++);
     samplerLayoutBinding.descriptorCount    = 1;
     samplerLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     samplerLayoutBinding.stageFlags         = t.shaderStageFlags;
@@ -290,7 +290,7 @@ void Material::__initDescriptorSetLayout() {
 
   for (const auto &s : m_storageImageDescriptors) {
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding            = binding++;
+    samplerLayoutBinding.binding            = static_cast<uint32_t>(binding++);
     samplerLayoutBinding.descriptorCount    = 1;
     samplerLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     samplerLayoutBinding.stageFlags         = s.shaderStageFlags;
@@ -300,7 +300,7 @@ void Material::__initDescriptorSetLayout() {
 
   for (const auto &s : m_storageBufferBundleDescriptors) {
     VkDescriptorSetLayoutBinding storageBufferBinding{};
-    storageBufferBinding.binding            = binding++;
+    storageBufferBinding.binding            = static_cast<uint32_t>(binding++);
     storageBufferBinding.descriptorCount    = 1;
     storageBufferBinding.descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     storageBufferBinding.stageFlags         = s.shaderStageFlags;

@@ -695,8 +695,8 @@ void Application::initGui() {
   init_info.PipelineCache             = VK_NULL_HANDLE;
   init_info.DescriptorPool            = guiDescriptorPool;
   init_info.Allocator                 = VK_NULL_HANDLE;
-  init_info.MinImageCount             = vulkanApplicationContext.getSwapchainImageViews().size();
-  init_info.ImageCount                = vulkanApplicationContext.getSwapchainImageViews().size();
+  init_info.MinImageCount             = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImageViews().size());
+  init_info.ImageCount                = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImageViews().size());
   init_info.CheckVkResultFn           = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&init_info, imGuiPass)) {
     print("failed to init impl");
@@ -801,7 +801,6 @@ void Application::drawFrame() {
   }
 
   result = vkQueuePresentKHR(vulkanApplicationContext.getPresentQueue(), &presentInfo);
-
   if (result != VK_SUCCESS) {
     throw std::runtime_error("failed to present swap chain image!");
   }
