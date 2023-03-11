@@ -311,15 +311,15 @@ void Application::updateScene(uint32_t currentImage) {
   }
 
   for (int j = 0; j < aTrousSize; j++) {
-      // update ubo for the sampleDistance
-      BlurFilterUniformBufferObject bfUbo = {!useBlur, j};
-      {
-        auto &allocation = blurFilterBufferBundles[j]->buffers[currentImage]->allocation;
-        void *data;
-        vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
-        memcpy(data, &bfUbo, sizeof(bfUbo));
-        vmaUnmapMemory(vulkanApplicationContext.getAllocator(), allocation);
-      }
+    // update ubo for the sampleDistance
+    BlurFilterUniformBufferObject bfUbo = {!useBlur, j};
+    {
+      auto &allocation = blurFilterBufferBundles[j]->buffers[currentImage]->allocation;
+      void *data;
+      vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
+      memcpy(data, &bfUbo, sizeof(bfUbo));
+      vmaUnmapMemory(vulkanApplicationContext.getAllocator(), allocation);
+    }
   }
 
   currentSample++;
@@ -677,8 +677,8 @@ void Application::initGui() {
   // Does nothing, avoid compiler warning
   (void)io;
 
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-  io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+  // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+  // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
   // Setup Dear ImGui style
   ImGui::StyleColorsDark();
@@ -816,15 +816,16 @@ void Application::prepareGui() {
   // handle the user inputs, the screen resize
   ImGui_ImplGlfw_NewFrame();
 
-  bool openFpsOverlay = true;
-
   ImGui::NewFrame();
 
   // ImGui::ShowDemoWindow();
   // ImGui::ShowStackToolWindow();
 
-  ImGui::Begin("little gui");
-  // ImGui::Text("Test text XD");
+  ImGui::Begin("little gui ( press TAB to use me )");
+  ImGui::Text((std::to_string(static_cast<int>(fps)) + " frames per second").c_str());
+  ImGui::Text((std::to_string(static_cast<int>(frameTime * 1000)) + " ms per frame").c_str());
+
+  ImGui::Separator();
 
   ImGui::Checkbox("Temporal Accumulation", &useTemporal);
   ImGui::Checkbox("A-Trous", &useBlur);
@@ -865,7 +866,9 @@ void Application::mainLoop() {
     frameRecordLastTime = currentTime;
 
     if (currentTime - fpsRecordLastTime >= fpsUpdateTime) {
-      std::string title = "FPS - " + std::to_string(static_cast<int>(fpsFrameCount / fpsUpdateTime));
+      fps               = fpsFrameCount / fpsUpdateTime;
+      frameTime         = 1 / fps;
+      std::string title = "FPS - " + std::to_string(static_cast<int>(fps));
       glfwSetWindowTitle(vulkanApplicationContext.getWindow(), title.c_str());
       fpsFrameCount = 0;
 

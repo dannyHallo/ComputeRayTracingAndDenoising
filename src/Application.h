@@ -60,6 +60,10 @@ private:
   };
 
   const int aTrousSize           = 5;
+
+  float fps                      = 0;
+  float frameTime                = 0;
+  
   bool useTemporal               = true;
   bool useBlur                   = true;
   const int MAX_FRAMES_IN_FLIGHT = 2;

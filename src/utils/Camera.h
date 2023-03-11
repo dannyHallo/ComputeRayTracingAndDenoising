@@ -8,10 +8,6 @@
 #include <iostream>
 #include <vector>
 
-// Defines several possible options for camera movement. Used as abstraction to stay away from window-system specific
-// input methods
-enum CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN, NONE };
-
 // An abstract camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for
 // use in OpenGL
 class Camera {
@@ -32,8 +28,8 @@ public:
 
   const float vFov = 60;
 
-  Camera(glm::vec3 camPosition = glm::vec3(0.0f, 0.0f, 0.0f),
-         glm::vec3 wrdUp = glm::vec3(0.0f, 1.0f, 0.0f), float camYaw = 180, float camPitch = 0)
+  Camera(glm::vec3 camPosition = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 wrdUp = glm::vec3(0.0f, 1.0f, 0.0f), float camYaw = 180,
+         float camPitch = 0)
       : position(camPosition), worldUp(wrdUp), yaw(camYaw), pitch(camPitch) {
     updateCameraVectors();
   }
@@ -46,7 +42,7 @@ public:
 
   // processes input received from any keyboard-like input system. Accepts input parameter in the form of camera defined
   // ENUM (to abstract it from windowing systems)
-  void processKeyboard(CameraMovement direction, float deltaTime);
+  void processKeyboard(uint32_t direction, float deltaTime);
 
   // processes input received from a mouse input system. Expects the offset value in both the x and y direction.
   void processMouseMovement(float xoffset, float yoffset);

@@ -14,7 +14,6 @@ const glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear, floa
 void Camera::processInput(float deltaTime) {
   uint32_t inputBits = mWindow->getKeyInputs();
 
-  CameraMovement direction = NONE;
   if (inputBits & ESC_BIT)
     glfwSetWindowShouldClose(mWindow->getWindow(), true);
   if (inputBits & TAB_BIT) {
@@ -22,39 +21,26 @@ void Camera::processInput(float deltaTime) {
     mWindow->disableInputBit(TAB_BIT);
   }
 
-  if (inputBits & SPACE_BIT)
-    direction = UP;
-  if (inputBits & SHIFT_BIT)
-    direction = DOWN;
-  if (inputBits & W_BIT)
-    direction = FORWARD;
-  if (inputBits & S_BIT)
-    direction = BACKWARD;
-  if (inputBits & A_BIT)
-    direction = LEFT;
-  if (inputBits & D_BIT)
-    direction = RIGHT;
-
-  if (direction != NONE)
-    processKeyboard(direction, deltaTime);
+  if (inputBits & (SPACE_BIT | SHIFT_BIT | W_BIT | S_BIT | A_BIT | D_BIT))
+    processKeyboard(inputBits, deltaTime);
 }
 
-void Camera::processKeyboard(CameraMovement direction, float deltaTime) {
+void Camera::processKeyboard(uint32_t inputBits, float deltaTime) {
   if (!canMove())
     return;
 
   float velocity = 10.f * movementSpeed * deltaTime;
-  if (direction == FORWARD)
+  if (inputBits & W_BIT)
     position += front * velocity;
-  if (direction == BACKWARD)
+  if (inputBits & S_BIT)
     position -= front * velocity;
-  if (direction == LEFT)
+  if (inputBits & A_BIT)
     position -= right * velocity;
-  if (direction == RIGHT)
+  if (inputBits & D_BIT)
     position += right * velocity;
-  if (direction == UP)
+  if (inputBits & SPACE_BIT)
     position += up * velocity;
-  if (direction == DOWN)
+  if (inputBits & SHIFT_BIT)
     position -= up * velocity;
 }
 
