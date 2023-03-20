@@ -108,6 +108,8 @@
     "span": "cpp",
     "stack": "cpp",
     "*.rh": "cpp",
-    "volk.c": "cpp"
+    "volk.c": "cpp",
+    "filesystem": "cpp",
+    "variant": "cpp"
   }
 }

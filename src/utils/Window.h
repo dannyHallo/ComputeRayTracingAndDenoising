@@ -38,7 +38,8 @@ public:
 
 private:
   static Window *thisWindowClass;
-  const uint8_t windowSize      = WINDOW_SIZE_FULLSCREEN;
+  // const uint8_t windowSize      = WINDOW_SIZE_FULLSCREEN;
+  const uint8_t windowSize      = WINDOW_SIZE_MAXIMAZED;
   const uint32_t widthWindowed  = 1280;
   const uint32_t heightWindowed = 1280;
 

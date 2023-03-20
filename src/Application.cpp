@@ -830,24 +830,6 @@ void Application::prepareGui() {
   ImGui::Checkbox("Temporal Accumulation", &useTemporal);
   ImGui::Checkbox("A-Trous", &useBlur);
 
-  // ImGui::Text("Cursor sensitivity:");
-  // ImGui::SliderFloat("##cursor_sensitivity", &camera.mCursorSensitivity, 30.0f, 60.0f);
-
-  // ImGui::Text("Base Movement speed:");
-  // ImGui::SliderFloat("##base_movement_speed", &camera.mBaseMovementSpeed, 0.0f, 6.0f);
-
-  // ImGui::Text("Top Movement speed:");
-  // ImGui::SliderFloat("##top_movement_speed", &camera.mTopMovementSpeed, 2.0f, 6.0f);
-
-  // ImGui::Text("Speed Gain:");
-  // ImGui::SliderFloat("##accleration_mult", &camera.mSpeedGain, 0.0f, 0.1f);
-
-  // ImGui::Text("Sun ambient:");
-  // ImGui::SliderFloat("##sun_ambient", &sAmbientLight, 0.0f, 1.0f);
-
-  // ImGui::Text("Sun position:");
-  // ImGui::SliderFloat3("##sun_position", sSunPos, 0.0f, 1.0f);
-
   ImGui::End();
   ImGui::Render();
 }
