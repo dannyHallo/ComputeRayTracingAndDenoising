@@ -6,10 +6,6 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 
 # Screenshots
 
-<!-- <img width="500" src="https://github.com/dannyHallo/RTX-in-a-weekend-with-Vulkan/blob/main/imgs/1.%20raw.png">
-<img width="500" src="https://github.com/dannyHallo/RTX-in-a-weekend-with-Vulkan/blob/main/imgs/2.%20temporal.png">
-<img width="500" src="https://github.com/dannyHallo/RTX-in-a-weekend-with-Vulkan/blob/main/imgs/3.%20filtered.png"> -->
-
 | Image Type | Image                                 |
 | ---------- | ------------------------------------- |
 | Raw        | ![Raw](./imgs/1.%20raw.png)           |
@@ -28,7 +24,11 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 - [ ] Hardware-accelerated ray tracing
 - [ ] Sparse Voxel Octree
 
-# How to Run
+# How to run
+
+Simply run the pre-compiled version at path `./vulkan.exe`, with no parameters needed.
+
+# How to compile and run
 
 These instructions are for the Windows platform exclusively, but it can work on Linux with some tiny modifications.
 
