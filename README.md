@@ -26,7 +26,7 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 
 # How to run
 
-Simply run the pre-compiled version at path `./vulkan.exe`, with no parameters needed.
+Simply run the pre-compiled version at path `./Release/vulkan.exe`, with no parameters needed.
 
 # How to compile and run
 
@@ -53,6 +53,8 @@ The user can control the camera scroll and roll angle by using the mouse as inpu
 - **SHIFT**: Move the camera down
 
 To unlock the mouse and control the terminal, the user can press the **TAB** key. This gives the user the ability to select the denoising techniques freely at run time. To lock the mouse again, the user can press **TAB** again.
+
+To terminate the program, the user can press the **ESC** key.
 
 # User Guide
 
