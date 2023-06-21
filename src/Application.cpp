@@ -865,16 +865,34 @@ void Application::mainLoop() {
 }
 
 void Application::initVulkan() {
+  // initialize camera object with the vulkanApplicationContext's window class
   camera.init(&vulkanApplicationContext.getWindowClass());
+
+  // initialize the scene
   initScene();
+
+  // create render command buffers
   createRenderCommandBuffers();
+
+  // create GUI command buffers
   createGuiCommandBuffers();
+
+  // create synchronization objects
   createSyncObjects();
+
+  // create GUI render pass
   createGuiRenderPass();
+
+  // create GUI framebuffers
   createGuiFramebuffers();
+
+  // create GUI descriptor pool
   createGuiDescripterPool();
+
+  // initialize GUI
   initGui();
 
+  // set mouse callback function to be called whenever the cursor position changes
   glfwSetCursorPosCallback(vulkanApplicationContext.getWindow(), mouseCallback);
 }
 

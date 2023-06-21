@@ -29,10 +29,13 @@
 
 class Application {
 public:
+  // constructor
   Application();
+  // main loop
   void run();
 
 private:
+  // uniform buffer object for ray tracing
   struct RtxUniformBufferObject {
     alignas(16) glm::vec3 camPosition;
     alignas(16) glm::vec3 camFront;
@@ -46,6 +49,7 @@ private:
     uint32_t numSpheres;
   };
 
+  // uniform buffer object for temporal filtering
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
     alignas(16) glm::mat4 lastMvpe;
@@ -53,38 +57,54 @@ private:
     uint swapchainHeight;
   };
 
-  // bigger phi indicates bigger tolerence to apply blur
+  // uniform buffer object for blur filtering
   struct BlurFilterUniformBufferObject {
-    int bypassBluring; // just a 4 bytes bool
+    int bypassBluring;
     int i;
   };
 
-  const int aTrousSize           = 5;
+  // size of the aTrous filter
+  const int aTrousSize = 5;
 
-  float fps                      = 0;
-  float frameTime                = 0;
-  
-  bool useTemporal               = true;
-  bool useBlur                   = true;
+  // frames per second and frame time
+  float fps       = 0;
+  float frameTime = 0;
+
+  // whether to use temporal and blur filtering
+  bool useTemporal = true;
+  bool useBlur     = true;
+
+  // maximum number of frames in flight
   const int MAX_FRAMES_IN_FLIGHT = 2;
-  const std::string path_prefix  = std::string(ROOT_DIR) + "resources/";
-  const float fpsUpdateTime      = 0.5f;
+
+  // path prefix for resources
+  const std::string path_prefix = std::string(ROOT_DIR) + "resources/";
+
+  // time interval for updating fps
+  const float fpsUpdateTime = 0.5f;
+
+  // delta time and last recorded frame time
   float deltaTime = 0, frameRecordLastTime = 0;
 
+  // scene for ray tracing
   std::shared_ptr<GpuModel::Scene> rtScene;
 
+  // compute models for ray tracing, temporal filtering, and blur filtering
   std::shared_ptr<ComputeModel> rtxModel;
   std::shared_ptr<ComputeModel> temporalFilterModel;
   std::vector<std::shared_ptr<ComputeModel>> blurFilterPhase1Models;
   std::vector<std::shared_ptr<ComputeModel>> blurFilterPhase2Models;
   std::shared_ptr<ComputeModel> blurFilterPhase3Model;
 
+  // scene for post-processing
   std::shared_ptr<Scene> postProcessScene;
 
+  // buffer bundles for ray tracing, temporal filtering, and blur filtering
   std::shared_ptr<BufferBundle> rtxBufferBundle;
   std::shared_ptr<BufferBundle> temperalFilterBufferBundle;
   std::vector<std::shared_ptr<BufferBundle>> blurFilterBufferBundles;
 
+  // images for ray tracing and post-processing
   std::shared_ptr<Image> positionImage;
   std::shared_ptr<Image> rawImage;
   std::shared_ptr<Image> targetImage;
@@ -98,47 +118,72 @@ private:
   std::shared_ptr<Image> aTrousImage1;
   std::shared_ptr<Image> aTrousImage2;
 
+  // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> commandBuffers;
   std::vector<VkCommandBuffer> guiCommandBuffers;
+
+  // framebuffers for GUI
   std::vector<VkFramebuffer> swapchainGuiFrameBuffers;
 
+  // render pass for GUI
   VkRenderPass imGuiPass;
+
+  // descriptor pool for GUI
   VkDescriptorPool guiDescriptorPool;
 
+  // semaphores and fences for synchronization
   std::vector<VkSemaphore> imageAvailableSemaphores;
   std::vector<VkSemaphore> renderFinishedSemaphores;
   std::vector<VkFence> framesInFlightFences;
 
-  // initialize layouts and models.
+  // initialize layouts and models
   void initScene();
 
-  // updates ubo for each frame, and saves the last mvpe matrix
+  // update uniform buffer object for each frame and save last mvpe matrix
   void updateScene(uint32_t currentImage);
 
+  // create command buffers for rendering
   void createRenderCommandBuffers();
 
+  // create semaphores and fences for synchronization
   void createSyncObjects();
 
+  // create command buffers for GUI
   void createGuiCommandBuffers();
 
+  // create render pass for GUI
   void createGuiRenderPass();
 
+  // create framebuffers for GUI
   void createGuiFramebuffers();
 
+  // create descriptor pool for GUI
   void createGuiDescripterPool();
 
+  // begin single time commands
   VkCommandBuffer beginSingleTimeCommands();
+
+  // end single time commands
   void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
+  // initialize GUI
   void initGui();
 
+  // record command buffer for GUI
   void recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex);
 
+  // draw a frame
   void drawFrame();
 
+  // prepare GUI
   void prepareGui();
+
+  // main loop
   void mainLoop();
+
+  // initialize Vulkan
   void initVulkan();
 
+  // cleanup resources
   void cleanup();
 };
