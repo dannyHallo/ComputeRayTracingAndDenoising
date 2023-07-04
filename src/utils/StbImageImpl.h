@@ -3,10 +3,10 @@
 #include <string>
 
 class StbImageImpl {
-    public:
-        unsigned char* pixels;
+public:
+  unsigned char *pixels;
 
-        StbImageImpl(std::string path, int &texWidth, int &texHeight, int &texChannels);
+  StbImageImpl(std::string path, int &texWidth, int &texHeight, int &texChannels);
 
-        ~StbImageImpl();
+  ~StbImageImpl();
 };

@@ -2,10 +2,11 @@
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 
-#include "../utils/systemLog.h"
+#include "VulkanApplicationContext.h"
+
+#include "utils/systemLog.h"
 #include "memory/Image.h"
 
-#include "VulkanApplicationContext.h"
 #include "volk.c"
 
 #include <iostream>

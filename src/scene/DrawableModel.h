@@ -1,11 +1,10 @@
 #pragma once
 
+#include <vector>
+
 #include "Material.h"
 #include "Mesh.h"
 #include "memory/Buffer.h"
-#include "utils/vulkan.h"
-
-#include <vector>
 
 class DrawableModel {
 public:

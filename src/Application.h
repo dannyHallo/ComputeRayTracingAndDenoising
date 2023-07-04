@@ -1,5 +1,13 @@
 #pragma once
 
+#include <array>
+#include <cstdlib>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+#include <stdint.h>
+#include <vector>
+
 #include "app-context/VulkanApplicationContext.h"
 
 #include "memory/ImageUtils.h"
@@ -14,28 +22,11 @@
 #include "utils/RootDir.h"
 #include "utils/glm.h"
 #include "utils/systemLog.h"
-#include "utils/vulkan.h"
 
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 
-#include <array>
-#include <cstdlib>
-#include <iostream>
-#include <memory>
-#include <stdexcept>
-#include <stdint.h>
-#include <vector>
-
 class Application {
-public:
-  // constructor
-  Application();
-  // main loop
-  void run();
-
-private:
-  // uniform buffer object for ray tracing
   struct RtxUniformBufferObject {
     alignas(16) glm::vec3 camPosition;
     alignas(16) glm::vec3 camFront;
@@ -49,7 +40,6 @@ private:
     uint32_t numSpheres;
   };
 
-  // uniform buffer object for temporal filtering
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
     alignas(16) glm::mat4 lastMvpe;
@@ -57,16 +47,13 @@ private:
     uint swapchainHeight;
   };
 
-  // uniform buffer object for blur filtering
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
     int i;
   };
 
-  // size of the aTrous filter
   const int aTrousSize = 5;
 
-  // frames per second and frame time
   float fps       = 0;
   float frameTime = 0;
 
@@ -74,14 +61,9 @@ private:
   bool useTemporal = true;
   bool useBlur     = true;
 
-  // maximum number of frames in flight
-  const int MAX_FRAMES_IN_FLIGHT = 2;
-
-  // path prefix for resources
-  const std::string path_prefix = std::string(ROOT_DIR) + "resources/";
-
-  // time interval for updating fps
-  const float fpsUpdateTime = 0.5f;
+  const int maxFramesInFlight            = 2;
+  const std::string pathToResourceFolder = std::string(ROOT_DIR) + "resources/";
+  const float fpsUpdateTime              = 0.5f;
 
   // delta time and last recorded frame time
   float deltaTime = 0, frameRecordLastTime = 0;
@@ -136,6 +118,11 @@ private:
   std::vector<VkSemaphore> renderFinishedSemaphores;
   std::vector<VkFence> framesInFlightFences;
 
+public:
+  Application() = default;
+  void run();
+
+private:
   // initialize layouts and models
   void initScene();
 

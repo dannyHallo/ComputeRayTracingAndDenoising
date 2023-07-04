@@ -1,25 +1,19 @@
 cmake_minimum_required(VERSION 3.8)
-project(vulkan)
+project("${PROJ_NAME}")
 set (CMAKE_CXX_STANDARD 17)
 
-# # find source files using globbing
-# file(GLOB_RECURSE SOURCE_FILES RELATIVE ${CMAKE_SOURCE_DIR}
-# 	src/*.c
-# 	src/*.cpp)
-# # printing
-# message(STATUS ${SOURCE_FILES})
+if(NOT DEFINED PROJ_NAME)
+  set(PROJ_NAME "DefaultProjectName")
+endif()
 
 # Configure assets header file
 configure_file(${CMAKE_SOURCE_DIR}/src/utils/RootDir.h.in ${CMAKE_SOURCE_DIR}/src/utils/RootDir.h)
-
-# Build dependencies
-add_subdirectory(dep/glfw)
 
 include_directories(
 	src
     dep
     dep/spdlog/include
-	dep/glfw/include
+	dep/glfw
 	dep/glm
 	dep/imgui
 	dep/volk
@@ -27,7 +21,7 @@ include_directories(
 	dep/obj-loader
 	dep/memory-allocator-hpp)
 
-add_executable(${PROJECT_NAME}
+add_executable(${PROJ_NAME}
 	src/app-context/VulkanApplicationContext.cpp
 	src/main.cpp
 	src/Application.cpp
@@ -57,7 +51,7 @@ add_executable(${PROJECT_NAME}
     dep/imgui/imgui.cpp
 	)
 
-target_link_directories(${PROJECT_NAME}
-    PRIVATE ${PROJECT_BINARY_DIR}/dep/glfw/src/Release)
+target_link_directories(${PROJ_NAME}
+    PRIVATE dep/glfw/Release)
 
-target_link_libraries(${PROJECT_NAME} glfw3.lib)
+target_link_libraries(${PROJ_NAME} glfw3.lib)

@@ -1,12 +1,13 @@
 #pragma once
 
+#include <vector>
+
+#include "utils/vulkan.h"
+
 #include "DrawableModel.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "memory/Buffer.h"
-#include "utils/vulkan.h"
-
-#include <vector>
 
 DrawableModel::DrawableModel(std::shared_ptr<Material> material, std::string modelPath) : m_material(material) {
   Mesh m(modelPath);
@@ -52,12 +53,12 @@ void DrawableModel::drawCommand(VkCommandBuffer &commandBuffer, size_t currentFr
 }
 
 void DrawableModel::initVertexBuffer(const Mesh &mesh) {
-  BufferUtils::create<Vertex>(&m_vertexBuffer, mesh.vertices.data(), mesh.vertices.size(),
-                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  BufferUtils::create<Vertex>(&m_vertexBuffer, mesh.vertices.data(), mesh.vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                              VMA_MEMORY_USAGE_CPU_TO_GPU);
 }
 
 void DrawableModel::initIndexBuffer(const Mesh &mesh) {
   m_numIndices = static_cast<uint32_t>(mesh.indices.size());
-  BufferUtils::create<uint32_t>(&m_indexBuffer, mesh.indices.data(), mesh.indices.size(),
-                                VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  BufferUtils::create<uint32_t>(&m_indexBuffer, mesh.indices.data(), mesh.indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                VMA_MEMORY_USAGE_CPU_TO_GPU);
 }

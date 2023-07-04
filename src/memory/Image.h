@@ -1,9 +1,7 @@
 #pragma once
 
 #include "app-context/VulkanApplicationContext.h"
-#include "utils/vulkan.h"
-
-#include "vk_mem_alloc.h"
+#include "vk_mem_alloc.h" // TODO: why is required?
 
 #include <iostream>
 #include <memory>
@@ -42,6 +40,10 @@ void createTextureSampler(std::shared_ptr<VkSampler> textureSampler, uint32_t &m
 } // namespace ImageUtils
 
 class Texture {
+  std::shared_ptr<Image> m_image;
+  std::shared_ptr<VkSampler> m_sampler;
+  uint32_t m_mips = 1;
+
 public:
   Texture(const std::string &path);
   Texture(const std::shared_ptr<Image> &image);
@@ -51,9 +53,4 @@ public:
   std::shared_ptr<Image> getImage() { return m_image; }
   std::shared_ptr<VkSampler> getSampler() { return m_sampler; }
   VkDescriptorImageInfo getDescriptorInfo();
-
-private:
-  std::shared_ptr<Image> m_image;
-  std::shared_ptr<VkSampler> m_sampler;
-  uint32_t m_mips = 1;
 };

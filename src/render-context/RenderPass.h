@@ -1,9 +1,9 @@
 #pragma once
 
-#include "utils/vulkan.h"
-
-#include "../memory/Image.h"
 #include <memory>
+
+#include "memory/Image.h"
+#include "utils/vulkan.h"
 
 class RenderPass {
 public:

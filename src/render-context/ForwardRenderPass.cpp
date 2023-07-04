@@ -1,11 +1,10 @@
-#include "ForwardRenderPass.h"
-#include "app-context/VulkanApplicationContext.h"
-#include "memory/Image.h"
-#include "utils/vulkan.h"
 #include <array>
 #include <iostream>
 #include <memory>
-#include <vector>
+
+#include "ForwardRenderPass.h"
+#include "app-context/VulkanApplicationContext.h"
+#include "memory/Image.h"
 
 std::shared_ptr<VkRenderPass> ForwardRenderPass::getBody() { return m_renderPass; }
 

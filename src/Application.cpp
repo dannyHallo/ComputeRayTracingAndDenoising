@@ -22,8 +22,6 @@ void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
   camera.processMouseMovement(xoffset, yoffset);
 }
 
-Application::Application() {}
-
 void Application::run() {
   initVulkan();
   mainLoop();
@@ -186,7 +184,7 @@ void Application::initScene() {
                                     VK_IMAGE_LAYOUT_GENERAL, 1);
 
   // rtx.comp
-  auto rtxMat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/rtx.spv");
+  auto rtxMat = std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/rtx.spv");
   {
     rtxMat->addUniformBufferBundle(rtxBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
     // input
@@ -206,7 +204,7 @@ void Application::initScene() {
   rtxModel = std::make_shared<ComputeModel>(rtxMat);
 
   // temporalFilter.comp
-  auto temporalFilterMat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/temporalFilter.spv");
+  auto temporalFilterMat = std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/temporalFilter.spv");
   {
     temporalFilterMat->addUniformBufferBundle(temperalFilterBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
     // input
@@ -223,7 +221,7 @@ void Application::initScene() {
   temporalFilterModel = std::make_shared<ComputeModel>(temporalFilterMat);
 
   for (int i = 0; i < aTrousSize; i++) {
-    auto blurFilterPhase1Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase1.spv");
+    auto blurFilterPhase1Mat = std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/blurPhase1.spv");
     {
       blurFilterPhase1Mat->addUniformBufferBundle(blurFilterBufferBundles[i], VK_SHADER_STAGE_COMPUTE_BIT);
       // input
@@ -236,7 +234,7 @@ void Application::initScene() {
     }
     blurFilterPhase1Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase1Mat));
 
-    auto blurFilterPhase2Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase2.spv");
+    auto blurFilterPhase2Mat = std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/blurPhase2.spv");
     {
       blurFilterPhase2Mat->addUniformBufferBundle(blurFilterBufferBundles[i], VK_SHADER_STAGE_COMPUTE_BIT);
       // input
@@ -251,7 +249,7 @@ void Application::initScene() {
     blurFilterPhase2Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase2Mat));
   }
 
-  auto blurFilterPhase3Mat = std::make_shared<ComputeMaterial>(path_prefix + "/shaders/generated/blurPhase3.spv");
+  auto blurFilterPhase3Mat = std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/blurPhase3.spv");
   {
     // input
     blurFilterPhase3Mat->addStorageImage(aTrousImage2, VK_SHADER_STAGE_COMPUTE_BIT);
@@ -501,9 +499,9 @@ void Application::createRenderCommandBuffers() {
 }
 
 void Application::createSyncObjects() {
-  imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  framesInFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+  imageAvailableSemaphores.resize(maxFramesInFlight);
+  renderFinishedSemaphores.resize(maxFramesInFlight);
+  framesInFlightFences.resize(maxFramesInFlight);
 
   VkSemaphoreCreateInfo semaphoreInfo{};
   semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -513,7 +511,7 @@ void Application::createSyncObjects() {
   fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+  for (size_t i = 0; i < maxFramesInFlight; i++) {
     if (vkCreateSemaphore(vulkanApplicationContext.getDevice(), &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) !=
             VK_SUCCESS ||
         vkCreateSemaphore(vulkanApplicationContext.getDevice(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) !=
@@ -807,7 +805,7 @@ void Application::drawFrame() {
 
   // Commented this out for playing around with it later :)
   // vkQueueWaitIdle(context.getPresentQueue());
-  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+  currentFrame = (currentFrame + 1) % maxFramesInFlight;
 }
 
 void Application::prepareGui() {
@@ -897,7 +895,7 @@ void Application::initVulkan() {
 }
 
 void Application::cleanup() {
-  for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+  for (size_t i = 0; i < maxFramesInFlight; i++) {
     vkDestroySemaphore(vulkanApplicationContext.getDevice(), renderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(vulkanApplicationContext.getDevice(), imageAvailableSemaphores[i], nullptr);
     vkDestroyFence(vulkanApplicationContext.getDevice(), framesInFlightFences[i], nullptr);

@@ -1,7 +1,5 @@
 # Vulkan Compute Shader Based Ray Tracer
 
-[中文版本说明](./README.ch.md)
-
 This ray tracer is loosely based on the [Ray Tracing in One Weekend series](https://raytracing.github.io), adapted for real-time rendering on GPU, and with some extra features like temporal accumulation, low discrepancy noise, and SVGF filtering.
 
 # Screenshots

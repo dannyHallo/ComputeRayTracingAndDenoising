@@ -1,13 +1,14 @@
 #pragma once
 
+#include <memory>
+#include <vector>
+
+#include "utils/vulkan.h"
+
 #include "DrawableModel.h"
 #include "render-context/FlatRenderPass.h"
 #include "render-context/ForwardRenderPass.h"
 #include "render-context/RenderPass.h"
-#include "utils/vulkan.h"
-
-#include <memory>
-#include <vector>
 
 enum class RenderPassType { eFlat, eForward };
 

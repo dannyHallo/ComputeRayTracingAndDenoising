@@ -2,14 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "compile shaders and run",
+      "label": "compile and run",
       "type": "shell",
-      "command": "${workspaceFolder}/compile_shader.bat"
+      "command": "${workspaceFolder}/batch/compile.bat"
     },
     {
-      "label": "compile shaders and cpp and run",
+      "label": "commit a checkpoint",
       "type": "shell",
-      "command": "${workspaceFolder}/compile_shader_cpp.bat"
+      "command": "${workspaceFolder}/batch/git.bat"
     }
   ]
 }

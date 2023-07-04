@@ -2,6 +2,7 @@
 
 #define NOMINMAX
 
+// this should be defined first for the definition of VK_VERSION_1_0, which is used in glfw3.h
 #include "utils/vulkan.h"
 
 #include "GLFW/glfw3.h"

@@ -1,9 +1,9 @@
 #pragma once
-#include "../app-context/VulkanApplicationContext.h"
-#include "../scene/Scene.h"
-#include "../utils/vulkan.h"
+
 #include <memory>
 #include <vector>
+
+#include "RenderSystem.h"
 
 namespace RenderSystem {
 void allocateCommandBuffers(std::vector<VkCommandBuffer> &commandBuffers, uint32_t numBuffers) {
