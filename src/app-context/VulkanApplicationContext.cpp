@@ -2,12 +2,13 @@
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 
+// VOLK_IMPLEMENTATION lets volk to define the functions, by letting volk.h include vold.c
+// this must only be defined in one translation unit
+#define VOLK_IMPLEMENTATION
 #include "VulkanApplicationContext.h"
 
-#include "utils/systemLog.h"
+#include "utils/systemLog.h" // DEFINITION OF APIENTRY
 #include "memory/Image.h"
-
-#include "volk.c"
 
 #include <iostream>
 
@@ -19,7 +20,21 @@
   }
 
 VulkanApplicationContext::VulkanApplicationContext() : mWindow() {
-  volkInitialize();
+
+  VkResult result = volkInitialize();
+  if (result != VK_SUCCESS) {
+    print("Failed to initialize volk.");
+
+    switch (result) {
+    case VK_ERROR_INITIALIZATION_FAILED:
+      print("vulkan-1.dll cannot be loaded.");
+      break;
+    default:
+      print("Unknown error.");
+      break;
+    }
+    assert(false);
+  }
 
   createInstance();
 
@@ -29,6 +44,7 @@ VulkanApplicationContext::VulkanApplicationContext() : mWindow() {
   createSurface();
   createDevice();
 
+  // reduce loading overhead by specifing only one device is used
   volkLoadDevice(mDevice);
 
   createSwapchain();

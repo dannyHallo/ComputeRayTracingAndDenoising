@@ -1,6 +1,10 @@
 #pragma once
 
 #include "GLFW/glfw3.h"
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+
 #include "utils/vulkan.h"
 
 #define WINDOW_SIZE_FULLSCREEN 0

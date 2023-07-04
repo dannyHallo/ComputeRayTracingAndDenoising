@@ -6,6 +6,10 @@
 #include "utils/vulkan.h"
 
 #include "GLFW/glfw3.h"
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+
 #include "memory/Image.h"
 #include "utils/Window.h"
 #include "vk_mem_alloc.h"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "glm/glm.hpp"
-#include "spdlog/spdlog.h"
+#include "spdlog/spdlog.h" // spdlog/include/spdlog/details/windows_include.h defines APIENTRY!
 
 #include <iostream>
 
