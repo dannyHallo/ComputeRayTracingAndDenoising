@@ -21,7 +21,6 @@
 #include "utils/Camera.h"
 #include "utils/RootDir.h"
 #include "utils/glm.h"
-#include "utils/systemLog.h"
 
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"

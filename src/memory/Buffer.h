@@ -2,7 +2,7 @@
 
 #include "app-context/VulkanApplicationContext.h"
 #include "scene/Mesh.h"
-#include "utils/systemLog.h"
+#include "utils/logger.h"
 #include "utils/vulkan.h"
 #include "vk_mem_alloc.h"
 

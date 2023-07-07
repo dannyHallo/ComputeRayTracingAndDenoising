@@ -1,7 +1,6 @@
 #include "Application.h"
 
 Camera camera{};
-VulkanApplicationContext vulkanApplicationContext{};
 
 void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
   static float lastX, lastY;
@@ -642,7 +641,7 @@ VkCommandBuffer Application::beginSingleTimeCommands() {
   allocInfo.commandBufferCount = 1;
 
   if (vkAllocateCommandBuffers(vulkanApplicationContext.getDevice(), &allocInfo, &commandBuffer) != VK_SUCCESS)
-    print("failed to allocate command buffers!");
+    logger::print("failed to allocate command buffers!");
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -697,13 +696,13 @@ void Application::initGui() {
   init_info.ImageCount                = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImageViews().size());
   init_info.CheckVkResultFn           = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&init_info, imGuiPass)) {
-    print("failed to init impl");
+    logger::print("failed to init impl");
   }
 
   // Create fonts texture
   VkCommandBuffer commandBuffer = beginSingleTimeCommands();
   if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer))
-    print("failed to create fonts texture");
+    logger::print("failed to create fonts texture");
   endSingleTimeCommands(commandBuffer);
 }
 

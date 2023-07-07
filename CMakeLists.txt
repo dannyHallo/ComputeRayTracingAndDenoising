@@ -41,6 +41,7 @@ add_executable(${PROJ_NAME}
 	src/utils/Camera.cpp
 	src/utils/Window.cpp
 	src/utils/StbImageImpl.cpp
+	src/utils/logger.cpp
 
 	dep/imgui/backends/imgui_impl_glfw.cpp
     dep/imgui/backends/imgui_impl_vulkan.cpp
