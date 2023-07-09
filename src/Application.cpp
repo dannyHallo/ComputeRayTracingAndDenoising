@@ -713,9 +713,8 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   beginInfo.pInheritanceInfo = nullptr; // Optional
 
   // A call to vkBeginCommandBuffer will implicitly reset the command buffer
-  if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-    throw std::runtime_error("failed to begin recording command buffer!");
-  }
+  VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+  logger::checkStep("vkBeginCommandBuffer", result);
 
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;

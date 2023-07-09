@@ -25,7 +25,9 @@ public:
   static inline void print(const char *str, const uint32_t num) { std::cout << str << ": " << num << std::endl; }
   static inline void print(glm::vec3 v) { std::cout << v.x << ", " << v.y << ", " << v.z << std::endl; }
 
+  // throw warning
   static void throwWarning(const std::string);
+  // throw error and exit
   static void throwError(const std::string);
   static void checkStep(const std::string stepName, const int resultCode);
 };
