@@ -10,13 +10,6 @@
 #include "memory/Image.h"
 #include "utils/logger.h"
 
-// #define CHECK_VK_ERROR(result, message)                                                                                          \
-//   {                                                                                                                              \
-//     if (result != VK_SUCCESS) {                                                                                                  \
-//       assert(false && message);                                                                                                  \
-//     }                                                                                                                            \
-//   }
-
 VulkanApplicationContext vulkanApplicationContext{};
 
 VulkanApplicationContext::VulkanApplicationContext() : mWindow() {

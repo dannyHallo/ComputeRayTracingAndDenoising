@@ -330,9 +330,8 @@ void Application::createRenderCommandBuffers() {
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
-  if (vkAllocateCommandBuffers(vulkanApplicationContext.getDevice(), &allocInfo, commandBuffers.data()) != VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate command buffers!");
-  }
+  VkResult result = vkAllocateCommandBuffers(vulkanApplicationContext.getDevice(), &allocInfo, commandBuffers.data());
+  logger::checkStep("vkAllocateCommandBuffers", result);
 
   VkImageMemoryBarrier targetTexTransDst2ReadOnly = ImageUtils::transferDstToReadOnlyBarrier(targetImage->image);
   VkImageMemoryBarrier targetTexReadOnly2General  = ImageUtils::readOnlyToGeneralBarrier(targetImage->image);
@@ -371,9 +370,8 @@ void Application::createRenderCommandBuffers() {
     beginInfo.flags            = 0;       // Optional
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
-    if (vkBeginCommandBuffer(currentCommandBuffer, &beginInfo) != VK_SUCCESS) {
-      throw std::runtime_error("failed to begin recording command buffer!");
-    }
+    VkResult result = vkBeginCommandBuffer(currentCommandBuffer, &beginInfo);
+    logger::checkStep("vkBeginCommandBuffer", result);
 
     VkClearColorValue clearColor{0, 0, 0, 0};
     VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
@@ -491,9 +489,8 @@ void Application::createRenderCommandBuffers() {
     // 0,
     //                      0, nullptr, 0, nullptr, 1, &targetTexReadOnly2General);
 
-    if (vkEndCommandBuffer(currentCommandBuffer) != VK_SUCCESS) {
-      throw std::runtime_error("failed to record command buffer!");
-    }
+    result = vkEndCommandBuffer(currentCommandBuffer);
+    logger::checkStep("vkEndCommandBuffer", result);
   }
 }
 
@@ -516,7 +513,7 @@ void Application::createSyncObjects() {
         vkCreateSemaphore(vulkanApplicationContext.getDevice(), &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) !=
             VK_SUCCESS ||
         vkCreateFence(vulkanApplicationContext.getDevice(), &fenceInfo, nullptr, &framesInFlightFences[i]) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create synchronization objects for a frame!");
+      logger::throwError("failed to create synchronization objects for a frame!");
     }
   }
 }
@@ -529,9 +526,8 @@ void Application::createGuiCommandBuffers() {
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)guiCommandBuffers.size();
 
-  if (vkAllocateCommandBuffers(vulkanApplicationContext.getDevice(), &allocInfo, guiCommandBuffers.data()) != VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate gui command buffers!");
-  }
+  VkResult result = vkAllocateCommandBuffers(vulkanApplicationContext.getDevice(), &allocInfo, guiCommandBuffers.data());
+  logger::checkStep("vkAllocateCommandBuffers", result);
 }
 
 void Application::createGuiRenderPass() {
@@ -575,9 +571,9 @@ void Application::createGuiRenderPass() {
   renderPassCreateInfo.pSubpasses             = &subpass;
   renderPassCreateInfo.dependencyCount        = 1;
   renderPassCreateInfo.pDependencies          = &dependency;
-  if (vkCreateRenderPass(vulkanApplicationContext.getDevice(), &renderPassCreateInfo, nullptr, &imGuiPass) != VK_SUCCESS) {
-    throw std::runtime_error("Could not create Dear ImGui's render pass");
-  }
+
+  VkResult result = vkCreateRenderPass(vulkanApplicationContext.getDevice(), &renderPassCreateInfo, nullptr, &imGuiPass);
+  logger::checkStep("vkCreateRenderPass", result);
 }
 
 void Application::createGuiFramebuffers() {
@@ -599,10 +595,9 @@ void Application::createGuiFramebuffers() {
     frameBufferCreateInfo.height          = vulkanApplicationContext.getSwapchainExtent().height;
     frameBufferCreateInfo.layers          = 1;
 
-    if (vkCreateFramebuffer(vulkanApplicationContext.getDevice(), &frameBufferCreateInfo, nullptr,
-                            &swapchainGuiFrameBuffers[i]) != VK_SUCCESS) {
-      throw std::runtime_error("failed to create framebuffer!");
-    }
+    VkResult result =
+        vkCreateFramebuffer(vulkanApplicationContext.getDevice(), &frameBufferCreateInfo, nullptr, &swapchainGuiFrameBuffers[i]);
+    logger::checkStep("vkCreateFramebuffer", result);
   }
 }
 
@@ -626,9 +621,8 @@ void Application::createGuiDescripterPool() {
   poolInfo.poolSizeCount              = (uint32_t)IM_ARRAYSIZE(poolSizes);
   poolInfo.pPoolSizes                 = poolSizes;
 
-  if (vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &guiDescriptorPool) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create descriptor pool!");
-  }
+  VkResult result = vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &guiDescriptorPool);
+  logger::checkStep("vkCreateDescriptorPool", result);
 }
 
 VkCommandBuffer Application::beginSingleTimeCommands() {
@@ -734,9 +728,9 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
   vkCmdEndRenderPass(commandBuffer);
-  if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-    throw std::runtime_error("failed to record command buffer!");
-  }
+
+  result = vkEndCommandBuffer(commandBuffer);
+  logger::checkStep("vkEndCommandBuffer", result);
 }
 
 void Application::drawFrame() {
@@ -753,7 +747,7 @@ void Application::drawFrame() {
   } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     // sub-optimal: a swapchain no longer matches the surface properties exactly, but can still be used to present
     // to the surface successfully
-    throw std::runtime_error("failed to acquire swap chain image!");
+    logger::throwError("failed to acquire swap chain image!");
   }
 
   updateScene(imageIndex);
@@ -780,10 +774,8 @@ void Application::drawFrame() {
     submitInfo.pCommandBuffers    = submitCommandBuffers.data();
   }
 
-  if (vkQueueSubmit(vulkanApplicationContext.getGraphicsQueue(), 1, &submitInfo, framesInFlightFences[currentFrame]) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to submit draw command buffer!");
-  }
+  result = vkQueueSubmit(vulkanApplicationContext.getGraphicsQueue(), 1, &submitInfo, framesInFlightFences[currentFrame]);
+  logger::checkStep("vkQueueSubmit", result);
 
   VkPresentInfoKHR presentInfo{};
   {
@@ -797,9 +789,7 @@ void Application::drawFrame() {
   }
 
   result = vkQueuePresentKHR(vulkanApplicationContext.getPresentQueue(), &presentInfo);
-  if (result != VK_SUCCESS) {
-    throw std::runtime_error("failed to present swap chain image!");
-  }
+  logger::checkStep("vkQueuePresentKHR", result);
 
   // Commented this out for playing around with it later :)
   // vkQueueWaitIdle(context.getPresentQueue());

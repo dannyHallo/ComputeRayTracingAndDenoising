@@ -1,6 +1,6 @@
 #include "FlatRenderPass.h"
 #include "app-context/VulkanApplicationContext.h"
-#include "utils/systemLog.h"
+#include "utils/logger.h"
 #include "utils/vulkan.h"
 
 #include <array>
