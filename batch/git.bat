@@ -27,4 +27,5 @@ git commit -m "%commit_message%"
 git push
 git status
 
+
 echo "Successfully pushed to remote repository, with commit message: %commit_message%"
