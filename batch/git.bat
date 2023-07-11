@@ -17,7 +17,7 @@ set no3=%result%!string:~%x%,1!
 set /a x=%random% %% 16 
 set no4=%result%!string:~%x%,1!
 
-set /p commit_message="Enter commit message: [left blank for default]"
+set /p commit_message="Enter commit message [left blank for default]: "
 if not defined commit_message set commit_message=CKPT_%no1%%no2%%no3%%no4%
 echo %commit_message%
 
