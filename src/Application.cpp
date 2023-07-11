@@ -33,6 +33,7 @@ void Application::initScene() {
   // = descriptor sets size
   uint32_t swapchainImageViewSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImageViews().size());
 
+  // creates material, loads models from files, creates bvh
   rtScene = std::make_shared<GpuModel::Scene>();
 
   // uniform buffers are faster to fill compared to storage buffers, but they are restricted in their size
@@ -260,14 +261,6 @@ void Application::initScene() {
     blurFilterPhase3Mat->addStorageImage(targetImage, VK_SHADER_STAGE_COMPUTE_BIT);
   }
   blurFilterPhase3Model = std::make_shared<ComputeModel>(blurFilterPhase3Mat);
-
-  // postProcessScene      = std::make_shared<Scene>(RenderPassType::eFlat);
-
-  // auto screenTex      = std::make_shared<Texture>(targetImage);
-  // auto screenMaterial = std::make_shared<Material>(path_prefix + "/shaders/generated/post-process-vert.spv",
-  //                                                  path_prefix + "/shaders/generated/post-process-frag.spv");
-  // screenMaterial->addTexture(screenTex, VK_SHADER_STAGE_FRAGMENT_BIT);
-  // postProcessScene->addModel(std::make_shared<DrawableModel>(screenMaterial, MeshType::ePlane));
 }
 
 void Application::updateScene(uint32_t currentImage) {
@@ -285,7 +278,7 @@ void Application::updateScene(uint32_t currentImage) {
                                    currentSample,
                                    (uint32_t)rtScene->triangles.size(),
                                    (uint32_t)rtScene->lights.size()};
-                                   
+
   {
     auto &allocation = rtxBufferBundle->buffers[currentImage]->allocation;
     void *data;

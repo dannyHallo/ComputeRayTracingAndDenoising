@@ -17,8 +17,6 @@ struct Buffer {
   VkDeviceSize size;
 
   ~Buffer() {
-    std::cout << "Destroying buffer"
-              << "\n";
     if (buffer != VK_NULL_HANDLE) {
       vmaDestroyBuffer(vulkanApplicationContext.getAllocator(), buffer, allocation);
       buffer = VK_NULL_HANDLE;
@@ -56,8 +54,8 @@ void inline allocate(Buffer *buffer, VkDeviceSize size, VkBufferUsageFlags usage
   vmaallocInfo.usage                   = memoryUsage;
 
   // TODO:
-  VkResult result = vmaCreateBuffer(vulkanApplicationContext.getAllocator(), &bufferInfo, &vmaallocInfo, &buffer->buffer,
-                                    &buffer->allocation, nullptr);
+  VkResult result = vmaCreateBuffer(vulkanApplicationContext.getAllocator(), &bufferInfo, &vmaallocInfo,
+                                    &buffer->buffer, &buffer->allocation, nullptr);
   if (result != VK_SUCCESS) {
     std::cout << result << std::endl;
     throw std::runtime_error("failed to create buffer");
@@ -77,15 +75,16 @@ void inline create(Buffer *buffer, const T *elements, const size_t numElements, 
 }
 
 template <typename T>
-void inline createBundle(BufferBundle *bufferBundle, const T *elements, const size_t numElements, VkBufferUsageFlags usage,
-                         VmaMemoryUsage memoryUsage) {
+void inline createBundle(BufferBundle *bufferBundle, const T *elements, const size_t numElements,
+                         VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
   for (auto &buffer : bufferBundle->buffers) {
     create(buffer.get(), elements, numElements, usage, memoryUsage);
   }
 }
 
 template <typename T>
-void inline createBundle(BufferBundle *bufferBundle, const T &element, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
+void inline createBundle(BufferBundle *bufferBundle, const T &element, VkBufferUsageFlags usage,
+                         VmaMemoryUsage memoryUsage) {
   createBundle(bufferBundle, &element, 1, usage, memoryUsage);
 }
 }; // namespace BufferUtils
