@@ -17,13 +17,14 @@ set no3=%result%!string:~%x%,1!
 set /a x=%random% %% 16 
 set no4=%result%!string:~%x%,1!
 
-set result=CKPT_%no1%%no2%%no3%%no4%
-echo %result%
+set /p commit_message="Enter commit message: [left blank for default]"
+if not defined commit_message set commit_message=CKPT_%no1%%no2%%no3%%no4%
+echo %commit_message%
 
 git status
 git add .
-git commit -m "%result%"
+git commit -m "%commit_message%"
 git push
 git status
 
-echo "Successfully pushed to remote repository, with commit message: %result%"
+echo "Successfully pushed to remote repository, with commit message: %commit_message%"
