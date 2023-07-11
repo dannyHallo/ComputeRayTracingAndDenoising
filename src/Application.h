@@ -36,7 +36,6 @@ class Application {
     uint32_t currentSample;
     uint32_t numTriangles;
     uint32_t numLights;
-    uint32_t numSpheres;
   };
 
   struct TemporalFilterUniformBufferObject {

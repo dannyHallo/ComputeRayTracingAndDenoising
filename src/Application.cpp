@@ -73,11 +73,6 @@ void Application::initScene() {
   BufferUtils::createBundle<GpuModel::Light>(lightsBufferBundle.get(), rtScene->lights.data(), rtScene->lights.size(),
                                              VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-  auto spheresBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-  BufferUtils::createBundle<GpuModel::Sphere>(spheresBufferBundle.get(), rtScene->spheres.data(),
-                                              rtScene->spheres.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                              VMA_MEMORY_USAGE_CPU_TO_GPU);
-
   targetImage = std::make_shared<Image>();
   ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
                           vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
@@ -201,7 +196,6 @@ void Application::initScene() {
     rtxMat->addStorageBufferBundle(materialBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
     rtxMat->addStorageBufferBundle(aabbBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
     rtxMat->addStorageBufferBundle(lightsBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
-    rtxMat->addStorageBufferBundle(spheresBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
   }
   rtxModel = std::make_shared<ComputeModel>(rtxMat);
 
@@ -290,8 +284,8 @@ void Application::updateScene(uint32_t currentImage) {
                                    currentTime,
                                    currentSample,
                                    (uint32_t)rtScene->triangles.size(),
-                                   (uint32_t)rtScene->lights.size(),
-                                   (uint32_t)rtScene->spheres.size()};
+                                   (uint32_t)rtScene->lights.size()};
+                                   
   {
     auto &allocation = rtxBufferBundle->buffers[currentImage]->allocation;
     void *data;

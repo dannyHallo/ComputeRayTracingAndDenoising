@@ -23,7 +23,6 @@ std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex, 
 struct Scene {
   // triangles contain all triangles from all objects in the scene.
   std::vector<Triangle> triangles;
-  std::vector<Sphere> spheres;
   std::vector<Material> materials;
   std::vector<Light> lights;
   std::vector<BvhNode> bvhNodes;

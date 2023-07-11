@@ -86,7 +86,6 @@ Scene::Scene() {
     }
   }
 
-  // spheres.emplace_back(Sphere{glm::vec4(0.6, 1, -1, 0.6), 5});
   bvhNodes = Bvh::createBvh(objects);
 }
 }; // namespace GpuModel

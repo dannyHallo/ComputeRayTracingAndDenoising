@@ -15,7 +15,6 @@ layout(binding = 0) uniform UniformBufferObject {
   uint currentSample;
   uint numTriangles;
   uint numLights;
-  uint numSpheres;
 }
 ubo;
 
@@ -37,10 +36,6 @@ layout(std430, binding = 8) readonly buffer AabbBufferObject { bvhNode[] bvh; };
 
 layout(std430, binding = 9) readonly buffer LightsBufferObject {
   light[] lights;
-};
-
-layout(std430, binding = 10) readonly buffer SpheresBufferObject {
-  sphere[] spheres;
 };
 
 #include "include/random.glsl"
@@ -140,7 +135,7 @@ bool intersectAABB(ray r, vec3 boxMin, vec3 boxMax) {
   return tNear <= tFar;
 }
 
-// Works only for triangles, no spheres yet.
+// works only for triangles
 #define MAX_STACK_DEPTH 16
 bool hit_bvh(ray r, inout hitRecord rec) {
   float t_min = 0.001;

@@ -730,5 +730,7 @@ VkFormat VulkanApplicationContext::findSupportedFormat(const std::vector<VkForma
       return format;
     }
   }
+  
   logger::throwError("failed to find supported format!");
+  return VK_FORMAT_UNDEFINED;
 }

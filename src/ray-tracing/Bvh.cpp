@@ -1,6 +1,6 @@
 #include "Bvh.h"
 
-namespace Bvh{
+namespace Bvh {
 
 bool nodeCompare(BvhNode0 &a, BvhNode0 &b) { return a.index < b.index; }
 
@@ -93,5 +93,4 @@ std::vector<GpuModel::BvhNode> createBvh(const std::vector<Object0> &srcObjects)
   }
   return output;
 }
-
-}
+} // namespace Bvh
