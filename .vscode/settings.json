@@ -110,6 +110,7 @@
     "*.rh": "cpp",
     "volk.c": "cpp",
     "filesystem": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "ranges": "cpp"
   }
 }

@@ -58,12 +58,14 @@ Scene::Scene() {
 
   glm::vec3 cornellBoxScale = {1 / 552.8f, 1 / 548.8f, 1 / 559.2f};
   glm::vec3 cornellBoxPos   = {-0.5f, -0.5f, 1};
-  auto floor                = getTriangles(path_prefix + "models/cornellbox/floor.obj", 1, cornellBoxPos, cornellBoxScale);
-  auto left                 = getTriangles(path_prefix + "models/cornellbox/left.obj", 4, cornellBoxPos, cornellBoxScale);
-  auto right                = getTriangles(path_prefix + "models/cornellbox/right.obj", 5, cornellBoxPos, cornellBoxScale);
-  auto light                = getTriangles(path_prefix + "models/cornellbox/light.obj", 0, cornellBoxPos, cornellBoxScale);
-  auto shortbox             = getTriangles(path_prefix + "models/cornellbox/shortbox.obj", 1, cornellBoxPos, cornellBoxScale);
-  auto tallbox              = getTriangles(path_prefix + "models/cornellbox/tallbox.obj", 1, cornellBoxPos, cornellBoxScale);
+  // each getTriangles function loads a series of triangles from a file (vector), which shares the same meshId and matId
+  auto floor    = getTriangles(path_prefix + "models/cornellbox/floor.obj", 1, cornellBoxPos, cornellBoxScale);
+  auto left     = getTriangles(path_prefix + "models/cornellbox/left.obj", 4, cornellBoxPos, cornellBoxScale);
+  auto right    = getTriangles(path_prefix + "models/cornellbox/right.obj", 5, cornellBoxPos, cornellBoxScale);
+  auto light    = getTriangles(path_prefix + "models/cornellbox/light.obj", 0, cornellBoxPos, cornellBoxScale);
+  auto shortbox = getTriangles(path_prefix + "models/cornellbox/shortbox.obj", 1, cornellBoxPos, cornellBoxScale);
+  auto tallbox  = getTriangles(path_prefix + "models/cornellbox/tallbox.obj", 1, cornellBoxPos, cornellBoxScale);
+  // then all triangles are added to a single vector
   triangles.insert(triangles.end(), floor.begin(), floor.end());
   triangles.insert(triangles.end(), left.begin(), left.end());
   triangles.insert(triangles.end(), right.begin(), right.end());
@@ -77,13 +79,14 @@ Scene::Scene() {
     Triangle t = triangles[i];
     objects.emplace_back(Bvh::Object0{i, t});
     if (materials[t.materialIndex].type == MaterialType::LightSource) {
+      // add light separatly
+      // calculate the area of this lighting triangle
       float area = glm::length(glm::cross(t.v0, t.v1)) * 0.5f;
       lights.emplace_back(Light{i, area});
     }
   }
 
-  spheres.emplace_back(Sphere{glm::vec4(0.6, 1, -1, 0.6), 5});
-
+  // spheres.emplace_back(Sphere{glm::vec4(0.6, 1, -1, 0.6), 5});
   bvhNodes = Bvh::createBvh(objects);
 }
 }; // namespace GpuModel

@@ -331,6 +331,7 @@ void Application::updateScene(uint32_t currentImage) {
 }
 
 void Application::createRenderCommandBuffers() {
+  // create command buffers per swapchain image
   commandBuffers.resize(vulkanApplicationContext.getSwapchainImageViews().size());
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -341,13 +342,8 @@ void Application::createRenderCommandBuffers() {
   VkResult result = vkAllocateCommandBuffers(vulkanApplicationContext.getDevice(), &allocInfo, commandBuffers.data());
   logger::checkStep("vkAllocateCommandBuffers", result);
 
-  VkImageMemoryBarrier targetTexTransDst2ReadOnly = ImageUtils::transferDstToReadOnlyBarrier(targetImage->image);
-  VkImageMemoryBarrier targetTexReadOnly2General  = ImageUtils::readOnlyToGeneralBarrier(targetImage->image);
-  VkImageMemoryBarrier targetTexGeneral2ReadOnly  = ImageUtils::generalToReadOnlyBarrier(targetImage->image);
-  VkImageMemoryBarrier targetTexGeneral2TransDst  = ImageUtils::generalToTransferDstBarrier(targetImage->image);
-  VkImageMemoryBarrier targetTexGeneral2TransSrc  = ImageUtils::generalToTransferSrcBarrier(targetImage->image);
-  VkImageMemoryBarrier targetTexTransSrc2General  = ImageUtils::transferSrcToGeneralBarrier(targetImage->image);
-  VkImageMemoryBarrier targetTexTransDst2General  = ImageUtils::transferDstToGeneralBarrier(targetImage->image);
+  VkImageMemoryBarrier targetTexGeneral2TransSrc = ImageUtils::generalToTransferSrcBarrier(targetImage->image);
+  VkImageMemoryBarrier targetTexTransSrc2General = ImageUtils::transferSrcToGeneralBarrier(targetImage->image);
 
   VkImageMemoryBarrier accumTexGeneral2TransDst = ImageUtils::generalToTransferDstBarrier(accumulationImage->image);
   VkImageMemoryBarrier accumTexTransDst2General = ImageUtils::transferDstToGeneralBarrier(accumulationImage->image);
@@ -465,10 +461,6 @@ void Application::createRenderCommandBuffers() {
     blurFilterPhase3Model->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
                                           targetImage->height / 32, 1);
 
-    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    // VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
-    //                      nullptr, 0, nullptr, 1, &targetTexGeneral2ReadOnly);
-
     // copy targetTex to swapchainImage
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
                          0, nullptr, 0, nullptr, 1, &targetTexGeneral2TransSrc);
@@ -496,10 +488,6 @@ void Application::createRenderCommandBuffers() {
 
     // Bind graphics pipeline and dispatch draw command.
     // postProcessScene->writeRenderCommand(currentCommandBuffer, i);
-
-    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-    // VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-    //                      0, nullptr, 0, nullptr, 1, &targetTexReadOnly2General);
 
     result = vkEndCommandBuffer(currentCommandBuffer);
     logger::checkStep("vkEndCommandBuffer", result);

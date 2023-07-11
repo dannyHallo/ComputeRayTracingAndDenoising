@@ -32,7 +32,7 @@ VulkanApplicationContext::VulkanApplicationContext() : mWindow() {
   createSwapchain();
 
   createAllocator();
-  createCommandPool(); // both for rendering and imgui
+  createCommandPool();
 }
 
 VulkanApplicationContext::~VulkanApplicationContext() {
@@ -661,6 +661,7 @@ void VulkanApplicationContext::createSwapchain() {
 }
 
 void VulkanApplicationContext::createAllocator() {
+  // load vulkan functions dynamically
   VmaVulkanFunctions vmaVulkanFunc{};
   vmaVulkanFunc.vkAllocateMemory                        = vkAllocateMemory;
   vmaVulkanFunc.vkBindBufferMemory                      = vkBindBufferMemory;
@@ -698,6 +699,7 @@ void VulkanApplicationContext::createAllocator() {
   logger::checkStep("vmaCreateAllocator", result);
 }
 
+// create a command pool for rendering commands and a command pool for gui commands (imgui)
 void VulkanApplicationContext::createCommandPool() {
   VkCommandPoolCreateInfo commandPoolCreateInfo1{};
   commandPoolCreateInfo1.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
