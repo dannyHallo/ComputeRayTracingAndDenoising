@@ -118,7 +118,9 @@ class Application {
   std::vector<VkFence> framesInFlightFences;
 
 public:
-  Application() = default;
+  Application()  = default;
+  ~Application() = default;
+
   void run();
 
 private:

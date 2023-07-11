@@ -28,8 +28,8 @@ public:
 
   const float vFov = 60;
 
-  Camera(glm::vec3 camPosition = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 wrdUp = glm::vec3(0.0f, 1.0f, 0.0f), float camYaw = 180,
-         float camPitch = 0)
+  Camera(glm::vec3 camPosition = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 wrdUp = glm::vec3(0.0f, 1.0f, 0.0f),
+         float camYaw = 180, float camPitch = 0)
       : position(camPosition), worldUp(wrdUp), yaw(camYaw), pitch(camPitch) {
     updateCameraVectors();
   }
@@ -53,7 +53,7 @@ public:
 private:
   // calculates the front vector from the Camera's (updated) Euler Angles
   void updateCameraVectors();
-  bool canMove() const { return mWindow->getCursorState() == CURSOR_STATE_INVISIBLE; }
+  bool canMove() const { return mWindow->getCursorState() == CursorState::INVISIBLE; }
 
   Window *mWindow;
 };

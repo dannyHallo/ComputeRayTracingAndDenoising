@@ -40,13 +40,14 @@ class VulkanApplicationContext {
     }
 
     bool isComplete() {
-      return graphicsFamily.has_value() && computeFamily.has_value() && transferFamily.has_value() && presentFamily.has_value();
+      return graphicsFamily.has_value() && computeFamily.has_value() && transferFamily.has_value() &&
+             presentFamily.has_value();
     }
   } queueFamilyIndices;
 
   struct SwapchainSupportDetails {
-    // Basic surface capabilities (min/max number of images in swap chain, min/max width and height of images) Surface formats
-    // (pixel format, color space) Available presentation modes
+    // Basic surface capabilities (min/max number of images in swap chain, min/max width and height of images) Surface
+    // formats (pixel format, color space) Available presentation modes
 
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;

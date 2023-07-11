@@ -52,8 +52,7 @@ VulkanApplicationContext::~VulkanApplicationContext() {
   vkDestroyDevice(mDevice, nullptr);
   mDevice = nullptr;
 
-  if (enableDebug)
-    vkDestroyDebugUtilsMessengerEXT(mInstance, mDebugMessager, nullptr);
+  if (enableDebug) vkDestroyDebugUtilsMessengerEXT(mInstance, mDebugMessager, nullptr);
 
   vkDestroyInstance(mInstance, nullptr);
 }
@@ -66,8 +65,7 @@ bool VulkanApplicationContext::checkValidationLayerSupport() {
 
   // logger::print all availiable layers
   logger::print("available validation layers", availableLayers.size());
-  for (const auto &layerProperty : availableLayers)
-    logger::print("\t", layerProperty.layerName);
+  for (const auto &layerProperty : availableLayers) logger::print("\t", layerProperty.layerName);
   logger::print();
 
   // for each validation layer, we check for its validity from the avaliable layer pool
@@ -80,8 +78,7 @@ bool VulkanApplicationContext::checkValidationLayerSupport() {
         break;
       }
     }
-    if (!layerFound)
-      return false;
+    if (!layerFound) return false;
   }
   return true;
 }
@@ -95,11 +92,10 @@ std::vector<const char *> VulkanApplicationContext::getRequiredInstanceExtension
   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
   std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
-  // Due to the nature of the Vulkan interface, there is very little error information available to the developer and application.
-  // By using the VK_EXT_debug_utils extension, developers can obtain more information. When combined with validation layers, even
-  // more detailed feedback on the application’s use of Vulkan will be provided.
-  if (enableDebug)
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  // Due to the nature of the Vulkan interface, there is very little error information available to the developer and
+  // application. By using the VK_EXT_debug_utils extension, developers can obtain more information. When combined with
+  // validation layers, even more detailed feedback on the application’s use of Vulkan will be provided.
+  if (enableDebug) extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
   return extensions;
 }
@@ -108,7 +104,8 @@ std::vector<const char *> VulkanApplicationContext::getRequiredInstanceExtension
 // in this case, we change the debug messages to red
 VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                              VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData) {
+                                             const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                             void *pUserData) {
   std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
   // we may change display color according to its importance level
@@ -130,7 +127,8 @@ void populateDebugMessagerInfo(VkDebugUtilsMessengerCreateInfoEXT &debugCreateIn
   // VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
 
   // we'd like to leave all the message types out
-  debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+  debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
   debugCreateInfo.pfnUserCallback = debugCallback;
 }
@@ -159,8 +157,7 @@ void VulkanApplicationContext::createInstance() {
 
   // logger::prints all available instance extensions
   logger::print("available instance extensions", availavleExtensions.size());
-  for (const auto &extension : availavleExtensions)
-    logger::print("\t", extension.extensionName);
+  for (const auto &extension : availavleExtensions) logger::print("\t", extension.extensionName);
   logger::print();
 
   // get glfw (+ debug) extensions
@@ -169,8 +166,7 @@ void VulkanApplicationContext::createInstance() {
   createInfo.ppEnabledExtensionNames = instanceRequiredExtensions.data();
 
   logger::print("enabled extensions", instanceRequiredExtensions.size());
-  for (const auto &extension : instanceRequiredExtensions)
-    std::cout << "\t" << extension << std::endl;
+  for (const auto &extension : instanceRequiredExtensions) std::cout << "\t" << extension << std::endl;
   logger::print();
 
   // Setup debug messager info during vkCreateInstance and vkDestroyInstance
@@ -192,8 +188,7 @@ void VulkanApplicationContext::createInstance() {
 
 // setup runtime debug messager
 void VulkanApplicationContext::setupDebugMessager() {
-  if (!enableDebug)
-    return;
+  if (!enableDebug) return;
 
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessagerInfo(createInfo);
@@ -211,8 +206,8 @@ VkSampleCountFlagBits getDeviceMaxUsableSampleCount(VkPhysicalDevice device) {
   VkPhysicalDeviceProperties physicalDeviceProperties;
   vkGetPhysicalDeviceProperties(device, &physicalDeviceProperties);
 
-  VkSampleCountFlags counts =
-      physicalDeviceProperties.limits.framebufferColorSampleCounts & physicalDeviceProperties.limits.framebufferDepthSampleCounts;
+  VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
+                              physicalDeviceProperties.limits.framebufferDepthSampleCounts;
   if (counts & VK_SAMPLE_COUNT_64_BIT) {
     return VK_SAMPLE_COUNT_64_BIT;
   }
@@ -272,19 +267,19 @@ void VulkanApplicationContext::checkDeviceSuitable(VkSurfaceKHR surface, VkPhysi
   bool swapChainAdequate  = false;
   if (extensionSupported) {
     SwapchainSupportDetails swapChainSupport = querySwapchainSupport(surface, physicalDevice);
-    swapChainAdequate                        = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+    swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
   }
 
   // Query for device features if needed
   // VkPhysicalDeviceFeatures supportedFeatures;
   // vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
-  if (indices.isComplete() && extensionSupported && swapChainAdequate)
-    return;
+  if (indices.isComplete() && extensionSupported && swapChainAdequate) return;
 
   logger::throwError("physical device not suitable");
 }
 
-// helper function to customize the physical device ranking mechanism, returns the physical device with the highest score
+// helper function to customize the physical device ranking mechanism, returns the physical device with the highest
+// score
 VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysicalDevice> physicalDevices) {
   VkPhysicalDevice bestDevice = VK_NULL_HANDLE;
 
@@ -357,7 +352,8 @@ VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysic
   return bestDevice;
 }
 
-VulkanApplicationContext::QueueFamilyIndices VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice) {
+VulkanApplicationContext::QueueFamilyIndices
+VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice) {
   // find required queue families, distribute every queue family uniformly if possible
   QueueFamilyIndices indices;
 
@@ -374,7 +370,8 @@ VulkanApplicationContext::QueueFamilyIndices VulkanApplicationContext::findQueue
     if (flag == VK_QUEUE_COMPUTE_BIT) {
       // assign compute queue index with the queue that supports compute functionality
       for (uint32_t j = 0; j < queueFamilyCount; ++j) {
-        if ((queueFamilies[j].queueFlags & VK_QUEUE_COMPUTE_BIT) && !(queueFamilies[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+        if ((queueFamilies[j].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
+            !(queueFamilies[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
           indices.computeFamily = j;
           break;
         }
@@ -392,7 +389,8 @@ VulkanApplicationContext::QueueFamilyIndices VulkanApplicationContext::findQueue
 
     else if (flag == VK_QUEUE_TRANSFER_BIT) {
       for (uint32_t j = 0; j < queueFamilyCount; ++j) {
-        if ((queueFamilies[j].queueFlags & VK_QUEUE_TRANSFER_BIT) && !(queueFamilies[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
+        if ((queueFamilies[j].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
+            !(queueFamilies[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
             !(queueFamilies[j].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
           indices.transferFamily = j;
           break;
@@ -441,8 +439,7 @@ void VulkanApplicationContext::createDevice() {
 
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(mInstance, &deviceCount, nullptr);
-    if (deviceCount == 0)
-      logger::throwError("failed to find GPUs with Vulkan support!");
+    if (deviceCount == 0) logger::throwError("failed to find GPUs with Vulkan support!");
 
     std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
     vkEnumeratePhysicalDevices(mInstance, &deviceCount, physicalDevices.data());
@@ -572,8 +569,7 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>
 VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {
   // our preferance: Mailbox present mode
   for (const auto &availablePresentMode : availablePresentModes) {
-    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
-      return availablePresentMode;
+    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) return availablePresentMode;
   }
 
   logger::print("Present mode preferance doesn't meet, switching to FIFO");
@@ -584,16 +580,18 @@ VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &avai
 VkExtent2D VulkanApplicationContext::getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
   // if the current extent is valid (we can read the width and height out of it)
   if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
-    std::cout << "Using resolution: (" << capabilities.currentExtent.width << ", " << capabilities.currentExtent.height << ")"
-              << std::endl;
+    std::cout << "Using resolution: (" << capabilities.currentExtent.width << ", " << capabilities.currentExtent.height
+              << ")" << std::endl;
     return capabilities.currentExtent;
   } else {
     int width, height;
     glfwGetFramebufferSize(mWindow.getWindow(), &width, &height);
 
     VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-    actualExtent.width  = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-    actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    actualExtent.width =
+        std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    actualExtent.height =
+        std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
     return actualExtent;
   }
@@ -624,7 +622,8 @@ void VulkanApplicationContext::createSwapchain() {
   swapchainCreateInfo.imageArrayLayers = 1; // the amount of layers each image consists of
   swapchainCreateInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-  uint32_t queueFamilyIndicesArray[] = {queueFamilyIndices.graphicsFamily.value(), queueFamilyIndices.presentFamily.value()};
+  uint32_t queueFamilyIndicesArray[] = {queueFamilyIndices.graphicsFamily.value(),
+                                        queueFamilyIndices.presentFamily.value()};
 
   if (queueFamilyIndices.graphicsFamily != queueFamilyIndices.presentFamily) {
     // images can be used across multiple queue families without explicit ownership transfers.
@@ -632,8 +631,8 @@ void VulkanApplicationContext::createSwapchain() {
     swapchainCreateInfo.queueFamilyIndexCount = 2;
     swapchainCreateInfo.pQueueFamilyIndices   = queueFamilyIndicesArray;
   } else {
-    // an image is owned by one queue family at a time and ownership must be explicitly transferred before the image is being used
-    // in another queue family. This offers the best performance.
+    // an image is owned by one queue family at a time and ownership must be explicitly transferred before the image is
+    // being used in another queue family. This offers the best performance.
     swapchainCreateInfo.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
     swapchainCreateInfo.queueFamilyIndexCount = 0;       // Optional
     swapchainCreateInfo.pQueueFamilyIndices   = nullptr; // Optional
@@ -709,7 +708,8 @@ void VulkanApplicationContext::createCommandPool() {
 
   VkCommandPoolCreateInfo commandPoolCreateInfo2{};
   commandPoolCreateInfo2.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  commandPoolCreateInfo2.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // allows the use of vkResetCommandBuffer
+  commandPoolCreateInfo2.flags =
+      VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // allows the use of vkResetCommandBuffer
   commandPoolCreateInfo2.queueFamilyIndex = getGraphicsFamilyIndex();
 
   result = vkCreateCommandPool(mDevice, &commandPoolCreateInfo2, nullptr, &mGuiCommandPool);

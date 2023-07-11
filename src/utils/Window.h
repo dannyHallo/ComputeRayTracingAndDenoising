@@ -7,12 +7,8 @@
 
 #include "utils/vulkan.h"
 
-#define WINDOW_SIZE_FULLSCREEN 0
-#define WINDOW_SIZE_MAXIMAZED 1
-#define WINDOW_SIZE_HOVER 2
-
-#define CURSOR_STATE_INVISIBLE 0
-#define CURSOR_STATE_VISIBLE 1
+enum WindowSize { FULLSCREEN, MAXIMAZED, HOVER };
+enum CursorState { INVISIBLE, VISIBLE };
 
 #define W_BIT 1
 #define A_BIT 2
@@ -25,9 +21,20 @@
 #define TAB_BIT 256
 
 class Window {
+  static Window *thisWindowClass;
+
+  int mWindowSize;
+  uint32_t mWidthIfWindowed;
+  uint32_t mHeightIfWindowed;
+  uint8_t mCursorState;
+  uint32_t mKeyInputBits;
+
+  GLFWwindow *mWindow;
+  GLFWmonitor *mMonitor;
+
 public:
-  Window();
-  ~Window();
+  Window(int windowSize = WindowSize::FULLSCREEN, uint32_t widthIfWindowed = 1280, uint32_t heightIfWindowed = 1280);
+  ~Window() { glfwDestroyWindow(mWindow); }
 
   GLFWwindow *getWindow() const { return mWindow; }
   GLFWmonitor *getMonitor() const { return mMonitor; }
@@ -41,17 +48,5 @@ public:
   void disableInputBit(uint32_t bitToBeDisabled) { mKeyInputBits &= ~bitToBeDisabled; }
 
 private:
-  static Window *thisWindowClass;
-  // const uint8_t windowSize      = WINDOW_SIZE_FULLSCREEN;
-  const uint8_t windowSize      = WINDOW_SIZE_MAXIMAZED;
-  const uint32_t widthWindowed  = 1280;
-  const uint32_t heightWindowed = 1280;
-
-  uint8_t mCursorState;
-  uint32_t mKeyInputBits = 0;
-
-  GLFWwindow *mWindow;
-  GLFWmonitor *mMonitor;
-
   static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
 };

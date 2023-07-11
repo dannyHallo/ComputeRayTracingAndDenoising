@@ -1,41 +1,43 @@
 #include "Window.h"
-#include "utils/systemLog.h"
+#include "utils/logger.h"
 
 // static class variable functions like extern variables, they have external linkage and static storage duration
-// we define this window pointer here as a handle in glfw callback function, it will be initialized after the first construction
-// of this class
-Window *Window::thisWindowClass;
+// we define this window pointer here as a handle in glfw callback function, it will be initialized after the first
+// construction of this class
+Window *Window::thisWindowClass = nullptr;
 
-Window::Window() : mCursorState(CURSOR_STATE_INVISIBLE) {
+Window::Window(int windowSize, uint32_t widthIfWindowed, uint32_t heightIfWindowed)
+    : mWindowSize(windowSize), mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed),
+      mCursorState(CursorState::INVISIBLE), mKeyInputBits(0) {
   thisWindowClass = this;
 
   glfwInit();
 
-  mMonitor                = glfwGetPrimaryMonitor();    // Get primary monitor for future maximize function
-  const GLFWvidmode *mode = glfwGetVideoMode(mMonitor); // May be used to change mode for this program
+  mMonitor                = glfwGetPrimaryMonitor();    // get primary monitor for future maximize function
+  const GLFWvidmode *mode = glfwGetVideoMode(mMonitor); // may be used to change mode for this program
 
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // Only OpenGL Api is supported, so no API here
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // only OpenGL Api is supported, so no API here
 
   glfwWindowHint(GLFW_RED_BITS, mode->redBits);
   glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-  glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);       // Adapt colors (not needed)
-  glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // Adapt framerate
+  glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);       // adapt colors (not needed)
+  glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt framerate
 
-  // Set window size
+  // set window size
   switch (windowSize) {
-  case WINDOW_SIZE_FULLSCREEN:
-    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading...", mMonitor, nullptr);
+  case WindowSize::FULLSCREEN:
+    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...", mMonitor, nullptr);
     break;
-  case WINDOW_SIZE_MAXIMAZED:
-    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading...", nullptr, nullptr);
+  case WindowSize::MAXIMAZED:
+    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...", nullptr, nullptr);
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
     break;
-  case WINDOW_SIZE_HOVER:
-    mWindow = glfwCreateWindow(widthWindowed, heightWindowed, "Loading...", nullptr, nullptr);
+  case WindowSize::HOVER:
+    mWindow = glfwCreateWindow(mWidthIfWindowed, mHeightIfWindowed, "Loading window...", nullptr, nullptr);
     break;
   }
 
-  if (mCursorState == CURSOR_STATE_INVISIBLE)
+  if (mCursorState == CursorState::INVISIBLE)
     hideCursor();
   else
     showCursor();
@@ -43,30 +45,25 @@ Window::Window() : mCursorState(CURSOR_STATE_INVISIBLE) {
   glfwSetKeyCallback(mWindow, keyCallback);
 }
 
-Window::~Window() {
-  print("Destroying object with type: window");
-  glfwDestroyWindow(mWindow);
-}
-
 void Window::showCursor() {
   glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-  mCursorState = CURSOR_STATE_VISIBLE;
+  mCursorState = CursorState::VISIBLE;
 }
 
 void Window::hideCursor() {
   glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  if (glfwRawMouseMotionSupported()) {
-    glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
-  }
-  mCursorState = CURSOR_STATE_INVISIBLE;
+
+  if (glfwRawMouseMotionSupported()) glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+
+  mCursorState = CursorState::INVISIBLE;
 }
 
 void Window::toggleCursor() {
-  if (mCursorState == CURSOR_STATE_INVISIBLE) {
+  if (mCursorState == CursorState::INVISIBLE)
     showCursor();
-  } else {
+
+  else
     hideCursor();
-  }
 }
 
 void Window::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
