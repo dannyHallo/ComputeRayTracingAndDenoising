@@ -36,7 +36,7 @@ VulkanApplicationContext::VulkanApplicationContext() : mWindow() {
 }
 
 VulkanApplicationContext::~VulkanApplicationContext() {
-  logger::logger::print("Destroying object with type: VulkanApplicationContext");
+  logger::print("Destroying object with type: VulkanApplicationContext");
 
   vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
   vmaDestroyAllocator(mAllocator);
@@ -730,7 +730,7 @@ VkFormat VulkanApplicationContext::findSupportedFormat(const std::vector<VkForma
       return format;
     }
   }
-  
+
   logger::throwError("failed to find supported format!");
   return VK_FORMAT_UNDEFINED;
 }

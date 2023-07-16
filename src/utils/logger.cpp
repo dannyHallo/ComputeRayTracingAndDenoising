@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-const std::unordered_map<int, std::string> logger::resultCodeNamePair = {
+const std::unordered_map<int, std::string> resultCodeNamePair = {
     {VK_SUCCESS, "Command successfully completed"},
     {VK_NOT_READY, "A fence or query has not yet completed"},
     {VK_TIMEOUT, "A wait operation has not completed in the specified time"},
@@ -131,7 +131,7 @@ void logger::throwError(const std::string content) {
 void logger::checkStep(const std::string stepName, const int resultCode) {
   if (resultCode == VK_SUCCESS)
     return;
-
+ 
   if (resultCodeNamePair.find(resultCode) == resultCodeNamePair.end()) {
     throwError("Error code not found: " + std::to_string(resultCode));
   }

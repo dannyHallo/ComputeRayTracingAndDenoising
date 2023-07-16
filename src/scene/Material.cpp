@@ -9,7 +9,9 @@ Material::Material(const std::string &vertexShaderPath, const std::string &fragm
   m_descriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size());
 }
 
-Material::Material() { m_descriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size()); }
+Material::Material() {
+  m_descriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size());
+}
 
 Material::~Material() {
   std::cout << "Destroying material"
@@ -37,11 +39,13 @@ void Material::addTexture(const std::shared_ptr<Texture> &texture, VkShaderStage
   m_textureDescriptors.push_back({texture, shaderStageFlags});
 }
 
-void Material::addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle, VkShaderStageFlags shaderStageFlags) {
+void Material::addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
+                                      VkShaderStageFlags shaderStageFlags) {
   m_uniformBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
 }
 
-void Material::addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle, VkShaderStageFlags shaderStageFlags) {
+void Material::addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
+                                      VkShaderStageFlags shaderStageFlags) {
   m_storageBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
 }
 
@@ -73,8 +77,8 @@ void Material::init(const VkRenderPass &renderPass) {
   m_initialized = true;
 }
 
-void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass, std::string vertexShaderPath,
-                              std::string fragmentShaderPath) {
+void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass,
+                              std::string vertexShaderPath, std::string fragmentShaderPath) {
   auto vertShaderCode             = readFile(vertexShaderPath);
   auto fragShaderCode             = readFile(fragmentShaderPath);
   VkShaderModule vertShaderModule = __createShaderModule(vertShaderCode);
@@ -218,8 +222,8 @@ void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderP
   pipelineInfo.basePipelineIndex   = -1;             // Optional
   pipelineInfo.pDepthStencilState  = &depthStencil;
 
-  if (vkCreateGraphicsPipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
-      VK_SUCCESS) {
+  if (vkCreateGraphicsPipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+                                &m_pipeline) != VK_SUCCESS) {
     throw std::runtime_error("failed to create graphics pipeline!");
   }
 
@@ -255,7 +259,8 @@ void Material::__initDescriptorPool() {
   // the max number of descriptor sets that can be allocated from this pool
   poolInfo.maxSets = static_cast<uint32_t>(m_descriptorSetsSize);
 
-  if (vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
+  if (vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &m_descriptorPool) !=
+      VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor pool!");
   }
 }
@@ -330,7 +335,8 @@ void Material::__initDescriptorSets() {
   allocInfo.pSetLayouts        = layouts.data();
 
   m_descriptorSets.resize(m_descriptorSetsSize);
-  if (vkAllocateDescriptorSets(vulkanApplicationContext.getDevice(), &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
+  if (vkAllocateDescriptorSets(vulkanApplicationContext.getDevice(), &allocInfo, m_descriptorSets.data()) !=
+      VK_SUCCESS) {
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
 
@@ -347,7 +353,7 @@ void Material::__initDescriptorSets() {
 
     std::vector<VkDescriptorBufferInfo> bufferDescInfos;
     for (size_t i = 0; i < m_uniformBufferBundleDescriptors.size(); i++) {
-      bufferDescInfos.push_back(m_uniformBufferBundleDescriptors[i].data->buffers[j]->getDescriptorInfo());
+      bufferDescInfos.push_back(m_uniformBufferBundleDescriptors[i].data->getBuffer(j)->getDescriptorInfo());
     }
 
     uint32_t binding = 0;
@@ -403,7 +409,7 @@ void Material::__initDescriptorSets() {
 
     std::vector<VkDescriptorBufferInfo> storageBufferInfos;
     for (size_t i = 0; i < m_storageBufferBundleDescriptors.size(); i++) {
-      storageBufferInfos.push_back(m_storageBufferBundleDescriptors[i].data->buffers[j]->getDescriptorInfo());
+      storageBufferInfos.push_back(m_storageBufferBundleDescriptors[i].data->getBuffer(j)->getDescriptorInfo());
     }
 
     for (size_t i = 0; i < m_storageBufferBundleDescriptors.size(); i++) {
@@ -425,8 +431,8 @@ void Material::__initDescriptorSets() {
 }
 
 void Material::bind(VkCommandBuffer &commandBuffer, size_t currentFrame) {
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSets[currentFrame],
-                          0, nullptr);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
+                          &m_descriptorSets[currentFrame], 0, nullptr);
 
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 }

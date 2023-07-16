@@ -1,8 +1,9 @@
+// wraps VkBuffer into Buffer class, which can be allocated using BufferBundle
+
 #pragma once
 
 #include "app-context/VulkanApplicationContext.h"
 #include "scene/Mesh.h"
-#include "utils/logger.h"
 #include "utils/vulkan.h"
 #include "vk_mem_alloc.h"
 
@@ -11,80 +12,51 @@
 #include <string>
 #include <vector>
 
-struct Buffer {
-  VkBuffer buffer;
-  VmaAllocation allocation;
-  VkDeviceSize size;
+class Buffer {
+  VkBuffer mVkBuffer;        // native vulkan buffer
+  VmaAllocation mAllocation; // buffer allocation info
+  VkDeviceSize mSize;        // total size of buffer
 
-  ~Buffer() {
-    if (buffer != VK_NULL_HANDLE) {
-      vmaDestroyBuffer(vulkanApplicationContext.getAllocator(), buffer, allocation);
-      buffer = VK_NULL_HANDLE;
-    }
-  }
+public:
+  Buffer() : mVkBuffer(VK_NULL_HANDLE), mAllocation(VK_NULL_HANDLE), mSize(0) {}
+  ~Buffer();
 
-  VkDescriptorBufferInfo getDescriptorInfo() {
+  // allocate buffer using VMA
+  void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+  void fillData(const void *data = nullptr);
+
+  inline VkBuffer &getVkBuffer() { return mVkBuffer; }
+  inline VmaAllocation &getAllocation() { return mAllocation; }
+  inline VkDeviceSize getSize() const { return mSize; }
+
+  inline VkDescriptorBufferInfo getDescriptorInfo() {
     VkDescriptorBufferInfo descriptorInfo{};
-    descriptorInfo.buffer = buffer;
+    descriptorInfo.buffer = mVkBuffer;
     descriptorInfo.offset = 0;
-    descriptorInfo.range  = size;
+    descriptorInfo.range  = mSize;
     return descriptorInfo;
   }
 };
 
 // series of buffers
-struct BufferBundle {
-  std::vector<std::shared_ptr<Buffer>> buffers;
+class BufferBundle {
+  std::vector<std::shared_ptr<Buffer>> mBuffers; // series of buffers
 
-  BufferBundle(size_t numBuffers) {
-    for (size_t i = 0; i < numBuffers; i++) {
-      buffers.push_back(std::make_shared<Buffer>());
+public:
+  BufferBundle(size_t bufferCount) {
+    for (size_t i = 0; i < bufferCount; i++) {
+      mBuffers.emplace_back(std::make_shared<Buffer>());
     }
   }
+
+  ~BufferBundle() { mBuffers.clear(); }
+
+  // get buffer by index
+  std::shared_ptr<Buffer> getBuffer(size_t index);
+
+  // allocate every buffer in bundle
+  void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+
+  // fill every buffer in bundle with data
+  void fillData(const void *data = nullptr);
 };
-
-namespace BufferUtils {
-void inline allocate(Buffer *buffer, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
-  VkBufferCreateInfo bufferInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
-  bufferInfo.size        = size;
-  bufferInfo.usage       = usage;
-  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // the buffer is only used in one queue family
-
-  VmaAllocationCreateInfo vmaallocInfo = {};
-  vmaallocInfo.usage                   = memoryUsage;
-
-  // TODO:
-  VkResult result = vmaCreateBuffer(vulkanApplicationContext.getAllocator(), &bufferInfo, &vmaallocInfo,
-                                    &buffer->buffer, &buffer->allocation, nullptr);
-  if (result != VK_SUCCESS) {
-    std::cout << result << std::endl;
-    throw std::runtime_error("failed to create buffer");
-  }
-}
-
-template <typename T>
-void inline create(Buffer *buffer, const T *elements, const size_t numElements, VkBufferUsageFlags usage,
-                   VmaMemoryUsage memoryUsage) {
-  buffer->size = numElements * sizeof(T);
-  allocate(buffer, numElements * sizeof(T), usage, memoryUsage);
-
-  void *data;
-  vmaMapMemory(vulkanApplicationContext.getAllocator(), buffer->allocation, &data);
-  memcpy(data, elements, numElements * sizeof(T));
-  vmaUnmapMemory(vulkanApplicationContext.getAllocator(), buffer->allocation);
-}
-
-template <typename T>
-void inline createBundle(BufferBundle *bufferBundle, const T *elements, const size_t numElements,
-                         VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
-  for (auto &buffer : bufferBundle->buffers) {
-    create(buffer.get(), elements, numElements, usage, memoryUsage);
-  }
-}
-
-template <typename T>
-void inline createBundle(BufferBundle *bufferBundle, const T &element, VkBufferUsageFlags usage,
-                         VmaMemoryUsage memoryUsage) {
-  createBundle(bufferBundle, &element, 1, usage, memoryUsage);
-}
-}; // namespace BufferUtils

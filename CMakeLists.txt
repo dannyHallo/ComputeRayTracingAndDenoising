@@ -27,6 +27,7 @@ add_executable(${PROJ_NAME}
 	src/Application.cpp
 	src/memory/Image.cpp
 	src/memory/ImageUtils.cpp
+	src/memory/Buffer.cpp
 	src/render-context/FlatRenderPass.cpp
 	src/render-context/ForwardRenderPass.cpp
 	src/render-context/RenderSystem.cpp

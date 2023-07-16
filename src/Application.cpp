@@ -39,40 +39,48 @@ void Application::initScene() {
   // uniform buffers are faster to fill compared to storage buffers, but they are restricted in their size
   // Buffer bundle is an array of buffers, one per each swapchain image/descriptor set.
   rtxBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-  BufferUtils::createBundle<RtxUniformBufferObject>(rtxBufferBundle.get(), RtxUniformBufferObject{},
-                                                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  RtxUniformBufferObject rtxUniformBufferObject{};
+  rtxBufferBundle->allocate(sizeof(RtxUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                            VMA_MEMORY_USAGE_CPU_TO_GPU);
+  // rtxBufferBundle->fillData(&rtxUniformBufferObject);
+  rtxBufferBundle->fillData();
 
   temperalFilterBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-  BufferUtils::createBundle<TemporalFilterUniformBufferObject>(
-      temperalFilterBufferBundle.get(), TemporalFilterUniformBufferObject{}, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VMA_MEMORY_USAGE_CPU_TO_GPU);
+  TemporalFilterUniformBufferObject temporalFilterUniformBufferObject{};
+  temperalFilterBufferBundle->allocate(sizeof(TemporalFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                       VMA_MEMORY_USAGE_CPU_TO_GPU);
+  // temperalFilterBufferBundle->fillData(&temporalFilterUniformBufferObject);
+  temperalFilterBufferBundle->fillData();
 
-  for (int i = 0; i < aTrousSize; i++) {
+  for (int i = 0; i < cInFrameProcessSize; i++) {
     auto blurFilterBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-    BufferUtils::createBundle<BlurFilterUniformBufferObject>(
-        blurFilterBufferBundle.get(), BlurFilterUniformBufferObject{}, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VMA_MEMORY_USAGE_CPU_TO_GPU);
-    blurFilterBufferBundles.emplace_back(blurFilterBufferBundle);
+    BlurFilterUniformBufferObject blurFilterUniformBufferObject{};
+    blurFilterBufferBundle->allocate(sizeof(BlurFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                     VMA_MEMORY_USAGE_CPU_TO_GPU);
+    // blurFilterBufferBundle->fillData(&blurFilterUniformBufferObject);
+    blurFilterBufferBundle->fillData();
+    blurFilterBufferBundles.push_back(blurFilterBufferBundle);
   }
 
   auto triangleBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-  BufferUtils::createBundle<GpuModel::Triangle>(triangleBufferBundle.get(), rtScene->triangles.data(),
-                                                rtScene->triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                                VMA_MEMORY_USAGE_CPU_TO_GPU);
+  triangleBufferBundle->allocate(sizeof(GpuModel::Triangle) * rtScene->triangles.size(),
+                                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  triangleBufferBundle->fillData(rtScene->triangles.data());
 
   auto materialBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-  BufferUtils::createBundle<GpuModel::Material>(materialBufferBundle.get(), rtScene->materials.data(),
-                                                rtScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                                VMA_MEMORY_USAGE_CPU_TO_GPU);
+  materialBufferBundle->allocate(sizeof(GpuModel::Material) * rtScene->materials.size(),
+                                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  materialBufferBundle->fillData(rtScene->materials.data());
 
   auto aabbBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-  BufferUtils::createBundle<GpuModel::BvhNode>(aabbBufferBundle.get(), rtScene->bvhNodes.data(),
-                                               rtScene->bvhNodes.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                               VMA_MEMORY_USAGE_CPU_TO_GPU);
+  aabbBufferBundle->allocate(sizeof(GpuModel::BvhNode) * rtScene->bvhNodes.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                             VMA_MEMORY_USAGE_CPU_TO_GPU);
+  aabbBufferBundle->fillData(rtScene->bvhNodes.data());
 
   auto lightsBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-  BufferUtils::createBundle<GpuModel::Light>(lightsBufferBundle.get(), rtScene->lights.data(), rtScene->lights.size(),
-                                             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  lightsBufferBundle->allocate(sizeof(GpuModel::Light) * rtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                               VMA_MEMORY_USAGE_CPU_TO_GPU);
+  lightsBufferBundle->fillData(rtScene->lights.data());
 
   targetImage = std::make_shared<Image>();
   ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
@@ -218,7 +226,7 @@ void Application::initScene() {
   }
   temporalFilterModel = std::make_shared<ComputeModel>(temporalFilterMat);
 
-  for (int i = 0; i < aTrousSize; i++) {
+  for (int i = 0; i < cInFrameProcessSize; i++) {
     auto blurFilterPhase1Mat =
         std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/blurPhase1.spv");
     {
@@ -280,7 +288,7 @@ void Application::updateScene(uint32_t currentImage) {
                                    (uint32_t)rtScene->lights.size()};
 
   {
-    auto &allocation = rtxBufferBundle->buffers[currentImage]->allocation;
+    auto &allocation = rtxBufferBundle->getBuffer(currentImage)->getAllocation();
     void *data;
     vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
     memcpy(data, &rtxUbo, sizeof(rtxUbo));
@@ -291,7 +299,7 @@ void Application::updateScene(uint32_t currentImage) {
                                              vulkanApplicationContext.getSwapchainExtent().width,
                                              vulkanApplicationContext.getSwapchainExtent().height};
   {
-    auto &allocation = temperalFilterBufferBundle->buffers[currentImage]->allocation;
+    auto &allocation = temperalFilterBufferBundle->getBuffer(currentImage)->getAllocation();
     void *data;
     vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
     memcpy(data, &tfUbo, sizeof(tfUbo));
@@ -302,11 +310,11 @@ void Application::updateScene(uint32_t currentImage) {
                camera.getViewMatrix();
   }
 
-  for (int j = 0; j < aTrousSize; j++) {
+  for (int j = 0; j < cInFrameProcessSize; j++) {
     // update ubo for the sampleDistance
     BlurFilterUniformBufferObject bfUbo = {!useBlur, j};
     {
-      auto &allocation = blurFilterBufferBundles[j]->buffers[currentImage]->allocation;
+      auto &allocation = blurFilterBufferBundles[j]->getBuffer(currentImage)->getAllocation();
       void *data;
       vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
       memcpy(data, &bfUbo, sizeof(bfUbo));
@@ -388,11 +396,11 @@ void Application::createRenderCommandBuffers() {
 
     /////////////////////////////////////////////
 
-    for (int j = 0; j < aTrousSize; j++) {
+    for (int j = 0; j < cInFrameProcessSize; j++) {
       // update ubo for the sampleDistance
       BlurFilterUniformBufferObject bfUbo = {!useBlur, j};
       {
-        auto &allocation = blurFilterBufferBundles[j]->buffers[i]->allocation;
+        auto &allocation = blurFilterBufferBundles[j]->getBuffer(i)->getAllocation();
         void *data;
         vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
         memcpy(data, &bfUbo, sizeof(bfUbo));
@@ -429,7 +437,7 @@ void Application::createRenderCommandBuffers() {
                              0, 0, nullptr, 0, nullptr, 1, &accumTexTransDst2General);
       }
       // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
-      else if (j != aTrousSize - 1) {
+      else if (j != cInFrameProcessSize - 1) {
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
                              0, 0, nullptr, 0, nullptr, 1, &aTrousTex1General2TransDst);
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,

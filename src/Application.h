@@ -21,6 +21,7 @@
 #include "utils/Camera.h"
 #include "utils/RootDir.h"
 #include "utils/glm.h"
+#include "utils/logger.h"
 
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
@@ -50,7 +51,7 @@ class Application {
     int i;
   };
 
-  const int aTrousSize = 5;
+  const int cInFrameProcessSize = 5;
 
   float fps       = 0;
   float frameTime = 0;

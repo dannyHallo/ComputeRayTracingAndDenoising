@@ -17,11 +17,13 @@ public:
 
 private:
   std::shared_ptr<Material> m_material;
-  Buffer m_vertexBuffer;
-  Buffer m_indexBuffer;
-  uint32_t m_numIndices;
+  Buffer mVertexBuffer;
+  Buffer mIndexBuffer;
+  uint32_t mNumIndices;
 
+  // allocate vertex buffer and fill it with data
   void initVertexBuffer(const Mesh &mesh);
 
+  // allocate index buffer and fill it with data
   void initIndexBuffer(const Mesh &mesh);
 };
