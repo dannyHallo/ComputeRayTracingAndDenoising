@@ -90,19 +90,20 @@ public:
   VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
                                VkFormatFeatureFlags features) const;
 
-  const VkInstance &getInstance() const { return mInstance; }
-  const VkDevice &getDevice() const { return mDevice; }
-  const VkSurfaceKHR &getSurface() const { return mSurface; }
-  const VkPhysicalDevice &getPhysicalDevice() const { return mPhysicalDevice; }
+  inline const VkInstance &getInstance() const { return mInstance; }
+  inline const VkDevice &getDevice() const { return mDevice; }
+  inline const VkSurfaceKHR &getSurface() const { return mSurface; }
+  inline const VkPhysicalDevice &getPhysicalDevice() const { return mPhysicalDevice; }
 
-  const VkCommandPool &getCommandPool() const { return mCommandPool; }
-  const VkCommandPool &getGuiCommandPool() const { return mGuiCommandPool; }
-  const VmaAllocator &getAllocator() const { return mAllocator; }
-  const std::vector<VkImage> &getSwapchainImages() const { return mSwapchainImages; }
-  const std::vector<VkImageView> &getSwapchainImageViews() const { return mSwapchainImageViews; }
-  const VkFormat &getSwapchainImageFormat() const { return mSwapchainImageFormat; }
-  const VkExtent2D &getSwapchainExtent() const { return mSwapchainExtent; }
-  const VkSwapchainKHR &getSwapchain() const { return mSwapchain; }
+  inline const VkCommandPool &getCommandPool() const { return mCommandPool; }
+  inline const VkCommandPool &getGuiCommandPool() const { return mGuiCommandPool; }
+  inline const VmaAllocator &getAllocator() const { return mAllocator; }
+  inline const std::vector<VkImage> &getSwapchainImages() const { return mSwapchainImages; }
+  inline const std::vector<VkImageView> &getSwapchainImageViews() const { return mSwapchainImageViews; }
+  inline const size_t getSwapchainSize() const { return mSwapchainImages.size(); }
+  inline const VkFormat &getSwapchainImageFormat() const { return mSwapchainImageFormat; }
+  inline const VkExtent2D &getSwapchainExtent() const { return mSwapchainExtent; }
+  inline const VkSwapchainKHR &getSwapchain() const { return mSwapchain; }
 
   const VkQueue &getGraphicsQueue() const { return mGraphicsQueue; }
   const VkQueue &getPresentQueue() const { return mPresentQueue; }

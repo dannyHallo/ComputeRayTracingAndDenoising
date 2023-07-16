@@ -30,54 +30,50 @@ void Application::run() {
 void check_vk_result(VkResult resultCode) { logger::checkStep("check_vk_result", resultCode); }
 
 void Application::initScene() {
-  // = descriptor sets size
-  uint32_t swapchainImageViewSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImageViews().size());
+  // equals to descriptor sets size
+  uint32_t swapchainSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize());
 
   // creates material, loads models from files, creates bvh
   rtScene = std::make_shared<GpuModel::Scene>();
 
   // uniform buffers are faster to fill compared to storage buffers, but they are restricted in their size
   // Buffer bundle is an array of buffers, one per each swapchain image/descriptor set.
-  rtxBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-  RtxUniformBufferObject rtxUniformBufferObject{};
+  rtxBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
   rtxBufferBundle->allocate(sizeof(RtxUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                             VMA_MEMORY_USAGE_CPU_TO_GPU);
-  // rtxBufferBundle->fillData(&rtxUniformBufferObject);
   rtxBufferBundle->fillData();
 
-  temperalFilterBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
-  TemporalFilterUniformBufferObject temporalFilterUniformBufferObject{};
+  temperalFilterBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
   temperalFilterBufferBundle->allocate(sizeof(TemporalFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                        VMA_MEMORY_USAGE_CPU_TO_GPU);
-  // temperalFilterBufferBundle->fillData(&temporalFilterUniformBufferObject);
   temperalFilterBufferBundle->fillData();
 
   for (int i = 0; i < cInFrameProcessSize; i++) {
-    auto blurFilterBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
+    auto blurFilterBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
     BlurFilterUniformBufferObject blurFilterUniformBufferObject{};
     blurFilterBufferBundle->allocate(sizeof(BlurFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                      VMA_MEMORY_USAGE_CPU_TO_GPU);
-    // blurFilterBufferBundle->fillData(&blurFilterUniformBufferObject);
     blurFilterBufferBundle->fillData();
+
     blurFilterBufferBundles.push_back(blurFilterBufferBundle);
   }
 
-  auto triangleBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
+  auto triangleBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
   triangleBufferBundle->allocate(sizeof(GpuModel::Triangle) * rtScene->triangles.size(),
                                  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
   triangleBufferBundle->fillData(rtScene->triangles.data());
 
-  auto materialBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
+  auto materialBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
   materialBufferBundle->allocate(sizeof(GpuModel::Material) * rtScene->materials.size(),
                                  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
   materialBufferBundle->fillData(rtScene->materials.data());
 
-  auto aabbBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
+  auto aabbBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
   aabbBufferBundle->allocate(sizeof(GpuModel::BvhNode) * rtScene->bvhNodes.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                              VMA_MEMORY_USAGE_CPU_TO_GPU);
   aabbBufferBundle->fillData(rtScene->bvhNodes.data());
 
-  auto lightsBufferBundle = std::make_shared<BufferBundle>(swapchainImageViewSize);
+  auto lightsBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
   lightsBufferBundle->allocate(sizeof(GpuModel::Light) * rtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                VMA_MEMORY_USAGE_CPU_TO_GPU);
   lightsBufferBundle->fillData(rtScene->lights.data());

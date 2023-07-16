@@ -649,9 +649,9 @@ void VulkanApplicationContext::createSwapchain() {
   VkResult result = vkCreateSwapchainKHR(mDevice, &swapchainCreateInfo, nullptr, &mSwapchain);
   logger::checkStep("vkCreateSwapchainKHR", result);
 
-  // Get swap chain images from the swap chain created
-  vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, nullptr);
-  mSwapchainImages.resize(imageCount);
+  // Get swapchain images from the swapchain created
+  // vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, nullptr);
+  // mSwapchainImages.resize(imageCount); FIXME:
   vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, mSwapchainImages.data());
 
   for (size_t i = 0; i < imageCount; i++) {

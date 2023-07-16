@@ -21,8 +21,11 @@ public:
   Buffer() : mVkBuffer(VK_NULL_HANDLE), mAllocation(VK_NULL_HANDLE), mSize(0) {}
   ~Buffer();
 
-  // allocate buffer using VMA
+  // allocate buffer
   void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+
+  // fill buffer with data, if data is nullptr, buffer will be zero-initialized
+  // data size must be equal to buffer size
   void fillData(const void *data = nullptr);
 
   inline VkBuffer &getVkBuffer() { return mVkBuffer; }
@@ -57,6 +60,6 @@ public:
   // allocate every buffer in bundle
   void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 
-  // fill every buffer in bundle with data
+  // fill every buffer in bundle with data, if data is nullptr, every buffer will be zero-initialized
   void fillData(const void *data = nullptr);
 };

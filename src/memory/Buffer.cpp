@@ -40,19 +40,15 @@ void Buffer::fillData(const void *data) {
 std::shared_ptr<Buffer> BufferBundle::getBuffer(size_t index) {
   if (index < 0 || index >= mBuffers.size()) {
     logger::throwError("BufferBundle::getBuffer: index out of range");
-    return nullptr; // unreachable
+    return nullptr; // (unreachable code)
   }
   return mBuffers[index];
 }
 
 void BufferBundle::allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
-  for (auto &buffer : mBuffers) {
-    buffer->allocate(size, usage, memoryUsage);
-  }
+  for (auto &buffer : mBuffers) buffer->allocate(size, usage, memoryUsage);
 }
 
 void BufferBundle::fillData(const void *data) {
-  for (auto &buffer : mBuffers) {
-    buffer->fillData(data);
-  }
+  for (auto &buffer : mBuffers) buffer->fillData(data);
 }
