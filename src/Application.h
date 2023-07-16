@@ -27,6 +27,10 @@
 #include "imgui/backends/imgui_impl_vulkan.h"
 
 class Application {
+  // data alignment in c++ side to meet Vulkan specification:
+  // A scalar of size N has a base alignment of N.
+  // A three- or four-component vector, with components of size N, has a base alignment of 4 N.
+  // https://fvcaputo.github.io/2019/02/06/memory-alignment.html
   struct RtxUniformBufferObject {
     alignas(16) glm::vec3 camPosition;
     alignas(16) glm::vec3 camFront;

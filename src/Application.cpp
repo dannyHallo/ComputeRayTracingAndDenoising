@@ -323,7 +323,7 @@ void Application::updateScene(uint32_t currentImage) {
 
 void Application::createRenderCommandBuffers() {
   // create command buffers per swapchain image
-  commandBuffers.resize(vulkanApplicationContext.getSwapchainImageViews().size());
+  commandBuffers.resize(vulkanApplicationContext.getSwapchainSize());
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.commandPool        = vulkanApplicationContext.getCommandPool();
@@ -511,7 +511,7 @@ void Application::createSyncObjects() {
 }
 
 void Application::createGuiCommandBuffers() {
-  guiCommandBuffers.resize(vulkanApplicationContext.getSwapchainImageViews().size());
+  guiCommandBuffers.resize(vulkanApplicationContext.getSwapchainSize());
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.commandPool        = vulkanApplicationContext.getGuiCommandPool();
@@ -574,10 +574,10 @@ void Application::createGuiFramebuffers() {
   // Create gui frame buffers for gui pass to use
   // Each frame buffer will have an attachment of VkImageView, in this case, the attachments are
   // mSwapchainImageViews
-  swapchainGuiFrameBuffers.resize(vulkanApplicationContext.getSwapchainImageViews().size());
+  swapchainGuiFrameBuffers.resize(vulkanApplicationContext.getSwapchainSize());
 
   // Iterate through image views
-  for (size_t i = 0; i < vulkanApplicationContext.getSwapchainImageViews().size(); i++) {
+  for (size_t i = 0; i < vulkanApplicationContext.getSwapchainSize(); i++) {
     VkImageView attachment = vulkanApplicationContext.getSwapchainImageViews()[i];
 
     VkFramebufferCreateInfo frameBufferCreateInfo{};
@@ -682,8 +682,8 @@ void Application::initGui() {
   init_info.PipelineCache             = VK_NULL_HANDLE;
   init_info.DescriptorPool            = guiDescriptorPool;
   init_info.Allocator                 = VK_NULL_HANDLE;
-  init_info.MinImageCount             = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImageViews().size());
-  init_info.ImageCount                = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImageViews().size());
+  init_info.MinImageCount             = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize());
+  init_info.ImageCount                = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize());
   init_info.CheckVkResultFn           = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&init_info, imGuiPass)) {
     logger::print("failed to init impl");
