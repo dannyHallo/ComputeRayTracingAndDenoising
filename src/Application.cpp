@@ -283,23 +283,13 @@ void Application::updateScene(uint32_t currentImage) {
                                    (uint32_t)rtScene->triangles.size(),
                                    (uint32_t)rtScene->lights.size()};
 
-  {
-    auto &allocation = rtxBufferBundle->getBuffer(currentImage)->getAllocation();
-    void *data;
-    vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
-    memcpy(data, &rtxUbo, sizeof(rtxUbo));
-    vmaUnmapMemory(vulkanApplicationContext.getAllocator(), allocation);
-  }
+  rtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
 
   TemporalFilterUniformBufferObject tfUbo = {!useTemporal, lastMvpe,
                                              vulkanApplicationContext.getSwapchainExtent().width,
                                              vulkanApplicationContext.getSwapchainExtent().height};
   {
-    auto &allocation = temperalFilterBufferBundle->getBuffer(currentImage)->getAllocation();
-    void *data;
-    vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
-    memcpy(data, &tfUbo, sizeof(tfUbo));
-    vmaUnmapMemory(vulkanApplicationContext.getAllocator(), allocation);
+    temperalFilterBufferBundle->getBuffer(currentImage)->fillData(&tfUbo);
 
     lastMvpe = camera.getProjectionMatrix(static_cast<float>(vulkanApplicationContext.getSwapchainExtent().width) /
                                           static_cast<float>(vulkanApplicationContext.getSwapchainExtent().height)) *
@@ -309,13 +299,7 @@ void Application::updateScene(uint32_t currentImage) {
   for (int j = 0; j < cInFrameProcessSize; j++) {
     // update ubo for the sampleDistance
     BlurFilterUniformBufferObject bfUbo = {!useBlur, j};
-    {
-      auto &allocation = blurFilterBufferBundles[j]->getBuffer(currentImage)->getAllocation();
-      void *data;
-      vmaMapMemory(vulkanApplicationContext.getAllocator(), allocation, &data);
-      memcpy(data, &bfUbo, sizeof(bfUbo));
-      vmaUnmapMemory(vulkanApplicationContext.getAllocator(), allocation);
-    }
+    blurFilterBufferBundles[j]->getBuffer(currentImage)->fillData(&bfUbo);
   }
 
   currentSample++;
