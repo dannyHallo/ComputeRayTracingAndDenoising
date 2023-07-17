@@ -35,6 +35,7 @@ add_executable(${PROJ_NAME}
 	src/ray-tracing/RtScene.cpp
 	src/scene/ComputeMaterial.cpp
 	src/scene/ComputeModel.cpp
+	src/scene/DrawableModel.cpp
 	src/scene/Material.cpp
 	src/scene/Scene.cpp
 	src/scene/mesh.cpp
