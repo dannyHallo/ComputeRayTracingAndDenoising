@@ -49,7 +49,7 @@ void Application::initScene() {
     auto blurFilterBufferBundle =
         std::make_shared<BufferBundle>(swapchainSize, sizeof(BlurFilterUniformBufferObject),
                                        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-    blurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle)); // FIXME:
+    blurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle)); 
   }
 
   auto triangleBufferBundle = std::make_shared<BufferBundle>(
