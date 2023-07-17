@@ -17,19 +17,19 @@ class Buffer {
   VkDeviceSize mSize;        // total size of buffer
 
 public:
-  Buffer() : mVkBuffer(VK_NULL_HANDLE), mAllocation(VK_NULL_HANDLE), mSize(0) {}
-  ~Buffer();
+  Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage, const void *data = nullptr);
 
-  // allocate buffer
-  void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+  ~Buffer();
 
   // fill buffer with data, if data is nullptr, buffer will be zero-initialized
   // data size must be equal to buffer size
   void fillData(const void *data = nullptr);
 
   inline VkBuffer &getVkBuffer() { return mVkBuffer; }
+
   inline VmaAllocation &getAllocation() { return mAllocation; }
-  inline VkDeviceSize getSize() const { return mSize; }
+
+  inline const VkDeviceSize getSize() const { return mSize; }
 
   inline VkDescriptorBufferInfo getDescriptorInfo() {
     VkDescriptorBufferInfo descriptorInfo{};
@@ -38,6 +38,10 @@ public:
     descriptorInfo.range  = mSize;
     return descriptorInfo;
   }
+
+private:
+  // buffer allocation is only allowed during construction
+  void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 };
 
 // series of buffers, usually used for storing identical buffers for every swapchain image
@@ -45,9 +49,10 @@ class BufferBundle {
   std::vector<std::shared_ptr<Buffer>> mBuffers; // series of buffers
 
 public:
-  BufferBundle(size_t bufferCount) {
+  BufferBundle(size_t bufferCount, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage,
+               const void *data = nullptr) {
     for (size_t i = 0; i < bufferCount; i++) {
-      mBuffers.emplace_back(std::make_shared<Buffer>());
+      mBuffers.emplace_back(std::make_shared<Buffer>(size, usage, memoryUsage, data));
     }
   }
 
@@ -55,9 +60,6 @@ public:
 
   // get buffer by index
   std::shared_ptr<Buffer> getBuffer(size_t index);
-
-  // allocate every buffer in bundle
-  void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 
   // fill every buffer in bundle with data, if data is nullptr, every buffer will be zero-initialized
   void fillData(const void *data = nullptr);

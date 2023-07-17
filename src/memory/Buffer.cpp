@@ -1,6 +1,12 @@
 #include "Buffer.h"
 #include "utils/logger.h"
 
+Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage, const void *data)
+    : mVkBuffer(VK_NULL_HANDLE), mAllocation(VK_NULL_HANDLE), mSize(size) {
+  allocate(size, usage, memoryUsage);
+  fillData(data);
+}
+
 Buffer::~Buffer() {
   if (mVkBuffer != VK_NULL_HANDLE) {
     vmaDestroyBuffer(vulkanApplicationContext.getAllocator(), mVkBuffer, mAllocation);
@@ -43,10 +49,6 @@ std::shared_ptr<Buffer> BufferBundle::getBuffer(size_t index) {
     return nullptr; // (unreachable code)
   }
   return mBuffers[index];
-}
-
-void BufferBundle::allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
-  for (auto &buffer : mBuffers) buffer->allocate(size, usage, memoryUsage);
 }
 
 void BufferBundle::fillData(const void *data) {

@@ -38,45 +38,35 @@ void Application::initScene() {
 
   // uniform buffers are faster to fill compared to storage buffers, but they are restricted in their size
   // Buffer bundle is an array of buffers, one per each swapchain image/descriptor set.
-  rtxBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
-  rtxBufferBundle->allocate(sizeof(RtxUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                            VMA_MEMORY_USAGE_CPU_TO_GPU);
-  rtxBufferBundle->fillData();
+  rtxBufferBundle = std::make_shared<BufferBundle>(swapchainSize, sizeof(RtxUniformBufferObject),
+                                                   VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-  temperalFilterBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
-  temperalFilterBufferBundle->allocate(sizeof(TemporalFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                       VMA_MEMORY_USAGE_CPU_TO_GPU);
-  temperalFilterBufferBundle->fillData();
+  temperalFilterBufferBundle =
+      std::make_shared<BufferBundle>(swapchainSize, sizeof(TemporalFilterUniformBufferObject),
+                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
   for (int i = 0; i < cInFrameProcessSize; i++) {
-    auto blurFilterBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
-    BlurFilterUniformBufferObject blurFilterUniformBufferObject{};
-    blurFilterBufferBundle->allocate(sizeof(BlurFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                     VMA_MEMORY_USAGE_CPU_TO_GPU);
-    blurFilterBufferBundle->fillData();
-
-    blurFilterBufferBundles.push_back(blurFilterBufferBundle);
+    auto blurFilterBufferBundle =
+        std::make_shared<BufferBundle>(swapchainSize, sizeof(BlurFilterUniformBufferObject),
+                                       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    blurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle)); // FIXME:
   }
 
-  auto triangleBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
-  triangleBufferBundle->allocate(sizeof(GpuModel::Triangle) * rtScene->triangles.size(),
-                                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-  triangleBufferBundle->fillData(rtScene->triangles.data());
+  auto triangleBufferBundle = std::make_shared<BufferBundle>(
+      swapchainSize, sizeof(GpuModel::Triangle) * rtScene->triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->triangles.data());
 
-  auto materialBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
-  materialBufferBundle->allocate(sizeof(GpuModel::Material) * rtScene->materials.size(),
-                                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-  materialBufferBundle->fillData(rtScene->materials.data());
+  auto materialBufferBundle = std::make_shared<BufferBundle>(
+      swapchainSize, sizeof(GpuModel::Material) * rtScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->materials.data());
 
-  auto aabbBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
-  aabbBufferBundle->allocate(sizeof(GpuModel::BvhNode) * rtScene->bvhNodes.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                             VMA_MEMORY_USAGE_CPU_TO_GPU);
-  aabbBufferBundle->fillData(rtScene->bvhNodes.data());
+  auto bvhBufferBundle = std::make_shared<BufferBundle>(
+      swapchainSize, sizeof(GpuModel::BvhNode) * rtScene->bvhNodes.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->bvhNodes.data());
 
-  auto lightsBufferBundle = std::make_shared<BufferBundle>(swapchainSize);
-  lightsBufferBundle->allocate(sizeof(GpuModel::Light) * rtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                               VMA_MEMORY_USAGE_CPU_TO_GPU);
-  lightsBufferBundle->fillData(rtScene->lights.data());
+  auto lightsBufferBundle = std::make_shared<BufferBundle>(
+      swapchainSize, sizeof(GpuModel::Light) * rtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->lights.data());
 
   targetImage = std::make_shared<Image>();
   ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
@@ -199,7 +189,7 @@ void Application::initScene() {
     // buffers
     rtxMat->addStorageBufferBundle(triangleBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
     rtxMat->addStorageBufferBundle(materialBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
-    rtxMat->addStorageBufferBundle(aabbBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
+    rtxMat->addStorageBufferBundle(bvhBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
     rtxMat->addStorageBufferBundle(lightsBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
   }
   rtxModel = std::make_shared<ComputeModel>(rtxMat);
@@ -727,7 +717,7 @@ void Application::drawFrame() {
   } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     // sub-optimal: a swapchain no longer matches the surface properties exactly, but can still be used to present
     // to the surface successfully
-    logger::throwError("failed to acquire swap chain image!");
+    logger::throwError("resizing is not allowed!");
   }
 
   updateScene(imageIndex);

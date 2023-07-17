@@ -16,9 +16,9 @@ public:
   void drawCommand(VkCommandBuffer &commandBuffer, size_t currentFrame);
 
 private:
-  std::shared_ptr<Material> m_material;
-  Buffer mVertexBuffer;
-  Buffer mIndexBuffer;
+  std::shared_ptr<Material> mMaterial;
+  std::shared_ptr<Buffer> mVertexBuffer;
+  std::shared_ptr<Buffer> mIndexBuffer;
   uint32_t mNumIndices;
 
   // allocate vertex buffer and fill it with data

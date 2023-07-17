@@ -241,10 +241,8 @@ void createTextureImage(const std::string &path, std::shared_ptr<Image> allocate
     logger::throwError("failed to load texture image!");
   }
 
-  Buffer stagingBuffer{};
-  stagingBuffer.allocate(imageSize * sizeof(unsigned char), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                         VMA_MEMORY_USAGE_CPU_TO_GPU);
-  stagingBuffer.fillData(tex.pixels);
+  Buffer stagingBuffer{imageSize * sizeof(unsigned char), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+                       tex.pixels};
 
   createImage(texWidth, texHeight, mipLevels, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
               VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,

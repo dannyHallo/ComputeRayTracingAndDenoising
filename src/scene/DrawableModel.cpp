@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include "utils/vulkan.h"
 
 #include "DrawableModel.h"
@@ -9,29 +7,32 @@
 #include "Mesh.h"
 #include "memory/Buffer.h"
 
-DrawableModel::DrawableModel(std::shared_ptr<Material> material, std::string modelPath) : m_material(material) {
+#include <memory>
+#include <vector>
+
+DrawableModel::DrawableModel(std::shared_ptr<Material> material, std::string modelPath) : mMaterial(material) {
   Mesh m(modelPath);
 
   initVertexBuffer(m);
   initIndexBuffer(m);
 }
 
-DrawableModel::DrawableModel(std::shared_ptr<Material> material, MeshType type) : m_material(material) {
+DrawableModel::DrawableModel(std::shared_ptr<Material> material, MeshType type) : mMaterial(material) {
   Mesh m(type);
 
   initVertexBuffer(m);
   initIndexBuffer(m);
 }
 
-std::shared_ptr<Material> DrawableModel::getMaterial() { return m_material; }
+std::shared_ptr<Material> DrawableModel::getMaterial() { return mMaterial; }
 
 void DrawableModel::drawCommand(VkCommandBuffer &commandBuffer, size_t currentFrame) {
-  m_material->bind(commandBuffer, currentFrame);
-  VkBuffer vertexBuffers[] = {mVertexBuffer.getVkBuffer()};
+  mMaterial->bind(commandBuffer, currentFrame);
+  VkBuffer vertexBuffers[] = {mVertexBuffer->getVkBuffer()};
   VkDeviceSize offsets[]   = {0};
 
   vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-  vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer.getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
+  vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer->getVkBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
   VkDeviceSize indirect_offset = 0;
   uint32_t draw_stride         = sizeof(VkDrawIndirectCommand);
@@ -42,13 +43,11 @@ void DrawableModel::drawCommand(VkCommandBuffer &commandBuffer, size_t currentFr
 }
 
 void DrawableModel::initVertexBuffer(const Mesh &mesh) {
-  mVertexBuffer.allocate(sizeof(Vertex) * mesh.vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                         VMA_MEMORY_USAGE_CPU_TO_GPU);
-  mVertexBuffer.fillData(mesh.vertices.data());
+  mVertexBuffer = std::make_shared<Buffer>(sizeof(Vertex) * mesh.vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                           VMA_MEMORY_USAGE_CPU_TO_GPU, mesh.vertices.data());
 }
 
 void DrawableModel::initIndexBuffer(const Mesh &mesh) {
-  mIndexBuffer.allocate(sizeof(uint32_t) * mesh.indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                        VMA_MEMORY_USAGE_CPU_TO_GPU);
-  mIndexBuffer.fillData(mesh.indices.data());
+  mIndexBuffer = std::make_shared<Buffer>(sizeof(uint32_t) * mesh.indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                          VMA_MEMORY_USAGE_CPU_TO_GPU, mesh.indices.data());
 }
