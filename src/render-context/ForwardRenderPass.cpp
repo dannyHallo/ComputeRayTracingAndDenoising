@@ -1,10 +1,10 @@
-#include <array>
-#include <iostream>
-#include <memory>
-
 #include "ForwardRenderPass.h"
 #include "app-context/VulkanApplicationContext.h"
 #include "memory/Image.h"
+
+#include <array>
+#include <iostream>
+#include <memory>
 
 std::shared_ptr<VkRenderPass> ForwardRenderPass::getBody() { return m_renderPass; }
 
@@ -106,13 +106,14 @@ void ForwardRenderPass::createRenderPass() {
   renderPassInfo.dependencyCount = 2;
   renderPassInfo.pDependencies   = dependencies.data();
 
-  if (vkCreateRenderPass(vulkanApplicationContext.getDevice(), &renderPassInfo, nullptr, m_renderPass.get()) != VK_SUCCESS) {
+  if (vkCreateRenderPass(vulkanApplicationContext.getDevice(), &renderPassInfo, nullptr, m_renderPass.get()) !=
+      VK_SUCCESS) {
     throw std::runtime_error("failed to create render pass!");
   }
 }
 
 void ForwardRenderPass::createFramebuffers() {
-  std::array<VkImageView, 2> attachments = {m_colorImage->imageView, m_depthImage->imageView};
+  std::array<VkImageView, 2> attachments = {m_colorImage->mVkImageView, m_depthImage->mVkImageView};
 
   VkFramebufferCreateInfo framebufferInfo{};
   framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -123,7 +124,8 @@ void ForwardRenderPass::createFramebuffers() {
   framebufferInfo.height          = vulkanApplicationContext.getSwapchainExtent().height;
   framebufferInfo.layers          = 1;
 
-  if (vkCreateFramebuffer(vulkanApplicationContext.getDevice(), &framebufferInfo, nullptr, m_framebuffer.get()) != VK_SUCCESS) {
+  if (vkCreateFramebuffer(vulkanApplicationContext.getDevice(), &framebufferInfo, nullptr, m_framebuffer.get()) !=
+      VK_SUCCESS) {
     throw std::runtime_error("failed to create framebuffer!");
   }
 }
@@ -142,8 +144,8 @@ void ForwardRenderPass::createDepthResources() {
   VkFormat depthFormat = findDepthFormat();
   ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
                           vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT, depthFormat,
-                          VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, m_depthImage);
+                          VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                          VK_IMAGE_ASPECT_DEPTH_BIT, VMA_MEMORY_USAGE_GPU_ONLY, m_depthImage);
 }
 
 void ForwardRenderPass::createColorResources() {

@@ -4,7 +4,6 @@
 #include "memory/Image.h"
 #include "utils/vulkan.h"
 
-
 #include <memory>
 #include <vector>
 
@@ -14,14 +13,34 @@ template <typename T> struct Descriptor {
 };
 
 class Material {
+protected:
+  std::vector<Descriptor<BufferBundle>> mUniformBufferBundleDescriptors;
+  std::vector<Descriptor<BufferBundle>> mStorageBufferBundleDescriptors;
+  // std::vector<Descriptor<Texture>> mTextureDescriptors;
+  std::vector<Descriptor<Image>> mStorageImageDescriptors;
+
+  std::string mVertexShaderPath;
+  std::string mFragmentShaderPath;
+
+  bool mInitialized;
+
+  uint32_t mDescriptorSetsSize;
+
+  VkPipeline mPipeline;
+  VkPipelineLayout mPipelineLayout;
+
+  VkDescriptorPool mDescriptorPool;
+  std::vector<VkDescriptorSet> mDescriptorSets;
+  VkDescriptorSetLayout mDescriptorSetLayout;
+
 public:
-  Material(const std::string &vertexShaderPath, const std::string &fragmentShaderPath);
+  // Material(const std::string &vertexShaderPath, const std::string &fragmentShaderPath);
 
-  Material();
+  Material() : mDescriptorSetsSize(static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize())) {}
 
-  ~Material();
+  virtual ~Material();
 
-  void addTexture(const std::shared_ptr<Texture> &texture, VkShaderStageFlags shaderStageFlags);
+  // void addTexture(const std::shared_ptr<Texture> &texture, VkShaderStageFlags shaderStageFlags);
 
   void addStorageImage(const std::shared_ptr<Image> &image, VkShaderStageFlags shaderStageFlags);
 
@@ -29,44 +48,30 @@ public:
 
   void addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle, VkShaderStageFlags shaderStageFlags);
 
-  const std::vector<Descriptor<BufferBundle>> &getUniformBufferBundles() const;
+  const std::vector<Descriptor<BufferBundle>> &getUniformBufferBundles() const {
+    return mUniformBufferBundleDescriptors;
+  }
 
-  const std::vector<Descriptor<BufferBundle>> &getStorageBufferBundles() const;
+  const std::vector<Descriptor<BufferBundle>> &getStorageBufferBundles() const {
+    return mStorageBufferBundleDescriptors;
+  }
 
-  const std::vector<Descriptor<Texture>> &getTextures() const;
+  // const std::vector<Descriptor<Texture>> &getTextures() const{
+  //   return mTextureDescriptors;
+  // }
 
-  const std::vector<Descriptor<Image>> &getStorageImages() const;
+  const std::vector<Descriptor<Image>> &getStorageImages() const { return mStorageImageDescriptors; }
 
   // Initialize material when adding to a scene.
-  void init(const VkRenderPass &renderPass);
+  // void init(const VkRenderPass &renderPass);
 
   void bind(VkCommandBuffer &commandBuffer, size_t currentFrame);
 
 protected:
-  void __initDescriptorSetLayout();
-  void __initDescriptorPool();
-  void __initDescriptorSets();
-  void __initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass, std::string vertexShaderPath,
-                      std::string fragmentShaderPath);
-  VkShaderModule __createShaderModule(const std::vector<char> &code);
-
-protected:
-  std::vector<Descriptor<BufferBundle>> m_uniformBufferBundleDescriptors;
-  std::vector<Descriptor<BufferBundle>> m_storageBufferBundleDescriptors;
-  std::vector<Descriptor<Texture>> m_textureDescriptors;
-  std::vector<Descriptor<Image>> m_storageImageDescriptors;
-
-  std::string m_vertexShaderPath;
-  std::string m_fragmentShaderPath;
-
-  bool m_initialized;
-
-  uint32_t m_descriptorSetsSize;
-
-  VkPipelineLayout m_pipelineLayout;
-  VkPipeline m_pipeline;
-
-  VkDescriptorPool m_descriptorPool;
-  std::vector<VkDescriptorSet> m_descriptorSets;
-  VkDescriptorSetLayout m_descriptorSetLayout;
+  virtual void initDescriptorSetLayout();
+  virtual void initDescriptorPool();
+  virtual void initDescriptorSets();
+  virtual void initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass,
+                            std::string vertexShaderPath, std::string fragmentShaderPath);
+  virtual VkShaderModule createShaderModule(const std::vector<char> &code);
 };

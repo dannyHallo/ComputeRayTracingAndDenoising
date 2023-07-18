@@ -9,6 +9,8 @@
 #include <vector>
 
 class ComputeMaterial : public Material {
+  std::string mComputeShaderPath;
+
 public:
   ComputeMaterial(const std::string &computeShaderPath);
 
@@ -17,8 +19,5 @@ public:
   void bind(VkCommandBuffer &commandBuffer, size_t currentFrame);
 
 private:
-  void __initComputePipeline(const std::string &computeShaderPath);
-
-private:
-  std::string m_computeShaderPath;
+  void initComputePipeline(const std::string &computeShaderPath);
 };

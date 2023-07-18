@@ -7,7 +7,6 @@
 #define VOLK_IMPLEMENTATION
 #include "VulkanApplicationContext.h"
 
-#include "memory/Image.h"
 #include "utils/logger.h"
 
 VulkanApplicationContext vulkanApplicationContext{};
@@ -652,11 +651,12 @@ void VulkanApplicationContext::createSwapchain() {
   // obtain the actual number of swapchain images
   vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, nullptr);
   mSwapchainImages.resize(imageCount);
+  mSwapchainImageViews.reserve(imageCount);
   vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, mSwapchainImages.data());
 
   for (size_t i = 0; i < imageCount; i++) {
     mSwapchainImageViews.emplace_back(
-        ImageUtils::createImageView(mSwapchainImages[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1));
+        Image::createImageView(mSwapchainImages[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1));
   }
 }
 

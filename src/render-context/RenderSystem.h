@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "app-context/VulkanApplicationContext.h"
-#include "scene/Scene.h"
+// #include "scene/Scene.h"
 
 namespace RenderSystem {
 void allocateCommandBuffers(std::vector<VkCommandBuffer> &commandBuffers, uint32_t numBuffers);

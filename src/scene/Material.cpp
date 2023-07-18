@@ -1,28 +1,22 @@
 #include "Material.h"
+#include "utils/logger.h"
 #include "utils/readfile.h"
 
 #include <memory>
 #include <vector>
 
-Material::Material(const std::string &vertexShaderPath, const std::string &fragmentShaderPath)
-    : m_fragmentShaderPath(fragmentShaderPath), m_vertexShaderPath(vertexShaderPath), m_initialized(false) {
-  m_descriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size());
-}
-
-Material::Material() {
-  m_descriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size());
-}
+// Material::Material(const std::string &vertexShaderPath, const std::string &fragmentShaderPath)
+//     : mFragmentShaderPath(fragmentShaderPath), mVertexShaderPath(vertexShaderPath), mInitialized(false),
+//       mDescriptorSetsSize(static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize())) {}
 
 Material::~Material() {
-  std::cout << "Destroying material"
-            << "\n";
-  vkDestroyDescriptorSetLayout(vulkanApplicationContext.getDevice(), m_descriptorSetLayout, nullptr);
-  vkDestroyPipeline(vulkanApplicationContext.getDevice(), m_pipeline, nullptr);
-  vkDestroyPipelineLayout(vulkanApplicationContext.getDevice(), m_pipelineLayout, nullptr);
-  vkDestroyDescriptorPool(vulkanApplicationContext.getDevice(), m_descriptorPool, nullptr);
+  vkDestroyDescriptorSetLayout(vulkanApplicationContext.getDevice(), mDescriptorSetLayout, nullptr);
+  vkDestroyPipeline(vulkanApplicationContext.getDevice(), mPipeline, nullptr);
+  vkDestroyPipelineLayout(vulkanApplicationContext.getDevice(), mPipelineLayout, nullptr);
+  vkDestroyDescriptorPool(vulkanApplicationContext.getDevice(), mDescriptorPool, nullptr);
 }
 
-VkShaderModule Material::__createShaderModule(const std::vector<char> &code) {
+VkShaderModule Material::createShaderModule(const std::vector<char> &code) {
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   createInfo.codeSize = code.size();
@@ -35,54 +29,42 @@ VkShaderModule Material::__createShaderModule(const std::vector<char> &code) {
   return shaderModule;
 }
 
-void Material::addTexture(const std::shared_ptr<Texture> &texture, VkShaderStageFlags shaderStageFlags) {
-  m_textureDescriptors.push_back({texture, shaderStageFlags});
-}
+// void Material::addTexture(const std::shared_ptr<Texture> &texture, VkShaderStageFlags shaderStageFlags) {
+//   mTextureDescriptors.push_back({texture, shaderStageFlags});
+// }
 
 void Material::addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
                                       VkShaderStageFlags shaderStageFlags) {
-  m_uniformBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
+  mUniformBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
 }
 
 void Material::addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
                                       VkShaderStageFlags shaderStageFlags) {
-  m_storageBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
+  mStorageBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
 }
 
 void Material::addStorageImage(const std::shared_ptr<Image> &image, VkShaderStageFlags shaderStageFlags) {
-  m_storageImageDescriptors.push_back({image, shaderStageFlags});
+  mStorageImageDescriptors.push_back({image, shaderStageFlags});
 }
 
-const std::vector<Descriptor<BufferBundle>> &Material::getUniformBufferBundles() const {
-  return m_uniformBufferBundleDescriptors;
-}
+// // Initialize material when adding to a scene.
+// void Material::init(const VkRenderPass &renderPass) {
+//   if (mInitialized) {
+//     return;
+//   }
+//   initDescriptorSetLayout();
+//   initPipeline(vulkanApplicationContext.getSwapchainExtent(), renderPass, mVertexShaderPath, mFragmentShaderPath);
+//   initDescriptorPool();
+//   initDescriptorSets();
+//   mInitialized = true;
+// }
 
-const std::vector<Descriptor<BufferBundle>> &Material::getStorageBufferBundles() const {
-  return m_storageBufferBundleDescriptors;
-}
-
-const std::vector<Descriptor<Texture>> &Material::getTextures() const { return m_textureDescriptors; }
-
-const std::vector<Descriptor<Image>> &Material::getStorageImages() const { return m_storageImageDescriptors; }
-
-// Initialize material when adding to a scene.
-void Material::init(const VkRenderPass &renderPass) {
-  if (m_initialized) {
-    return;
-  }
-  __initDescriptorSetLayout();
-  __initPipeline(vulkanApplicationContext.getSwapchainExtent(), renderPass, m_vertexShaderPath, m_fragmentShaderPath);
-  __initDescriptorPool();
-  __initDescriptorSets();
-  m_initialized = true;
-}
-
-void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass,
-                              std::string vertexShaderPath, std::string fragmentShaderPath) {
+void Material::initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass,
+                            std::string vertexShaderPath, std::string fragmentShaderPath) {
   auto vertShaderCode             = readFile(vertexShaderPath);
   auto fragShaderCode             = readFile(fragmentShaderPath);
-  VkShaderModule vertShaderModule = __createShaderModule(vertShaderCode);
-  VkShaderModule fragShaderModule = __createShaderModule(fragShaderCode);
+  VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+  VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
   VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
   vertShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -184,9 +166,9 @@ void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderP
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts    = &m_descriptorSetLayout;
+  pipelineLayoutInfo.pSetLayouts    = &mDescriptorSetLayout;
 
-  if (vkCreatePipelineLayout(vulkanApplicationContext.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
+  if (vkCreatePipelineLayout(vulkanApplicationContext.getDevice(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to create pipeline layout!");
   }
@@ -215,7 +197,7 @@ void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderP
   pipelineInfo.pDepthStencilState  = nullptr; // Optional
   pipelineInfo.pColorBlendState    = &colorBlending;
   pipelineInfo.pDynamicState       = nullptr; // Optional
-  pipelineInfo.layout              = m_pipelineLayout;
+  pipelineInfo.layout              = mPipelineLayout;
   pipelineInfo.renderPass          = renderPass;
   pipelineInfo.subpass             = 0;
   pipelineInfo.basePipelineHandle  = VK_NULL_HANDLE; // Optional
@@ -223,7 +205,7 @@ void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderP
   pipelineInfo.pDepthStencilState  = &depthStencil;
 
   if (vkCreateGraphicsPipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
-                                &m_pipeline) != VK_SUCCESS) {
+                                &mPipeline) != VK_SUCCESS) {
     throw std::runtime_error("failed to create graphics pipeline!");
   }
 
@@ -232,24 +214,24 @@ void Material::__initPipeline(const VkExtent2D &swapChainExtent, const VkRenderP
 }
 
 // creates the descriptor pool that the descriptor sets will be allocated into
-void Material::__initDescriptorPool() {
+void Material::initDescriptorPool() {
   std::vector<VkDescriptorPoolSize> poolSizes{};
   // https://www.reddit.com/r/vulkan/comments/8u9zqr/having_trouble_understanding_descriptor_pool/
   // pool sizes info indicates how many descriptors of a certain type can be allocated from the pool - NOT THE SET!
-  for (size_t i = 0; i < m_uniformBufferBundleDescriptors.size(); i++) {
-    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_descriptorSetsSize});
+  for (size_t i = 0; i < mUniformBufferBundleDescriptors.size(); i++) {
+    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mDescriptorSetsSize});
   }
 
-  for (size_t i = 0; i < m_textureDescriptors.size(); i++) {
-    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_descriptorSetsSize});
+  // for (size_t i = 0; i < mTextureDescriptors.size(); i++) {
+  //   poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, mDescriptorSetsSize});
+  // }
+
+  for (size_t i = 0; i < mStorageImageDescriptors.size(); i++) {
+    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, mDescriptorSetsSize});
   }
 
-  for (size_t i = 0; i < m_storageImageDescriptors.size(); i++) {
-    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, m_descriptorSetsSize});
-  }
-
-  for (size_t i = 0; i < m_storageBufferBundleDescriptors.size(); i++) {
-    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, m_descriptorSetsSize});
+  for (size_t i = 0; i < mStorageBufferBundleDescriptors.size(); i++) {
+    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mDescriptorSetsSize});
   }
 
   VkDescriptorPoolCreateInfo poolInfo{};
@@ -257,9 +239,9 @@ void Material::__initDescriptorPool() {
   poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
   poolInfo.pPoolSizes    = poolSizes.data();
   // the max number of descriptor sets that can be allocated from this pool
-  poolInfo.maxSets = static_cast<uint32_t>(m_descriptorSetsSize);
+  poolInfo.maxSets = static_cast<uint32_t>(mDescriptorSetsSize);
 
-  if (vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &m_descriptorPool) !=
+  if (vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &mDescriptorPool) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor pool!");
   }
@@ -267,13 +249,13 @@ void Material::__initDescriptorPool() {
 
 // creates descriptor set layout that will be used to create every descriptor set
 // features are extracted from buffer bundles, not buffers, thus to be reused in descriptor set creation
-void Material::__initDescriptorSetLayout() {
+void Material::initDescriptorSetLayout() {
   std::vector<VkDescriptorSetLayoutBinding> bindings;
 
   size_t binding = 0;
 
   // each binding is for each buffer BUNDLE
-  for (const auto &d : m_uniformBufferBundleDescriptors) {
+  for (const auto &d : mUniformBufferBundleDescriptors) {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding            = static_cast<uint32_t>(binding++);
     uboLayoutBinding.descriptorCount    = 1;
@@ -283,17 +265,17 @@ void Material::__initDescriptorSetLayout() {
     bindings.push_back(uboLayoutBinding);
   }
 
-  for (const auto &t : m_textureDescriptors) {
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding            = static_cast<uint32_t>(binding++);
-    samplerLayoutBinding.descriptorCount    = 1;
-    samplerLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    samplerLayoutBinding.stageFlags         = t.shaderStageFlags;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
-    bindings.push_back(samplerLayoutBinding);
-  }
+  // for (const auto &t : mTextureDescriptors) {
+  //   VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+  //   samplerLayoutBinding.binding            = static_cast<uint32_t>(binding++);
+  //   samplerLayoutBinding.descriptorCount    = 1;
+  //   samplerLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  //   samplerLayoutBinding.stageFlags         = t.shaderStageFlags;
+  //   samplerLayoutBinding.pImmutableSamplers = nullptr;
+  //   bindings.push_back(samplerLayoutBinding);
+  // }
 
-  for (const auto &s : m_storageImageDescriptors) {
+  for (const auto &s : mStorageImageDescriptors) {
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding            = static_cast<uint32_t>(binding++);
     samplerLayoutBinding.descriptorCount    = 1;
@@ -303,7 +285,7 @@ void Material::__initDescriptorSetLayout() {
     bindings.push_back(samplerLayoutBinding);
   }
 
-  for (const auto &s : m_storageBufferBundleDescriptors) {
+  for (const auto &s : mStorageBufferBundleDescriptors) {
     VkDescriptorSetLayoutBinding storageBufferBinding{};
     storageBufferBinding.binding            = static_cast<uint32_t>(binding++);
     storageBufferBinding.descriptorCount    = 1;
@@ -318,7 +300,7 @@ void Material::__initDescriptorSetLayout() {
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
   layoutInfo.pBindings    = bindings.data();
 
-  if (vkCreateDescriptorSetLayout(vulkanApplicationContext.getDevice(), &layoutInfo, nullptr, &m_descriptorSetLayout) !=
+  if (vkCreateDescriptorSetLayout(vulkanApplicationContext.getDevice(), &layoutInfo, nullptr, &mDescriptorSetLayout) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to create descriptor set layout!");
   }
@@ -326,39 +308,37 @@ void Material::__initDescriptorSetLayout() {
 
 // chop the buffer bundles here, and create the descriptor sets for each of the swapchains
 // buffers are loaded to descriptor sets
-void Material::__initDescriptorSets() {
-  std::vector<VkDescriptorSetLayout> layouts(m_descriptorSetsSize, m_descriptorSetLayout);
+void Material::initDescriptorSets() {
+  std::vector<VkDescriptorSetLayout> layouts(mDescriptorSetsSize, mDescriptorSetLayout);
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  allocInfo.descriptorPool     = m_descriptorPool;
-  allocInfo.descriptorSetCount = m_descriptorSetsSize;
+  allocInfo.descriptorPool     = mDescriptorPool;
+  allocInfo.descriptorSetCount = mDescriptorSetsSize;
   allocInfo.pSetLayouts        = layouts.data();
 
-  m_descriptorSets.resize(m_descriptorSetsSize);
-  if (vkAllocateDescriptorSets(vulkanApplicationContext.getDevice(), &allocInfo, m_descriptorSets.data()) !=
+  mDescriptorSets.resize(mDescriptorSetsSize);
+  if (vkAllocateDescriptorSets(vulkanApplicationContext.getDevice(), &allocInfo, mDescriptorSets.data()) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
 
-  for (size_t j = 0; j < m_descriptorSetsSize; j++) {
-    VkDescriptorSet &dstSet = m_descriptorSets[j];
-
-    // VkDescriptorBufferInfo bufferInfo = uniformBuffers[i].getDescriptorInfo();
-    // VkDescriptorImageInfo imageInfo = textureImage.getDescriptorInfo();
-    // VkDescriptorBufferInfo sharedBufferInfo = (*sharedUniformBuffers)[i].getDescriptorInfo();
+  for (size_t j = 0; j < mDescriptorSetsSize; j++) {
+    VkDescriptorSet &dstSet = mDescriptorSets[j];
 
     std::vector<VkWriteDescriptorSet> descriptorWrites;
-    descriptorWrites.reserve(m_uniformBufferBundleDescriptors.size() + m_textureDescriptors.size() +
-                             m_storageImageDescriptors.size());
+    // descriptorWrites.reserve(mUniformBufferBundleDescriptors.size() + mTextureDescriptors.size() +
+    //                          mStorageImageDescriptors.size());
+
+    descriptorWrites.reserve(mUniformBufferBundleDescriptors.size() + mStorageImageDescriptors.size());
 
     std::vector<VkDescriptorBufferInfo> bufferDescInfos;
-    for (size_t i = 0; i < m_uniformBufferBundleDescriptors.size(); i++) {
-      bufferDescInfos.push_back(m_uniformBufferBundleDescriptors[i].data->getBuffer(j)->getDescriptorInfo());
+    for (size_t i = 0; i < mUniformBufferBundleDescriptors.size(); i++) {
+      bufferDescInfos.push_back(mUniformBufferBundleDescriptors[i].data->getBuffer(j)->getDescriptorInfo());
     }
 
     uint32_t binding = 0;
 
-    for (size_t i = 0; i < m_uniformBufferBundleDescriptors.size(); i++) {
+    for (size_t i = 0; i < mUniformBufferBundleDescriptors.size(); i++) {
       VkWriteDescriptorSet descriptorSet{};
       descriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorSet.dstSet          = dstSet;
@@ -371,30 +351,30 @@ void Material::__initDescriptorSets() {
       descriptorWrites.push_back(descriptorSet);
     }
 
-    std::vector<VkDescriptorImageInfo> imageInfos;
-    for (size_t i = 0; i < m_textureDescriptors.size(); i++) {
-      imageInfos.push_back(m_textureDescriptors[i].data->getDescriptorInfo());
-    }
+    // std::vector<VkDescriptorImageInfo> imageInfos;
+    // for (size_t i = 0; i < mTextureDescriptors.size(); i++) {
+    //   imageInfos.push_back(mTextureDescriptors[i].data->getDescriptorInfo());
+    // }
 
-    for (size_t i = 0; i < m_textureDescriptors.size(); i++) {
-      VkWriteDescriptorSet descriptorSet{};
-      descriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      descriptorSet.dstSet          = dstSet;
-      descriptorSet.dstBinding      = binding++;
-      descriptorSet.dstArrayElement = 0;
-      descriptorSet.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      descriptorSet.descriptorCount = 1;
-      descriptorSet.pImageInfo      = &imageInfos[i];
+    // for (size_t i = 0; i < mTextureDescriptors.size(); i++) {
+    //   VkWriteDescriptorSet descriptorSet{};
+    //   descriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //   descriptorSet.dstSet          = dstSet;
+    //   descriptorSet.dstBinding      = binding++;
+    //   descriptorSet.dstArrayElement = 0;
+    //   descriptorSet.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    //   descriptorSet.descriptorCount = 1;
+    //   descriptorSet.pImageInfo      = &imageInfos[i];
 
-      descriptorWrites.push_back(descriptorSet);
-    }
+    //   descriptorWrites.push_back(descriptorSet);
+    // }
 
     std::vector<VkDescriptorImageInfo> storageImageInfos;
-    for (size_t i = 0; i < m_storageImageDescriptors.size(); i++) {
-      storageImageInfos.push_back(m_storageImageDescriptors[i].data->getDescriptorInfo(VK_IMAGE_LAYOUT_GENERAL));
+    for (size_t i = 0; i < mStorageImageDescriptors.size(); i++) {
+      storageImageInfos.push_back(mStorageImageDescriptors[i].data->getDescriptorInfo(VK_IMAGE_LAYOUT_GENERAL));
     }
 
-    for (size_t i = 0; i < m_storageImageDescriptors.size(); i++) {
+    for (size_t i = 0; i < mStorageImageDescriptors.size(); i++) {
       VkWriteDescriptorSet descriptorSet{};
       descriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorSet.dstSet          = dstSet;
@@ -408,11 +388,11 @@ void Material::__initDescriptorSets() {
     }
 
     std::vector<VkDescriptorBufferInfo> storageBufferInfos;
-    for (size_t i = 0; i < m_storageBufferBundleDescriptors.size(); i++) {
-      storageBufferInfos.push_back(m_storageBufferBundleDescriptors[i].data->getBuffer(j)->getDescriptorInfo());
+    for (size_t i = 0; i < mStorageBufferBundleDescriptors.size(); i++) {
+      storageBufferInfos.push_back(mStorageBufferBundleDescriptors[i].data->getBuffer(j)->getDescriptorInfo());
     }
 
-    for (size_t i = 0; i < m_storageBufferBundleDescriptors.size(); i++) {
+    for (size_t i = 0; i < mStorageBufferBundleDescriptors.size(); i++) {
       VkWriteDescriptorSet descriptorSet{};
       descriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorSet.dstSet          = dstSet;
@@ -431,8 +411,8 @@ void Material::__initDescriptorSets() {
 }
 
 void Material::bind(VkCommandBuffer &commandBuffer, size_t currentFrame) {
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
-                          &m_descriptorSets[currentFrame], 0, nullptr);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1,
+                          &mDescriptorSets[currentFrame], 0, nullptr);
 
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
 }

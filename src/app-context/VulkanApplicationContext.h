@@ -103,6 +103,8 @@ public:
   inline const size_t getSwapchainSize() const { return mSwapchainImages.size(); }
   inline const VkFormat &getSwapchainImageFormat() const { return mSwapchainImageFormat; }
   inline const VkExtent2D &getSwapchainExtent() const { return mSwapchainExtent; }
+  inline const uint32_t getSwapchainExtentWidth() const { return mSwapchainExtent.width; }
+  inline const uint32_t getSwapchainExtentHeight() const { return mSwapchainExtent.height; }
   inline const VkSwapchainKHR &getSwapchain() const { return mSwapchain; }
 
   const VkQueue &getGraphicsQueue() const { return mGraphicsQueue; }

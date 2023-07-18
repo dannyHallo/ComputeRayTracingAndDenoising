@@ -28,8 +28,6 @@ add_executable(${PROJ_NAME}
 	src/memory/Image.cpp
 	src/memory/ImageUtils.cpp
 	src/memory/Buffer.cpp
-	src/render-context/FlatRenderPass.cpp
-	src/render-context/ForwardRenderPass.cpp
 	src/render-context/RenderSystem.cpp
 	src/ray-tracing/Bvh.cpp
 	src/ray-tracing/RtScene.cpp
@@ -37,7 +35,6 @@ add_executable(${PROJ_NAME}
 	src/scene/ComputeModel.cpp
 	src/scene/DrawableModel.cpp
 	src/scene/Material.cpp
-	src/scene/Scene.cpp
 	src/scene/mesh.cpp
 	src/utils/Camera.cpp
 	src/utils/Window.cpp

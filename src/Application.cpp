@@ -49,7 +49,7 @@ void Application::initScene() {
     auto blurFilterBufferBundle =
         std::make_shared<BufferBundle>(swapchainSize, sizeof(BlurFilterUniformBufferObject),
                                        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-    blurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle)); 
+    blurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle));
   }
 
   auto triangleBufferBundle = std::make_shared<BufferBundle>(
@@ -68,112 +68,76 @@ void Application::initScene() {
       swapchainSize, sizeof(GpuModel::Light) * rtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->lights.data());
 
-  targetImage = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                              VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                          VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, targetImage);
-  ImageUtils::transitionImageLayout(targetImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  targetImage = std::make_shared<Image>(vulkanApplicationContext.getSwapchainExtentWidth(),
+                                        vulkanApplicationContext.getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT,
+                                        VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                                        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
+                                            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                        VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  rawImage = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
-                          VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, rawImage);
-  ImageUtils::transitionImageLayout(rawImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  rawImage = std::make_shared<Image>(vulkanApplicationContext.getSwapchainExtentWidth(),
+                                     vulkanApplicationContext.getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT,
+                                     VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
+                                     VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  blurHImage = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, blurHImage);
-  ImageUtils::transitionImageLayout(blurHImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  blurHImage = std::make_shared<Image>(vulkanApplicationContext.getSwapchainExtentWidth(),
+                                       vulkanApplicationContext.getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT,
+                                       VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  aTrousImage1 = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, aTrousImage1);
-  ImageUtils::transitionImageLayout(aTrousImage1->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  aTrousImage1 = std::make_shared<Image>(vulkanApplicationContext.getSwapchainExtentWidth(),
+                                         vulkanApplicationContext.getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT,
+                                         VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+                                         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                         VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  aTrousImage2 = std::make_shared<Image>();
-  ImageUtils::createImage(
-      vulkanApplicationContext.getSwapchainExtent().width, vulkanApplicationContext.getSwapchainExtent().height, 1,
+  aTrousImage2 = std::make_shared<Image>(
+      vulkanApplicationContext.getSwapchainExtentWidth(), vulkanApplicationContext.getSwapchainExtentHeight(), 1,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, aTrousImage2);
-  ImageUtils::transitionImageLayout(aTrousImage2->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  positionImage = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, positionImage);
-  ImageUtils::transitionImageLayout(positionImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  positionImage = std::make_shared<Image>(
+      vulkanApplicationContext.getSwapchainExtentWidth(), vulkanApplicationContext.getSwapchainExtentHeight(), 1,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  historySamplesImage = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
-                          VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, historySamplesImage);
-  ImageUtils::transitionImageLayout(historySamplesImage->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  historySamplesImage = std::make_shared<Image>(
+      vulkanApplicationContext.getSwapchainExtentWidth(), vulkanApplicationContext.getSwapchainExtentHeight(), 1,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  depthImage = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, depthImage);
-  ImageUtils::transitionImageLayout(depthImage->image, VK_FORMAT_R32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  depthImage = std::make_shared<Image>(vulkanApplicationContext.getSwapchainExtentWidth(),
+                                       vulkanApplicationContext.getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT,
+                                       VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  normalImage = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, normalImage);
-  ImageUtils::transitionImageLayout(normalImage->image, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  normalImage = std::make_shared<Image>(vulkanApplicationContext.getSwapchainExtentWidth(),
+                                        vulkanApplicationContext.getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT,
+                                        VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                        VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  meshHashImage1 = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, meshHashImage1);
-  ImageUtils::transitionImageLayout(meshHashImage1->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  meshHashImage1 = std::make_shared<Image>(
+      vulkanApplicationContext.getSwapchainExtentWidth(), vulkanApplicationContext.getSwapchainExtentHeight(), 1,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  meshHashImage2 = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, meshHashImage2);
-  ImageUtils::transitionImageLayout(meshHashImage2->image, VK_FORMAT_R32_UINT, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  meshHashImage2 = std::make_shared<Image>(
+      vulkanApplicationContext.getSwapchainExtentWidth(), vulkanApplicationContext.getSwapchainExtentHeight(), 1,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
-  accumulationImage = std::make_shared<Image>();
-  ImageUtils::createImage(vulkanApplicationContext.getSwapchainExtent().width,
-                          vulkanApplicationContext.getSwapchainExtent().height, 1, VK_SAMPLE_COUNT_1_BIT,
-                          VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                          VMA_MEMORY_USAGE_GPU_ONLY, accumulationImage);
-  ImageUtils::transitionImageLayout(accumulationImage->image, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED,
-                                    VK_IMAGE_LAYOUT_GENERAL, 1);
+  accumulationImage = std::make_shared<Image>(
+      vulkanApplicationContext.getSwapchainExtentWidth(), vulkanApplicationContext.getSwapchainExtentHeight(), 1,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
 
   // rtx.comp
   auto rtxMat = std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/rtx.spv");
@@ -275,14 +239,13 @@ void Application::updateScene(uint32_t currentImage) {
 
   rtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
 
-  TemporalFilterUniformBufferObject tfUbo = {!useTemporal, lastMvpe,
-                                             vulkanApplicationContext.getSwapchainExtent().width,
-                                             vulkanApplicationContext.getSwapchainExtent().height};
+  TemporalFilterUniformBufferObject tfUbo = {!useTemporal, lastMvpe, vulkanApplicationContext.getSwapchainExtentWidth(),
+                                             vulkanApplicationContext.getSwapchainExtentHeight()};
   {
     temperalFilterBufferBundle->getBuffer(currentImage)->fillData(&tfUbo);
 
-    lastMvpe = camera.getProjectionMatrix(static_cast<float>(vulkanApplicationContext.getSwapchainExtent().width) /
-                                          static_cast<float>(vulkanApplicationContext.getSwapchainExtent().height)) *
+    lastMvpe = camera.getProjectionMatrix(static_cast<float>(vulkanApplicationContext.getSwapchainExtentWidth()) /
+                                          static_cast<float>(vulkanApplicationContext.getSwapchainExtentHeight())) *
                camera.getViewMatrix();
   }
 
@@ -307,24 +270,30 @@ void Application::createRenderCommandBuffers() {
   VkResult result = vkAllocateCommandBuffers(vulkanApplicationContext.getDevice(), &allocInfo, commandBuffers.data());
   logger::checkStep("vkAllocateCommandBuffers", result);
 
-  VkImageMemoryBarrier targetTexGeneral2TransSrc = ImageUtils::generalToTransferSrcBarrier(targetImage->image);
-  VkImageMemoryBarrier targetTexTransSrc2General = ImageUtils::transferSrcToGeneralBarrier(targetImage->image);
+  VkImageMemoryBarrier targetTexGeneral2TransSrc = ImageUtils::generalToTransferSrcBarrier(targetImage->getVkImage());
+  VkImageMemoryBarrier targetTexTransSrc2General = ImageUtils::transferSrcToGeneralBarrier(targetImage->getVkImage());
 
-  VkImageMemoryBarrier accumTexGeneral2TransDst = ImageUtils::generalToTransferDstBarrier(accumulationImage->image);
-  VkImageMemoryBarrier accumTexTransDst2General = ImageUtils::transferDstToGeneralBarrier(accumulationImage->image);
+  VkImageMemoryBarrier accumTexGeneral2TransDst =
+      ImageUtils::generalToTransferDstBarrier(accumulationImage->getVkImage());
+  VkImageMemoryBarrier accumTexTransDst2General =
+      ImageUtils::transferDstToGeneralBarrier(accumulationImage->getVkImage());
 
-  VkImageMemoryBarrier aTrousTex1General2TransDst = ImageUtils::generalToTransferDstBarrier(aTrousImage1->image);
-  VkImageMemoryBarrier aTrousTex1TransDst2General = ImageUtils::transferDstToGeneralBarrier(aTrousImage1->image);
-  VkImageMemoryBarrier aTrousTex2General2TransSrc = ImageUtils::generalToTransferSrcBarrier(aTrousImage2->image);
-  VkImageMemoryBarrier aTrousTex2TransSrc2General = ImageUtils::transferSrcToGeneralBarrier(aTrousImage2->image);
+  VkImageMemoryBarrier aTrousTex1General2TransDst = ImageUtils::generalToTransferDstBarrier(aTrousImage1->getVkImage());
+  VkImageMemoryBarrier aTrousTex1TransDst2General = ImageUtils::transferDstToGeneralBarrier(aTrousImage1->getVkImage());
+  VkImageMemoryBarrier aTrousTex2General2TransSrc = ImageUtils::generalToTransferSrcBarrier(aTrousImage2->getVkImage());
+  VkImageMemoryBarrier aTrousTex2TransSrc2General = ImageUtils::transferSrcToGeneralBarrier(aTrousImage2->getVkImage());
 
-  VkImageMemoryBarrier triIdTex1General2TransSrc = ImageUtils::generalToTransferSrcBarrier(meshHashImage1->image);
-  VkImageMemoryBarrier triIdTex1TransSrc2General = ImageUtils::transferSrcToGeneralBarrier(meshHashImage1->image);
-  VkImageMemoryBarrier triIdTex2General2TransDst = ImageUtils::generalToTransferDstBarrier(meshHashImage2->image);
-  VkImageMemoryBarrier triIdTex2TransDst2General = ImageUtils::transferDstToGeneralBarrier(meshHashImage2->image);
+  VkImageMemoryBarrier triIdTex1General2TransSrc =
+      ImageUtils::generalToTransferSrcBarrier(meshHashImage1->getVkImage());
+  VkImageMemoryBarrier triIdTex1TransSrc2General =
+      ImageUtils::transferSrcToGeneralBarrier(meshHashImage1->getVkImage());
+  VkImageMemoryBarrier triIdTex2General2TransDst =
+      ImageUtils::generalToTransferDstBarrier(meshHashImage2->getVkImage());
+  VkImageMemoryBarrier triIdTex2TransDst2General =
+      ImageUtils::transferDstToGeneralBarrier(meshHashImage2->getVkImage());
 
-  VkImageCopy imgCopyRegion = ImageUtils::imageCopyRegion(vulkanApplicationContext.getSwapchainExtent().width,
-                                                          vulkanApplicationContext.getSwapchainExtent().height);
+  VkImageCopy imgCopyRegion = ImageUtils::imageCopyRegion(vulkanApplicationContext.getSwapchainExtentWidth(),
+                                                          vulkanApplicationContext.getSwapchainExtentHeight());
 
   for (size_t i = 0; i < commandBuffers.size(); i++) {
     VkImageMemoryBarrier swapchainImageUndefined2TransferDst =
@@ -344,22 +313,23 @@ void Application::createRenderCommandBuffers() {
 
     VkClearColorValue clearColor{0, 0, 0, 0};
     VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    vkCmdClearColorImage(currentCommandBuffer, targetImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
+    vkCmdClearColorImage(currentCommandBuffer, targetImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
                          &clearRange);
-    vkCmdClearColorImage(currentCommandBuffer, aTrousImage1->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
+    vkCmdClearColorImage(currentCommandBuffer, aTrousImage1->getVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
                          &clearRange);
-    vkCmdClearColorImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
+    vkCmdClearColorImage(currentCommandBuffer, aTrousImage2->getVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
                          &clearRange);
-    vkCmdClearColorImage(currentCommandBuffer, blurHImage->image, VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer, blurHImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
+                         &clearRange);
 
-    rtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
-                             targetImage->height / 32, 1);
+    rtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->getWidth() / 32,
+                             targetImage->getHeight() / 32, 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
 
-    temporalFilterModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
-                                        targetImage->height / 32, 1);
+    temporalFilterModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->getWidth() / 32,
+                                        targetImage->getHeight() / 32, 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
@@ -378,12 +348,12 @@ void Application::createRenderCommandBuffers() {
       }
 
       // dispatch 2 stages of separate shaders
-      blurFilterPhase1Models[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
-                                                targetImage->height / 32, 1);
+      blurFilterPhase1Models[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
+                                                targetImage->getWidth() / 32, targetImage->getHeight() / 32, 1);
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
-      blurFilterPhase2Models[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
-                                                targetImage->height / 32, 1);
+      blurFilterPhase2Models[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
+                                                targetImage->getWidth() / 32, targetImage->getHeight() / 32, 1);
 
       // accum texture when the first filter is done
       // (from SVGF) accumulation image should use a properly smoothed image,
@@ -395,10 +365,10 @@ void Application::createRenderCommandBuffers() {
                              0, 0, nullptr, 0, nullptr, 1, &accumTexGeneral2TransDst);
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
                              0, 0, nullptr, 0, nullptr, 1, &aTrousTex1General2TransDst);
-        vkCmdCopyImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       aTrousImage1->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-        vkCmdCopyImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       accumulationImage->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+        vkCmdCopyImage(currentCommandBuffer, aTrousImage2->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       aTrousImage1->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+        vkCmdCopyImage(currentCommandBuffer, aTrousImage2->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       accumulationImage->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                              0, 0, nullptr, 0, nullptr, 1, &aTrousTex1TransDst2General);
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -412,8 +382,8 @@ void Application::createRenderCommandBuffers() {
                              0, 0, nullptr, 0, nullptr, 1, &aTrousTex1General2TransDst);
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
                              0, 0, nullptr, 0, nullptr, 1, &aTrousTex2General2TransSrc);
-        vkCmdCopyImage(currentCommandBuffer, aTrousImage2->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       aTrousImage1->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+        vkCmdCopyImage(currentCommandBuffer, aTrousImage2->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       aTrousImage1->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                              0, 0, nullptr, 0, nullptr, 1, &aTrousTex1TransDst2General);
         vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -423,15 +393,15 @@ void Application::createRenderCommandBuffers() {
 
     /////////////////////////////////////////////
 
-    blurFilterPhase3Model->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->width / 32,
-                                          targetImage->height / 32, 1);
+    blurFilterPhase3Model->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), targetImage->getWidth() / 32,
+                                          targetImage->getHeight() / 32, 1);
 
     // copy targetTex to swapchainImage
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
                          0, nullptr, 0, nullptr, 1, &targetTexGeneral2TransSrc);
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
                          0, nullptr, 0, nullptr, 1, &swapchainImageUndefined2TransferDst);
-    vkCmdCopyImage(currentCommandBuffer, targetImage->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    vkCmdCopyImage(currentCommandBuffer, targetImage->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                    vulkanApplicationContext.getSwapchainImages()[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                    &imgCopyRegion);
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
@@ -444,8 +414,8 @@ void Application::createRenderCommandBuffers() {
                          0, nullptr, 0, nullptr, 1, &triIdTex1General2TransSrc);
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
                          0, nullptr, 0, nullptr, 1, &triIdTex2General2TransDst);
-    vkCmdCopyImage(currentCommandBuffer, meshHashImage1->image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   meshHashImage2->image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+    vkCmdCopyImage(currentCommandBuffer, meshHashImage1->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   meshHashImage2->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
                          0, nullptr, 0, nullptr, 1, &triIdTex1TransSrc2General);
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
@@ -559,8 +529,8 @@ void Application::createGuiFramebuffers() {
     frameBufferCreateInfo.renderPass      = imGuiPass;
     frameBufferCreateInfo.attachmentCount = 1;
     frameBufferCreateInfo.pAttachments    = &attachment;
-    frameBufferCreateInfo.width           = vulkanApplicationContext.getSwapchainExtent().width;
-    frameBufferCreateInfo.height          = vulkanApplicationContext.getSwapchainExtent().height;
+    frameBufferCreateInfo.width           = vulkanApplicationContext.getSwapchainExtentWidth();
+    frameBufferCreateInfo.height          = vulkanApplicationContext.getSwapchainExtentHeight();
     frameBufferCreateInfo.layers          = 1;
 
     VkResult result = vkCreateFramebuffer(vulkanApplicationContext.getDevice(), &frameBufferCreateInfo, nullptr,

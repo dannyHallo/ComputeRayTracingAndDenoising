@@ -4,35 +4,36 @@
 #include <memory>
 #include <vector>
 
-ComputeMaterial::ComputeMaterial(const std::string &computeShaderPath) : Material(), m_computeShaderPath(computeShaderPath) {
-  m_descriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size());
-  m_initialized        = false;
+ComputeMaterial::ComputeMaterial(const std::string &computeShaderPath)
+    : Material(), mComputeShaderPath(computeShaderPath) {
+  mDescriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size());
+  mInitialized        = false;
 }
 
 // loads the compute shader, creates descriptor set
 void ComputeMaterial::init() {
-  if (m_initialized) {
+  if (mInitialized) {
     return;
   }
-  __initDescriptorSetLayout();
-  __initComputePipeline(m_computeShaderPath);
-  __initDescriptorPool();
-  __initDescriptorSets();
-  m_initialized = true;
+  initDescriptorSetLayout();
+  initComputePipeline(mComputeShaderPath);
+  initDescriptorPool();
+  initDescriptorSets();
+  mInitialized = true;
 }
 
-void ComputeMaterial::__initComputePipeline(const std::string &computeShaderPath) {
+void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) {
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts    = &m_descriptorSetLayout;
+  pipelineLayoutInfo.pSetLayouts    = &mDescriptorSetLayout;
 
-  if (vkCreatePipelineLayout(vulkanApplicationContext.getDevice(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) !=
+  if (vkCreatePipelineLayout(vulkanApplicationContext.getDevice(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to create pipeline layout!");
   }
 
-  VkShaderModule shaderModule = __createShaderModule(readFile(computeShaderPath));
+  VkShaderModule shaderModule = createShaderModule(readFile(computeShaderPath));
 
   VkPipelineShaderStageCreateInfo shaderStageInfo{};
   shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -42,12 +43,12 @@ void ComputeMaterial::__initComputePipeline(const std::string &computeShaderPath
 
   VkComputePipelineCreateInfo computePipelineCreateInfo{};
   computePipelineCreateInfo.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-  computePipelineCreateInfo.layout = m_pipelineLayout;
+  computePipelineCreateInfo.layout = mPipelineLayout;
   computePipelineCreateInfo.flags  = 0;
   computePipelineCreateInfo.stage  = shaderStageInfo;
 
-  if (vkCreateComputePipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr,
-                               &m_pipeline) != VK_SUCCESS) {
+  if (vkCreateComputePipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo,
+                               nullptr, &mPipeline) != VK_SUCCESS) {
     throw std::runtime_error("failed to create graphics pipeline!");
   }
 
@@ -55,8 +56,8 @@ void ComputeMaterial::__initComputePipeline(const std::string &computeShaderPath
 }
 
 void ComputeMaterial::bind(VkCommandBuffer &commandBuffer, size_t currentFrame) {
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &m_descriptorSets[currentFrame],
-                          0, nullptr);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1,
+                          &mDescriptorSets[currentFrame], 0, nullptr);
 
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline);
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
 }
