@@ -13,7 +13,6 @@
 #endif
 // we undefine this to solve confiction with systemLog
 
-#include "memory/Image.h"
 #include "utils/Window.h"
 #include "vk_mem_alloc.h"
 

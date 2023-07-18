@@ -1,7 +1,6 @@
 #pragma once
 
 #include "app-context/VulkanApplicationContext.h"
-#include "scene/Mesh.h"
 
 #include <iostream>
 #include <memory>

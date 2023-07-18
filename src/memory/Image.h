@@ -1,7 +1,7 @@
 #pragma once
 
 #include "app-context/VulkanApplicationContext.h"
-#include "vk_mem_alloc.h" // TODO: why is required?
+// #include "vk_mem_alloc.h" // TODO: why is required?
 
 #include <iostream>
 #include <memory>

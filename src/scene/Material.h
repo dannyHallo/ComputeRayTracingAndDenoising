@@ -71,7 +71,7 @@ protected:
   virtual void initDescriptorSetLayout();
   virtual void initDescriptorPool();
   virtual void initDescriptorSets();
-  virtual void initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass,
-                            std::string vertexShaderPath, std::string fragmentShaderPath);
+  // virtual void initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass,
+  //                           std::string vertexShaderPath, std::string fragmentShaderPath);
   virtual VkShaderModule createShaderModule(const std::vector<char> &code);
 };

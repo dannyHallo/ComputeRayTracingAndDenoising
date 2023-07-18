@@ -7,6 +7,7 @@
 #define VOLK_IMPLEMENTATION
 #include "VulkanApplicationContext.h"
 
+#include "memory/Image.h"
 #include "utils/logger.h"
 
 VulkanApplicationContext vulkanApplicationContext{};
