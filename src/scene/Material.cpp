@@ -30,21 +30,21 @@ VkShaderModule Material::createShaderModule(const std::vector<char> &code) {
 }
 
 // void Material::addTexture(const std::shared_ptr<Texture> &texture, VkShaderStageFlags shaderStageFlags) {
-//   mTextureDescriptors.push_back({texture, shaderStageFlags});
+//   mTextureDescriptors.emplace_back(Descriptor<BufferBundle>{texture, shaderStageFlags});
 // }
 
 void Material::addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
                                       VkShaderStageFlags shaderStageFlags) {
-  mUniformBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
+  mUniformBufferBundleDescriptors.emplace_back(Descriptor<BufferBundle>{bufferBundle, shaderStageFlags});
 }
 
 void Material::addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
                                       VkShaderStageFlags shaderStageFlags) {
-  mStorageBufferBundleDescriptors.push_back({bufferBundle, shaderStageFlags});
+  mStorageBufferBundleDescriptors.emplace_back(Descriptor<BufferBundle>{bufferBundle, shaderStageFlags});
 }
 
 void Material::addStorageImage(const std::shared_ptr<Image> &image, VkShaderStageFlags shaderStageFlags) {
-  mStorageImageDescriptors.push_back({image, shaderStageFlags});
+  mStorageImageDescriptors.emplace_back(Descriptor<Image>{image, shaderStageFlags});
 }
 
 // // Initialize material when adding to a scene.
@@ -241,57 +241,41 @@ void Material::initDescriptorPool() {
   // the max number of descriptor sets that can be allocated from this pool
   poolInfo.maxSets = static_cast<uint32_t>(mDescriptorSetsSize);
 
-  if (vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &mDescriptorPool) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to create descriptor pool!");
-  }
+  VkResult result = vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &mDescriptorPool);
+  logger::checkStep("vkCreateDescriptorPool", result);
 }
 
 // creates descriptor set layout that will be used to create every descriptor set
 // features are extracted from buffer bundles, not buffers, thus to be reused in descriptor set creation
 void Material::initDescriptorSetLayout() {
   std::vector<VkDescriptorSetLayoutBinding> bindings;
-
-  size_t binding = 0;
+  uint32_t bindingNo = 0;
 
   // each binding is for each buffer BUNDLE
   for (const auto &d : mUniformBufferBundleDescriptors) {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding            = static_cast<uint32_t>(binding++);
+    uboLayoutBinding.binding            = bindingNo++;
     uboLayoutBinding.descriptorCount    = 1;
     uboLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.stageFlags         = d.shaderStageFlags;
-    uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
     bindings.push_back(uboLayoutBinding);
   }
 
-  // for (const auto &t : mTextureDescriptors) {
-  //   VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-  //   samplerLayoutBinding.binding            = static_cast<uint32_t>(binding++);
-  //   samplerLayoutBinding.descriptorCount    = 1;
-  //   samplerLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  //   samplerLayoutBinding.stageFlags         = t.shaderStageFlags;
-  //   samplerLayoutBinding.pImmutableSamplers = nullptr;
-  //   bindings.push_back(samplerLayoutBinding);
-  // }
-
   for (const auto &s : mStorageImageDescriptors) {
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding            = static_cast<uint32_t>(binding++);
+    samplerLayoutBinding.binding            = bindingNo++;
     samplerLayoutBinding.descriptorCount    = 1;
     samplerLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     samplerLayoutBinding.stageFlags         = s.shaderStageFlags;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
     bindings.push_back(samplerLayoutBinding);
   }
 
   for (const auto &s : mStorageBufferBundleDescriptors) {
     VkDescriptorSetLayoutBinding storageBufferBinding{};
-    storageBufferBinding.binding            = static_cast<uint32_t>(binding++);
+    storageBufferBinding.binding            = bindingNo++;
     storageBufferBinding.descriptorCount    = 1;
     storageBufferBinding.descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     storageBufferBinding.stageFlags         = s.shaderStageFlags;
-    storageBufferBinding.pImmutableSamplers = nullptr;
     bindings.push_back(storageBufferBinding);
   }
 

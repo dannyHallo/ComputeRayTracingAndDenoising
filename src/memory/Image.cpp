@@ -2,17 +2,16 @@
 
 #include "Buffer.h"
 #include "render-context/RenderSystem.h"
-#include "utils/StbImageImpl.h"
+// #include "utils/StbImageImpl.h"
 #include "utils/logger.h"
 
 #include <cmath>
 #include <iostream>
 #include <string>
 
-Image::Image(uint32_t width, uint32_t height, const uint32_t mipLevels, VkSampleCountFlagBits numSamples,
-             VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags,
-             VmaMemoryUsage memoryUsage, VkImageLayout initialImageLayout)
-    : mWidth(width), mHeight(height), mCurrentImageLayout(initialImageLayout) {
+void Image::createImage(uint32_t width, uint32_t height, const uint32_t mipLevels, VkSampleCountFlagBits numSamples,
+                        VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage,
+                        VkImageLayout initialImageLayout) {
   VkImageCreateInfo imageInfo{};
   imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType     = VK_IMAGE_TYPE_2D;
@@ -34,7 +33,13 @@ Image::Image(uint32_t width, uint32_t height, const uint32_t mipLevels, VkSample
   VkResult result = vmaCreateImage(vulkanApplicationContext.getAllocator(), &imageInfo, &vmaallocInfo, &mVkImage,
                                    &mAllocation, nullptr);
   logger::checkStep("vmaCreateImage", result);
+}
 
+Image::Image(uint32_t width, uint32_t height, const uint32_t mipLevels, VkSampleCountFlagBits numSamples,
+             VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags,
+             VmaMemoryUsage memoryUsage, VkImageLayout initialImageLayout)
+    : mWidth(width), mHeight(height), mCurrentImageLayout(initialImageLayout) {
+  createImage(width, height, mipLevels, numSamples, format, tiling, usage, memoryUsage, initialImageLayout);
   mVkImageView = createImageView(mVkImage, format, aspectFlags, mipLevels);
 }
 

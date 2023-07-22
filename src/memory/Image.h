@@ -7,6 +7,7 @@
 #include <memory>
 #include <string>
 
+// the wrapper class of VkImage and its corresponding VkImageView, handles memory allocation
 class Image {
   VkImage mVkImage          = VK_NULL_HANDLE;
   VkImageView mVkImageView  = VK_NULL_HANDLE;
@@ -42,6 +43,11 @@ public:
 
   static VkImageView createImageView(const VkImage &image, VkFormat format, VkImageAspectFlags aspectFlags,
                                      const uint32_t &mipLevels);
+
+private:
+  void createImage(uint32_t width, uint32_t height, const uint32_t mipLevels, VkSampleCountFlagBits numSamples,
+                   VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage,
+                   VkImageLayout initialImageLayout);
 };
 
 // class Texture {

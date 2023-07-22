@@ -12,7 +12,7 @@ class ComputeMaterial : public Material {
   std::string mComputeShaderPath;
 
 public:
-  ComputeMaterial(const std::string &computeShaderPath);
+  ComputeMaterial(const std::string &computeShaderPath) : Material(), mComputeShaderPath(computeShaderPath) {}
 
   void init();
 

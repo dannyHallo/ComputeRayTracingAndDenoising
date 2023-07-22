@@ -22,9 +22,9 @@ include_directories(
 	dep/memory-allocator-hpp)
 
 add_executable(${PROJ_NAME}
-	src/app-context/VulkanApplicationContext.cpp
 	src/main.cpp
 	src/Application.cpp
+	src/app-context/VulkanApplicationContext.cpp
 	src/memory/Image.cpp
 	src/memory/ImageUtils.cpp
 	src/memory/Buffer.cpp
@@ -32,13 +32,10 @@ add_executable(${PROJ_NAME}
 	src/ray-tracing/Bvh.cpp
 	src/ray-tracing/RtScene.cpp
 	src/scene/ComputeMaterial.cpp
-	src/scene/ComputeModel.cpp
-	src/scene/DrawableModel.cpp
 	src/scene/Material.cpp
 	src/scene/mesh.cpp
 	src/utils/Camera.cpp
 	src/utils/Window.cpp
-	src/utils/StbImageImpl.cpp
 	src/utils/logger.cpp
 
 	dep/imgui/backends/imgui_impl_glfw.cpp

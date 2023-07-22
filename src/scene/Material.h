@@ -7,17 +7,18 @@
 #include <memory>
 #include <vector>
 
+// A template struct to hold a descriptor and the shader stage flags.
 template <typename T> struct Descriptor {
   std::shared_ptr<T> data;
   VkShaderStageFlags shaderStageFlags;
 };
 
 class Material {
-protected: 
-  std::vector<Descriptor<BufferBundle>> mUniformBufferBundleDescriptors;
-  std::vector<Descriptor<BufferBundle>> mStorageBufferBundleDescriptors;
+protected:
+  std::vector<Descriptor<BufferBundle>> mUniformBufferBundleDescriptors; // buffer bundles for uniform data
+  std::vector<Descriptor<BufferBundle>> mStorageBufferBundleDescriptors; // buffer bundles for storage data
   // std::vector<Descriptor<Texture>> mTextureDescriptors;
-  std::vector<Descriptor<Image>> mStorageImageDescriptors;
+  std::vector<Descriptor<Image>> mStorageImageDescriptors; // images for storage data
 
   std::string mVertexShaderPath;
   std::string mFragmentShaderPath;
@@ -36,7 +37,8 @@ protected:
 public:
   // Material(const std::string &vertexShaderPath, const std::string &fragmentShaderPath);
 
-  Material() : mDescriptorSetsSize(static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize())) {}
+  Material()
+      : mDescriptorSetsSize(static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize())), mInitialized(false) {}
 
   virtual ~Material();
 

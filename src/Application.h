@@ -15,9 +15,7 @@
 #include "render-context/RenderSystem.h"
 #include "scene/ComputeMaterial.h"
 #include "scene/ComputeModel.h"
-#include "scene/DrawableModel.h"
 #include "scene/Mesh.h"
-#include "scene/Scene.h"
 #include "utils/Camera.h"
 #include "utils/RootDir.h"
 #include "utils/glm.h"
@@ -80,9 +78,6 @@ class Application {
   std::vector<std::shared_ptr<ComputeModel>> blurFilterPhase1Models;
   std::vector<std::shared_ptr<ComputeModel>> blurFilterPhase2Models;
   std::shared_ptr<ComputeModel> blurFilterPhase3Model;
-
-  // scene for post-processing
-  std::shared_ptr<Scene> postProcessScene;
 
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
   std::shared_ptr<BufferBundle> rtxBufferBundle;

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+// the wrapper class of VkBuffer, handles memory allocation and data filling
 class Buffer {
   VkBuffer mVkBuffer;        // native vulkan buffer
   VmaAllocation mAllocation; // buffer allocation info
@@ -45,6 +46,7 @@ private:
   void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 };
 
+// class of series of buffers, can be used for storing identical buffers for every swapchain image
 class BufferBundle {
   std::vector<std::shared_ptr<Buffer>> mBuffers; // series of buffers
 

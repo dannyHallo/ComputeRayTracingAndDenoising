@@ -4,21 +4,15 @@
 #include <memory>
 #include <vector>
 
-ComputeMaterial::ComputeMaterial(const std::string &computeShaderPath)
-    : Material(), mComputeShaderPath(computeShaderPath) {
-  mDescriptorSetsSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainImages().size());
-  mInitialized        = false;
-}
-
 // loads the compute shader, creates descriptor set
 void ComputeMaterial::init() {
-  if (mInitialized) {
-    return;
-  }
+  if (mInitialized) return;
+
   initDescriptorSetLayout();
   initComputePipeline(mComputeShaderPath);
   initDescriptorPool();
   initDescriptorSets();
+  
   mInitialized = true;
 }
 
