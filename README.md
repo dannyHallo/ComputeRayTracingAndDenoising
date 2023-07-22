@@ -9,7 +9,7 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 3. Implement the sparse voxel octree
 4. Ray trace the sparse voxel octree
 
-# Screenshots
+# Screenshots 
 
 | Image Type | Image                                 |
 | ---------- | ------------------------------------- |
