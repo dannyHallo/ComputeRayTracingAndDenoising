@@ -7,13 +7,17 @@
 #include <string>
 #include <vector>
 
-// the wrapper class of VkBuffer, with easier memory allocation and data filling
 class Buffer {
   VkBuffer mVkBuffer;        // native vulkan buffer
   VmaAllocation mAllocation; // buffer allocation info
   VkDeviceSize mSize;        // total size of buffer
 
 public:
+  /// @brief the wrapper class of VkBuffer, with easier memory allocation and data filling
+  /// @param size size of buffer
+  /// @param usage usage of buffer
+  /// @param memoryUsage memory usage of buffer
+  /// @param data data to be filled in buffer, if left as nullptr, buffer will be zero-initialized
   Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage, const void *data = nullptr);
 
   ~Buffer();
@@ -41,11 +45,16 @@ private:
   void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 };
 
-// series of buffers, usually used for storing identical buffers for every swapchain image
 class BufferBundle {
   std::vector<std::shared_ptr<Buffer>> mBuffers; // series of buffers
 
 public:
+  /// @brief class of series of buffers, usually used for storing identical buffers for every swapchain image
+  /// @param bufferCount number of buffers in bundle
+  /// @param size size of every single buffer
+  /// @param usage usage of every single buffer
+  /// @param memoryUsage memory usage of every single buffer
+  /// @param data data to be filled in every single buffer, if left as nullptr, every buffer will be zero-initialized
   BufferBundle(size_t bufferCount, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage,
                const void *data = nullptr) {
     for (size_t i = 0; i < bufferCount; i++) {
@@ -58,6 +67,6 @@ public:
   // get buffer by index
   std::shared_ptr<Buffer> getBuffer(size_t index);
 
-  // fill every buffer in bundle with data, if data is nullptr, every buffer will be zero-initialized
+  // fill every buffer in bundle with the same data, if left as nullptr, every buffer will be zero-initialized
   void fillData(const void *data = nullptr);
 };

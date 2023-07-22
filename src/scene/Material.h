@@ -13,7 +13,7 @@ template <typename T> struct Descriptor {
 };
 
 class Material {
-protected:
+protected: 
   std::vector<Descriptor<BufferBundle>> mUniformBufferBundleDescriptors;
   std::vector<Descriptor<BufferBundle>> mStorageBufferBundleDescriptors;
   // std::vector<Descriptor<Texture>> mTextureDescriptors;
