@@ -5,6 +5,7 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 // Include definitions for ubo, triangle, material, etc.
 #include "include/definitions.glsl"
 
+// the uniform buffer that contains ray trace description infos
 layout(binding = 0) uniform UniformBufferObject {
   vec3 camPos;
   vec3 camFront;
@@ -18,22 +19,32 @@ layout(binding = 0) uniform UniformBufferObject {
 }
 ubo;
 
+// G-Buffer: the image that stores individual position of each ray hit
 layout(binding = 1, rgba32f) uniform image2D posTex;
+// G-Buffer: the image that stores individual normal of each ray hit
 layout(binding = 2, rgba32f) uniform image2D normalTex;
+// G-Buffer: the image that stores individual depth of each ray hit
 layout(binding = 3, r32f) uniform image2D depthTex;
+// G-Buffer: the image that stores individual mesh hash of each ray hit, each
+// triangle has a unique mesh hash
 layout(binding = 4, r32ui) uniform uimage2D meshHashTex1;
+// Result: the image that stores ray traced color
 layout(binding = 5, rgba32f) uniform image2D rawTex;
 
+// the buffer that contains all triangles (read only)
 layout(std430, binding = 6) readonly buffer TriangleBufferObject {
   triangle[] triangles;
 };
 
+// the buffer that contains all materials (read only)
 layout(std430, binding = 7) readonly buffer MaterialBufferObject {
   material[] materials;
 };
 
+// the buffer that contains all bvh nodes (read only)
 layout(std430, binding = 8) readonly buffer AabbBufferObject { bvhNode[] bvh; };
 
+// the buffer that contains all lights (read only)
 layout(std430, binding = 9) readonly buffer LightsBufferObject {
   light[] lights;
 };

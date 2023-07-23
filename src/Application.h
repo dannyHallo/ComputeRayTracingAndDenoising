@@ -53,7 +53,6 @@ class Application {
     int i;
   };
 
-  const int cInFrameProcessSize = 5;
 
   float fps       = 0;
   float frameTime = 0;
@@ -62,59 +61,60 @@ class Application {
   bool useTemporal = true;
   bool useBlur     = true;
 
-  const int maxFramesInFlight            = 2;
-  const std::string pathToResourceFolder = std::string(ROOT_DIR) + "resources/";
-  const float fpsUpdateTime              = 0.5f;
+  const int kATrousSize = 5;
+  const int kMaxFramesInFlight            = 2;
+  const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
+  const float kFpsUpdateTime              = 0.5f;
 
   // delta time and last recorded frame time
-  float deltaTime = 0, frameRecordLastTime = 0;
+  float mDeltaTime = 0, mFrameRecordLastTime = 0;
 
   // scene for ray tracing
-  std::shared_ptr<GpuModel::Scene> rtScene;
+  std::shared_ptr<GpuModel::Scene> mRtScene;
 
   // compute models for ray tracing, temporal filtering, and blur filtering
-  std::shared_ptr<ComputeModel> rtxModel;
-  std::shared_ptr<ComputeModel> temporalFilterModel;
-  std::vector<std::shared_ptr<ComputeModel>> blurFilterPhase1Models;
-  std::vector<std::shared_ptr<ComputeModel>> blurFilterPhase2Models;
-  std::shared_ptr<ComputeModel> blurFilterPhase3Model;
+  std::shared_ptr<ComputeModel> mRtxModel;
+  std::shared_ptr<ComputeModel> mTemporalFilterModel;
+  std::vector<std::shared_ptr<ComputeModel>> mBlurFilterPhase1Models;
+  std::vector<std::shared_ptr<ComputeModel>> mBlurFilterPhase2Models;
+  std::shared_ptr<ComputeModel> mBlurFilterPhase3Model;
 
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
-  std::shared_ptr<BufferBundle> rtxBufferBundle;
-  std::shared_ptr<BufferBundle> temperalFilterBufferBundle;
-  std::vector<std::shared_ptr<BufferBundle>> blurFilterBufferBundles;
+  std::shared_ptr<BufferBundle> mRtxBufferBundle;
+  std::shared_ptr<BufferBundle> mTemperalFilterBufferBundle;
+  std::vector<std::shared_ptr<BufferBundle>> mBlurFilterBufferBundles;
 
   // images for ray tracing and post-processing
-  std::shared_ptr<Image> positionImage;
-  std::shared_ptr<Image> rawImage;
-  std::shared_ptr<Image> targetImage;
-  std::shared_ptr<Image> accumulationImage;
-  std::shared_ptr<Image> depthImage;
-  std::shared_ptr<Image> normalImage;
-  std::shared_ptr<Image> historySamplesImage;
-  std::shared_ptr<Image> meshHashImage1;
-  std::shared_ptr<Image> meshHashImage2;
-  std::shared_ptr<Image> blurHImage;
-  std::shared_ptr<Image> aTrousImage1;
-  std::shared_ptr<Image> aTrousImage2;
+  std::shared_ptr<Image> mPositionImage;
+  std::shared_ptr<Image> mRawImage;
+  std::shared_ptr<Image> mTargetImage;
+  std::shared_ptr<Image> mAccumulationImage;
+  std::shared_ptr<Image> mDepthImage;
+  std::shared_ptr<Image> mNormalImage;
+  std::shared_ptr<Image> mHistorySamplesImage;
+  std::shared_ptr<Image> mMeshHashImage1;
+  std::shared_ptr<Image> mMeshHashImage2;
+  std::shared_ptr<Image> mBlurHImage;
+  std::shared_ptr<Image> mATrousImage1;
+  std::shared_ptr<Image> mATrousImage2;
 
   // command buffers for rendering and GUI
-  std::vector<VkCommandBuffer> commandBuffers;
-  std::vector<VkCommandBuffer> guiCommandBuffers;
+  std::vector<VkCommandBuffer> mCommandBuffers;
+  std::vector<VkCommandBuffer> mGuiCommandBuffers;
 
   // framebuffers for GUI
-  std::vector<VkFramebuffer> swapchainGuiFrameBuffers;
+  std::vector<VkFramebuffer> mSwapchainGuiFrameBuffers;
 
   // render pass for GUI
-  VkRenderPass imGuiPass;
+  VkRenderPass mImGuiPass;
 
   // descriptor pool for GUI
-  VkDescriptorPool guiDescriptorPool;
+  VkDescriptorPool mGuiDescriptorPool;
 
   // semaphores and fences for synchronization
-  std::vector<VkSemaphore> imageAvailableSemaphores;
-  std::vector<VkSemaphore> renderFinishedSemaphores;
-  std::vector<VkFence> framesInFlightFences;
+  std::vector<VkSemaphore> mImageAvailableSemaphores;
+  std::vector<VkSemaphore> mRenderFinishedSemaphores;
+  std::vector<VkFence> mFramesInFlightFences;
 
 public:
   Application()  = default;
