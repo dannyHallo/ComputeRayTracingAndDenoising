@@ -14,41 +14,17 @@ template <typename T> struct Descriptor {
 };
 
 class Material {
-protected:
-  std::vector<Descriptor<BufferBundle>> mUniformBufferBundleDescriptors; // buffer bundles for uniform data
-  std::vector<Descriptor<BufferBundle>> mStorageBufferBundleDescriptors; // buffer bundles for storage data
-  // std::vector<Descriptor<Texture>> mTextureDescriptors;
-  std::vector<Descriptor<Image>> mStorageImageDescriptors; // images for storage data
-
-  std::string mVertexShaderPath;
-  std::string mFragmentShaderPath;
-
-  bool mInitialized;
-
-  uint32_t mDescriptorSetsSize;
-
-  VkPipeline mPipeline;
-  VkPipelineLayout mPipelineLayout;
-
-  VkDescriptorPool mDescriptorPool;
-  std::vector<VkDescriptorSet> mDescriptorSets;
-  VkDescriptorSetLayout mDescriptorSetLayout;
 
 public:
-  // Material(const std::string &vertexShaderPath, const std::string &fragmentShaderPath);
-
-  Material()
-      : mDescriptorSetsSize(static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize())), mInitialized(false) {}
+  Material() : mSwapchainSize(static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize())) {}
 
   virtual ~Material();
 
-  // void addTexture(const std::shared_ptr<Texture> &texture, VkShaderStageFlags shaderStageFlags);
-
-  void addStorageImage(const std::shared_ptr<Image> &image, VkShaderStageFlags shaderStageFlags);
-
-  void addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle, VkShaderStageFlags shaderStageFlags);
-
-  void addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle, VkShaderStageFlags shaderStageFlags);
+  virtual void addStorageImage(const std::shared_ptr<Image> &image, VkShaderStageFlags shaderStageFlags);
+  virtual void addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
+                                      VkShaderStageFlags shaderStageFlags);
+  virtual void addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
+                                      VkShaderStageFlags shaderStageFlags);
 
   const std::vector<Descriptor<BufferBundle>> &getUniformBufferBundles() const {
     return mUniformBufferBundleDescriptors;
@@ -58,22 +34,39 @@ public:
     return mStorageBufferBundleDescriptors;
   }
 
-  // const std::vector<Descriptor<Texture>> &getTextures() const{
-  //   return mTextureDescriptors;
-  // }
-
   const std::vector<Descriptor<Image>> &getStorageImages() const { return mStorageImageDescriptors; }
 
-  // Initialize material when adding to a scene.
-  // void init(const VkRenderPass &renderPass);
-
-  void bind(VkCommandBuffer &commandBuffer, size_t currentFrame);
+  // binding should be done in model, must be overridden
+  virtual void bind(VkCommandBuffer &commandBuffer, size_t currentFrame) = 0;
 
 protected:
-  virtual void initDescriptorSetLayout();
-  virtual void initDescriptorPool();
-  virtual void initDescriptorSets();
-  // virtual void initPipeline(const VkExtent2D &swapChainExtent, const VkRenderPass &renderPass,
-  //                           std::string vertexShaderPath, std::string fragmentShaderPath);
-  virtual VkShaderModule createShaderModule(const std::vector<char> &code);
+  std::vector<Descriptor<BufferBundle>> mUniformBufferBundleDescriptors; // buffer bundles for uniform data
+  std::vector<Descriptor<BufferBundle>> mStorageBufferBundleDescriptors; // buffer bundles for storage data
+  // std::vector<Descriptor<Texture>> mTextureDescriptors;
+  std::vector<Descriptor<Image>> mStorageImageDescriptors; // images for storage data
+
+  std::string mVertexShaderPath;
+  std::string mFragmentShaderPath;
+
+  uint32_t mSwapchainSize;
+
+  VkPipeline mPipeline;
+  VkPipelineLayout mPipelineLayout;
+
+  VkDescriptorPool mDescriptorPool;
+  std::vector<VkDescriptorSet> mDescriptorSets;
+  VkDescriptorSetLayout mDescriptorSetLayout;
+
+  // creates mDescriptorSetLayout from resources added to the material
+  void initDescriptorSetLayout();
+
+  // allocates pool sizes and creates mDescriptorPool
+  void initDescriptorPool();
+
+  void initDescriptorSets();
+
+  VkShaderModule createShaderModule(const std::vector<char> &code);
+
+  // late initialization during model creation, must be overridden
+  virtual void init() = 0;
 };

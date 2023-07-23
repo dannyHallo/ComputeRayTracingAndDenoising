@@ -1,4 +1,5 @@
 #include "ComputeMaterial.h"
+#include "utils/logger.h"
 #include "utils/readfile.h"
 
 #include <memory>
@@ -6,14 +7,10 @@
 
 // loads the compute shader, creates descriptor set
 void ComputeMaterial::init() {
-  if (mInitialized) return;
-
   initDescriptorSetLayout();
   initComputePipeline(mComputeShaderPath);
   initDescriptorPool();
   initDescriptorSets();
-  
-  mInitialized = true;
 }
 
 void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) {
@@ -22,10 +19,9 @@ void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) 
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts    = &mDescriptorSetLayout;
 
-  if (vkCreatePipelineLayout(vulkanApplicationContext.getDevice(), &pipelineLayoutInfo, nullptr, &mPipelineLayout) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to create pipeline layout!");
-  }
+  VkResult result =
+      vkCreatePipelineLayout(vulkanApplicationContext.getDevice(), &pipelineLayoutInfo, nullptr, &mPipelineLayout);
+  logger::checkStep("vkCreatePipelineLayout", result);
 
   VkShaderModule shaderModule = createShaderModule(readFile(computeShaderPath));
 
@@ -33,7 +29,7 @@ void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) 
   shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   shaderStageInfo.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
   shaderStageInfo.module = shaderModule;
-  shaderStageInfo.pName  = "main"; // the entry function of the shader code
+  shaderStageInfo.pName  = "main"; // name of the entry function of current shader
 
   VkComputePipelineCreateInfo computePipelineCreateInfo{};
   computePipelineCreateInfo.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -41,11 +37,11 @@ void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) 
   computePipelineCreateInfo.flags  = 0;
   computePipelineCreateInfo.stage  = shaderStageInfo;
 
-  if (vkCreateComputePipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo,
-                               nullptr, &mPipeline) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create graphics pipeline!");
-  }
+  result = vkCreateComputePipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo,
+                                    nullptr, &mPipeline);
+  logger::checkStep("vkCreateComputePipelines", result);
 
+  // since we have created the pipeline, we can destroy the shader module
   vkDestroyShaderModule(vulkanApplicationContext.getDevice(), shaderModule, nullptr);
 }
 

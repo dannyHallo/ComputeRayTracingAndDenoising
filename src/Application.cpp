@@ -138,19 +138,19 @@ void Application::initScene() {
   // rtx.comp
   auto rtxMat = std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/rtx.spv");
   {
-    rtxMat->addUniformBufferBundle(rtxBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
+    rtxMat->addUniformBufferBundle(rtxBufferBundle);
     // input
-    rtxMat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    rtxMat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    rtxMat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    rtxMat->addStorageImage(meshHashImage1, VK_SHADER_STAGE_COMPUTE_BIT);
+    rtxMat->addStorageImage(positionImage);
+    rtxMat->addStorageImage(normalImage);
+    rtxMat->addStorageImage(depthImage);
+    rtxMat->addStorageImage(meshHashImage1);
     // output
-    rtxMat->addStorageImage(rawImage, VK_SHADER_STAGE_COMPUTE_BIT);
+    rtxMat->addStorageImage(rawImage);
     // buffers
-    rtxMat->addStorageBufferBundle(triangleBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
-    rtxMat->addStorageBufferBundle(materialBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
-    rtxMat->addStorageBufferBundle(bvhBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
-    rtxMat->addStorageBufferBundle(lightsBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
+    rtxMat->addStorageBufferBundle(triangleBufferBundle);
+    rtxMat->addStorageBufferBundle(materialBufferBundle);
+    rtxMat->addStorageBufferBundle(bvhBufferBundle);
+    rtxMat->addStorageBufferBundle(lightsBufferBundle);
   }
   rtxModel = std::make_shared<ComputeModel>(rtxMat);
 
@@ -158,17 +158,17 @@ void Application::initScene() {
   auto temporalFilterMat =
       std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/temporalFilter.spv");
   {
-    temporalFilterMat->addUniformBufferBundle(temperalFilterBufferBundle, VK_SHADER_STAGE_COMPUTE_BIT);
+    temporalFilterMat->addUniformBufferBundle(temperalFilterBufferBundle);
     // input
-    temporalFilterMat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    temporalFilterMat->addStorageImage(rawImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    temporalFilterMat->addStorageImage(accumulationImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    temporalFilterMat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    temporalFilterMat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    temporalFilterMat->addStorageImage(meshHashImage1, VK_SHADER_STAGE_COMPUTE_BIT);
-    temporalFilterMat->addStorageImage(meshHashImage2, VK_SHADER_STAGE_COMPUTE_BIT);
+    temporalFilterMat->addStorageImage(positionImage);
+    temporalFilterMat->addStorageImage(rawImage);
+    temporalFilterMat->addStorageImage(accumulationImage);
+    temporalFilterMat->addStorageImage(normalImage);
+    temporalFilterMat->addStorageImage(depthImage);
+    temporalFilterMat->addStorageImage(meshHashImage1);
+    temporalFilterMat->addStorageImage(meshHashImage2);
     // output
-    temporalFilterMat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
+    temporalFilterMat->addStorageImage(aTrousImage1);
   }
   temporalFilterModel = std::make_shared<ComputeModel>(temporalFilterMat);
 
@@ -176,29 +176,29 @@ void Application::initScene() {
     auto blurFilterPhase1Mat =
         std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/blurPhase1.spv");
     {
-      blurFilterPhase1Mat->addUniformBufferBundle(blurFilterBufferBundles[i], VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase1Mat->addUniformBufferBundle(blurFilterBufferBundles[i]);
       // input
-      blurFilterPhase1Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase1Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase1Mat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase1Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase1Mat->addStorageImage(aTrousImage1);
+      blurFilterPhase1Mat->addStorageImage(normalImage);
+      blurFilterPhase1Mat->addStorageImage(depthImage);
+      blurFilterPhase1Mat->addStorageImage(positionImage);
       // output
-      blurFilterPhase1Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase1Mat->addStorageImage(blurHImage);
     }
     blurFilterPhase1Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase1Mat));
 
     auto blurFilterPhase2Mat =
         std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/blurPhase2.spv");
     {
-      blurFilterPhase2Mat->addUniformBufferBundle(blurFilterBufferBundles[i], VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase2Mat->addUniformBufferBundle(blurFilterBufferBundles[i]);
       // input
-      blurFilterPhase2Mat->addStorageImage(aTrousImage1, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase2Mat->addStorageImage(blurHImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase2Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase2Mat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
-      blurFilterPhase2Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase2Mat->addStorageImage(aTrousImage1);
+      blurFilterPhase2Mat->addStorageImage(blurHImage);
+      blurFilterPhase2Mat->addStorageImage(normalImage);
+      blurFilterPhase2Mat->addStorageImage(depthImage);
+      blurFilterPhase2Mat->addStorageImage(positionImage);
       // output
-      blurFilterPhase2Mat->addStorageImage(aTrousImage2, VK_SHADER_STAGE_COMPUTE_BIT);
+      blurFilterPhase2Mat->addStorageImage(aTrousImage2);
     }
     blurFilterPhase2Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase2Mat));
   }
@@ -207,12 +207,12 @@ void Application::initScene() {
       std::make_shared<ComputeMaterial>(pathToResourceFolder + "/shaders/generated/blurPhase3.spv");
   {
     // input
-    blurFilterPhase3Mat->addStorageImage(aTrousImage2, VK_SHADER_STAGE_COMPUTE_BIT);
-    blurFilterPhase3Mat->addStorageImage(normalImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    blurFilterPhase3Mat->addStorageImage(depthImage, VK_SHADER_STAGE_COMPUTE_BIT);
-    blurFilterPhase3Mat->addStorageImage(positionImage, VK_SHADER_STAGE_COMPUTE_BIT);
+    blurFilterPhase3Mat->addStorageImage(aTrousImage2);
+    blurFilterPhase3Mat->addStorageImage(normalImage);
+    blurFilterPhase3Mat->addStorageImage(depthImage);
+    blurFilterPhase3Mat->addStorageImage(positionImage);
     // output
-    blurFilterPhase3Mat->addStorageImage(targetImage, VK_SHADER_STAGE_COMPUTE_BIT);
+    blurFilterPhase3Mat->addStorageImage(targetImage);
   }
   blurFilterPhase3Model = std::make_shared<ComputeModel>(blurFilterPhase3Mat);
 }
