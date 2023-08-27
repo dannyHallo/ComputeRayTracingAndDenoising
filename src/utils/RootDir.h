@@ -1,3 +1,3 @@
 #pragma once
 // #define ROOT_DIR "./"
-#define ROOT_DIR "E:/ComputerGraphics/work/RTXInAWeekendWithVulkan/build/Debug/"
+#define ROOT_DIR "E:/ComputerGraphics/work/RTXInAWeekendWithVulkan/build/windows/x64/debug/"
