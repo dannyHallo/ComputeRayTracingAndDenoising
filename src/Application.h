@@ -53,15 +53,14 @@ class Application {
     int i;
   };
 
-
-  float fps       = 0;
-  float frameTime = 0;
+  float mFps       = 0;
+  float mFrameTime = 0;
 
   // whether to use temporal and blur filtering
-  bool useTemporal = true;
-  bool useBlur     = true;
+  bool mUseTemporal = true;
+  bool mUseBlur     = true;
 
-  const int kATrousSize = 5;
+  const int kATrousSize                   = 5;
   const int kMaxFramesInFlight            = 2;
   const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
   const float kFpsUpdateTime              = 0.5f;

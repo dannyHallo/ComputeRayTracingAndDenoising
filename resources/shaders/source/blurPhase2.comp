@@ -49,6 +49,7 @@ void blurKernel(int indexY, inout float sumOfWeights,
   // ---- end of SVGF
 
   float weight = weightDistFalloff * weightN * weightZ * weightC;
+  // float weight = weightDistFalloff;
 
   sumOfWeightedValues += weight * imageLoad(blurHTex, uv + ivec2(x, y));
   sumOfWeights += weight;

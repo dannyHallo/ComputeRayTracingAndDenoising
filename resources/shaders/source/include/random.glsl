@@ -52,17 +52,31 @@ float random() {
 // Returns a random real in [min,max).
 float random(float min, float max) { return min + (max - min) * random(); }
 
-// uint imagePixelSize = 2560 * 1440;
-// pesudo low discrepancy Rx random according to screen coord
-vec2 random_uv() {
+vec2 random_uv_test1() {
   uint randOffsetInPixel =
-      hash(gl_GlobalInvocationID.x * 1280 + gl_GlobalInvocationID.y);
-  vec2 rand = ldsNoise(randOffsetInPixel + ubo.currentSample);
+      hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
+  vec2 rand =
+      ldsNoise2d(gl_GlobalInvocationID.x + uint(ubo.currentSample) * 19937u +
+                     randOffsetInPixel,
+                 gl_GlobalInvocationID.y + uint(ubo.currentSample) * 3719u +
+                     randOffsetInPixel);
+  return rand;
+}
 
-  // if (gl_GlobalInvocationID.x < 1280)
-  if (true)
-    return rand;
-  return vec2(random(), random());
+vec2 random_uv_test2() {
+  uint randOffsetInPixel =
+      hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
+  vec2 rand = ldsNoise(randOffsetInPixel + ubo.currentSample);
+  return rand;
+}
+
+vec2 random_uv() {
+  // if (gl_GlobalInvocationID.x < 2560 / 2) {
+  //   return random_uv_test1();
+  // } else {
+  //   return random_uv_test2();
+  // }
+  return random_uv_test1();
 }
 
 // ---- Low discrepancy noise

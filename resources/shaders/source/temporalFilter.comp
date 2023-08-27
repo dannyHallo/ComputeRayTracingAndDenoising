@@ -37,6 +37,17 @@ ivec2 backwardProjection() {
   return ivec2(uvCoord.x * ubo.swapchainWidth, uvCoord.y * ubo.swapchainHeight);
 }
 
+vec4 customMixing(vec4 accum, vec4 thisTime, float alpha) {
+  if (alpha == 1) {
+    return thisTime;
+  }
+
+  alpha = 0.05;
+
+  vec4 result = mix(accum, thisTime, alpha);
+  return result;
+}
+
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
   pixPos = imageLoad(posTex, uv);
@@ -66,6 +77,7 @@ void main() {
     alpha = 1;
   }
 
-  colToWrite = mix(accumTracingResult, thisTimeTracingResult, alpha);
+  // colToWrite = mix(accumTracingResult, thisTimeTracingResult, alpha);
+  colToWrite = customMixing(accumTracingResult, thisTimeTracingResult, alpha);
   imageStore(aTrousTex1, uv, colToWrite);
 }

@@ -235,7 +235,8 @@ void Application::updateScene(uint32_t currentImage) {
 
   mRtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
 
-  TemporalFilterUniformBufferObject tfUbo = {!useTemporal, lastMvpe, vulkanApplicationContext.getSwapchainExtentWidth(),
+  TemporalFilterUniformBufferObject tfUbo = {!mUseTemporal, lastMvpe,
+                                             vulkanApplicationContext.getSwapchainExtentWidth(),
                                              vulkanApplicationContext.getSwapchainExtentHeight()};
   {
     mTemperalFilterBufferBundle->getBuffer(currentImage)->fillData(&tfUbo);
@@ -247,7 +248,7 @@ void Application::updateScene(uint32_t currentImage) {
 
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {!useBlur, j};
+    BlurFilterUniformBufferObject bfUbo = {!mUseBlur, j};
     mBlurFilterBufferBundles[j]->getBuffer(currentImage)->fillData(&bfUbo);
   }
 
@@ -338,7 +339,7 @@ void Application::createRenderCommandBuffers() {
 
     for (int j = 0; j < kATrousSize; j++) {
       // update ubo for the sampleDistance
-      BlurFilterUniformBufferObject bfUbo = {!useBlur, j};
+      BlurFilterUniformBufferObject bfUbo = {!mUseBlur, j};
       {
         auto &allocation = mBlurFilterBufferBundles[j]->getBuffer(i)->getAllocation();
         void *data;
@@ -612,7 +613,8 @@ void Application::initGui() {
   // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
   // Setup Dear ImGui style
-  ImGui::StyleColorsDark();
+  // ImGui::StyleColorsDark();
+  ImGui::StyleColorsClassic();
 
   // Setup Platform/Renderer bindings
   ImGui_ImplGlfw_InitForVulkan(vulkanApplicationContext.getWindow(), true);
@@ -749,13 +751,21 @@ void Application::prepareGui() {
   // ImGui::ShowStackToolWindow();
 
   ImGui::Begin("little gui ( press TAB to use me )");
-  ImGui::Text((std::to_string(static_cast<int>(fps)) + " frames per second").c_str());
-  ImGui::Text((std::to_string(static_cast<int>(frameTime * 1000)) + " ms per frame").c_str());
+  ImGui::Text((std::to_string(static_cast<int>(mFps)) + " frames per second").c_str());
+  ImGui::Text((std::to_string(static_cast<int>(mFrameTime * 1000)) + " ms per frame").c_str());
 
   ImGui::Separator();
 
-  ImGui::Checkbox("Temporal Accumulation", &useTemporal);
-  ImGui::Checkbox("A-Trous", &useBlur);
+  // ImGui::Checkbox("Temporal Accumulation", &mUseTemporal);
+  // ImGui::Checkbox("A-Trous", &mUseBlur);`
+
+  ImGui::BeginMainMenuBar();
+  if (ImGui::BeginMenu("Config")) {
+    ImGui::Checkbox("Temporal Accumulation", &mUseTemporal);
+    ImGui::Checkbox("A-Trous", &mUseBlur);
+    ImGui::EndMenu();
+  }
+  ImGui::EndMainMenuBar();
 
   ImGui::End();
   ImGui::Render();
@@ -775,9 +785,9 @@ void Application::mainLoop() {
     mFrameRecordLastTime = currentTime;
 
     if (currentTime - fpsRecordLastTime >= kFpsUpdateTime) {
-      fps               = fpsFrameCount / kFpsUpdateTime;
-      frameTime         = 1 / fps;
-      std::string title = "FPS - " + std::to_string(static_cast<int>(fps));
+      mFps              = fpsFrameCount / kFpsUpdateTime;
+      mFrameTime        = 1 / mFps;
+      std::string title = "FPS - " + std::to_string(static_cast<int>(mFps));
       glfwSetWindowTitle(vulkanApplicationContext.getWindow(), title.c_str());
       fpsFrameCount = 0;
 
