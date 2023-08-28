@@ -1,7 +1,6 @@
 @echo off
 
-set PROJECT_NAME=pathtracer
-set BUILD_TYPE=Debug
+set BUILD_TYPE=debug
 
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
 
@@ -18,29 +17,21 @@ echo:
 %GLSLC% resources/shaders/source/temporalFilter.comp -o resources/shaders/generated/temporalFilter.spv
 
 echo:
-@echo *************************** cmake ****************************
+@echo *************************** xmake ****************************
 echo:
 
-mkdir build
-cd build
-cmake .. -D PROJ_NAME=%PROJECT_NAME%
-cd ..
-
-echo:
-@echo ************************** msbuild ***************************
-echo:
-
-MSBuild build/%PROJECT_NAME%.sln -p:Configuration=%BUILD_TYPE%
+xmake f -p windows -a x64 -m %BUILD_TYPE%
+xmake -w
 
 echo:
 @echo *********************** copy resources ***********************
 echo:
 
-mkdir "build/%BUILD_TYPE%/resources"
-xcopy "resources" "build/%BUILD_TYPE%/resources" /s /i /y
+mkdir "build/windows/x64/%BUILD_TYPE%/resources"
+xcopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /s /i /y
 
 echo:
 @echo **************************** run *****************************
 echo:
 
-start /d "./build/%BUILD_TYPE%" %PROJECT_NAME%.exe
+start /d "build/windows/x64/%BUILD_TYPE%" main.exe

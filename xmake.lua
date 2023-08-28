@@ -10,8 +10,9 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})
 
 target("main")
-    set_default(true)
-    set_kind("binary")
+    set_configvar("PROJECT_DIR", (os.projectdir():gsub("\\", "/")))
+    set_configdir("src/utils/")
+    add_configfiles("src/utils/RootDir.h.in")
     add_files("src/**.cpp")
     add_files(
         "dep/imgui/backends/imgui_impl_glfw.cpp", 

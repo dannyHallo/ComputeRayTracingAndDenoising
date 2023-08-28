@@ -33,12 +33,10 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 
 Simply run the pre-compiled version at path `./Release/vulkan.exe`, with no parameters needed.
 
-# How to compile and run
+# Guide for vscode users
 
-These instructions are for the Windows platform exclusively, but it can work on Linux with some tiny modifications.
-
-1. Run `compile_shader_cpp.bat`. This shell script will compile all the shaders and run CMake to get the executable.
-2. Run the executable at path `./build/Release/vulkan.exe`.
+This project uses clangd as the language server, and clang-tidy as the linter. To use this project in vscode, you need to install the following extensions:
+LLVM: includes clangd and clang-tidy
 
 # Hardware Requirements
 
