@@ -49,7 +49,7 @@ vec4 customMixing(vec4 accum, vec4 thisTime, float alpha) {
 }
 
 void main() {
-  uv = ivec2(gl_GlobalInvocationID.xy);
+  uv     = ivec2(gl_GlobalInvocationID.xy);
   pixPos = imageLoad(posTex, uv);
 
   vec4 thisTimeTracingResult = imageLoad(rawTex, uv);
@@ -72,8 +72,7 @@ void main() {
   vec4 accumTracingResult = imageLoad(accumTex, uv2);
 
   // invalid prev accumTex || different prev mesh (not triangle)
-  if (accumTracingResult.a == 0 ||
-      imageLoad(meshHashTex1, uv) != imageLoad(meshHashTex2, uv2)) {
+  if (accumTracingResult.a == 0 || imageLoad(meshHashTex1, uv) != imageLoad(meshHashTex2, uv2)) {
     alpha = 1;
   }
 

@@ -26,28 +26,25 @@ vec3 positionAtUV, normalAtUV;
 vec4 colorAtUV;
 float luminanceAtUV, depthAtUV;
 
-void blurKernel(int indexX, inout float sumOfWeights,
-                inout vec4 sumOfWeightedValues) {
+void blurKernel(int indexX, inout float sumOfWeights, inout vec4 sumOfWeightedValues) {
   int x = int((indexX - kernalHalfSize) * pow(2, ubo.i));
   int y = 0;
 
   float weightDistFalloff = weightsATrous[indexX];
 
-  float luminanceAtSample =
-      rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
+  float luminanceAtSample    = rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
-  float weightC = exp(-differenceInColorVec * 3);
+  float weightC              = exp(-differenceInColorVec * 3);
 
   // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
-  float weightN = max(0., pow(dot(normalAtSample, normalAtUV), 128.));
+  float weightN       = max(0., pow(dot(normalAtSample, normalAtUV), 128.));
 
   // ---- method SVGF
   float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float weightFac = abs(depthAtUV - depthAtSample) /
-                    (abs(dot(gradientAtUV, vec2(x, y))) + epsilon);
-  weightFac = min(weightFac, 1);
-  float weightZ = exp(-weightFac);
+  float weightFac = abs(depthAtUV - depthAtSample) / (abs(dot(gradientAtUV, vec2(x, y))) + epsilon);
+  weightFac       = min(weightFac, 1);
+  float weightZ   = exp(-weightFac);
   // ---- end of SVGF
 
   float weight = weightDistFalloff * weightN * weightZ * weightC;
@@ -58,18 +55,18 @@ void blurKernel(int indexX, inout float sumOfWeights,
 }
 
 void main() {
-  uv = ivec2(gl_GlobalInvocationID.xy);
+  uv             = ivec2(gl_GlobalInvocationID.xy);
   vec2 imageSize = vec2(imageSize(blurHTex));
 
-  colorAtUV = imageLoad(aTrousTex1, uv);
+  colorAtUV     = imageLoad(aTrousTex1, uv);
   luminanceAtUV = rgbToLuminance(colorAtUV);
-  positionAtUV = imageLoad(posTex, uv).xyz;
-  normalAtUV = imageLoad(normalTex, uv).xyz;
-  depthAtUV = imageLoad(depthTex, uv).x;
+  positionAtUV  = imageLoad(posTex, uv).xyz;
+  normalAtUV    = imageLoad(normalTex, uv).xyz;
+  depthAtUV     = imageLoad(depthTex, uv).x;
 
-  float dep4 = imageLoad(depthTex, uv + ivec2(0, 0)).x;
-  float dep5 = imageLoad(depthTex, uv + ivec2(1, 0)).x;
-  float dep7 = imageLoad(depthTex, uv + ivec2(0, 1)).x;
+  float dep4     = imageLoad(depthTex, uv + ivec2(0, 0)).x;
+  float dep5     = imageLoad(depthTex, uv + ivec2(1, 0)).x;
+  float dep7     = imageLoad(depthTex, uv + ivec2(0, 1)).x;
   gradientAtUV.x = dep5 - dep4;
   gradientAtUV.y = dep7 - dep4;
 
@@ -80,9 +77,9 @@ void main() {
     return;
   }
 
-  float sumOfWeights = 0;
+  float sumOfWeights       = 0;
   vec4 sumOfWeightedValues = vec4(0);
-  vec4 weightedColor = vec4(0);
+  vec4 weightedColor       = vec4(0);
 
   for (int indexX = 0; indexX < kernelSize; indexX++) {
     blurKernel(indexX, sumOfWeights, sumOfWeightedValues);
@@ -94,6 +91,5 @@ void main() {
   if (true)
     imageStore(blurHTex, uv, weightedColor);
   else
-    imageStore(blurHTex, uv,
-               vec4(exp(-depthAtUV), exp(-depthAtUV), exp(-depthAtUV), 1));
+    imageStore(blurHTex, uv, vec4(exp(-depthAtUV), exp(-depthAtUV), exp(-depthAtUV), 1));
 }

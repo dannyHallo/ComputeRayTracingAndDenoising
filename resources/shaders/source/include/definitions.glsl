@@ -44,10 +44,10 @@ const float deg2Rad = 0.0174532925;
 
 onb Onb(vec3 n) {
   onb res;
-  res.w = normalize(n);
+  res.w  = normalize(n);
   vec3 a = (abs(res.w.x) > 0.9) ? vec3(0, 1, 0) : vec3(1, 0, 0);
-  res.v = normalize(cross(res.w, a));
-  res.u = cross(res.w, res.v);
+  res.v  = normalize(cross(res.w, a));
+  res.u  = cross(res.w, res.v);
   return res;
 }
 

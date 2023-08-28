@@ -5,20 +5,20 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 layout(binding = 0, rg32f) uniform image2D varPairTex;
 layout(binding = 1, r32f) uniform image2D varFilteredTex;
 
-const int kernelSize = 1;
-int kernelHalfSize = (kernelSize - 1) / 2;
-float sigma = float(kernelHalfSize) / 3;
+const int kernelSize   = 1;
+int kernelHalfSize     = (kernelSize - 1) / 2;
+float sigma            = float(kernelHalfSize) / 3;
 float sigmaDenominator = 1 / max(1e-5, 2. * sigma * sigma);
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
 
-  float sumOfWeights = 0;
+  float sumOfWeights        = 0;
   float sumOfWeightedValues = 0;
 
   for (int x = -kernelHalfSize; x <= kernelHalfSize; x++) {
     for (int y = -kernelHalfSize; y <= kernelHalfSize; y++) {
-      vec2 varPair = imageLoad(varPairTex, uv + ivec2(x, y)).xy;
+      vec2 varPair   = imageLoad(varPairTex, uv + ivec2(x, y)).xy;
       float variance = max(0., varPair.y - varPair.x * varPair.x);
 
       float weight = exp(-(x * x + y * y) * sigmaDenominator);

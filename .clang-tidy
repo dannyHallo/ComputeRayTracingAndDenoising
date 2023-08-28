@@ -10,11 +10,13 @@ misc-*,
 
 modernize-*,
 -modernize-use-trailing-return-type,
+-modernize-avoid-c-arrays,
 
 cppcoreguidelines-*,
 -cppcoreguidelines-pro-type-vararg,
 -cppcoreguidelines-avoid-non-const-global-variables,
 -cppcoreguidelines-non-private-member-variables-in-classes,
+-cppcoreguidelines-avoid-c-arrays,
 
 -readability-identifier-length,
 "

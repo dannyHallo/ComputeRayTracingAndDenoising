@@ -30,10 +30,10 @@ class Application {
   // A three- or four-component vector, with components of size N, has a base alignment of 4 N.
   // https://fvcaputo.github.io/2019/02/06/memory-alignment.html
   struct RtxUniformBufferObject {
-    alignas(16) glm::vec3 camPosition;
-    alignas(16) glm::vec3 camFront;
-    alignas(16) glm::vec3 camUp;
-    alignas(16) glm::vec3 camRight;
+    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camPosition;
+    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
+    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
+    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camRight;
     float vfov;
     float time;
     uint32_t currentSample;
@@ -150,7 +150,7 @@ private:
   VkCommandBuffer beginSingleTimeCommands();
 
   // end single time commands
-  void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+  static void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
   // initialize GUI
   void initGui();

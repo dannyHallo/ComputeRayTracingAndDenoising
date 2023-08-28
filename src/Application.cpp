@@ -2,8 +2,9 @@
 
 Camera camera{};
 
-void mouseCallback(GLFWwindow *window, double xpos, double ypos) {
-  static float lastX, lastY;
+void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
+  static float lastX;
+  static float lastY;
   static bool firstMouse = true;
 
   if (firstMouse) {
@@ -32,7 +33,7 @@ void check_vk_result(VkResult resultCode) { logger::checkStep("check_vk_result",
 
 void Application::initScene() {
   // equals to descriptor sets size
-  uint32_t swapchainSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize());
+  auto swapchainSize = static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize());
 
   // creates material, loads models from files, creates bvh
   mRtScene = std::make_shared<GpuModel::Scene>();
@@ -235,9 +236,9 @@ void Application::initScene() {
 
 void Application::updateScene(uint32_t currentImage) {
   static uint32_t currentSample = 0;
-  static glm::mat4 lastMvpe{1.0f};
+  static glm::mat4 lastMvpe{1.0F};
 
-  float currentTime = (float)glfwGetTime();
+  auto currentTime = static_cast<float>(glfwGetTime());
 
   RtxUniformBufferObject rtxUbo = {camera.position,
                                    camera.front,
@@ -629,8 +630,9 @@ VkCommandBuffer Application::beginSingleTimeCommands() {
   allocInfo.commandBufferCount = 1;
 
   if (vkAllocateCommandBuffers(vulkanApplicationContext.getDevice(), &allocInfo, &commandBuffer) !=
-      VK_SUCCESS)
+      VK_SUCCESS) {
     logger::print("failed to allocate command buffers!");
+  }
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -693,8 +695,9 @@ void Application::initGui() {
 
   // Create fonts texture
   VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-  if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer))
+  if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer)) {
     logger::print("failed to create fonts texture");
+  }
   endSingleTimeCommands(commandBuffer);
 }
 
@@ -715,7 +718,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   renderPassInfo.renderArea.extent     = vulkanApplicationContext.getSwapchainExtent();
 
   VkClearValue clearValue{};
-  clearValue.color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+  clearValue.color = {{0.0F, 0.0F, 0.0F, 1.0F}};
 
   renderPassInfo.clearValueCount = 1;
   renderPassInfo.pClearValues    = &clearValue;
@@ -737,14 +740,16 @@ void Application::drawFrame() {
                   VK_TRUE, UINT64_MAX);
   vkResetFences(vulkanApplicationContext.getDevice(), 1, &mFramesInFlightFences[currentFrame]);
 
-  uint32_t imageIndex;
-  VkResult result = vkAcquireNextImageKHR(
+  uint32_t imageIndex = 0;
+  VkResult result     = vkAcquireNextImageKHR(
       vulkanApplicationContext.getDevice(), vulkanApplicationContext.getSwapchain(), UINT64_MAX,
       mImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
     return;
-  } else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+  }
+
+  if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     // sub-optimal: a swapchain no longer matches the surface properties
     // exactly, but can still be used to present to the surface successfully
     logger::throwError("resizing is not allowed!");
@@ -769,7 +774,7 @@ void Application::drawFrame() {
 
     // wait for no stage
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
-    submitInfo.pWaitDstStageMask      = waitStages;
+    submitInfo.pWaitDstStageMask      = static_cast<VkPipelineStageFlags *>(waitStages);
 
     submitInfo.commandBufferCount = static_cast<uint32_t>(submitCommandBuffers.size());
     submitInfo.pCommandBuffers    = submitCommandBuffers.data();
@@ -811,8 +816,9 @@ void Application::prepareGui() {
 
   ImGui::Begin("little gui ( press TAB to use me )");
   ImGui::Text("%s", (std::to_string(static_cast<int>(mFps)) + " frames per second").c_str());
+  const float kMsInSec = 1000.0F;
   ImGui::Text("%s",
-              (std::to_string(static_cast<int>(mFrameTime * 1000)) + " ms per frame").c_str());
+              (std::to_string(static_cast<int>(mFrameTime * kMsInSec)) + " ms per frame").c_str());
 
   ImGui::Separator();
 
@@ -832,15 +838,16 @@ void Application::prepareGui() {
 }
 
 void Application::mainLoop() {
-  static float fpsFrameCount = 0, fpsRecordLastTime = 0;
+  static float fpsFrameCount     = 0;
+  static float fpsRecordLastTime = 0;
 
-  while (!glfwWindowShouldClose(vulkanApplicationContext.getWindow())) {
+  while (glfwWindowShouldClose(vulkanApplicationContext.getWindow()) == 0) {
     glfwPollEvents();
 
     prepareGui();
 
     fpsFrameCount++;
-    float currentTime    = static_cast<float>(glfwGetTime());
+    auto currentTime     = static_cast<float>(glfwGetTime());
     mDeltaTime           = currentTime - mFrameRecordLastTime;
     mFrameRecordLastTime = currentTime;
 

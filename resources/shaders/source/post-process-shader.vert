@@ -8,6 +8,6 @@ layout(location = 2) in vec2 inTexColor;
 layout(location = 0) out vec2 outTexColor;
 
 void main() {
-    gl_Position = vec4(inPosition, 1.0);
-    outTexColor = inTexColor;
+  gl_Position = vec4(inPosition, 1.0);
+  outTexColor = inTexColor;
 }

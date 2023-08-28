@@ -2,8 +2,8 @@
 
 const float pi = 3.1415926535897932385;
 
-uint index = ubo.currentSample + gl_GlobalInvocationID.x +
-             imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
+uint index =
+    ubo.currentSample + gl_GlobalInvocationID.x + imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
 
 uint rngState = index * ubo.currentSample + 1;
 
@@ -28,7 +28,7 @@ uint hash(uvec4 v) { return hash(v.x ^ hash(v.y) ^ hash(v.z) ^ hash(v.w)); }
 // below 1.0.
 float floatConstruct(uint m) {
   const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask
-  const uint ieeeOne = 0x3F800000u;      // 1.0 in IEEE binary32
+  const uint ieeeOne      = 0x3F800000u; // 1.0 in IEEE binary32
 
   m &= ieeeMantissa; // Keep only mantissa bits (fractional part)
   m |= ieeeOne;      // Add fractional part to 1.0
@@ -53,20 +53,16 @@ float random() {
 float random(float min, float max) { return min + (max - min) * random(); }
 
 vec2 random_uv_test1() {
-  uint randOffsetInPixel =
-      hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
+  uint randOffsetInPixel = hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
   vec2 rand =
-      ldsNoise2d(gl_GlobalInvocationID.x + uint(ubo.currentSample) * 19937u +
-                     randOffsetInPixel,
-                 gl_GlobalInvocationID.y + uint(ubo.currentSample) * 3719u +
-                     randOffsetInPixel);
+      ldsNoise2d(gl_GlobalInvocationID.x + uint(ubo.currentSample) * 19937u + randOffsetInPixel,
+                 gl_GlobalInvocationID.y + uint(ubo.currentSample) * 3719u + randOffsetInPixel);
   return rand;
 }
 
 vec2 random_uv_test2() {
-  uint randOffsetInPixel =
-      hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
-  vec2 rand = ldsNoise(randOffsetInPixel + ubo.currentSample);
+  uint randOffsetInPixel = hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
+  vec2 rand              = ldsNoise(randOffsetInPixel + ubo.currentSample);
   return rand;
 }
 
@@ -84,7 +80,7 @@ vec3 random_in_unit_sphere() {
   // Rx random
   vec2 randomUV = random_uv();
 
-  float phi = acos(1 - 2 * randomUV.x);
+  float phi   = acos(1 - 2 * randomUV.x);
   float theta = 2 * pi * randomUV.y;
 
   float x = sin(phi) * cos(theta);
@@ -105,11 +101,11 @@ vec3 random_in_hemisphere(vec3 normal) {
 vec3 random_cosine_direction() {
   float r1 = random();
   float r2 = random();
-  float z = sqrt(1 - r2);
+  float z  = sqrt(1 - r2);
 
   float phi = 2 * pi * r1;
-  float x = cos(phi) * sqrt(r2);
-  float y = sin(phi) * sqrt(r2);
+  float x   = cos(phi) * sqrt(r2);
+  float y   = sin(phi) * sqrt(r2);
 
   return vec3(x, y, z);
 }
