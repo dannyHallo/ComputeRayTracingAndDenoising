@@ -7,6 +7,7 @@ set_languages("c++17")
 set_toolchains("clang")
 
 add_rules("mode.debug", "mode.release")
+add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})
 
 target("main")
     set_default(true)

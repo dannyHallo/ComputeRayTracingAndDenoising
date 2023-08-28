@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GLFW/glfw3.h"
+#include "glfw3.h"
 #ifdef APIENTRY
 #undef APIENTRY
 #endif
@@ -33,7 +33,8 @@ class Window {
   GLFWmonitor *mMonitor;
 
 public:
-  Window(int windowSize = WindowSize::FULLSCREEN, uint32_t widthIfWindowed = 1280, uint32_t heightIfWindowed = 1280);
+  Window(int windowSize = WindowSize::FULLSCREEN,
+         uint32_t widthIfWindowed = 1280, uint32_t heightIfWindowed = 1280);
   ~Window() { glfwDestroyWindow(mWindow); }
 
   GLFWwindow *getWindow() const { return mWindow; }
@@ -45,8 +46,11 @@ public:
   void hideCursor();
   void toggleCursor();
 
-  void disableInputBit(uint32_t bitToBeDisabled) { mKeyInputBits &= ~bitToBeDisabled; }
+  void disableInputBit(uint32_t bitToBeDisabled) {
+    mKeyInputBits &= ~bitToBeDisabled;
+  }
 
 private:
-  static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+  static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
+                          int mods);
 };

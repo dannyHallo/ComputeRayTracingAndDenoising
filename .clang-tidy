@@ -1,0 +1,28 @@
+---
+Checks: "
+-*,
+bugprone-*,
+performance-*,
+readability-*,
+
+misc-*,
+-misc-non-private-member-variables-in-classes,
+
+modernize-*,
+-modernize-use-trailing-return-type,
+
+cppcoreguidelines-*,
+-cppcoreguidelines-pro-type-vararg,
+-cppcoreguidelines-avoid-non-const-global-variables,
+-cppcoreguidelines-non-private-member-variables-in-classes,
+
+-readability-identifier-length,
+"
+
+WarningsAsErrors: ""
+HeaderFilterRegex: ""
+FormatStyle: llvm
+CheckOptions:
+  bugprone-easily-swappable-parameters.MinimumLength: 3
+---
+
