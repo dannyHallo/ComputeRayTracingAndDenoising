@@ -2,7 +2,7 @@
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 
-// VOLK_IMPLEMENTATION lets volk to define the functions, by letting volk.h include vold.c
+// VOLK_IMPLEMENTATION lets volk define the functions, by letting volk.h include volk.c
 // this must only be defined in one translation unit
 #define VOLK_IMPLEMENTATION
 #include "VulkanApplicationContext.h"
@@ -10,12 +10,50 @@
 #include "memory/Image.h"
 #include "utils/logger.h"
 
+#include "window/FullscreenWindow.h"
+#include "window/HoverWindow.h"
+#include "window/MaximizedWindow.h"
+
+#include <algorithm>
+#include <cstdint>
+
 VulkanApplicationContext vulkanApplicationContext{};
 
-VulkanApplicationContext::VulkanApplicationContext() : mWindow() {
+static const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
+static const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
+static const bool enableDebug = false;
+
+void VulkanApplicationContext::QueueFamilyIndices::print() {
+  if (graphicsFamily.has_value()) {
+    std::cout << "Graphics Family: " << graphicsFamily.value() << std::endl;
+  } else {
+    std::cout << "Graphics Family: not assigned" << std::endl;
+  }
+  if (presentFamily.has_value()) {
+    std::cout << "Present Family: " << presentFamily.value() << std::endl;
+  } else {
+    std::cout << "Present Family: not assigned" << std::endl;
+  }
+  if (computeFamily.has_value()) {
+    std::cout << "Compute Family: " << computeFamily.value() << std::endl;
+  } else {
+    std::cout << "Compute Family: not assigned" << std::endl;
+  }
+  if (transferFamily.has_value()) {
+    std::cout << "Transfer Family: " << transferFamily.value() << std::endl;
+  } else {
+    std::cout << "Transfer Family: not assigned" << std::endl;
+  }
+}
+
+VulkanApplicationContext::VulkanApplicationContext() {
   VkResult result = volkInitialize();
   logger::checkStep("volkInitialize", result);
+
+  // TODO:
+  mWindow = std::make_unique<HoverWindow>(1920, 1080);
+  // mWindow = std::make_unique<Window>(WindowStyle::MAXIMAZED);
 
   createInstance();
 
@@ -36,13 +74,15 @@ VulkanApplicationContext::VulkanApplicationContext() : mWindow() {
 }
 
 VulkanApplicationContext::~VulkanApplicationContext() {
-  logger::print("Destroying object with type: VulkanApplicationContext");
+  logger::print("Destroying VulkanApplicationContext");
 
   vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
   vmaDestroyAllocator(mAllocator);
 
-  for (size_t i = 0; i < mSwapchainImageViews.size(); i++)
-    vkDestroyImageView(mDevice, mSwapchainImageViews[i], nullptr);
+  for (auto &mSwapchainImageView : mSwapchainImageViews) {
+    vkDestroyImageView(mDevice, mSwapchainImageView, nullptr);
+  }
+
   mSwapchainImageViews.clear();
 
   vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
@@ -52,20 +92,25 @@ VulkanApplicationContext::~VulkanApplicationContext() {
   vkDestroyDevice(mDevice, nullptr);
   mDevice = nullptr;
 
-  if (enableDebug) vkDestroyDebugUtilsMessengerEXT(mInstance, mDebugMessager, nullptr);
+  if (enableDebug) {
+    vkDestroyDebugUtilsMessengerEXT(mInstance, mDebugMessager, nullptr);
+  }
 
   vkDestroyInstance(mInstance, nullptr);
 }
 
 bool VulkanApplicationContext::checkValidationLayerSupport() {
-  uint32_t layerCount;
+  uint32_t layerCount = 0;
   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
   std::vector<VkLayerProperties> availableLayers(layerCount);
   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
   // logger::print all availiable layers
   logger::print("available validation layers", availableLayers.size());
-  for (const auto &layerProperty : availableLayers) logger::print("\t", layerProperty.layerName);
+  for (const auto &layerProperty : availableLayers) {
+    logger::print("\t", static_cast<const char *>(layerProperty.layerName));
+  }
+
   logger::print();
 
   // for each validation layer, we check for its validity from the avaliable layer pool
@@ -73,12 +118,14 @@ bool VulkanApplicationContext::checkValidationLayerSupport() {
     bool layerFound = false;
 
     for (const auto &layerProperties : availableLayers) {
-      if (strcmp(layerName, layerProperties.layerName) == 0) {
+      if (strcmp(layerName, static_cast<const char *>(layerProperties.layerName)) == 0) {
         layerFound = true;
         break;
       }
     }
-    if (!layerFound) return false;
+    if (!layerFound) {
+      return false;
+    }
   }
   return true;
 }
@@ -87,7 +134,7 @@ bool VulkanApplicationContext::checkValidationLayerSupport() {
 std::vector<const char *> VulkanApplicationContext::getRequiredInstanceExtensions() {
   // Get glfw required extensions
   uint32_t glfwExtensionCount = 0;
-  const char **glfwExtensions;
+  const char **glfwExtensions = nullptr;
 
   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
   std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
@@ -95,22 +142,24 @@ std::vector<const char *> VulkanApplicationContext::getRequiredInstanceExtension
   // Due to the nature of the Vulkan interface, there is very little error information available to the developer and
   // application. By using the VK_EXT_debug_utils extension, developers can obtain more information. When combined with
   // validation layers, even more detailed feedback on the application’s use of Vulkan will be provided.
-  if (enableDebug) extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  if (enableDebug) {
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+  }
 
   return extensions;
 }
 
 // we can change the color of the debug messages from this callback function!
 // in this case, we change the debug messages to red
-VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                             VkDebugUtilsMessageTypeFlagsEXT messageType,
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
+                                             VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
                                              const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                             void *pUserData) {
-  std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+                                             void * /*pUserData*/) {
 
   // we may change display color according to its importance level
-  // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+  // if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT){...}
 
+  std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
   return VK_FALSE;
 }
 
@@ -188,7 +237,9 @@ void VulkanApplicationContext::createInstance() {
 
 // setup runtime debug messager
 void VulkanApplicationContext::setupDebugMessager() {
-  if (!enableDebug) return;
+  if (!enableDebug) {
+    return;
+  }
 
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessagerInfo(createInfo);
@@ -198,7 +249,7 @@ void VulkanApplicationContext::setupDebugMessager() {
 }
 
 void VulkanApplicationContext::createSurface() {
-  VkResult result = glfwCreateWindowSurface(mInstance, mWindow.getWindow(), nullptr, &mSurface);
+  VkResult result = glfwCreateWindowSurface(mInstance, mWindow->getWindow(), nullptr, &mSurface);
   logger::checkStep("glfwCreateWindowSurface", result);
 }
 
@@ -304,8 +355,8 @@ VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysic
     VkPhysicalDeviceMemoryProperties memoryProperty;
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperty);
 
-    auto heapsPointer = memoryProperty.memoryHeaps;
-    auto heaps        = std::vector<VkMemoryHeap>(heapsPointer, heapsPointer + memoryProperty.memoryHeapCount);
+    auto *heapsPointer = static_cast<VkMemoryHeap *>(memoryProperty.memoryHeaps);
+    auto heaps         = std::vector<VkMemoryHeap>(heapsPointer, heapsPointer + memoryProperty.memoryHeapCount);
 
     size_t deviceMemory = 0;
     for (const auto &heap : heaps) {
@@ -318,8 +369,9 @@ VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysic
     // MSAA
     VkSampleCountFlagBits msaaSamples = getDeviceMaxUsableSampleCount(physicalDevice);
 
-    std::cout << "Device " << deviceId << "    " << deviceProperty.deviceName << "    Memory in bytes: " << deviceMemory
-              << "    MSAA max sample count: " << msaaSamples << "    Mark: " << deviceMarks[deviceId] << "\n";
+    std::cout << "Device " << deviceId << "    " << static_cast<const char *>(deviceProperty.deviceName)
+              << "    Memory in bytes: " << deviceMemory << "    MSAA max sample count: " << msaaSamples
+              << "    Mark: " << deviceMarks[deviceId] << "\n";
 
     deviceId++;
   }
@@ -344,7 +396,7 @@ VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysic
   } else {
     VkPhysicalDeviceProperties bestDeviceProperty;
     vkGetPhysicalDeviceProperties(bestDevice, &bestDeviceProperty);
-    std::cout << "Selected: " << bestDeviceProperty.deviceName << std::endl;
+    std::cout << "Selected: " << static_cast<const char *>(bestDeviceProperty.deviceName) << std::endl;
     logger::print();
 
     checkDeviceSuitable(mSurface, bestDevice);
@@ -431,6 +483,47 @@ VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice) {
   return indices;
 }
 
+// VulkanApplicationContext::QueueFamilyIndices
+// VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice) {
+//   QueueFamilyIndices indices;
+
+//   uint32_t queueFamilyCount = 0;
+//   vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+//   std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+//   vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+//   logger::print("queue family count", queueFamilyCount);
+//   for (uint32_t i = 0; i < queueFamilyCount; ++i) {
+//     const auto &queueFamily = queueFamilies[i];
+
+//     if ((queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0) {
+//       if (!indices.computeFamily.has_value()) {
+//         indices.computeFamily = i;
+//       }
+//     }
+
+//     if ((queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) != 0) {
+//       if (!indices.transferFamily.has_value()) {
+//         indices.transferFamily = i;
+//       }
+//     }
+
+//     if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0) {
+//       if (!indices.graphicsFamily.has_value()) {
+//         indices.graphicsFamily = i;
+//       }
+
+//       uint32_t presentSupport = 0;
+//       vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, mSurface, &presentSupport);
+//       if (presentSupport != 0) {
+//         indices.presentFamily = i;
+//       }
+//     }
+//   }
+
+//   return indices;
+// }
+
 // pick the most suitable physical device, and create logical device from it
 void VulkanApplicationContext::createDevice() {
   // pick the physical device with the best performance
@@ -439,7 +532,9 @@ void VulkanApplicationContext::createDevice() {
 
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(mInstance, &deviceCount, nullptr);
-    if (deviceCount == 0) logger::throwError("failed to find GPUs with Vulkan support!");
+    if (deviceCount == 0) {
+      logger::throwError("failed to find GPUs with Vulkan support!");
+    }
 
     std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
     vkEnumeratePhysicalDevices(mInstance, &deviceCount, physicalDevices.data());
@@ -457,7 +552,7 @@ void VulkanApplicationContext::createDevice() {
         queueFamilyIndices.computeFamily.value(), queueFamilyIndices.transferFamily.value()};
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    float queuePriority = 1.0f; // ranges from 0 - 1.;
+    float queuePriority = 1.F; // ranges from 0 - 1.;
     for (uint32_t queueFamilyIndex : queueFamilyIndicesSet) {
       VkDeviceQueueCreateInfo queueCreateInfo{VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
       queueCreateInfo.queueFamilyIndex = queueFamilyIndex;
@@ -569,7 +664,9 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>
 VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR> &availablePresentModes) {
   // our preferance: Mailbox present mode
   for (const auto &availablePresentMode : availablePresentModes) {
-    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) return availablePresentMode;
+    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+      return availablePresentMode;
+    }
   }
 
   logger::print("Present mode preferance doesn't meet, switching to FIFO");
@@ -585,7 +682,7 @@ VkExtent2D VulkanApplicationContext::getSwapExtent(const VkSurfaceCapabilitiesKH
     return capabilities.currentExtent;
   } else {
     int width, height;
-    glfwGetFramebufferSize(mWindow.getWindow(), &width, &height);
+    glfwGetFramebufferSize(mWindow->getWindow(), &width, &height);
 
     VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
     actualExtent.width =

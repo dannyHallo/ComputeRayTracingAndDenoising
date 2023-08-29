@@ -1,19 +1,19 @@
 #include "Window.h"
 #include "utils/logger.h"
 
-// static class variable functions like extern variables, they have external linkage and static storage duration
-// we define this window pointer here as a handle in glfw callback function, it will be initialized after the first
+// we define this window po
+// inter here as a handle in glfw callback function, it will be initialized after the first
 // construction of this class
 Window *Window::thisWindowClass = nullptr;
 
-Window::Window(int windowSize, uint32_t widthIfWindowed, uint32_t heightIfWindowed)
-    : mWindowSize(windowSize), mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed),
-      mCursorState(CursorState::INVISIBLE), mKeyInputBits(0) {
+Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowed)
+    : mWindowStyle(windowStyle), mCursorState(CursorState::INVISIBLE), mWidthIfWindowed(widthIfWindowed),
+      mHeightIfWindowed(heightIfWindowed), mKeyInputBits(0) {
   thisWindowClass = this;
+  assert(glfwInit() == GLFW_TRUE && "Failed to initialize GLFW");
 
-  glfwInit();
-
-  mMonitor                = glfwGetPrimaryMonitor();    // get primary monitor for future maximize function
+  mMonitor = glfwGetPrimaryMonitor();
+  // get primary monitor for future maximize function
   const GLFWvidmode *mode = glfwGetVideoMode(mMonitor); // may be used to change mode for this program
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // only OpenGL Api is supported, so no API here
@@ -24,23 +24,24 @@ Window::Window(int windowSize, uint32_t widthIfWindowed, uint32_t heightIfWindow
   glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt framerate
 
   // set window size
-  switch (windowSize) {
-  case WindowSize::FULLSCREEN:
+  switch (windowStyle) {
+  case WindowStyle::FULLSCREEN:
     mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...", mMonitor, nullptr);
     break;
-  case WindowSize::MAXIMAZED:
+  case WindowStyle::MAXIMAZED:
     mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...", nullptr, nullptr);
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
     break;
-  case WindowSize::HOVER:
+  case WindowStyle::HOVER:
     mWindow = glfwCreateWindow(mWidthIfWindowed, mHeightIfWindowed, "Loading window...", nullptr, nullptr);
     break;
   }
 
-  if (mCursorState == CursorState::INVISIBLE)
+  if (mCursorState == CursorState::INVISIBLE) {
     hideCursor();
-  else
+  } else {
     showCursor();
+  }
 
   glfwSetKeyCallback(mWindow, keyCallback);
 }
@@ -53,20 +54,22 @@ void Window::showCursor() {
 void Window::hideCursor() {
   glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-  if (glfwRawMouseMotionSupported()) glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+  if (glfwRawMouseMotionSupported() != 0) {
+    glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+  }
 
   mCursorState = CursorState::INVISIBLE;
 }
 
 void Window::toggleCursor() {
-  if (mCursorState == CursorState::INVISIBLE)
+  if (mCursorState == CursorState::INVISIBLE) {
     showCursor();
-
-  else
+  } else {
     hideCursor();
+  }
 }
 
-void Window::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+void Window::keyCallback(GLFWwindow * /*window*/, int key, int /*scancode*/, int action, int /*mods*/) {
   if (action == GLFW_PRESS) {
     // Direction keycodes
     switch (key) {
@@ -98,11 +101,7 @@ void Window::keyCallback(GLFWwindow *window, int key, int scancode, int action, 
       thisWindowClass->mKeyInputBits |= TAB_BIT;
       break;
     }
-
-    return;
-  }
-
-  if (action == GLFW_RELEASE) {
+  } else if (action == GLFW_RELEASE) {
     switch (key) {
     case GLFW_KEY_W:
       thisWindowClass->mKeyInputBits &= ~W_BIT;

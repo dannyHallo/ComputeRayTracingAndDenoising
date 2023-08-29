@@ -36,7 +36,7 @@ target("main")
         "dep/memory-allocator-hpp"
     )
     add_linkdirs("C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22621.0/um/x64")
-    add_linkdirs("C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/lib/x64")
+    add_linkdirs("C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/lib/x64") -- for msvcrt
     add_links(
     "dep/glfw/Release/glfw3.lib", 
     "User32", 

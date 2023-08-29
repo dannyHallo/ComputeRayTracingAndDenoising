@@ -2,7 +2,7 @@
 Language: Cpp
 BasedOnStyle: LLVM
 AlignConsecutiveAssignments: Consecutive
-ColumnLimit: 100
+ColumnLimit: 120
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
 ---

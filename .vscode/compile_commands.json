@@ -76,8 +76,8 @@
 },
 {
   "directory": "E:\\ComputerGraphics\\work\\RTXInAWeekendWithVulkan",
-  "arguments": ["clang.exe", "-c", "-Qunused-arguments", "-m64", "-g", "-Wall", "-O0", "-std=c++17", "-Isrc", "-Idep", "-Idep\\spdlog\\include", "-Idep\\glfw", "-Idep\\glm", "-Idep\\imgui", "-Idep\\volk", "-Idep\\stb", "-Idep\\obj-loader", "-Idep\\memory-allocator-hpp", "-fexceptions", "-fcxx-exceptions", "-o", "build\\.objs\\main\\windows\\x64\\debug\\src\\utils\\Window.cpp.obj", "src\\utils\\Window.cpp"],
-  "file": "src\\utils\\Window.cpp"
+  "arguments": ["clang.exe", "-c", "-Qunused-arguments", "-m64", "-g", "-Wall", "-O0", "-std=c++17", "-Isrc", "-Idep", "-Idep\\spdlog\\include", "-Idep\\glfw", "-Idep\\glm", "-Idep\\imgui", "-Idep\\volk", "-Idep\\stb", "-Idep\\obj-loader", "-Idep\\memory-allocator-hpp", "-fexceptions", "-fcxx-exceptions", "-o", "build\\.objs\\main\\windows\\x64\\debug\\src\\window\\Window.cpp.obj", "src\\window\\Window.cpp"],
+  "file": "src\\window\\Window.cpp"
 },
 {
   "directory": "E:\\ComputerGraphics\\work\\RTXInAWeekendWithVulkan",

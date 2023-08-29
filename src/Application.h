@@ -1,11 +1,11 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
-#include <stdint.h>
 #include <vector>
 
 #include "app-context/VulkanApplicationContext.h"
@@ -43,7 +43,7 @@ class Application {
 
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
-    alignas(16) glm::mat4 lastMvpe;
+    alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
     uint swapchainWidth;
     uint swapchainHeight;
   };
@@ -59,11 +59,6 @@ class Application {
   // whether to use temporal and blur filtering
   bool mUseTemporal = true;
   bool mUseBlur     = true;
-
-  const int kATrousSize                   = 5;
-  const int kMaxFramesInFlight            = 2;
-  const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
-  const float kFpsUpdateTime              = 0.5f;
 
   // delta time and last recorded frame time
   float mDeltaTime = 0, mFrameRecordLastTime = 0;
@@ -105,10 +100,10 @@ class Application {
   std::vector<VkFramebuffer> mSwapchainGuiFrameBuffers;
 
   // render pass for GUI
-  VkRenderPass mImGuiPass;
+  VkRenderPass mImGuiPass = VK_NULL_HANDLE;
 
   // descriptor pool for GUI
-  VkDescriptorPool mGuiDescriptorPool;
+  VkDescriptorPool mGuiDescriptorPool = VK_NULL_HANDLE;
 
   // semaphores and fences for synchronization
   std::vector<VkSemaphore> mImageAvailableSemaphores;
@@ -117,7 +112,6 @@ class Application {
 
 public:
   Application()  = default;
-  ~Application() = default;
 
   void run();
 

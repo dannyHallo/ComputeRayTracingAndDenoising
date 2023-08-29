@@ -1,6 +1,7 @@
 #pragma once
 
-// use stl version of std::min(), std::max(), and ignore the macro function with the same name provided by windows.h
+// use stl version of std::min(), std::max(), and ignore the macro function with the same name
+// provided by windows.h
 #define NOMINMAX
 
 // this should be defined first for the definition of VK_VERSION_1_0, which is used in glfw3.h
@@ -13,7 +14,8 @@
 #endif
 // we undefine this to solve confiction with systemLog
 
-#include "utils/Window.h"
+#include "Window/Window.h"
+
 #include "vk_mem_alloc.h"
 
 #include <iostream>
@@ -23,102 +25,100 @@
 #include <vector>
 
 class VulkanApplicationContext {
+  // stores the indices of the each queue family, they might not overlap
   struct QueueFamilyIndices {
-    // the wrapper optional can call .has_value to determine whether this var is assigned or not.
-    // in case that they don't overlap
     std::optional<uint32_t> graphicsFamily;
     std::optional<uint32_t> presentFamily;
     std::optional<uint32_t> computeFamily;
     std::optional<uint32_t> transferFamily;
 
-    void print() {
-      std::cout << "Graphics Family: " << graphicsFamily.value() << std::endl;
-      std::cout << "Persent Family: " << presentFamily.value() << std::endl;
-      std::cout << "Compute Family: " << computeFamily.value() << std::endl;
-      std::cout << "Transfer Family: " << transferFamily.value() << std::endl;
-    }
+    void print();
 
-    bool isComplete() {
+    [[nodiscard]] bool isComplete() const {
       return graphicsFamily.has_value() && computeFamily.has_value() && transferFamily.has_value() &&
              presentFamily.has_value();
     }
   } queueFamilyIndices;
 
   struct SwapchainSupportDetails {
-    // Basic surface capabilities (min/max number of images in swap chain, min/max width and height of images) Surface
-    // formats (pixel format, color space) Available presentation modes
+    // Basic surface capabilities (min/max number of images in swap chain, min/max width and height
+    // of images) Surface formats (pixel format, color space) Available presentation modes
 
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
   } swapchainSupportDetails;
 
-  const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
-  const bool enableDebug                           = false;
-  const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
-  Window mWindow;
-  VkInstance mInstance;
-  VkSurfaceKHR mSurface;
-  VkPhysicalDevice mPhysicalDevice;
-  VkDevice mDevice;
-  VmaAllocator mAllocator;
+  std::unique_ptr<Window> mWindow  = nullptr;
+  VkInstance mInstance             = VK_NULL_HANDLE;
+  VkSurfaceKHR mSurface            = VK_NULL_HANDLE;
+  VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
+  VkDevice mDevice                 = VK_NULL_HANDLE;
+  VmaAllocator mAllocator          = VK_NULL_HANDLE;
 
   // These queues are implicitly cleaned up when the device is destroyed
-  VkQueue mGraphicsQueue;
-  VkQueue mPresentQueue;
-  VkQueue mComputeQueue;
-  VkQueue mTransferQueue;
+  VkQueue mGraphicsQueue = VK_NULL_HANDLE;
+  VkQueue mPresentQueue  = VK_NULL_HANDLE;
+  VkQueue mComputeQueue  = VK_NULL_HANDLE;
+  VkQueue mTransferQueue = VK_NULL_HANDLE;
 
-  VkDebugUtilsMessengerEXT mDebugMessager;
+  VkCommandPool mCommandPool    = VK_NULL_HANDLE;
+  VkCommandPool mGuiCommandPool = VK_NULL_HANDLE;
 
-  VkSwapchainKHR mSwapchain;
-  VkFormat mSwapchainImageFormat;
-  VkExtent2D mSwapchainExtent;
+  VkDebugUtilsMessengerEXT mDebugMessager = VK_NULL_HANDLE;
+
+  VkSwapchainKHR mSwapchain      = VK_NULL_HANDLE;
+  VkFormat mSwapchainImageFormat = VK_FORMAT_UNDEFINED;
+  VkExtent2D mSwapchainExtent{};
+
   std::vector<VkImage> mSwapchainImages;
   std::vector<VkImageView> mSwapchainImageViews;
-
-  VkCommandPool mCommandPool;
-  VkCommandPool mGuiCommandPool;
 
 public:
   VulkanApplicationContext();
   ~VulkanApplicationContext();
 
-  // find the indices of the queue families that support drawing commands and presentation respectively
-  VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
-                               VkFormatFeatureFlags features) const;
+  // disable move and copy
+  VulkanApplicationContext(const VulkanApplicationContext &)            = delete;
+  VulkanApplicationContext &operator=(const VulkanApplicationContext &) = delete;
+  VulkanApplicationContext(VulkanApplicationContext &&)                 = delete;
+  VulkanApplicationContext &operator=(VulkanApplicationContext &&)      = delete;
 
-  inline const VkInstance &getInstance() const { return mInstance; }
-  inline const VkDevice &getDevice() const { return mDevice; }
-  inline const VkSurfaceKHR &getSurface() const { return mSurface; }
-  inline const VkPhysicalDevice &getPhysicalDevice() const { return mPhysicalDevice; }
+  // find the indices of the queue families that support drawing commands and presentation
+  // respectively
+  [[nodiscard]] VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
+                                             VkFormatFeatureFlags features) const;
 
-  inline const VkCommandPool &getCommandPool() const { return mCommandPool; }
-  inline const VkCommandPool &getGuiCommandPool() const { return mGuiCommandPool; }
-  inline const VmaAllocator &getAllocator() const { return mAllocator; }
-  inline const std::vector<VkImage> &getSwapchainImages() const { return mSwapchainImages; }
-  inline const std::vector<VkImageView> &getSwapchainImageViews() const { return mSwapchainImageViews; }
-  inline const size_t getSwapchainSize() const { return mSwapchainImages.size(); }
-  inline const VkFormat &getSwapchainImageFormat() const { return mSwapchainImageFormat; }
-  inline const VkExtent2D &getSwapchainExtent() const { return mSwapchainExtent; }
-  inline const uint32_t getSwapchainExtentWidth() const { return mSwapchainExtent.width; }
-  inline const uint32_t getSwapchainExtentHeight() const { return mSwapchainExtent.height; }
-  inline const VkSwapchainKHR &getSwapchain() const { return mSwapchain; }
+  [[nodiscard]] inline const VkInstance &getInstance() const { return mInstance; }
+  [[nodiscard]] inline const VkDevice &getDevice() const { return mDevice; }
+  [[nodiscard]] inline const VkSurfaceKHR &getSurface() const { return mSurface; }
+  [[nodiscard]] inline const VkPhysicalDevice &getPhysicalDevice() const { return mPhysicalDevice; }
 
-  const VkQueue &getGraphicsQueue() const { return mGraphicsQueue; }
-  const VkQueue &getPresentQueue() const { return mPresentQueue; }
-  const VkQueue &getComputeQueue() const { return mComputeQueue; }
-  const VkQueue &getTransferQueue() const { return mTransferQueue; }
+  [[nodiscard]] inline const VkCommandPool &getCommandPool() const { return mCommandPool; }
+  [[nodiscard]] inline const VkCommandPool &getGuiCommandPool() const { return mGuiCommandPool; }
+  [[nodiscard]] inline const VmaAllocator &getAllocator() const { return mAllocator; }
+  [[nodiscard]] inline const std::vector<VkImage> &getSwapchainImages() const { return mSwapchainImages; }
+  [[nodiscard]] inline const std::vector<VkImageView> &getSwapchainImageViews() const { return mSwapchainImageViews; }
+  [[nodiscard]] inline size_t getSwapchainSize() const { return mSwapchainImages.size(); }
+  [[nodiscard]] inline const VkFormat &getSwapchainImageFormat() const { return mSwapchainImageFormat; }
+  [[nodiscard]] inline const VkExtent2D &getSwapchainExtent() const { return mSwapchainExtent; }
+  [[nodiscard]] inline uint32_t getSwapchainExtentWidth() const { return mSwapchainExtent.width; }
+  [[nodiscard]] inline uint32_t getSwapchainExtentHeight() const { return mSwapchainExtent.height; }
+  [[nodiscard]] inline const VkSwapchainKHR &getSwapchain() const { return mSwapchain; }
 
-  const uint32_t getGraphicsFamilyIndex() const { return queueFamilyIndices.graphicsFamily.value(); }
-  const uint32_t getPresentFamilyIndex() const { return queueFamilyIndices.presentFamily.value(); }
-  const uint32_t getComputeFamilyIndex() const { return queueFamilyIndices.computeFamily.value(); }
-  const uint32_t getTransferFamilyIndex() const { return queueFamilyIndices.transferFamily.value(); }
+  [[nodiscard]] const VkQueue &getGraphicsQueue() const { return mGraphicsQueue; }
+  [[nodiscard]] const VkQueue &getPresentQueue() const { return mPresentQueue; }
+  [[nodiscard]] const VkQueue &getComputeQueue() const { return mComputeQueue; }
+  [[nodiscard]] const VkQueue &getTransferQueue() const { return mTransferQueue; }
 
-  Window &getWindowClass() { return mWindow; }
-  GLFWwindow *getWindow() const { return mWindow.getWindow(); }
-  GLFWmonitor *getMonitor() const { return mWindow.getMonitor(); }
+  [[nodiscard]] uint32_t getGraphicsFamilyIndex() const { return queueFamilyIndices.graphicsFamily.value(); }
+  [[nodiscard]] uint32_t getPresentFamilyIndex() const { return queueFamilyIndices.presentFamily.value(); }
+  [[nodiscard]] uint32_t getComputeFamilyIndex() const { return queueFamilyIndices.computeFamily.value(); }
+  [[nodiscard]] uint32_t getTransferFamilyIndex() const { return queueFamilyIndices.transferFamily.value(); }
+
+  Window &getWindowClass() { return *mWindow; }
+  [[nodiscard]] GLFWwindow *getWindow() const { return mWindow->getWindow(); }
+  [[nodiscard]] GLFWmonitor *getMonitor() const { return mWindow->getMonitor(); }
 
 private:
   void initWindow(uint8_t windowSize);
@@ -130,8 +130,8 @@ private:
   void createCommandPool();
   void createAllocator();
 
-  bool checkValidationLayerSupport();
-  std::vector<const char *> getRequiredInstanceExtensions();
+  static bool checkValidationLayerSupport();
+  static std::vector<const char *> getRequiredInstanceExtensions();
   void checkDeviceSuitable(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice);
   bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice);
   QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice);
