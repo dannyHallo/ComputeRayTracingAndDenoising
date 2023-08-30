@@ -51,7 +51,6 @@ VulkanApplicationContext::VulkanApplicationContext() {
   VkResult result = volkInitialize();
   logger::checkStep("volkInitialize", result);
 
-  // TODO:
   mWindow = std::make_unique<HoverWindow>(1920, 1080);
   // mWindow = std::make_unique<Window>(WindowStyle::MAXIMAZED);
 

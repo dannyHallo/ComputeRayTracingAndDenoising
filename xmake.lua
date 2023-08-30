@@ -2,7 +2,7 @@ set_project("vulkan test")
 
 set_arch("x64")
 set_warnings("all")
-set_languages("c++17")
+set_languages("c++20")
 -- set_toolchains("msvc")
 set_toolchains("clang")
 
