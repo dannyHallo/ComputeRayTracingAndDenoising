@@ -5,9 +5,10 @@
 // VOLK_IMPLEMENTATION lets volk define the functions, by letting volk.h include volk.c
 // this must only be defined in one translation unit
 #define VOLK_IMPLEMENTATION
-#include "VulkanApplicationContext.h"
+#include "app-context/VulkanApplicationContext.h"
 
 #include "memory/Image.h"
+
 #include "utils/logger.h"
 
 #include "window/FullscreenWindow.h"
@@ -51,7 +52,8 @@ VulkanApplicationContext::VulkanApplicationContext() {
   VkResult result = volkInitialize();
   logger::checkStep("volkInitialize", result);
 
-  mWindow = std::make_unique<HoverWindow>(1920, 1080);
+  // mWindow = std::make_unique<HoverWindow>(1920, 1080);
+  // mWindow = std::make_unique<MaximizedWindow>();
   // mWindow = std::make_unique<Window>(WindowStyle::MAXIMAZED);
 
   createInstance();

@@ -12,7 +12,7 @@
 #ifdef APIENTRY
 #undef APIENTRY
 #endif
-// we undefine this to solve confiction with systemLog
+// we undefine this to solve conflict with systemLog
 
 #include "Window/Window.h"
 

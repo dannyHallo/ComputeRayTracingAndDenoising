@@ -18,36 +18,42 @@ class Image {
 
 public:
   // constructor when a new VkImage and VkImageView should be created
-  Image(uint32_t width, uint32_t height, const uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format,
+  Image(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format,
         VkImageTiling tiling, VkImageUsageFlags usage, VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage,
         VkImageLayout initialImageLayout = VK_IMAGE_LAYOUT_UNDEFINED);
 
   ~Image();
 
+  // disable move and copy
+  Image(const Image &)            = delete;
+  Image &operator=(const Image &) = delete;
+  Image(Image &&)                 = delete;
+  Image &operator=(Image &&)      = delete;
+
   VkImage &getVkImage() { return mVkImage; }
   VmaAllocation &getAllocation() { return mAllocation; }
   VkImageView &getImageView() { return mVkImageView; }
-  VkDescriptorImageInfo getDescriptorInfo(VkImageLayout imageLayout) const;
-  const uint32_t getWidth() const { return mWidth; }
-  const uint32_t getHeight() const { return mHeight; }
+  [[nodiscard]] VkDescriptorImageInfo getDescriptorInfo(VkImageLayout imageLayout) const;
+  [[nodiscard]] uint32_t getWidth() const { return mWidth; }
+  [[nodiscard]] uint32_t getHeight() const { return mHeight; }
 
-  void transitionImageLayout(VkImageLayout newLayout, const uint32_t mipLevels = 1);
+  void transitionImageLayout(VkImageLayout newLayout, uint32_t mipLevels = 1);
 
   void copyBufferToImage(const VkBuffer &buffer, uint32_t width, uint32_t height);
 
-  void generateMipmaps(VkFormat imageFormat, int32_t texWidth, int32_t texHeight, const uint32_t mipLevels);
+  //   void generateMipmaps(VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels);
 
-  void createTextureImage(const std::string &path, Image &allocatedImage, const uint32_t mipLevels);
+  void createTextureImage(const std::string &path, Image &allocatedImage, uint32_t mipLevels);
 
-  void createTextureSampler(std::shared_ptr<VkSampler> textureSampler, const uint32_t mipLevels);
+  void createTextureSampler(std::shared_ptr<VkSampler> textureSampler, uint32_t mipLevels);
 
   static VkImageView createImageView(const VkImage &image, VkFormat format, VkImageAspectFlags aspectFlags,
-                                     const uint32_t &mipLevels);
+                                     uint32_t mipLevels);
 
 private:
-  void createImage(uint32_t width, uint32_t height, const uint32_t mipLevels, VkSampleCountFlagBits numSamples,
-                   VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage,
-                   VkImageLayout initialImageLayout);
+  VkResult createImage(uint32_t width, uint32_t height, VkSampleCountFlagBits numSamples, uint32_t mipLevels,
+                       VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage,
+                       VkImageLayout initialImageLayout);
 };
 
 // class Texture {
