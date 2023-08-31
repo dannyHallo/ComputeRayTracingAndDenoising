@@ -19,12 +19,15 @@
 #include "vk_mem_alloc.h"
 
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
 #include <vector>
 
 class VulkanApplicationContext {
+  static std::unique_ptr<VulkanApplicationContext> sInstance;
+
   // stores the indices of the each queue family, they might not overlap
   struct QueueFamilyIndices {
     std::optional<uint32_t> graphicsFamily;
@@ -38,7 +41,7 @@ class VulkanApplicationContext {
       return graphicsFamily.has_value() && computeFamily.has_value() && transferFamily.has_value() &&
              presentFamily.has_value();
     }
-  } queueFamilyIndices;
+  } mQueueFamilyIndices;
 
   struct SwapchainSupportDetails {
     // Basic surface capabilities (min/max number of images in swap chain, min/max width and height
@@ -47,10 +50,10 @@ class VulkanApplicationContext {
     VkSurfaceCapabilitiesKHR capabilities;
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
-  } swapchainSupportDetails;
+  } mSwapchainSupportDetails;
 
   std::unique_ptr<Window> mWindow  = nullptr;
-  VkInstance mInstance             = VK_NULL_HANDLE;
+  VkInstance mVkInstance           = VK_NULL_HANDLE;
   VkSurfaceKHR mSurface            = VK_NULL_HANDLE;
   VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
   VkDevice mDevice                 = VK_NULL_HANDLE;
@@ -69,13 +72,14 @@ class VulkanApplicationContext {
 
   VkSwapchainKHR mSwapchain      = VK_NULL_HANDLE;
   VkFormat mSwapchainImageFormat = VK_FORMAT_UNDEFINED;
-  VkExtent2D mSwapchainExtent{};
+  VkExtent2D mSwapchainExtent    = {0, 0};
 
   std::vector<VkImage> mSwapchainImages;
   std::vector<VkImageView> mSwapchainImageViews;
 
 public:
-  VulkanApplicationContext();
+  static VulkanApplicationContext *getInstance();
+
   ~VulkanApplicationContext();
 
   // disable move and copy
@@ -89,7 +93,7 @@ public:
   [[nodiscard]] VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
                                              VkFormatFeatureFlags features) const;
 
-  [[nodiscard]] inline const VkInstance &getInstance() const { return mInstance; }
+  [[nodiscard]] inline const VkInstance &getVkInstance() const { return mVkInstance; }
   [[nodiscard]] inline const VkDevice &getDevice() const { return mDevice; }
   [[nodiscard]] inline const VkSurfaceKHR &getSurface() const { return mSurface; }
   [[nodiscard]] inline const VkPhysicalDevice &getPhysicalDevice() const { return mPhysicalDevice; }
@@ -111,16 +115,18 @@ public:
   [[nodiscard]] const VkQueue &getComputeQueue() const { return mComputeQueue; }
   [[nodiscard]] const VkQueue &getTransferQueue() const { return mTransferQueue; }
 
-  [[nodiscard]] uint32_t getGraphicsFamilyIndex() const { return queueFamilyIndices.graphicsFamily.value(); }
-  [[nodiscard]] uint32_t getPresentFamilyIndex() const { return queueFamilyIndices.presentFamily.value(); }
-  [[nodiscard]] uint32_t getComputeFamilyIndex() const { return queueFamilyIndices.computeFamily.value(); }
-  [[nodiscard]] uint32_t getTransferFamilyIndex() const { return queueFamilyIndices.transferFamily.value(); }
+  [[nodiscard]] uint32_t getGraphicsFamilyIndex() const { return mQueueFamilyIndices.graphicsFamily.value(); }
+  [[nodiscard]] uint32_t getPresentFamilyIndex() const { return mQueueFamilyIndices.presentFamily.value(); }
+  [[nodiscard]] uint32_t getComputeFamilyIndex() const { return mQueueFamilyIndices.computeFamily.value(); }
+  [[nodiscard]] uint32_t getTransferFamilyIndex() const { return mQueueFamilyIndices.transferFamily.value(); }
 
-  Window &getWindowClass() { return *mWindow; }
+  Window *getWindowClass() { return mWindow.get(); }
   [[nodiscard]] GLFWwindow *getWindow() const { return mWindow->getWindow(); }
   [[nodiscard]] GLFWmonitor *getMonitor() const { return mWindow->getMonitor(); }
 
 private:
+  VulkanApplicationContext();
+
   void initWindow(uint8_t windowSize);
   void createInstance();
   void setupDebugMessager();
@@ -139,5 +145,3 @@ private:
   VkPhysicalDevice selectBestDevice(std::vector<VkPhysicalDevice> physicalDevices);
   VkExtent2D getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
 };
-
-extern VulkanApplicationContext vulkanApplicationContext;

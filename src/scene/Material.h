@@ -16,7 +16,7 @@ template <typename T> struct Descriptor {
 class Material {
 
 public:
-  Material() : mSwapchainSize(static_cast<uint32_t>(vulkanApplicationContext.getSwapchainSize())) {}
+  Material() : mSwapchainSize(static_cast<uint32_t>(VulkanApplicationContext::getInstance()->getSwapchainSize())) {}
 
   virtual ~Material();
 

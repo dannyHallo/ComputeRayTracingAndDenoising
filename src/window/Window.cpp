@@ -62,11 +62,11 @@ void Window::hideCursor() {
 }
 
 void Window::toggleCursor() {
-  if (mCursorState == CursorState::INVISIBLE) {
-    showCursor();
-  } else {
-    hideCursor();
-  }
+  // if (mCursorState == CursorState::INVISIBLE) {
+  //   showCursor();
+  // } else {
+  //   hideCursor();
+  // }
 }
 
 void Window::keyCallback(GLFWwindow * /*window*/, int key, int /*scancode*/, int action, int /*mods*/) {

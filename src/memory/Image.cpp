@@ -24,7 +24,8 @@ VkImageView Image::createImageView(const VkImage &image, VkFormat format, VkImag
   viewInfo.subresourceRange.baseArrayLayer = 0;
   viewInfo.subresourceRange.layerCount     = 1;
 
-  VkResult result = vkCreateImageView(vulkanApplicationContext.getDevice(), &viewInfo, nullptr, &imageView);
+  VkResult result =
+      vkCreateImageView(VulkanApplicationContext::getInstance()->getDevice(), &viewInfo, nullptr, &imageView);
   logger::checkStep("vkCreateImageView", result);
 
   return imageView;
@@ -51,8 +52,8 @@ VkResult Image::createImage(uint32_t width, uint32_t height, VkSampleCountFlagBi
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage                   = memoryUsage;
 
-  return vmaCreateImage(vulkanApplicationContext.getAllocator(), &imageInfo, &vmaallocInfo, &mVkImage, &mAllocation,
-                        nullptr);
+  return vmaCreateImage(VulkanApplicationContext::getInstance()->getAllocator(), &imageInfo, &vmaallocInfo, &mVkImage,
+                        &mAllocation, nullptr);
 }
 
 Image::Image(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format,
@@ -70,9 +71,9 @@ Image::Image(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountF
 
 Image::~Image() {
   if (mVkImage != VK_NULL_HANDLE) {
-    vkDestroyImageView(vulkanApplicationContext.getDevice(), mVkImageView, nullptr);
-    vkDestroyImage(vulkanApplicationContext.getDevice(), mVkImage, nullptr);
-    vmaFreeMemory(vulkanApplicationContext.getAllocator(), mAllocation);
+    vkDestroyImageView(VulkanApplicationContext::getInstance()->getDevice(), mVkImageView, nullptr);
+    vkDestroyImage(VulkanApplicationContext::getInstance()->getDevice(), mVkImage, nullptr);
+    vmaFreeMemory(VulkanApplicationContext::getInstance()->getAllocator(), mAllocation);
   }
 }
 
@@ -148,7 +149,8 @@ void Image::copyBufferToImage(const VkBuffer &buffer, uint32_t width, uint32_t h
 // void Image::generateMipmaps(VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
 //   // Check if image format supports linear blitting
 //   VkFormatProperties formatProperties;
-//   vkGetPhysicalDeviceFormatProperties(vulkanApplicationContext.getPhysicalDevice(), imageFormat, &formatProperties);
+//   vkGetPhysicalDeviceFormatProperties(VulkanApplicationContext::getInstance()->getPhysicalDevice(), imageFormat,
+//   &formatProperties);
 
 //   if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
 //     logger::throwError("texture image format does not support linear blitting!");
@@ -270,7 +272,7 @@ void Image::copyBufferToImage(const VkBuffer &buffer, uint32_t width, uint32_t h
 //   samplerInfo.maxLod                  = static_cast<float>(mipLevels);
 //   samplerInfo.mipLodBias              = 0.0f; // Optional
 
-//   VkResult result = vkCreateSampler(vulkanApplicationContext.getDevice(), &samplerInfo, nullptr,
+//   VkResult result = vkCreateSampler(VulkanApplicationContext::getInstance()->getDevice(), &samplerInfo, nullptr,
 //   textureSampler.get()); logger::checkStep("vkCreateSampler", result);
 // }
 
@@ -287,7 +289,7 @@ void Image::copyBufferToImage(const VkBuffer &buffer, uint32_t width, uint32_t h
 //   ImageUtils::createTextureSampler(mSampler, mMips);
 // }
 
-// Texture::~Texture() { vkDestroySampler(vulkanApplicationContext.getDevice(), *mSampler, nullptr); }
+// Texture::~Texture() { vkDestroySampler(VulkanApplicationContext::getInstance()->getDevice(), *mSampler, nullptr); }
 
 // VkDescriptorImageInfo Texture::getDescriptorInfo() {
 //   VkDescriptorImageInfo imageInfo{};

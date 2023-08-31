@@ -10,11 +10,11 @@ VkCommandBuffer beginSingleTimeCommands() {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool        = vulkanApplicationContext.getCommandPool();
+  allocInfo.commandPool        = VulkanApplicationContext::getInstance()->getCommandPool();
   allocInfo.commandBufferCount = 1;
 
   VkCommandBuffer commandBuffer;
-  vkAllocateCommandBuffers(vulkanApplicationContext.getDevice(), &allocInfo, &commandBuffer);
+  vkAllocateCommandBuffers(VulkanApplicationContext::getInstance()->getDevice(), &allocInfo, &commandBuffer);
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -33,9 +33,10 @@ void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers    = &commandBuffer;
 
-  vkQueueSubmit(vulkanApplicationContext.getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(vulkanApplicationContext.getGraphicsQueue());
+  vkQueueSubmit(VulkanApplicationContext::getInstance()->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(VulkanApplicationContext::getInstance()->getGraphicsQueue());
 
-  vkFreeCommandBuffers(vulkanApplicationContext.getDevice(), vulkanApplicationContext.getCommandPool(), 1, &commandBuffer);
+  vkFreeCommandBuffers(VulkanApplicationContext::getInstance()->getDevice(),
+                       VulkanApplicationContext::getInstance()->getCommandPool(), 1, &commandBuffer);
 }
 } // namespace RenderSystem

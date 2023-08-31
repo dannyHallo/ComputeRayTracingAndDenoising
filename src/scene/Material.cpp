@@ -6,10 +6,10 @@
 #include <vector>
 
 Material::~Material() {
-  vkDestroyDescriptorSetLayout(vulkanApplicationContext.getDevice(), mDescriptorSetLayout, nullptr);
-  vkDestroyPipeline(vulkanApplicationContext.getDevice(), mPipeline, nullptr);
-  vkDestroyPipelineLayout(vulkanApplicationContext.getDevice(), mPipelineLayout, nullptr);
-  vkDestroyDescriptorPool(vulkanApplicationContext.getDevice(), mDescriptorPool, nullptr);
+  vkDestroyDescriptorSetLayout(VulkanApplicationContext::getInstance()->getDevice(), mDescriptorSetLayout, nullptr);
+  vkDestroyPipeline(VulkanApplicationContext::getInstance()->getDevice(), mPipeline, nullptr);
+  vkDestroyPipelineLayout(VulkanApplicationContext::getInstance()->getDevice(), mPipelineLayout, nullptr);
+  vkDestroyDescriptorPool(VulkanApplicationContext::getInstance()->getDevice(), mDescriptorPool, nullptr);
 }
 
 VkShaderModule Material::createShaderModule(const std::vector<char> &code) {
@@ -19,7 +19,8 @@ VkShaderModule Material::createShaderModule(const std::vector<char> &code) {
   createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
 
   VkShaderModule shaderModule;
-  VkResult result = vkCreateShaderModule(vulkanApplicationContext.getDevice(), &createInfo, nullptr, &shaderModule);
+  VkResult result =
+      vkCreateShaderModule(VulkanApplicationContext::getInstance()->getDevice(), &createInfo, nullptr, &shaderModule);
   logger::checkStep("vkCreateShaderModule", result);
   return shaderModule;
 }
@@ -77,8 +78,8 @@ void Material::initDescriptorSetLayout() {
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
   layoutInfo.pBindings    = bindings.data();
 
-  VkResult result =
-      vkCreateDescriptorSetLayout(vulkanApplicationContext.getDevice(), &layoutInfo, nullptr, &mDescriptorSetLayout);
+  VkResult result = vkCreateDescriptorSetLayout(VulkanApplicationContext::getInstance()->getDevice(), &layoutInfo,
+                                                nullptr, &mDescriptorSetLayout);
   logger::checkStep("vkCreateDescriptorSetLayout", result);
 }
 
@@ -108,7 +109,8 @@ void Material::initDescriptorPool() {
   // the max number of descriptor sets that can be allocated from this pool
   poolInfo.maxSets = mSwapchainSize;
 
-  VkResult result = vkCreateDescriptorPool(vulkanApplicationContext.getDevice(), &poolInfo, nullptr, &mDescriptorPool);
+  VkResult result = vkCreateDescriptorPool(VulkanApplicationContext::getInstance()->getDevice(), &poolInfo, nullptr,
+                                           &mDescriptorPool);
   logger::checkStep("vkCreateDescriptorPool", result);
 }
 
@@ -124,8 +126,8 @@ void Material::initDescriptorSets() {
   allocInfo.pSetLayouts        = layouts.data();
 
   mDescriptorSets.resize(mSwapchainSize);
-  if (vkAllocateDescriptorSets(vulkanApplicationContext.getDevice(), &allocInfo, mDescriptorSets.data()) !=
-      VK_SUCCESS) {
+  if (vkAllocateDescriptorSets(VulkanApplicationContext::getInstance()->getDevice(), &allocInfo,
+                               mDescriptorSets.data()) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
 
@@ -187,7 +189,7 @@ void Material::initDescriptorSets() {
       descriptorWrites.push_back(descriptorSet);
     }
 
-    vkUpdateDescriptorSets(vulkanApplicationContext.getDevice(), static_cast<uint32_t>(descriptorWrites.size()),
-                           descriptorWrites.data(), 0, nullptr);
+    vkUpdateDescriptorSets(VulkanApplicationContext::getInstance()->getDevice(),
+                           static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
   }
 }

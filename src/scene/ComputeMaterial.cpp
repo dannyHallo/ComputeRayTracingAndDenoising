@@ -19,8 +19,8 @@ void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) 
   pipelineLayoutInfo.setLayoutCount = 1;
   pipelineLayoutInfo.pSetLayouts    = &mDescriptorSetLayout;
 
-  VkResult result =
-      vkCreatePipelineLayout(vulkanApplicationContext.getDevice(), &pipelineLayoutInfo, nullptr, &mPipelineLayout);
+  VkResult result = vkCreatePipelineLayout(VulkanApplicationContext::getInstance()->getDevice(), &pipelineLayoutInfo,
+                                           nullptr, &mPipelineLayout);
   logger::checkStep("vkCreatePipelineLayout", result);
 
   VkShaderModule shaderModule = createShaderModule(readFile(computeShaderPath));
@@ -37,12 +37,12 @@ void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) 
   computePipelineCreateInfo.flags  = 0;
   computePipelineCreateInfo.stage  = shaderStageInfo;
 
-  result = vkCreateComputePipelines(vulkanApplicationContext.getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo,
-                                    nullptr, &mPipeline);
+  result = vkCreateComputePipelines(VulkanApplicationContext::getInstance()->getDevice(), VK_NULL_HANDLE, 1,
+                                    &computePipelineCreateInfo, nullptr, &mPipeline);
   logger::checkStep("vkCreateComputePipelines", result);
 
   // since we have created the pipeline, we can destroy the shader module
-  vkDestroyShaderModule(vulkanApplicationContext.getDevice(), shaderModule, nullptr);
+  vkDestroyShaderModule(VulkanApplicationContext::getInstance()->getDevice(), shaderModule, nullptr);
 }
 
 void ComputeMaterial::bind(VkCommandBuffer &commandBuffer, size_t currentFrame) {

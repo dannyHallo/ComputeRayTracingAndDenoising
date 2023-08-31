@@ -9,7 +9,7 @@ Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memor
 
 Buffer::~Buffer() {
   if (mVkBuffer != VK_NULL_HANDLE) {
-    vmaDestroyBuffer(vulkanApplicationContext.getAllocator(), mVkBuffer, mAllocation);
+    vmaDestroyBuffer(VulkanApplicationContext::getInstance()->getAllocator(), mVkBuffer, mAllocation);
     mVkBuffer = VK_NULL_HANDLE;
   }
 }
@@ -25,22 +25,22 @@ void Buffer::allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsag
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage                   = memoryUsage;
 
-  VkResult result = vmaCreateBuffer(vulkanApplicationContext.getAllocator(), &bufferInfo, &vmaallocInfo, &mVkBuffer,
-                                    &mAllocation, nullptr);
+  VkResult result = vmaCreateBuffer(VulkanApplicationContext::getInstance()->getAllocator(), &bufferInfo, &vmaallocInfo,
+                                    &mVkBuffer, &mAllocation, nullptr);
   logger::checkStep("vmaCreateBuffer", result);
 }
 
 void Buffer::fillData(const void *data) {
   // a pointer to the first byte of the allocated memory
   void *mappedData;
-  vmaMapMemory(vulkanApplicationContext.getAllocator(), mAllocation, &mappedData);
+  vmaMapMemory(VulkanApplicationContext::getInstance()->getAllocator(), mAllocation, &mappedData);
 
   if (data != nullptr)
     memcpy(mappedData, data, mSize);
   else
     memset(mappedData, 0, mSize);
 
-  vmaUnmapMemory(vulkanApplicationContext.getAllocator(), mAllocation);
+  vmaUnmapMemory(VulkanApplicationContext::getInstance()->getAllocator(), mAllocation);
 }
 
 std::shared_ptr<Buffer> BufferBundle::getBuffer(size_t index) {

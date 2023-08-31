@@ -35,8 +35,9 @@ add_executable(${PROJ_NAME}
 	src/scene/Material.cpp
 	src/scene/mesh.cpp
 	src/utils/Camera.cpp
-	src/utils/Window.cpp
 	src/utils/logger.cpp
+
+	src/window/Window.cpp
 
 	dep/imgui/backends/imgui_impl_glfw.cpp
     dep/imgui/backends/imgui_impl_vulkan.cpp

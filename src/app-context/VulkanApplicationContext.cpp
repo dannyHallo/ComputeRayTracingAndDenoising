@@ -7,8 +7,6 @@
 #define VOLK_IMPLEMENTATION
 #include "app-context/VulkanApplicationContext.h"
 
-#include "memory/Image.h"
-
 #include "utils/logger.h"
 
 #include "window/FullscreenWindow.h"
@@ -16,14 +14,15 @@
 #include "window/MaximizedWindow.h"
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
 
-VulkanApplicationContext vulkanApplicationContext{};
+std::unique_ptr<VulkanApplicationContext> VulkanApplicationContext::sInstance = nullptr;
 
 static const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 static const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-
-static const bool enableDebug = false;
+static const std::array<int, 3> testing                 = {1, 2, 3};
+static const bool enableDebug                           = true;
 
 void VulkanApplicationContext::QueueFamilyIndices::print() {
   if (graphicsFamily.has_value()) {
@@ -48,9 +47,25 @@ void VulkanApplicationContext::QueueFamilyIndices::print() {
   }
 }
 
+VulkanApplicationContext *VulkanApplicationContext::getInstance() {
+  if (sInstance == nullptr) {
+    sInstance = std::unique_ptr<VulkanApplicationContext>(new VulkanApplicationContext());
+  }
+  return sInstance.get();
+}
+
 VulkanApplicationContext::VulkanApplicationContext() {
   VkResult result = volkInitialize();
   logger::checkStep("volkInitialize", result);
+
+  if (enableDebug) {
+    logger::print("debug is enabled");
+  } else {
+    logger::print("debug is disabled");
+  }
+
+  logger::print("validation layer count", validationLayers.size());
+  logger::print("testing count", testing.size());
 
   // mWindow = std::make_unique<HoverWindow>(1920, 1080);
   mWindow = std::make_unique<MaximizedWindow>();
@@ -58,7 +73,7 @@ VulkanApplicationContext::VulkanApplicationContext() {
   createInstance();
 
   // load instance related functions
-  volkLoadInstance(mInstance);
+  volkLoadInstance(mVkInstance);
 
   setupDebugMessager();
   createSurface();
@@ -87,16 +102,16 @@ VulkanApplicationContext::~VulkanApplicationContext() {
 
   vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
 
-  vkDestroySurfaceKHR(mInstance, mSurface, nullptr);
+  vkDestroySurfaceKHR(mVkInstance, mSurface, nullptr);
 
   vkDestroyDevice(mDevice, nullptr);
   mDevice = nullptr;
 
   if (enableDebug) {
-    vkDestroyDebugUtilsMessengerEXT(mInstance, mDebugMessager, nullptr);
+    vkDestroyDebugUtilsMessengerEXT(mVkInstance, mDebugMessager, nullptr);
   }
 
-  vkDestroyInstance(mInstance, nullptr);
+  vkDestroyInstance(mVkInstance, nullptr);
 }
 
 bool VulkanApplicationContext::checkValidationLayerSupport() {
@@ -111,11 +126,13 @@ bool VulkanApplicationContext::checkValidationLayerSupport() {
     logger::print("\t", static_cast<const char *>(layerProperty.layerName));
   }
 
-  logger::print();
+  logger::print("validationLayers", validationLayers.size());
 
   // for each validation layer, we check for its validity from the avaliable layer pool
   for (const char *layerName : validationLayers) {
     bool layerFound = false;
+
+    logger::print("checking layer", layerName);
 
     for (const auto &layerProperties : availableLayers) {
       if (strcmp(layerName, static_cast<const char *>(layerProperties.layerName)) == 0) {
@@ -124,9 +141,11 @@ bool VulkanApplicationContext::checkValidationLayerSupport() {
       }
     }
     if (!layerFound) {
+      logger::print();
       return false;
     }
   }
+  logger::print();
   return true;
 }
 
@@ -231,7 +250,7 @@ void VulkanApplicationContext::createInstance() {
   }
 
   // create VK Instance
-  VkResult result = vkCreateInstance(&createInfo, nullptr, &mInstance);
+  VkResult result = vkCreateInstance(&createInfo, nullptr, &mVkInstance);
   logger::checkStep("vkCreateInstance", result);
 }
 
@@ -244,12 +263,12 @@ void VulkanApplicationContext::setupDebugMessager() {
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populateDebugMessagerInfo(createInfo);
 
-  VkResult result = vkCreateDebugUtilsMessengerEXT(mInstance, &createInfo, nullptr, &mDebugMessager);
+  VkResult result = vkCreateDebugUtilsMessengerEXT(mVkInstance, &createInfo, nullptr, &mDebugMessager);
   logger::checkStep("vkCreateDebugUtilsMessengerEXT", result);
 }
 
 void VulkanApplicationContext::createSurface() {
-  VkResult result = glfwCreateWindowSurface(mInstance, mWindow->getWindow(), nullptr, &mSurface);
+  VkResult result = glfwCreateWindowSurface(mVkInstance, mWindow->getWindow(), nullptr, &mSurface);
   logger::checkStep("glfwCreateWindowSurface", result);
 }
 
@@ -289,8 +308,13 @@ bool VulkanApplicationContext::checkDeviceExtensionSupport(VkPhysicalDevice phys
   vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
 
   logger::print("available device extensions", availableExtensions.size());
-  for (VkExtensionProperties extensionProperty : availableExtensions) {
-    logger::print("\t", extensionProperty.extensionName);
+  for (const auto &extension : availableExtensions) {
+    logger::print("\t", extension.extensionName);
+  }
+
+  logger::print("\n\nenabling device extensions:", deviceExtensions.size());
+  for (const auto &deviceExtension : deviceExtensions) {
+    logger::print("\t", deviceExtension);
   }
 
   std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
@@ -531,25 +555,25 @@ void VulkanApplicationContext::createDevice() {
     mPhysicalDevice = VK_NULL_HANDLE;
 
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(mInstance, &deviceCount, nullptr);
+    vkEnumeratePhysicalDevices(mVkInstance, &deviceCount, nullptr);
     if (deviceCount == 0) {
       logger::throwError("failed to find GPUs with Vulkan support!");
     }
 
     std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
-    vkEnumeratePhysicalDevices(mInstance, &deviceCount, physicalDevices.data());
+    vkEnumeratePhysicalDevices(mVkInstance, &deviceCount, physicalDevices.data());
 
     mPhysicalDevice = selectBestDevice(physicalDevices);
   }
 
   // create logical device from the physical device we've picked
   {
-    queueFamilyIndices = findQueueFamilies(mPhysicalDevice);
-    queueFamilyIndices.print();
+    mQueueFamilyIndices = findQueueFamilies(mPhysicalDevice);
+    mQueueFamilyIndices.print();
 
     std::set<uint32_t> queueFamilyIndicesSet = {
-        queueFamilyIndices.graphicsFamily.value(), queueFamilyIndices.presentFamily.value(),
-        queueFamilyIndices.computeFamily.value(), queueFamilyIndices.transferFamily.value()};
+        mQueueFamilyIndices.graphicsFamily.value(), mQueueFamilyIndices.presentFamily.value(),
+        mQueueFamilyIndices.computeFamily.value(), mQueueFamilyIndices.transferFamily.value()};
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     float queuePriority = 1.F; // ranges from 0 - 1.;
@@ -694,6 +718,27 @@ VkExtent2D VulkanApplicationContext::getSwapExtent(const VkSurfaceCapabilitiesKH
   }
 }
 
+static VkImageView createImageView2(VkDevice device, const VkImage &image, VkFormat format,
+                                    VkImageAspectFlags aspectFlags) {
+  VkImageView imageView{};
+
+  VkImageViewCreateInfo viewInfo{};
+  viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.image                           = image;
+  viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+  viewInfo.format                          = format;
+  viewInfo.subresourceRange.aspectMask     = aspectFlags;
+  viewInfo.subresourceRange.baseMipLevel   = 0;
+  viewInfo.subresourceRange.levelCount     = 1;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount     = 1;
+
+  VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
+  logger::checkStep("vkCreateImageView", result);
+
+  return imageView;
+}
+
 // create swapchain and swapchain imageviews
 void VulkanApplicationContext::createSwapchain() {
   SwapchainSupportDetails swapchainSupport = querySwapchainSupport(mSurface, mPhysicalDevice);
@@ -719,10 +764,10 @@ void VulkanApplicationContext::createSwapchain() {
   swapchainCreateInfo.imageArrayLayers = 1; // the amount of layers each image consists of
   swapchainCreateInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-  uint32_t queueFamilyIndicesArray[] = {queueFamilyIndices.graphicsFamily.value(),
-                                        queueFamilyIndices.presentFamily.value()};
+  uint32_t queueFamilyIndicesArray[] = {mQueueFamilyIndices.graphicsFamily.value(),
+                                        mQueueFamilyIndices.presentFamily.value()};
 
-  if (queueFamilyIndices.graphicsFamily != queueFamilyIndices.presentFamily) {
+  if (mQueueFamilyIndices.graphicsFamily != mQueueFamilyIndices.presentFamily) {
     // images can be used across multiple queue families without explicit ownership transfers.
     swapchainCreateInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
     swapchainCreateInfo.queueFamilyIndexCount = 2;
@@ -754,7 +799,7 @@ void VulkanApplicationContext::createSwapchain() {
 
   for (size_t i = 0; i < imageCount; i++) {
     mSwapchainImageViews.emplace_back(
-        Image::createImageView(mSwapchainImages[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT));
+        createImageView2(mDevice, mSwapchainImages[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT));
   }
 }
 
@@ -790,7 +835,7 @@ void VulkanApplicationContext::createAllocator() {
   allocatorInfo.vulkanApiVersion       = VK_API_VERSION_1_2;
   allocatorInfo.physicalDevice         = mPhysicalDevice;
   allocatorInfo.device                 = mDevice;
-  allocatorInfo.instance               = mInstance;
+  allocatorInfo.instance               = mVkInstance;
   allocatorInfo.pVulkanFunctions       = &vmaVulkanFunc;
 
   VkResult result = vmaCreateAllocator(&allocatorInfo, &mAllocator);
