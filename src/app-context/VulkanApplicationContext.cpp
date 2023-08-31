@@ -14,38 +14,14 @@
 #include "window/MaximizedWindow.h"
 
 #include <algorithm>
-#include <array>
 #include <cstdint>
+#include <set>
 
 std::unique_ptr<VulkanApplicationContext> VulkanApplicationContext::sInstance = nullptr;
 
 static const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
 static const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-static const std::array<int, 3> testing                 = {1, 2, 3};
 static const bool enableDebug                           = true;
-
-void VulkanApplicationContext::QueueFamilyIndices::print() {
-  if (graphicsFamily.has_value()) {
-    std::cout << "Graphics Family: " << graphicsFamily.value() << std::endl;
-  } else {
-    std::cout << "Graphics Family: not assigned" << std::endl;
-  }
-  if (presentFamily.has_value()) {
-    std::cout << "Present Family: " << presentFamily.value() << std::endl;
-  } else {
-    std::cout << "Present Family: not assigned" << std::endl;
-  }
-  if (computeFamily.has_value()) {
-    std::cout << "Compute Family: " << computeFamily.value() << std::endl;
-  } else {
-    std::cout << "Compute Family: not assigned" << std::endl;
-  }
-  if (transferFamily.has_value()) {
-    std::cout << "Transfer Family: " << transferFamily.value() << std::endl;
-  } else {
-    std::cout << "Transfer Family: not assigned" << std::endl;
-  }
-}
 
 VulkanApplicationContext *VulkanApplicationContext::getInstance() {
   if (sInstance == nullptr) {
@@ -65,7 +41,6 @@ VulkanApplicationContext::VulkanApplicationContext() {
   }
 
   logger::print("validation layer count", validationLayers.size());
-  logger::print("testing count", testing.size());
 
   // mWindow = std::make_unique<HoverWindow>(1920, 1080);
   mWindow = std::make_unique<MaximizedWindow>();
@@ -336,7 +311,8 @@ bool VulkanApplicationContext::checkDeviceExtensionSupport(VkPhysicalDevice phys
 
 void VulkanApplicationContext::checkDeviceSuitable(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice) {
   // Check if the queue family is valid
-  QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+  QueueFamilyIndices indices{};
+  bool indicesAreFilled = findQueueFamilies(physicalDevice, indices);
   // Check extension support
   bool extensionSupported = checkDeviceExtensionSupport(physicalDevice);
   bool swapChainAdequate  = false;
@@ -348,7 +324,9 @@ void VulkanApplicationContext::checkDeviceSuitable(VkSurfaceKHR surface, VkPhysi
   // Query for device features if needed
   // VkPhysicalDeviceFeatures supportedFeatures;
   // vkGetPhysicalDeviceFeatures(physicalDevice, &supportedFeatures);
-  if (indices.isComplete() && extensionSupported && swapChainAdequate) return;
+  if (indicesAreFilled && extensionSupported && swapChainAdequate) {
+    return;
+  }
 
   logger::throwError("physical device not suitable");
 }
@@ -428,10 +406,9 @@ VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysic
   return bestDevice;
 }
 
-VulkanApplicationContext::QueueFamilyIndices
-VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice) {
+bool VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice,
+                                                 VulkanApplicationContext::QueueFamilyIndices &indices) {
   // find required queue families, distribute every queue family uniformly if possible
-  QueueFamilyIndices indices;
 
   // query for all queue families
   uint32_t queueFamilyCount = 0;
@@ -453,7 +430,7 @@ VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice) {
         }
       }
       // otherwise, assign compute queue to the first queue that supports compute functionality
-      if (!indices.computeFamily.has_value()) {
+      if (indices.computeFamily == -1) {
         for (uint32_t j = 0; j < queueFamilyCount; ++j) {
           if (queueFamilies[j].queueFlags & VK_QUEUE_COMPUTE_BIT) {
             indices.computeFamily = j;
@@ -472,7 +449,7 @@ VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice) {
           break;
         }
       }
-      if (!indices.transferFamily.has_value()) {
+      if (indices.transferFamily == -1) {
         for (uint32_t j = 0; j < queueFamilyCount; ++j) {
           if (queueFamilies[j].queueFlags & VK_QUEUE_TRANSFER_BIT) {
             indices.transferFamily = j;
@@ -504,7 +481,10 @@ VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice) {
       }
     }
   }
-  return indices;
+
+  bool indicesIsFilled = indices.computeFamily != -1 && indices.transferFamily != -1 && indices.graphicsFamily != -1 &&
+                         indices.presentFamily != -1;
+  return indicesIsFilled;
 }
 
 // VulkanApplicationContext::QueueFamilyIndices
@@ -568,12 +548,14 @@ void VulkanApplicationContext::createDevice() {
 
   // create logical device from the physical device we've picked
   {
-    mQueueFamilyIndices = findQueueFamilies(mPhysicalDevice);
-    mQueueFamilyIndices.print();
+    findQueueFamilies(mPhysicalDevice, mQueueFamilyIndices);
+    logger::print("mQueueFamilyIndices.computeFamily", mQueueFamilyIndices.computeFamily);
+    logger::print("mQueueFamilyIndices.transferFamily", mQueueFamilyIndices.transferFamily);
+    logger::print("mQueueFamilyIndices.graphicsFamily", mQueueFamilyIndices.graphicsFamily);
+    logger::print("mQueueFamilyIndices.presentFamily", mQueueFamilyIndices.presentFamily);
 
-    std::set<uint32_t> queueFamilyIndicesSet = {
-        mQueueFamilyIndices.graphicsFamily.value(), mQueueFamilyIndices.presentFamily.value(),
-        mQueueFamilyIndices.computeFamily.value(), mQueueFamilyIndices.transferFamily.value()};
+    std::set<uint32_t> queueFamilyIndicesSet = {mQueueFamilyIndices.graphicsFamily, mQueueFamilyIndices.presentFamily,
+                                                mQueueFamilyIndices.computeFamily, mQueueFamilyIndices.transferFamily};
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     float queuePriority = 1.F; // ranges from 0 - 1.;
@@ -764,8 +746,7 @@ void VulkanApplicationContext::createSwapchain() {
   swapchainCreateInfo.imageArrayLayers = 1; // the amount of layers each image consists of
   swapchainCreateInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-  uint32_t queueFamilyIndicesArray[] = {mQueueFamilyIndices.graphicsFamily.value(),
-                                        mQueueFamilyIndices.presentFamily.value()};
+  uint32_t queueFamilyIndicesArray[] = {mQueueFamilyIndices.graphicsFamily, mQueueFamilyIndices.presentFamily};
 
   if (mQueueFamilyIndices.graphicsFamily != mQueueFamilyIndices.presentFamily) {
     // images can be used across multiple queue families without explicit ownership transfers.

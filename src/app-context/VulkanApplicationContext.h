@@ -20,8 +20,6 @@
 
 #include <iostream>
 #include <memory>
-#include <optional>
-#include <set>
 #include <string>
 #include <vector>
 
@@ -30,17 +28,10 @@ class VulkanApplicationContext {
 
   // stores the indices of the each queue family, they might not overlap
   struct QueueFamilyIndices {
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-    std::optional<uint32_t> computeFamily;
-    std::optional<uint32_t> transferFamily;
-
-    void print();
-
-    [[nodiscard]] bool isComplete() const {
-      return graphicsFamily.has_value() && computeFamily.has_value() && transferFamily.has_value() &&
-             presentFamily.has_value();
-    }
+    uint32_t graphicsFamily = -1;
+    uint32_t presentFamily  = -1;
+    uint32_t computeFamily  = -1;
+    uint32_t transferFamily = -1;
   } mQueueFamilyIndices;
 
   struct SwapchainSupportDetails {
@@ -115,10 +106,10 @@ public:
   [[nodiscard]] const VkQueue &getComputeQueue() const { return mComputeQueue; }
   [[nodiscard]] const VkQueue &getTransferQueue() const { return mTransferQueue; }
 
-  [[nodiscard]] uint32_t getGraphicsFamilyIndex() const { return mQueueFamilyIndices.graphicsFamily.value(); }
-  [[nodiscard]] uint32_t getPresentFamilyIndex() const { return mQueueFamilyIndices.presentFamily.value(); }
-  [[nodiscard]] uint32_t getComputeFamilyIndex() const { return mQueueFamilyIndices.computeFamily.value(); }
-  [[nodiscard]] uint32_t getTransferFamilyIndex() const { return mQueueFamilyIndices.transferFamily.value(); }
+  [[nodiscard]] uint32_t getGraphicsFamilyIndex() const { return mQueueFamilyIndices.graphicsFamily; }
+  [[nodiscard]] uint32_t getPresentFamilyIndex() const { return mQueueFamilyIndices.presentFamily; }
+  [[nodiscard]] uint32_t getComputeFamilyIndex() const { return mQueueFamilyIndices.computeFamily; }
+  [[nodiscard]] uint32_t getTransferFamilyIndex() const { return mQueueFamilyIndices.transferFamily; }
 
   Window *getWindowClass() { return mWindow.get(); }
   [[nodiscard]] GLFWwindow *getWindow() const { return mWindow->getWindow(); }
@@ -140,7 +131,10 @@ private:
   static std::vector<const char *> getRequiredInstanceExtensions();
   void checkDeviceSuitable(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice);
   bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice);
-  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice);
+
+  // find the indices of the queue families, return whether the indices are fully filled
+  bool findQueueFamilies(VkPhysicalDevice physicalDevice, QueueFamilyIndices &indices);
+
   SwapchainSupportDetails querySwapchainSupport(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice);
   VkPhysicalDevice selectBestDevice(std::vector<VkPhysicalDevice> physicalDevices);
   VkExtent2D getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
