@@ -53,8 +53,7 @@ VulkanApplicationContext::VulkanApplicationContext() {
   logger::checkStep("volkInitialize", result);
 
   // mWindow = std::make_unique<HoverWindow>(1920, 1080);
-  // mWindow = std::make_unique<MaximizedWindow>();
-  // mWindow = std::make_unique<Window>(WindowStyle::MAXIMAZED);
+  mWindow = std::make_unique<MaximizedWindow>();
 
   createInstance();
 
@@ -754,17 +753,6 @@ void VulkanApplicationContext::createSwapchain() {
   vkGetSwapchainImagesKHR(mDevice, mSwapchain, &imageCount, mSwapchainImages.data());
 
   for (size_t i = 0; i < imageCount; i++) {
-    // Image im{mSwapchainExtent.width,
-    //          mSwapchainExtent.height,
-    //          1,
-    //          VK_SAMPLE_COUNT_1_BIT,
-    //          mSwapchainImageFormat,
-    //          VK_IMAGE_TILING_OPTIMAL,
-    //          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-    //          VK_IMAGE_ASPECT_COLOR_BIT,
-    //          VMA_MEMORY_USAGE_GPU_ONLY,
-    //          VK_IMAGE_LAYOUT_UNDEFINED};
-
     mSwapchainImageViews.emplace_back(
         Image::createImageView(mSwapchainImages[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT));
   }

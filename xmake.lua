@@ -27,7 +27,6 @@ target("main")
         "src",
         "dep",
         "dep/spdlog/include",
-        "dep/glfw",
         "dep/glm",
         "dep/imgui",
         "dep/volk",
