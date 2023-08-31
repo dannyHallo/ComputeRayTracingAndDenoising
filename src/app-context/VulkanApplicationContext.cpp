@@ -43,7 +43,7 @@ VulkanApplicationContext::VulkanApplicationContext() {
   logger::print("validation layer count", validationLayers.size());
 
   // mWindow = std::make_unique<HoverWindow>(1920, 1080);
-  mWindow = std::make_unique<MaximizedWindow>();
+  mWindow = std::make_unique<FullscreenWindow>();
 
   createInstance();
 

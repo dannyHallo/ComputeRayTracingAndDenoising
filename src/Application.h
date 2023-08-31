@@ -63,6 +63,8 @@ class Application {
   // delta time and last recorded frame time
   float mDeltaTime = 0, mFrameRecordLastTime = 0;
 
+  static std::unique_ptr<Camera> mCamera;
+
   // scene for ray tracing
   std::shared_ptr<GpuModel::Scene> mRtScene;
 
@@ -111,8 +113,9 @@ class Application {
   std::vector<VkFence> mFramesInFlightFences;
 
 public:
-  Application()  = default;
+  Application();
 
+  static Camera *getCamera();
   void run();
 
 private:

@@ -1,11 +1,11 @@
 #include "Application.h"
 
-Camera camera{};
-
 static const int kATrousSize                   = 5;
 static const int kMaxFramesInFlight            = 2;
 static const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
 static const float kFpsUpdateTime              = 0.5F;
+
+std::unique_ptr<Camera> Application::mCamera = nullptr;
 
 void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
   static float lastX;
@@ -24,7 +24,14 @@ void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
   lastX = static_cast<float>(xpos);
   lastY = static_cast<float>(ypos);
 
-  camera.processMouseMovement(xoffset, yoffset);
+  Application::getCamera()->processMouseMovement(xoffset, yoffset);
+}
+
+Camera *Application::getCamera() { return mCamera.get(); }
+
+Application::Application() {
+  // initialize camera object with the vulkanApplicationContext's window class
+  mCamera = std::make_unique<Camera>(VulkanApplicationContext::getInstance()->getWindowClass());
 }
 
 void Application::run() {
@@ -233,11 +240,11 @@ void Application::updateScene(uint32_t currentImage) {
 
   auto currentTime = static_cast<float>(glfwGetTime());
 
-  RtxUniformBufferObject rtxUbo = {camera.getPosition(),
-                                   camera.getFront(),
-                                   camera.getUp(),
-                                   camera.getRight(),
-                                   camera.getVFov(),
+  RtxUniformBufferObject rtxUbo = {mCamera->getPosition(),
+                                   mCamera->getFront(),
+                                   mCamera->getUp(),
+                                   mCamera->getRight(),
+                                   mCamera->getVFov(),
                                    currentTime,
                                    currentSample,
                                    static_cast<uint32_t>(mRtScene->triangles.size()),
@@ -251,10 +258,10 @@ void Application::updateScene(uint32_t currentImage) {
   {
     mTemperalFilterBufferBundle->getBuffer(currentImage)->fillData(&tfUbo);
 
-    lastMvpe = camera.getProjectionMatrix(
+    lastMvpe = mCamera->getProjectionMatrix(
                    static_cast<float>(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth()) /
                    static_cast<float>(VulkanApplicationContext::getInstance()->getSwapchainExtentHeight())) *
-               camera.getViewMatrix();
+               mCamera->getViewMatrix();
   }
 
   for (int j = 0; j < kATrousSize; j++) {
@@ -818,7 +825,7 @@ void Application::mainLoop() {
       fpsRecordLastTime = currentTime;
     }
 
-    camera.processInput(mDeltaTime);
+    mCamera->processInput(mDeltaTime);
     drawFrame();
   }
 
@@ -826,8 +833,6 @@ void Application::mainLoop() {
 }
 
 void Application::initVulkan() {
-  // initialize camera object with the vulkanApplicationContext's window class
-  camera.init(VulkanApplicationContext::getInstance()->getWindowClass());
 
   // initialize the scene
   initScene();

@@ -26,13 +26,12 @@ class Camera {
   Window *mWindow;
 
 public:
-  Camera(glm::vec3 camPosition = glm::vec3(0.F, 0.F, 0.F), glm::vec3 wrdUp = glm::vec3(0.F, 1.F, 0.F),
+  Camera(Window *window, glm::vec3 camPosition = glm::vec3(0.F, 0.F, 0.F), glm::vec3 wrdUp = glm::vec3(0.F, 1.F, 0.F),
          float camYaw = 180, float camPitch = 0)
-      : mPosition(camPosition), mWorldUp(wrdUp), yaw(camYaw), pitch(camPitch) {
+      : mPosition(camPosition), mWorldUp(wrdUp), yaw(camYaw), pitch(camPitch), mWindow(window) {
     updateCameraVectors();
   }
 
-  void init(Window *window) { mWindow = window; }
   [[nodiscard]] glm::mat4 getViewMatrix() const { return glm::lookAt(mPosition, mPosition + mFront, mUp); }
 
   void processInput(float deltaTime);
