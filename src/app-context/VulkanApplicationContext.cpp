@@ -700,7 +700,7 @@ VkExtent2D VulkanApplicationContext::getSwapExtent(const VkSurfaceCapabilitiesKH
   }
 }
 
-static VkImageView createImageView2(VkDevice device, const VkImage &image, VkFormat format,
+static VkImageView createImageView(VkDevice device, const VkImage &image, VkFormat format,
                                     VkImageAspectFlags aspectFlags) {
   VkImageView imageView{};
 
@@ -780,7 +780,7 @@ void VulkanApplicationContext::createSwapchain() {
 
   for (size_t i = 0; i < imageCount; i++) {
     mSwapchainImageViews.emplace_back(
-        createImageView2(mDevice, mSwapchainImages[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT));
+        createImageView(mDevice, mSwapchainImages[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT));
   }
 }
 
