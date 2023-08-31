@@ -1,7 +1,7 @@
 #pragma once
 
-#include "app-context/VulkanApplicationContext.h"
-// #include "vk_mem_alloc.h" // TODO: why is required?
+#include "utils/vulkan.h"
+#include "vk_mem_alloc.h"
 
 #include <iostream>
 #include <memory>
@@ -47,8 +47,7 @@ public:
 
   void createTextureSampler(std::shared_ptr<VkSampler> textureSampler, uint32_t mipLevels);
 
-  static VkImageView createImageView(const VkImage &image, VkFormat format, VkImageAspectFlags aspectFlags,
-                                     uint32_t mipLevels);
+  static VkImageView createImageView(const VkImage &image, VkFormat format, VkImageAspectFlags aspectFlags);
 
 private:
   VkResult createImage(uint32_t width, uint32_t height, VkSampleCountFlagBits numSamples, uint32_t mipLevels,

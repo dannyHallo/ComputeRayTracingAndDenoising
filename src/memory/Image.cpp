@@ -10,6 +10,26 @@
 #include <iostream>
 #include <string>
 
+VkImageView Image::createImageView(const VkImage &image, VkFormat format, VkImageAspectFlags aspectFlags) {
+  VkImageView imageView{};
+
+  VkImageViewCreateInfo viewInfo{};
+  viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.image                           = image;
+  viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
+  viewInfo.format                          = format;
+  viewInfo.subresourceRange.aspectMask     = aspectFlags;
+  viewInfo.subresourceRange.baseMipLevel   = 0;
+  viewInfo.subresourceRange.levelCount     = 1;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount     = 1;
+
+  VkResult result = vkCreateImageView(vulkanApplicationContext.getDevice(), &viewInfo, nullptr, &imageView);
+  logger::checkStep("vkCreateImageView", result);
+
+  return imageView;
+}
+
 VkResult Image::createImage(uint32_t width, uint32_t height, VkSampleCountFlagBits numSamples, uint32_t mipLevels,
                             VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage,
                             VkImageLayout initialImageLayout) {
@@ -45,7 +65,7 @@ Image::Image(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountF
     logger::throwError("failed to create image!"); //  checkstep is not used here because if should be used to avoid
                                                    //  clang-tidy warnings
   }
-  mVkImageView = createImageView(mVkImage, format, aspectFlags, mipLevels);
+  mVkImageView = createImageView(mVkImage, format, aspectFlags);
 }
 
 Image::~Image() {
@@ -61,27 +81,6 @@ VkDescriptorImageInfo Image::getDescriptorInfo(VkImageLayout imageLayout) const 
   imageInfo.imageLayout = imageLayout;
   imageInfo.imageView   = mVkImageView;
   return imageInfo;
-}
-
-VkImageView Image::createImageView(const VkImage &image, VkFormat format, VkImageAspectFlags aspectFlags,
-                                   uint32_t mipLevels) {
-  VkImageView imageView{};
-
-  VkImageViewCreateInfo viewInfo{};
-  viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  viewInfo.image                           = image;
-  viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-  viewInfo.format                          = format;
-  viewInfo.subresourceRange.aspectMask     = aspectFlags;
-  viewInfo.subresourceRange.baseMipLevel   = 0;
-  viewInfo.subresourceRange.levelCount     = mipLevels;
-  viewInfo.subresourceRange.baseArrayLayer = 0;
-  viewInfo.subresourceRange.layerCount     = 1;
-
-  VkResult result = vkCreateImageView(vulkanApplicationContext.getDevice(), &viewInfo, nullptr, &imageView);
-  logger::checkStep("vkCreateImageView", result);
-
-  return imageView;
 }
 
 void Image::transitionImageLayout(VkImageLayout newLayout, uint32_t mipLevels) {
