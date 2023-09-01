@@ -23,9 +23,7 @@
 #include <string>
 #include <vector>
 
-// TODO: move window out of here!
 // also, this class should be configed out of class
-
 class VulkanApplicationContext {
   static std::unique_ptr<VulkanApplicationContext> sInstance;
 
@@ -46,7 +44,8 @@ class VulkanApplicationContext {
     std::vector<VkPresentModeKHR> presentModes;
   } mSwapchainSupportDetails;
 
-  std::unique_ptr<Window> mWindow  = nullptr;
+  GLFWwindow *mGlWindow = nullptr;
+
   VkInstance mVkInstance           = VK_NULL_HANDLE;
   VkSurfaceKHR mSurface            = VK_NULL_HANDLE;
   VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
@@ -72,6 +71,10 @@ class VulkanApplicationContext {
   std::vector<VkImageView> mSwapchainImageViews;
 
 public:
+  // use glwindow to init the instance, can be only called once
+  static VulkanApplicationContext *initInstance(GLFWwindow *glWindow = nullptr);
+
+  // get the singleton instance, must be called after initInstance()
   static VulkanApplicationContext *getInstance();
 
   ~VulkanApplicationContext();
@@ -87,6 +90,7 @@ public:
   [[nodiscard]] VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
                                              VkFormatFeatureFlags features) const;
 
+  // TODO: rename this
   [[nodiscard]] inline const VkInstance &getVkInstance() const { return mVkInstance; }
   [[nodiscard]] inline const VkDevice &getDevice() const { return mDevice; }
   [[nodiscard]] inline const VkSurfaceKHR &getSurface() const { return mSurface; }
@@ -114,12 +118,8 @@ public:
   [[nodiscard]] uint32_t getComputeFamilyIndex() const { return mQueueFamilyIndices.computeFamily; }
   [[nodiscard]] uint32_t getTransferFamilyIndex() const { return mQueueFamilyIndices.transferFamily; }
 
-  Window *getWindowClass() { return mWindow.get(); }
-  [[nodiscard]] GLFWwindow *getWindow() const { return mWindow->getWindow(); }
-  [[nodiscard]] GLFWmonitor *getMonitor() const { return mWindow->getMonitor(); }
-
 private:
-  VulkanApplicationContext();
+  VulkanApplicationContext(GLFWwindow *glWindow);
 
   void initWindow(uint8_t windowSize);
   void createInstance();

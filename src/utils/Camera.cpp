@@ -21,7 +21,7 @@ void Camera::processInput(float deltaTime) {
   uint32_t inputBits = mWindow->getKeyInputs();
 
   if ((inputBits & ESC_BIT) != 0) {
-    glfwSetWindowShouldClose(mWindow->getWindow(), 1);
+    glfwSetWindowShouldClose(mWindow->getGlWindow(), 1);
   }
 
   if ((inputBits & TAB_BIT) != 0) {

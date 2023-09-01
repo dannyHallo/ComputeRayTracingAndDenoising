@@ -64,6 +64,8 @@ class Application {
   float mDeltaTime = 0, mFrameRecordLastTime = 0;
 
   static std::unique_ptr<Camera> mCamera;
+  static std::unique_ptr<Window> mWindow;
+
   VulkanApplicationContext *mAppContext;
 
   // scene for ray tracing

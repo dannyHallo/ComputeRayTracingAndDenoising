@@ -10,33 +10,35 @@
 #include "utils/logger.h"
 
 #include "memory/Image.h"
-#include "window/FullscreenWindow.h"
-#include "window/HoverWindow.h"
-#include "window/MaximizedWindow.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <set>
 
-std::unique_ptr<VulkanApplicationContext> VulkanApplicationContext::sInstance = nullptr;
-
 static const std::vector<const char *> validationLayers         = {"VK_LAYER_KHRONOS_validation"};
 static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 static const bool enableDebug                                   = true;
 
+std::unique_ptr<VulkanApplicationContext> VulkanApplicationContext::sInstance = nullptr;
+
+VulkanApplicationContext *VulkanApplicationContext::initInstance(GLFWwindow *window) {
+  if (sInstance != nullptr) {
+    logger::throwError("VulkanApplicationContext::initInstance: instance is already initialized");
+  }
+  sInstance = std::unique_ptr<VulkanApplicationContext>(new VulkanApplicationContext(window));
+  return sInstance.get();
+}
+
 VulkanApplicationContext *VulkanApplicationContext::getInstance() {
   if (sInstance == nullptr) {
-    sInstance = std::unique_ptr<VulkanApplicationContext>(new VulkanApplicationContext());
+    logger::throwError("VulkanApplicationContext::getInstance: instance is not initialized");
   }
   return sInstance.get();
 }
 
-VulkanApplicationContext::VulkanApplicationContext() {
+VulkanApplicationContext::VulkanApplicationContext(GLFWwindow *glWindow) : mGlWindow(glWindow) {
   VkResult result = volkInitialize();
   logger::checkStep("volkInitialize", result);
-
-  // mWindow = std::make_unique<HoverWindow>(1920, 1080);
-  mWindow = std::make_unique<MaximizedWindow>();
 
   createInstance();
 
@@ -283,7 +285,7 @@ void VulkanApplicationContext::setupDebugMessager() {
 }
 
 void VulkanApplicationContext::createSurface() {
-  VkResult result = glfwCreateWindowSurface(mVkInstance, mWindow->getWindow(), nullptr, &mSurface);
+  VkResult result = glfwCreateWindowSurface(mVkInstance, mGlWindow, nullptr, &mSurface);
   logger::checkStep("glfwCreateWindowSurface", result);
 }
 
@@ -339,6 +341,7 @@ void VulkanApplicationContext::checkDeviceSuitable(VkSurfaceKHR surface, VkPhysi
 
 // helper function to customize the physical device ranking mechanism, returns the physical device with the highest
 // score
+// the marking criteria should be further optimized
 VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysicalDevice> physicalDevices) {
   VkPhysicalDevice bestDevice = VK_NULL_HANDLE;
 

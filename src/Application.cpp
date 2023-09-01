@@ -1,6 +1,9 @@
 #include "Application.h"
 
 #include "render-context/RenderSystem.h"
+#include "window/FullscreenWindow.h"
+#include "window/HoverWindow.h"
+#include "window/MaximizedWindow.h"
 
 static const int kATrousSize                   = 5;
 static const int kMaxFramesInFlight            = 2;
@@ -8,6 +11,7 @@ static const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resour
 static const float kFpsUpdateTime              = 0.5F;
 
 std::unique_ptr<Camera> Application::mCamera = nullptr;
+std::unique_ptr<Window> Application::mWindow = nullptr;
 
 void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
   static float lastX;
@@ -31,8 +35,10 @@ void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
 
 Camera *Application::getCamera() { return mCamera.get(); }
 
-Application::Application() : mAppContext(VulkanApplicationContext::getInstance()) {
-  mCamera = std::make_unique<Camera>(mAppContext->getWindowClass());
+Application::Application() {
+  mWindow     = std::make_unique<HoverWindow>(1280, 720);
+  mAppContext = VulkanApplicationContext::initInstance(mWindow->getGlWindow());
+  mCamera     = std::make_unique<Camera>(mWindow.get());
 }
 
 void Application::run() {
@@ -596,7 +602,7 @@ void Application::initGui() {
   ImGui::StyleColorsClassic();
 
   // Setup Platform/Renderer bindings
-  ImGui_ImplGlfw_InitForVulkan(mAppContext->getWindow(), true);
+  ImGui_ImplGlfw_InitForVulkan(mWindow->getGlWindow(), true);
 
   ImGui_ImplVulkan_InitInfo init_info = {};
   init_info.Instance                  = mAppContext->getVkInstance();
@@ -760,7 +766,7 @@ void Application::mainLoop() {
   static float fpsFrameCount     = 0;
   static float fpsRecordLastTime = 0;
 
-  while (glfwWindowShouldClose(mAppContext->getWindow()) == 0) {
+  while (glfwWindowShouldClose(mWindow->getGlWindow()) == 0) {
     glfwPollEvents();
 
     prepareGui();
@@ -774,7 +780,7 @@ void Application::mainLoop() {
       mFps              = fpsFrameCount / kFpsUpdateTime;
       mFrameTime        = 1 / mFps;
       std::string title = "FPS - " + std::to_string(static_cast<int>(mFps));
-      glfwSetWindowTitle(mAppContext->getWindow(), title.c_str());
+      glfwSetWindowTitle(mWindow->getGlWindow(), title.c_str());
       fpsFrameCount = 0;
 
       fpsRecordLastTime = currentTime;
@@ -815,7 +821,7 @@ void Application::initVulkan() {
 
   // set mouse callback function to be called whenever the cursor position
   // changes
-  glfwSetCursorPosCallback(mAppContext->getWindow(), mouseCallback);
+  glfwSetCursorPosCallback(mWindow->getGlWindow(), mouseCallback);
 }
 
 void Application::cleanup() {

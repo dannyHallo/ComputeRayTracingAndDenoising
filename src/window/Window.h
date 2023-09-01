@@ -47,7 +47,7 @@ public:
   Window(Window &&)                 = delete;
   Window &operator=(Window &&)      = delete;
 
-  [[nodiscard]] GLFWwindow *getWindow() const { return mWindow; }
+  [[nodiscard]] GLFWwindow *getGlWindow() const { return mWindow; }
   [[nodiscard]] GLFWmonitor *getMonitor() const { return mMonitor; }
   [[nodiscard]] uint32_t getKeyInputs() const { return mKeyInputBits; }
   [[nodiscard]] CursorState getCursorState() const { return mCursorState; }
