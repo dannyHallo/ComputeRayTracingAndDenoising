@@ -17,6 +17,7 @@ cppcoreguidelines-*,
 -cppcoreguidelines-avoid-non-const-global-variables,
 -cppcoreguidelines-non-private-member-variables-in-classes,
 -cppcoreguidelines-avoid-c-arrays,
+-cppcoreguidelines-pro-bounds-pointer-arithmetic,
 
 -readability-identifier-length,
 "

@@ -35,8 +35,8 @@ VulkanApplicationContext::VulkanApplicationContext() {
   VkResult result = volkInitialize();
   logger::checkStep("volkInitialize", result);
 
-  mWindow = std::make_unique<HoverWindow>(1920, 1080);
-  // mWindow = std::make_unique<FullscreenWindow>();
+  // mWindow = std::make_unique<HoverWindow>(1920, 1080);
+  mWindow = std::make_unique<MaximizedWindow>();
 
   createInstance();
 
@@ -92,7 +92,7 @@ bool VulkanApplicationContext::checkValidationLayerSupport() {
   logger::print("available validation layers", availableLayers.size());
   std::set<std::string> availableLayersSet{};
   for (const auto &layerProperty : availableLayers) {
-    availableLayersSet.insert(layerProperty.layerName);
+    availableLayersSet.insert(static_cast<const char *>(layerProperty.layerName));
     logger::print("\t", static_cast<const char *>(layerProperty.layerName));
   }
 
@@ -104,7 +104,7 @@ bool VulkanApplicationContext::checkValidationLayerSupport() {
   for (const auto &layerName : validationLayers) {
     logger::print("\t", layerName);
     if (availableLayersSet.find(layerName) == availableLayersSet.end()) {
-      unavailableLayerNames.push_back(layerName);
+      unavailableLayerNames.emplace_back(layerName);
     }
   }
 
@@ -129,7 +129,7 @@ bool VulkanApplicationContext::checkDeviceExtensionSupport(VkPhysicalDevice phys
 
   std::set<std::string> availableExtensionsSet{};
   for (const auto &extension : availableExtensions) {
-    availableExtensionsSet.insert(extension.extensionName);
+    availableExtensionsSet.insert(static_cast<const char *>(extension.extensionName));
   }
 
   logger::print("available device extensions count", availableExtensions.size());
@@ -144,7 +144,7 @@ bool VulkanApplicationContext::checkDeviceExtensionSupport(VkPhysicalDevice phys
   std::vector<std::string> unavailableExtensionNames{};
   for (const auto &requiredExtension : requiredDeviceExtensions) {
     if (availableExtensionsSet.find(requiredExtension) == availableExtensionsSet.end()) {
-      unavailableExtensionNames.push_back(requiredExtension);
+      unavailableExtensionNames.emplace_back(requiredExtension);
     }
   }
 
@@ -233,7 +233,7 @@ void VulkanApplicationContext::createInstance() {
   // logger::prints all available instance extensions
   logger::print("available instance extensions", availavleExtensions.size());
   for (const auto &extension : availavleExtensions) {
-    logger::print("\t", extension.extensionName);
+    logger::print("\t", static_cast<const char *>(extension.extensionName));
   }
   logger::print();
 
@@ -293,22 +293,22 @@ VkSampleCountFlagBits getDeviceMaxUsableSampleCount(VkPhysicalDevice device) {
 
   VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
                               physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-  if (counts & VK_SAMPLE_COUNT_64_BIT) {
+  if ((counts & VK_SAMPLE_COUNT_64_BIT) != 0) {
     return VK_SAMPLE_COUNT_64_BIT;
   }
-  if (counts & VK_SAMPLE_COUNT_32_BIT) {
+  if ((counts & VK_SAMPLE_COUNT_32_BIT) != 0) {
     return VK_SAMPLE_COUNT_32_BIT;
   }
-  if (counts & VK_SAMPLE_COUNT_16_BIT) {
+  if ((counts & VK_SAMPLE_COUNT_16_BIT) != 0) {
     return VK_SAMPLE_COUNT_16_BIT;
   }
-  if (counts & VK_SAMPLE_COUNT_8_BIT) {
+  if ((counts & VK_SAMPLE_COUNT_8_BIT) != 0) {
     return VK_SAMPLE_COUNT_8_BIT;
   }
-  if (counts & VK_SAMPLE_COUNT_4_BIT) {
+  if ((counts & VK_SAMPLE_COUNT_4_BIT) != 0) {
     return VK_SAMPLE_COUNT_4_BIT;
   }
-  if (counts & VK_SAMPLE_COUNT_2_BIT) {
+  if ((counts & VK_SAMPLE_COUNT_2_BIT) != 0) {
     return VK_SAMPLE_COUNT_2_BIT;
   }
 
@@ -342,6 +342,9 @@ void VulkanApplicationContext::checkDeviceSuitable(VkSurfaceKHR surface, VkPhysi
 VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysicalDevice> physicalDevices) {
   VkPhysicalDevice bestDevice = VK_NULL_HANDLE;
 
+  static constexpr uint32_t kDiscreteGpuMark   = 100;
+  static constexpr uint32_t kIntegratedGpuMark = 20;
+
   // Give marks to all devices available, returns the best usable device
   std::vector<uint32_t> deviceMarks(physicalDevices.size());
   size_t deviceId = 0;
@@ -355,9 +358,9 @@ VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysic
 
     // Discrete GPU will mark better
     if (deviceProperty.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
-      deviceMarks[deviceId] += 100;
+      deviceMarks[deviceId] += kDiscreteGpuMark;
     } else if (deviceProperty.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
-      deviceMarks[deviceId] += 20;
+      deviceMarks[deviceId] += kIntegratedGpuMark;
     }
 
     VkPhysicalDeviceMemoryProperties memoryProperty;
@@ -369,7 +372,7 @@ VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysic
     size_t deviceMemory = 0;
     for (const auto &heap : heaps) {
       // At least one heap has this flag
-      if (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+      if ((heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0) {
         deviceMemory += heap.size;
       }
     }
@@ -569,7 +572,7 @@ VulkanApplicationContext::querySwapchainSupport(VkSurfaceKHR surface, VkPhysical
   }
 
   // get available presentation modes
-  uint32_t presentModeCount;
+  uint32_t presentModeCount = 0;
   vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, nullptr);
   if (presentModeCount != 0) {
     details.presentModes.resize(presentModeCount);
@@ -583,8 +586,10 @@ VulkanApplicationContext::querySwapchainSupport(VkSurfaceKHR surface, VkPhysical
 VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &availableFormats) {
   for (const auto &availableFormat : availableFormats) {
     // format: VK_FORMAT_B8G8R8A8_SRGB
-    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB) // this is actually irretional bue to imgui impl
+    // this is actually irretional due to imgui impl
+    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB) {
       return availableFormat;
+    }
   }
 
   logger::print("Surface format requirement didn't meet, the first available format is chosen!");
@@ -611,17 +616,21 @@ VkExtent2D VulkanApplicationContext::getSwapExtent(const VkSurfaceCapabilitiesKH
     std::cout << "Using resolution: (" << capabilities.currentExtent.width << ", " << capabilities.currentExtent.height
               << ")" << std::endl;
     return capabilities.currentExtent;
-  } else {
-    int width, height;
-    glfwGetFramebufferSize(mWindow->getWindow(), &width, &height);
-
-    VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
-    actualExtent.width =
-        std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-    actualExtent.height =
-        std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-    return actualExtent;
   }
+
+  logger::throwError("This part shouldn't be reached!");
+  return {};
+
+  // int width  = 0;
+  // int height = 0;
+  // glfwGetFramebufferSize(mWindow->getWindow(), &width, &height);
+
+  // VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+  // actualExtent.width =
+  //     std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+  // actualExtent.height =
+  //     std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+  // return actualExtent;
 }
 
 // create swapchain and swapchain imageviews
@@ -655,7 +664,7 @@ void VulkanApplicationContext::createSwapchain() {
     // images can be used across multiple queue families without explicit ownership transfers.
     swapchainCreateInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
     swapchainCreateInfo.queueFamilyIndexCount = 2;
-    swapchainCreateInfo.pQueueFamilyIndices   = queueFamilyIndicesArray;
+    swapchainCreateInfo.pQueueFamilyIndices   = static_cast<const uint32_t *>(queueFamilyIndicesArray);
   } else {
     // an image is owned by one queue family at a time and ownership must be explicitly transferred before the image is
     // being used in another queue family. This offers the best performance.
@@ -753,7 +762,8 @@ VkFormat VulkanApplicationContext::findSupportedFormat(const std::vector<VkForma
 
     if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
       return format;
-    } else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+    }
+    if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
       return format;
     }
   }
