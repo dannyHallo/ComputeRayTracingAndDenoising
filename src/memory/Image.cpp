@@ -4,7 +4,6 @@
 #include "render-context/RenderSystem.h"
 #include "utils/logger.h"
 #include "vulkan/vulkan_core.h"
-// #include "utils/StbImageImpl.h"
 
 #include <cmath>
 #include <iostream>
@@ -63,7 +62,7 @@ Image::Image(VkDevice device, VkCommandPool commandPool, VkQueue queue, uint32_t
   if (result != VK_SUCCESS) {
     logger::throwError("failed to create image!");
   }
-  
+
   if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
     transitionImageLayout(device, commandPool, queue, initialImageLayout);
   }

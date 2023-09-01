@@ -130,13 +130,14 @@ private:
   void createCommandPool();
   void createAllocator();
 
-  static bool checkValidationLayerSupport();
   static std::vector<const char *> getRequiredInstanceExtensions();
   void checkDeviceSuitable(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice);
-  bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice);
+  static bool checkValidationLayerSupport();
+  static bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice);
 
   // find the indices of the queue families, return whether the indices are fully filled
   bool findQueueFamilies(VkPhysicalDevice physicalDevice, QueueFamilyIndices &indices);
+  static bool queueIndicesAreFilled(const VulkanApplicationContext::QueueFamilyIndices &indices);
 
   SwapchainSupportDetails querySwapchainSupport(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice);
   VkPhysicalDevice selectBestDevice(std::vector<VkPhysicalDevice> physicalDevices);

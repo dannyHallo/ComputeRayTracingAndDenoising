@@ -35,12 +35,6 @@ VulkanApplicationContext::VulkanApplicationContext() {
   VkResult result = volkInitialize();
   logger::checkStep("volkInitialize", result);
 
-  if (enableDebug) {
-    logger::print("debug is enabled");
-  } else {
-    logger::print("debug is disabled");
-  }
-
   mWindow = std::make_unique<HoverWindow>(1920, 1080);
   // mWindow = std::make_unique<FullscreenWindow>();
 
@@ -96,31 +90,73 @@ bool VulkanApplicationContext::checkValidationLayerSupport() {
 
   // logger::print all availiable layers
   logger::print("available validation layers", availableLayers.size());
+  std::set<std::string> availableLayersSet{};
   for (const auto &layerProperty : availableLayers) {
+    availableLayersSet.insert(layerProperty.layerName);
     logger::print("\t", static_cast<const char *>(layerProperty.layerName));
   }
 
-  logger::print("validationLayers", validationLayers.size());
+  logger::print();
+  logger::print("using validation layers", validationLayers.size());
 
+  std::vector<std::string> unavailableLayerNames{};
   // for each validation layer, we check for its validity from the avaliable layer pool
-  for (const char *layerName : validationLayers) {
-    bool layerFound = false;
-
-    logger::print("checking layer", layerName);
-
-    for (const auto &layerProperties : availableLayers) {
-      if (strcmp(layerName, static_cast<const char *>(layerProperties.layerName)) == 0) {
-        layerFound = true;
-        break;
-      }
-    }
-    if (!layerFound) {
-      logger::print();
-      return false;
+  for (const auto &layerName : validationLayers) {
+    logger::print("\t", layerName);
+    if (availableLayersSet.find(layerName) == availableLayersSet.end()) {
+      unavailableLayerNames.push_back(layerName);
     }
   }
+
+  if (unavailableLayerNames.empty()) {
+    logger::print("\t\t");
+    return true;
+  }
+
+  for (const auto &unavailableLayerName : unavailableLayerNames) {
+    logger::print("\t", unavailableLayerName.c_str());
+  }
+  logger::print("\t\t");
+  return false;
+}
+
+bool VulkanApplicationContext::checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice) {
+  uint32_t extensionCount = 0;
+  vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+
+  std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+  vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+
+  std::set<std::string> availableExtensionsSet{};
+  for (const auto &extension : availableExtensions) {
+    availableExtensionsSet.insert(extension.extensionName);
+  }
+
+  logger::print("available device extensions count", availableExtensions.size());
   logger::print();
-  return true;
+  logger::print("using device extensions", requiredDeviceExtensions.size());
+  for (const auto &extensionName : requiredDeviceExtensions) {
+    logger::print("\t", extensionName);
+  }
+  logger::print();
+  logger::print();
+
+  std::vector<std::string> unavailableExtensionNames{};
+  for (const auto &requiredExtension : requiredDeviceExtensions) {
+    if (availableExtensionsSet.find(requiredExtension) == availableExtensionsSet.end()) {
+      unavailableExtensionNames.push_back(requiredExtension);
+    }
+  }
+
+  if (unavailableExtensionNames.empty()) {
+    return true;
+  }
+
+  logger::print("the following device extensions are not available:");
+  for (const auto &unavailableExtensionName : unavailableExtensionNames) {
+    logger::print("\t", unavailableExtensionName.c_str());
+  }
+  return false;
 }
 
 // returns instance required extension names (i.e glfw, validation layers), they are device-irrational extensions
@@ -178,15 +214,12 @@ void populateDebugMessagerInfo(VkDebugUtilsMessengerCreateInfoEXT &debugCreateIn
 void VulkanApplicationContext::createInstance() {
   VkInstanceCreateInfo createInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
 
-  if (enableDebug && !checkValidationLayerSupport())
-    logger::throwError("Validation layers requested, but not available!");
-
   VkApplicationInfo appInfo{};
   appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
   appInfo.pApplicationName   = "Compute Ray Tracing";
-  appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0); // dev-supplied
+  appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.pEngineName        = "No Engine";
-  appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0); // dev-supplied
+  appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
   appInfo.apiVersion         = VK_API_VERSION_1_2;
 
   createInfo.pApplicationInfo = &appInfo;
@@ -199,7 +232,9 @@ void VulkanApplicationContext::createInstance() {
 
   // logger::prints all available instance extensions
   logger::print("available instance extensions", availavleExtensions.size());
-  for (const auto &extension : availavleExtensions) logger::print("\t", extension.extensionName);
+  for (const auto &extension : availavleExtensions) {
+    logger::print("\t", extension.extensionName);
+  }
   logger::print();
 
   // get glfw (+ debug) extensions
@@ -207,13 +242,19 @@ void VulkanApplicationContext::createInstance() {
   createInfo.enabledExtensionCount   = static_cast<uint32_t>(instanceRequiredExtensions.size());
   createInfo.ppEnabledExtensionNames = instanceRequiredExtensions.data();
 
-  logger::print("enabled extensions", instanceRequiredExtensions.size());
-  for (const auto &extension : instanceRequiredExtensions) std::cout << "\t" << extension << std::endl;
+  logger::print("using instance extensions", instanceRequiredExtensions.size());
+  for (const auto &extension : instanceRequiredExtensions) {
+    logger::print("\t", extension);
+  }
+  logger::print();
   logger::print();
 
   // Setup debug messager info during vkCreateInstance and vkDestroyInstance
   VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
   if (enableDebug) {
+    if (!checkValidationLayerSupport()) {
+      logger::throwError("Validation layers requested, but not available!");
+    }
     createInfo.enabledLayerCount   = static_cast<uint32_t>(validationLayers.size());
     createInfo.ppEnabledLayerNames = validationLayers.data();
     populateDebugMessagerInfo(debugCreateInfo);
@@ -272,39 +313,6 @@ VkSampleCountFlagBits getDeviceMaxUsableSampleCount(VkPhysicalDevice device) {
   }
 
   return VK_SAMPLE_COUNT_1_BIT;
-}
-
-bool VulkanApplicationContext::checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice) {
-  uint32_t extensionCount = 0;
-  vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
-
-  std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-  vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
-
-  std::set<std::string> availableExtensionsSet{};
-  for (const auto &extension : availableExtensions) {
-    availableExtensionsSet.insert(extension.extensionName);
-  }
-
-  logger::print("available device extensions count", availableExtensions.size());
-  logger::print("trying to use", requiredDeviceExtensions.size());
-
-  std::vector<std::string> unavailableExtensionNames{};
-  for (const auto &requiredExtension : requiredDeviceExtensions) {
-    if (availableExtensionsSet.find(requiredExtension) == availableExtensionsSet.end()) {
-      unavailableExtensionNames.push_back(requiredExtension);
-    }
-  }
-
-  if (unavailableExtensionNames.empty()) {
-    return true;
-  }
-
-  logger::print("the following device extensions are not available:");
-  for (const auto &unavailableExtensionName : unavailableExtensionNames) {
-    logger::print("\t", unavailableExtensionName.c_str());
-  }
-  return false;
 }
 
 void VulkanApplicationContext::checkDeviceSuitable(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice) {
@@ -404,127 +412,50 @@ VkPhysicalDevice VulkanApplicationContext::selectBestDevice(std::vector<VkPhysic
   return bestDevice;
 }
 
+bool VulkanApplicationContext::queueIndicesAreFilled(const VulkanApplicationContext::QueueFamilyIndices &indices) {
+  return indices.computeFamily != -1 && indices.transferFamily != -1 && indices.graphicsFamily != -1 &&
+         indices.presentFamily != -1;
+}
+
 bool VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice,
                                                  VulkanApplicationContext::QueueFamilyIndices &indices) {
-  // find required queue families, distribute every queue family uniformly if possible
-
-  // query for all queue families
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
   std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
   vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
 
-  const VkQueueFlagBits requiredFlags[3] = {VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT};
-  for (uint8_t i = 0; i < 3; i++) {
-    VkQueueFlagBits flag = requiredFlags[i];
+  for (uint32_t i = 0; i < queueFamilyCount; ++i) {
+    const auto &queueFamily = queueFamilies[i];
 
-    if (flag == VK_QUEUE_COMPUTE_BIT) {
-      // assign compute queue index with the queue that supports compute functionality
-      for (uint32_t j = 0; j < queueFamilyCount; ++j) {
-        if ((queueFamilies[j].queueFlags & VK_QUEUE_COMPUTE_BIT) &&
-            !(queueFamilies[j].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
-          indices.computeFamily = j;
-          break;
-        }
+    if (indices.computeFamily == -1) {
+      if ((queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0) {
+        indices.computeFamily = i;
       }
-      // otherwise, assign compute queue to the first queue that supports compute functionality
-      if (indices.computeFamily == -1) {
-        for (uint32_t j = 0; j < queueFamilyCount; ++j) {
-          if (queueFamilies[j].queueFlags & VK_QUEUE_COMPUTE_BIT) {
-            indices.computeFamily = j;
-            break;
-          }
+    }
+
+    if (indices.transferFamily == -1) {
+      if ((queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) != 0) {
+        indices.transferFamily = i;
+      }
+    }
+
+    if (indices.graphicsFamily == -1) {
+      if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0) {
+        uint32_t presentSupport = 0;
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, mSurface, &presentSupport);
+        if (presentSupport != 0) {
+          indices.graphicsFamily = i;
+          indices.presentFamily  = i;
         }
       }
     }
 
-    else if (flag == VK_QUEUE_TRANSFER_BIT) {
-      for (uint32_t j = 0; j < queueFamilyCount; ++j) {
-        if ((queueFamilies[j].queueFlags & VK_QUEUE_TRANSFER_BIT) &&
-            !(queueFamilies[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) &&
-            !(queueFamilies[j].queueFlags & VK_QUEUE_COMPUTE_BIT)) {
-          indices.transferFamily = j;
-          break;
-        }
-      }
-      if (indices.transferFamily == -1) {
-        for (uint32_t j = 0; j < queueFamilyCount; ++j) {
-          if (queueFamilies[j].queueFlags & VK_QUEUE_TRANSFER_BIT) {
-            indices.transferFamily = j;
-            break;
-          }
-        }
-      }
-    }
-
-    // Graphics & Present
-    else {
-      for (uint32_t j = 0; j < queueFamilyCount; ++j) {
-        if (queueFamilies[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-          indices.graphicsFamily = j;
-          break;
-        }
-      }
-
-      for (uint32_t j = 0; j < queueFamilyCount; ++j) {
-        // See if the current queue family supports KHR
-        // extension (for presenting use)
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, j, mSurface, &presentSupport);
-
-        if (presentSupport) {
-          indices.presentFamily = j;
-          break;
-        }
-      }
+    if (queueIndicesAreFilled(indices)) {
+      return true;
     }
   }
-
-  bool indicesIsFilled = indices.computeFamily != -1 && indices.transferFamily != -1 && indices.graphicsFamily != -1 &&
-                         indices.presentFamily != -1;
-  return indicesIsFilled;
+  return false;
 }
-
-// VulkanApplicationContext::QueueFamilyIndices
-// VulkanApplicationContext::findQueueFamilies(VkPhysicalDevice physicalDevice) {
-//   QueueFamilyIndices indices;
-
-//   uint32_t queueFamilyCount = 0;
-//   vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
-//   std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-//   vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, queueFamilies.data());
-
-//   logger::print("queue family count", queueFamilyCount);
-//   for (uint32_t i = 0; i < queueFamilyCount; ++i) {
-//     const auto &queueFamily = queueFamilies[i];
-
-//     if ((queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0) {
-//       if (!indices.computeFamily.has_value()) {
-//         indices.computeFamily = i;
-//       }
-//     }
-
-//     if ((queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) != 0) {
-//       if (!indices.transferFamily.has_value()) {
-//         indices.transferFamily = i;
-//       }
-//     }
-
-//     if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0) {
-//       if (!indices.graphicsFamily.has_value()) {
-//         indices.graphicsFamily = i;
-//       }
-
-//       uint32_t presentSupport = 0;
-//       vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, mSurface, &presentSupport);
-//       if (presentSupport != 0) {
-//         indices.presentFamily = i;
-//       }
-//     }
-//   }
-
-//   return indices;
-// }
 
 // pick the most suitable physical device, and create logical device from it
 void VulkanApplicationContext::createDevice() {
@@ -547,10 +478,6 @@ void VulkanApplicationContext::createDevice() {
   // create logical device from the physical device we've picked
   {
     findQueueFamilies(mPhysicalDevice, mQueueFamilyIndices);
-    logger::print("mQueueFamilyIndices.computeFamily", mQueueFamilyIndices.computeFamily);
-    logger::print("mQueueFamilyIndices.transferFamily", mQueueFamilyIndices.transferFamily);
-    logger::print("mQueueFamilyIndices.graphicsFamily", mQueueFamilyIndices.graphicsFamily);
-    logger::print("mQueueFamilyIndices.presentFamily", mQueueFamilyIndices.presentFamily);
 
     std::set<uint32_t> queueFamilyIndicesSet = {mQueueFamilyIndices.graphicsFamily, mQueueFamilyIndices.presentFamily,
                                                 mQueueFamilyIndices.computeFamily, mQueueFamilyIndices.transferFamily};
@@ -693,7 +620,6 @@ VkExtent2D VulkanApplicationContext::getSwapExtent(const VkSurfaceCapabilitiesKH
         std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
     actualExtent.height =
         std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
     return actualExtent;
   }
 }

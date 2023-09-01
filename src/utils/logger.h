@@ -9,6 +9,7 @@
 
 namespace logger {
 inline void print() { std::cout << std::endl; }
+inline void print(std::string str) { std::cout << str << std::endl; }
 inline void print(const char *str) { std::cout << str << std::endl; }
 inline void print(const char *str, const char *str2) { std::cout << str << str2 << std::endl; }
 inline void print(const int num) { std::cout << num << std::endl; }

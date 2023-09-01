@@ -2,6 +2,8 @@
 
 #include "Mesh.h"
 
+#include "utils/logger.h"
+
 #include <array>
 #include <iostream>
 #include <string>
@@ -54,8 +56,6 @@ Mesh::Mesh(MeshType type) {
 }
 
 Mesh::Mesh(std::string model_path) {
-  std::cout << "loading mesh: " << model_path << std::endl;
-
   tinyobj::attrib_t attrib;
   std::vector<tinyobj::shape_t> shapes;
   std::vector<tinyobj::material_t> materials;
@@ -65,8 +65,7 @@ Mesh::Mesh(std::string model_path) {
     throw std::runtime_error(warn + err);
   }
 
-  std::cout << "model loaded!" << std::endl;
-
+  logger::print("mesh loaded: " + model_path);
 
   std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 
