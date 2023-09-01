@@ -19,9 +19,9 @@
 
 std::unique_ptr<VulkanApplicationContext> VulkanApplicationContext::sInstance = nullptr;
 
-static const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
-static const std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-static const bool enableDebug                           = true;
+static const std::vector<const char *> validationLayers         = {"VK_LAYER_KHRONOS_validation"};
+static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+static const bool enableDebug                                   = true;
 
 VulkanApplicationContext *VulkanApplicationContext::getInstance() {
   if (sInstance == nullptr) {
@@ -40,8 +40,8 @@ VulkanApplicationContext::VulkanApplicationContext() {
     logger::print("debug is disabled");
   }
 
-  // mWindow = std::make_unique<HoverWindow>(1920, 1080);
-  mWindow = std::make_unique<FullscreenWindow>();
+  mWindow = std::make_unique<HoverWindow>(1920, 1080);
+  // mWindow = std::make_unique<FullscreenWindow>();
 
   createInstance();
 
@@ -280,31 +280,30 @@ bool VulkanApplicationContext::checkDeviceExtensionSupport(VkPhysicalDevice phys
   std::vector<VkExtensionProperties> availableExtensions(extensionCount);
   vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data());
 
-  logger::print("available device extensions", availableExtensions.size());
+  std::set<std::string> availableExtensionsSet{};
   for (const auto &extension : availableExtensions) {
-    logger::print("\t", extension.extensionName);
+    availableExtensionsSet.insert(extension.extensionName);
   }
 
-  logger::print("\n\nenabling device extensions:", deviceExtensions.size());
-  for (const auto &deviceExtension : deviceExtensions) {
-    logger::print("\t", deviceExtension);
-  }
+  logger::print("available device extensions count", availableExtensions.size());
+  logger::print("trying to use", requiredDeviceExtensions.size());
 
-  std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
-  for (const auto &extension : availableExtensions) {
-    requiredExtensions.erase(extension.extensionName);
-  }
-
-  logger::print();
-
-  if (!requiredExtensions.empty()) {
-    logger::print("the following extension requirement is not met:");
-    for (std::string extensionNotMetName : requiredExtensions) {
-      logger::print("\t", extensionNotMetName.c_str());
+  std::vector<std::string> unavailableExtensionNames{};
+  for (const auto &requiredExtension : requiredDeviceExtensions) {
+    if (availableExtensionsSet.find(requiredExtension) == availableExtensionsSet.end()) {
+      unavailableExtensionNames.push_back(requiredExtension);
     }
-    return false;
   }
-  return true;
+
+  if (unavailableExtensionNames.empty()) {
+    return true;
+  }
+
+  logger::print("the following device extensions are not available:");
+  for (const auto &unavailableExtensionName : unavailableExtensionNames) {
+    logger::print("\t", unavailableExtensionName.c_str());
+  }
+  return false;
 }
 
 void VulkanApplicationContext::checkDeviceSuitable(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice) {
@@ -597,8 +596,8 @@ void VulkanApplicationContext::createDevice() {
     deviceCreateInfo.pEnabledFeatures = nullptr;
 
     // enabling device extensions
-    deviceCreateInfo.enabledExtensionCount   = static_cast<uint32_t>(deviceExtensions.size());
-    deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    deviceCreateInfo.enabledExtensionCount   = static_cast<uint32_t>(requiredDeviceExtensions.size());
+    deviceCreateInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
 
     // The enabledLayerCount and ppEnabledLayerNames fields of
     // VkDeviceCreateInfo are ignored by up-to-date implementations.
