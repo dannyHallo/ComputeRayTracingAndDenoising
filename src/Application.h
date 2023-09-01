@@ -64,6 +64,7 @@ class Application {
   float mDeltaTime = 0, mFrameRecordLastTime = 0;
 
   static std::unique_ptr<Camera> mCamera;
+  VulkanApplicationContext *mAppContext;
 
   // scene for ray tracing
   std::shared_ptr<GpuModel::Scene> mRtScene;
@@ -147,7 +148,7 @@ private:
   VkCommandBuffer beginSingleTimeCommands();
 
   // end single time commands
-  static void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+  void endSingleTimeCommands(VkCommandBuffer commandBuffer);
 
   // initialize GUI
   void initGui();

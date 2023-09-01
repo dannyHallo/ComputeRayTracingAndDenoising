@@ -3,11 +3,10 @@
 #include <memory>
 #include <vector>
 
-#include "app-context/VulkanApplicationContext.h"
+#include "utils/vulkan.h"
 
 // TODO: enrich this helper class
 namespace RenderSystem {
-VkCommandBuffer beginSingleTimeCommands();
-
-void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
+void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer);
 } // namespace RenderSystem

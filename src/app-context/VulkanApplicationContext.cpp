@@ -9,6 +9,7 @@
 
 #include "utils/logger.h"
 
+#include "memory/Image.h"
 #include "window/FullscreenWindow.h"
 #include "window/HoverWindow.h"
 #include "window/MaximizedWindow.h"
@@ -697,27 +698,6 @@ VkExtent2D VulkanApplicationContext::getSwapExtent(const VkSurfaceCapabilitiesKH
   }
 }
 
-static VkImageView createImageView(VkDevice device, const VkImage &image, VkFormat format,
-                                   VkImageAspectFlags aspectFlags) {
-  VkImageView imageView{};
-
-  VkImageViewCreateInfo viewInfo{};
-  viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  viewInfo.image                           = image;
-  viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-  viewInfo.format                          = format;
-  viewInfo.subresourceRange.aspectMask     = aspectFlags;
-  viewInfo.subresourceRange.baseMipLevel   = 0;
-  viewInfo.subresourceRange.levelCount     = 1;
-  viewInfo.subresourceRange.baseArrayLayer = 0;
-  viewInfo.subresourceRange.layerCount     = 1;
-
-  VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
-  logger::checkStep("vkCreateImageView", result);
-
-  return imageView;
-}
-
 // create swapchain and swapchain imageviews
 void VulkanApplicationContext::createSwapchain() {
   SwapchainSupportDetails swapchainSupport = querySwapchainSupport(mSurface, mPhysicalDevice);
@@ -777,7 +757,7 @@ void VulkanApplicationContext::createSwapchain() {
 
   for (size_t i = 0; i < imageCount; i++) {
     mSwapchainImageViews.emplace_back(
-        createImageView(mDevice, mSwapchainImages[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT));
+        Image::createImageView(mDevice, mSwapchainImages[i], mSwapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT));
   }
 }
 

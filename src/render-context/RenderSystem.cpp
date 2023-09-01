@@ -5,16 +5,15 @@
 
 #include "RenderSystem.h"
 
-namespace RenderSystem {
-VkCommandBuffer beginSingleTimeCommands() {
+VkCommandBuffer RenderSystem::beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool) {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool        = VulkanApplicationContext::getInstance()->getCommandPool();
+  allocInfo.commandPool        = commandPool;
   allocInfo.commandBufferCount = 1;
 
   VkCommandBuffer commandBuffer;
-  vkAllocateCommandBuffers(VulkanApplicationContext::getInstance()->getDevice(), &allocInfo, &commandBuffer);
+  vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -25,7 +24,8 @@ VkCommandBuffer beginSingleTimeCommands() {
   return commandBuffer;
 }
 
-void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
+void RenderSystem::endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue,
+                                         VkCommandBuffer commandBuffer) {
   vkEndCommandBuffer(commandBuffer);
 
   VkSubmitInfo submitInfo{};
@@ -33,10 +33,8 @@ void endSingleTimeCommands(VkCommandBuffer commandBuffer) {
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers    = &commandBuffer;
 
-  vkQueueSubmit(VulkanApplicationContext::getInstance()->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(VulkanApplicationContext::getInstance()->getGraphicsQueue());
+  vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(queue);
 
-  vkFreeCommandBuffers(VulkanApplicationContext::getInstance()->getDevice(),
-                       VulkanApplicationContext::getInstance()->getCommandPool(), 1, &commandBuffer);
+  vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
 }
-} // namespace RenderSystem

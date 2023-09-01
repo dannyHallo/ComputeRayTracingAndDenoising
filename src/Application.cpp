@@ -1,5 +1,7 @@
 #include "Application.h"
 
+#include "render-context/RenderSystem.h"
+
 static const int kATrousSize                   = 5;
 static const int kMaxFramesInFlight            = 2;
 static const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
@@ -29,9 +31,8 @@ void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
 
 Camera *Application::getCamera() { return mCamera.get(); }
 
-Application::Application() {
-  // initialize camera object with the vulkanApplicationContext's window class
-  mCamera = std::make_unique<Camera>(VulkanApplicationContext::getInstance()->getWindowClass());
+Application::Application() : mAppContext(VulkanApplicationContext::getInstance()) {
+  mCamera = std::make_unique<Camera>(mAppContext->getWindowClass());
 }
 
 void Application::run() {
@@ -44,7 +45,7 @@ void check_vk_result(VkResult resultCode) { logger::checkStep("check_vk_result",
 
 void Application::initScene() {
   // equals to descriptor sets size
-  auto swapchainSize = static_cast<uint32_t>(VulkanApplicationContext::getInstance()->getSwapchainSize());
+  auto swapchainSize = static_cast<uint32_t>(mAppContext->getSwapchainSize());
 
   // creates material, loads models from files, creates bvh
   mRtScene = std::make_shared<GpuModel::Scene>();
@@ -82,75 +83,75 @@ void Application::initScene() {
       swapchainSize, sizeof(GpuModel::Light) * mRtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, mRtScene->lights.data());
 
-  mTargetImage = std::make_shared<Image>(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-                                         VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1,
+  auto imageWidth  = mAppContext->getSwapchainExtentWidth();
+  auto imageHeight = mAppContext->getSwapchainExtentHeight();
+
+  mTargetImage = std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(),
+                                         mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
                                          VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
                                          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
                                              VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                         VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+                                         VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mRawImage = std::make_shared<Image>(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-                                      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1,
-                                      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY,
-                                      VK_IMAGE_LAYOUT_GENERAL);
+  mRawImage = std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(),
+                                      mAppContext->getGraphicsQueue(), imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT,
+                                      VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mBlurHImage = std::make_shared<Image>(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-                                        VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1,
-                                        VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                                        VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+  mBlurHImage =
+      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
+                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mATrousImage1 = std::make_shared<Image>(
-      VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT,
-      VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+  mATrousImage1 =
+      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
+                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mATrousImage2 = std::make_shared<Image>(
-      VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT,
-      VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+      mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   // introducing G-Buffers
   mPositionImage =
-      std::make_shared<Image>(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-                              VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1,
-                              VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-                              VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mDepthImage = std::make_shared<Image>(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-                                        VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1,
-                                        VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                                        VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+  mDepthImage =
+      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT,
+                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mNormalImage = std::make_shared<Image>(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-                                         VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1,
-                                         VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                                         VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+  mNormalImage =
+      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mMeshHashImage1 = std::make_shared<Image>(
-      VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT,
-      VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-      VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+  mMeshHashImage1 =
+      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT,
+                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mMeshHashImage2 = std::make_shared<Image>(
-      VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT,
-      VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-      VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+  mMeshHashImage2 =
+      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT,
+                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mAccumulationImage = std::make_shared<Image>(
-      VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight(), 1, VK_SAMPLE_COUNT_1_BIT,
-      VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VK_IMAGE_LAYOUT_GENERAL);
+  mAccumulationImage =
+      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
+                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   // rtx.comp
   auto rtxMat = std::make_shared<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/rtx.spv");
@@ -252,15 +253,13 @@ void Application::updateScene(uint32_t currentImage) {
 
   mRtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
 
-  TemporalFilterUniformBufferObject tfUbo = {!mUseTemporal, lastMvpe,
-                                             VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-                                             VulkanApplicationContext::getInstance()->getSwapchainExtentHeight()};
+  TemporalFilterUniformBufferObject tfUbo = {!mUseTemporal, lastMvpe, mAppContext->getSwapchainExtentWidth(),
+                                             mAppContext->getSwapchainExtentHeight()};
   {
     mTemperalFilterBufferBundle->getBuffer(currentImage)->fillData(&tfUbo);
 
-    lastMvpe = mCamera->getProjectionMatrix(
-                   static_cast<float>(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth()) /
-                   static_cast<float>(VulkanApplicationContext::getInstance()->getSwapchainExtentHeight())) *
+    lastMvpe = mCamera->getProjectionMatrix(static_cast<float>(mAppContext->getSwapchainExtentWidth()) /
+                                            static_cast<float>(mAppContext->getSwapchainExtentHeight())) *
                mCamera->getViewMatrix();
   }
 
@@ -275,15 +274,14 @@ void Application::updateScene(uint32_t currentImage) {
 
 void Application::createRenderCommandBuffers() {
   // create command buffers per swapchain image
-  mCommandBuffers.resize(VulkanApplicationContext::getInstance()->getSwapchainSize());
+  mCommandBuffers.resize(mAppContext->getSwapchainSize());
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool        = VulkanApplicationContext::getInstance()->getCommandPool();
+  allocInfo.commandPool        = mAppContext->getCommandPool();
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)mCommandBuffers.size();
 
-  VkResult result = vkAllocateCommandBuffers(VulkanApplicationContext::getInstance()->getDevice(), &allocInfo,
-                                             mCommandBuffers.data());
+  VkResult result = vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, mCommandBuffers.data());
   logger::checkStep("vkAllocateCommandBuffers", result);
 
   VkImageMemoryBarrier targetTexGeneral2TransSrc = ImageUtils::generalToTransferSrcBarrier(mTargetImage->getVkImage());
@@ -313,14 +311,13 @@ void Application::createRenderCommandBuffers() {
       ImageUtils::transferDstToGeneralBarrier(mMeshHashImage2->getVkImage());
 
   VkImageCopy imgCopyRegion =
-      ImageUtils::imageCopyRegion(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-                                  VulkanApplicationContext::getInstance()->getSwapchainExtentHeight());
+      ImageUtils::imageCopyRegion(mAppContext->getSwapchainExtentWidth(), mAppContext->getSwapchainExtentHeight());
 
   for (size_t i = 0; i < mCommandBuffers.size(); i++) {
     VkImageMemoryBarrier swapchainImageUndefined2TransferDst =
-        ImageUtils::undefinedToTransferDstBarrier(VulkanApplicationContext::getInstance()->getSwapchainImages()[i]);
-    VkImageMemoryBarrier swapchainImageTransferDst2ColorAttachment = ImageUtils::transferDstToColorAttachmentBarrier(
-        VulkanApplicationContext::getInstance()->getSwapchainImages()[i]);
+        ImageUtils::undefinedToTransferDstBarrier(mAppContext->getSwapchainImages()[i]);
+    VkImageMemoryBarrier swapchainImageTransferDst2ColorAttachment =
+        ImageUtils::transferDstToColorAttachmentBarrier(mAppContext->getSwapchainImages()[i]);
 
     VkCommandBuffer &currentCommandBuffer = mCommandBuffers[i];
 
@@ -363,9 +360,9 @@ void Application::createRenderCommandBuffers() {
       {
         auto &allocation = mBlurFilterBufferBundles[j]->getBuffer(i)->getAllocation();
         void *data;
-        vmaMapMemory(VulkanApplicationContext::getInstance()->getAllocator(), allocation, &data);
+        vmaMapMemory(mAppContext->getAllocator(), allocation, &data);
         memcpy(data, &bfUbo, sizeof(bfUbo));
-        vmaUnmapMemory(VulkanApplicationContext::getInstance()->getAllocator(), allocation);
+        vmaUnmapMemory(mAppContext->getAllocator(), allocation);
       }
 
       // dispatch 2 stages of separate shaders
@@ -423,8 +420,7 @@ void Application::createRenderCommandBuffers() {
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
                          0, nullptr, 0, nullptr, 1, &swapchainImageUndefined2TransferDst);
     vkCmdCopyImage(currentCommandBuffer, mTargetImage->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   VulkanApplicationContext::getInstance()->getSwapchainImages()[i],
-                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+                   mAppContext->getSwapchainImages()[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
                          0, nullptr, 0, nullptr, 1, &targetTexTransSrc2General);
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
@@ -465,34 +461,32 @@ void Application::createSyncObjects() {
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
-    if (vkCreateSemaphore(VulkanApplicationContext::getInstance()->getDevice(), &semaphoreInfo, nullptr,
-                          &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
-        vkCreateSemaphore(VulkanApplicationContext::getInstance()->getDevice(), &semaphoreInfo, nullptr,
-                          &mRenderFinishedSemaphores[i]) != VK_SUCCESS ||
-        vkCreateFence(VulkanApplicationContext::getInstance()->getDevice(), &fenceInfo, nullptr,
-                      &mFramesInFlightFences[i]) != VK_SUCCESS) {
+    if (vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr, &mImageAvailableSemaphores[i]) !=
+            VK_SUCCESS ||
+        vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr, &mRenderFinishedSemaphores[i]) !=
+            VK_SUCCESS ||
+        vkCreateFence(mAppContext->getDevice(), &fenceInfo, nullptr, &mFramesInFlightFences[i]) != VK_SUCCESS) {
       logger::throwError("failed to create synchronization objects for a frame!");
     }
   }
 }
 
 void Application::createGuiCommandBuffers() {
-  mGuiCommandBuffers.resize(VulkanApplicationContext::getInstance()->getSwapchainSize());
+  mGuiCommandBuffers.resize(mAppContext->getSwapchainSize());
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool        = VulkanApplicationContext::getInstance()->getGuiCommandPool();
+  allocInfo.commandPool        = mAppContext->getGuiCommandPool();
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)mGuiCommandBuffers.size();
 
-  VkResult result = vkAllocateCommandBuffers(VulkanApplicationContext::getInstance()->getDevice(), &allocInfo,
-                                             mGuiCommandBuffers.data());
+  VkResult result = vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, mGuiCommandBuffers.data());
   logger::checkStep("vkAllocateCommandBuffers", result);
 }
 
 void Application::createGuiRenderPass() {
   // Imgui Pass, right after the main pass
   VkAttachmentDescription attachment = {};
-  attachment.format                  = VulkanApplicationContext::getInstance()->getSwapchainImageFormat();
+  attachment.format                  = mAppContext->getSwapchainImageFormat();
   attachment.samples                 = VK_SAMPLE_COUNT_1_BIT;
   // Load onto the current render pass
   attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -531,8 +525,7 @@ void Application::createGuiRenderPass() {
   renderPassCreateInfo.dependencyCount        = 1;
   renderPassCreateInfo.pDependencies          = &dependency;
 
-  VkResult result = vkCreateRenderPass(VulkanApplicationContext::getInstance()->getDevice(), &renderPassCreateInfo,
-                                       nullptr, &mImGuiPass);
+  VkResult result = vkCreateRenderPass(mAppContext->getDevice(), &renderPassCreateInfo, nullptr, &mImGuiPass);
   logger::checkStep("vkCreateRenderPass", result);
 }
 
@@ -540,23 +533,23 @@ void Application::createGuiFramebuffers() {
   // Create gui frame buffers for gui pass to use
   // Each frame buffer will have an attachment of VkImageView, in this case, the
   // attachments are mSwapchainImageViews
-  mSwapchainGuiFrameBuffers.resize(VulkanApplicationContext::getInstance()->getSwapchainSize());
+  mSwapchainGuiFrameBuffers.resize(mAppContext->getSwapchainSize());
 
   // Iterate through image views
-  for (size_t i = 0; i < VulkanApplicationContext::getInstance()->getSwapchainSize(); i++) {
-    VkImageView attachment = VulkanApplicationContext::getInstance()->getSwapchainImageViews()[i];
+  for (size_t i = 0; i < mAppContext->getSwapchainSize(); i++) {
+    VkImageView attachment = mAppContext->getSwapchainImageViews()[i];
 
     VkFramebufferCreateInfo frameBufferCreateInfo{};
     frameBufferCreateInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     frameBufferCreateInfo.renderPass      = mImGuiPass;
     frameBufferCreateInfo.attachmentCount = 1;
     frameBufferCreateInfo.pAttachments    = &attachment;
-    frameBufferCreateInfo.width           = VulkanApplicationContext::getInstance()->getSwapchainExtentWidth();
-    frameBufferCreateInfo.height          = VulkanApplicationContext::getInstance()->getSwapchainExtentHeight();
+    frameBufferCreateInfo.width           = mAppContext->getSwapchainExtentWidth();
+    frameBufferCreateInfo.height          = mAppContext->getSwapchainExtentHeight();
     frameBufferCreateInfo.layers          = 1;
 
-    VkResult result = vkCreateFramebuffer(VulkanApplicationContext::getInstance()->getDevice(), &frameBufferCreateInfo,
-                                          nullptr, &mSwapchainGuiFrameBuffers[i]);
+    VkResult result =
+        vkCreateFramebuffer(mAppContext->getDevice(), &frameBufferCreateInfo, nullptr, &mSwapchainGuiFrameBuffers[i]);
     logger::checkStep("vkCreateFramebuffer", result);
   }
 }
@@ -581,46 +574,8 @@ void Application::createGuiDescripterPool() {
   poolInfo.poolSizeCount              = (uint32_t)IM_ARRAYSIZE(poolSizes);
   poolInfo.pPoolSizes                 = poolSizes;
 
-  VkResult result = vkCreateDescriptorPool(VulkanApplicationContext::getInstance()->getDevice(), &poolInfo, nullptr,
-                                           &mGuiDescriptorPool);
+  VkResult result = vkCreateDescriptorPool(mAppContext->getDevice(), &poolInfo, nullptr, &mGuiDescriptorPool);
   logger::checkStep("vkCreateDescriptorPool", result);
-}
-
-VkCommandBuffer Application::beginSingleTimeCommands() {
-  VkCommandBuffer commandBuffer;
-
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool        = VulkanApplicationContext::getInstance()->getCommandPool();
-  allocInfo.commandBufferCount = 1;
-
-  if (vkAllocateCommandBuffers(VulkanApplicationContext::getInstance()->getDevice(), &allocInfo, &commandBuffer) !=
-      VK_SUCCESS) {
-    logger::print("failed to allocate command buffers!");
-  }
-
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-  vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-  return commandBuffer;
-}
-
-void Application::endSingleTimeCommands(VkCommandBuffer commandBuffer) {
-  vkEndCommandBuffer(commandBuffer);
-
-  VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers    = &commandBuffer;
-
-  vkQueueSubmit(VulkanApplicationContext::getInstance()->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(VulkanApplicationContext::getInstance()->getGraphicsQueue());
-
-  vkFreeCommandBuffers(VulkanApplicationContext::getInstance()->getDevice(),
-                       VulkanApplicationContext::getInstance()->getCommandPool(), 1, &commandBuffer);
 }
 
 void Application::initGui() {
@@ -641,30 +596,33 @@ void Application::initGui() {
   ImGui::StyleColorsClassic();
 
   // Setup Platform/Renderer bindings
-  ImGui_ImplGlfw_InitForVulkan(VulkanApplicationContext::getInstance()->getWindow(), true);
+  ImGui_ImplGlfw_InitForVulkan(mAppContext->getWindow(), true);
 
   ImGui_ImplVulkan_InitInfo init_info = {};
-  init_info.Instance                  = VulkanApplicationContext::getInstance()->getVkInstance();
-  init_info.PhysicalDevice            = VulkanApplicationContext::getInstance()->getPhysicalDevice();
-  init_info.Device                    = VulkanApplicationContext::getInstance()->getDevice();
-  init_info.QueueFamily               = VulkanApplicationContext::getInstance()->getGraphicsFamilyIndex();
-  init_info.Queue                     = VulkanApplicationContext::getInstance()->getGraphicsQueue();
+  init_info.Instance                  = mAppContext->getVkInstance();
+  init_info.PhysicalDevice            = mAppContext->getPhysicalDevice();
+  init_info.Device                    = mAppContext->getDevice();
+  init_info.QueueFamily               = mAppContext->getGraphicsFamilyIndex();
+  init_info.Queue                     = mAppContext->getGraphicsQueue();
   init_info.PipelineCache             = VK_NULL_HANDLE;
   init_info.DescriptorPool            = mGuiDescriptorPool;
   init_info.Allocator                 = VK_NULL_HANDLE;
-  init_info.MinImageCount   = static_cast<uint32_t>(VulkanApplicationContext::getInstance()->getSwapchainSize());
-  init_info.ImageCount      = static_cast<uint32_t>(VulkanApplicationContext::getInstance()->getSwapchainSize());
-  init_info.CheckVkResultFn = check_vk_result;
+  init_info.MinImageCount             = static_cast<uint32_t>(mAppContext->getSwapchainSize());
+  init_info.ImageCount                = static_cast<uint32_t>(mAppContext->getSwapchainSize());
+  init_info.CheckVkResultFn           = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&init_info, mImGuiPass)) {
     logger::print("failed to init impl");
   }
 
   // Create fonts texture
-  VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+  VkCommandBuffer commandBuffer =
+      RenderSystem::beginSingleTimeCommands(mAppContext->getDevice(), mAppContext->getCommandPool());
+
   if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer)) {
     logger::print("failed to create fonts texture");
   }
-  endSingleTimeCommands(commandBuffer);
+  RenderSystem::endSingleTimeCommands(mAppContext->getDevice(), mAppContext->getCommandPool(),
+                                      mAppContext->getGraphicsQueue(), commandBuffer);
 }
 
 void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex) {
@@ -681,7 +639,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass            = mImGuiPass;
   renderPassInfo.framebuffer           = mSwapchainGuiFrameBuffers[imageIndex];
-  renderPassInfo.renderArea.extent     = VulkanApplicationContext::getInstance()->getSwapchainExtent();
+  renderPassInfo.renderArea.extent     = mAppContext->getSwapchainExtent();
 
   VkClearValue clearValue{};
   clearValue.color = {{0.0F, 0.0F, 0.0F, 1.0F}};
@@ -702,13 +660,11 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
 
 void Application::drawFrame() {
   static size_t currentFrame = 0;
-  vkWaitForFences(VulkanApplicationContext::getInstance()->getDevice(), 1, &mFramesInFlightFences[currentFrame],
-                  VK_TRUE, UINT64_MAX);
-  vkResetFences(VulkanApplicationContext::getInstance()->getDevice(), 1, &mFramesInFlightFences[currentFrame]);
+  vkWaitForFences(mAppContext->getDevice(), 1, &mFramesInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+  vkResetFences(mAppContext->getDevice(), 1, &mFramesInFlightFences[currentFrame]);
 
   uint32_t imageIndex = 0;
-  VkResult result     = vkAcquireNextImageKHR(VulkanApplicationContext::getInstance()->getDevice(),
-                                              VulkanApplicationContext::getInstance()->getSwapchain(), UINT64_MAX,
+  VkResult result     = vkAcquireNextImageKHR(mAppContext->getDevice(), mAppContext->getSwapchain(), UINT64_MAX,
                                               mImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -745,8 +701,7 @@ void Application::drawFrame() {
     submitInfo.pCommandBuffers    = submitCommandBuffers.data();
   }
 
-  result = vkQueueSubmit(VulkanApplicationContext::getInstance()->getGraphicsQueue(), 1, &submitInfo,
-                         mFramesInFlightFences[currentFrame]);
+  result = vkQueueSubmit(mAppContext->getGraphicsQueue(), 1, &submitInfo, mFramesInFlightFences[currentFrame]);
   logger::checkStep("vkQueueSubmit", result);
 
   VkPresentInfoKHR presentInfo{};
@@ -755,12 +710,12 @@ void Application::drawFrame() {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores    = &mRenderFinishedSemaphores[currentFrame];
     presentInfo.swapchainCount     = 1;
-    presentInfo.pSwapchains        = &VulkanApplicationContext::getInstance()->getSwapchain();
+    presentInfo.pSwapchains        = &mAppContext->getSwapchain();
     presentInfo.pImageIndices      = &imageIndex;
     presentInfo.pResults           = nullptr;
   }
 
-  result = vkQueuePresentKHR(VulkanApplicationContext::getInstance()->getPresentQueue(), &presentInfo);
+  result = vkQueuePresentKHR(mAppContext->getPresentQueue(), &presentInfo);
   logger::checkStep("vkQueuePresentKHR", result);
 
   // Commented this out for playing around with it later :)
@@ -805,7 +760,7 @@ void Application::mainLoop() {
   static float fpsFrameCount     = 0;
   static float fpsRecordLastTime = 0;
 
-  while (glfwWindowShouldClose(VulkanApplicationContext::getInstance()->getWindow()) == 0) {
+  while (glfwWindowShouldClose(mAppContext->getWindow()) == 0) {
     glfwPollEvents();
 
     prepareGui();
@@ -819,7 +774,7 @@ void Application::mainLoop() {
       mFps              = fpsFrameCount / kFpsUpdateTime;
       mFrameTime        = 1 / mFps;
       std::string title = "FPS - " + std::to_string(static_cast<int>(mFps));
-      glfwSetWindowTitle(VulkanApplicationContext::getInstance()->getWindow(), title.c_str());
+      glfwSetWindowTitle(mAppContext->getWindow(), title.c_str());
       fpsFrameCount = 0;
 
       fpsRecordLastTime = currentTime;
@@ -829,7 +784,7 @@ void Application::mainLoop() {
     drawFrame();
   }
 
-  vkDeviceWaitIdle(VulkanApplicationContext::getInstance()->getDevice());
+  vkDeviceWaitIdle(mAppContext->getDevice());
 }
 
 void Application::initVulkan() {
@@ -860,14 +815,14 @@ void Application::initVulkan() {
 
   // set mouse callback function to be called whenever the cursor position
   // changes
-  glfwSetCursorPosCallback(VulkanApplicationContext::getInstance()->getWindow(), mouseCallback);
+  glfwSetCursorPosCallback(mAppContext->getWindow(), mouseCallback);
 }
 
 void Application::cleanup() {
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
-    vkDestroySemaphore(VulkanApplicationContext::getInstance()->getDevice(), mRenderFinishedSemaphores[i], nullptr);
-    vkDestroySemaphore(VulkanApplicationContext::getInstance()->getDevice(), mImageAvailableSemaphores[i], nullptr);
-    vkDestroyFence(VulkanApplicationContext::getInstance()->getDevice(), mFramesInFlightFences[i], nullptr);
+    vkDestroySemaphore(mAppContext->getDevice(), mRenderFinishedSemaphores[i], nullptr);
+    vkDestroySemaphore(mAppContext->getDevice(), mImageAvailableSemaphores[i], nullptr);
+    vkDestroyFence(mAppContext->getDevice(), mFramesInFlightFences[i], nullptr);
   }
 
   glfwTerminate();

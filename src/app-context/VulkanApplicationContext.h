@@ -23,6 +23,9 @@
 #include <string>
 #include <vector>
 
+// TODO: move window out of here!
+// also, this class should be configed out of class
+
 class VulkanApplicationContext {
   static std::unique_ptr<VulkanApplicationContext> sInstance;
 
