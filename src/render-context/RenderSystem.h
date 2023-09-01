@@ -5,7 +5,6 @@
 
 #include "utils/vulkan.h"
 
-// TODO: enrich this helper class
 namespace RenderSystem {
 VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool);
 void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkCommandBuffer commandBuffer);

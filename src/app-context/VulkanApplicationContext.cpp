@@ -29,6 +29,13 @@ VulkanApplicationContext *VulkanApplicationContext::initInstance(GLFWwindow *win
   return sInstance.get();
 }
 
+void VulkanApplicationContext::destroyInstance() {
+  if (sInstance == nullptr) {
+    logger::throwError("VulkanApplicationContext::destroyInstance: instance is not initialized");
+  }
+  sInstance.reset(nullptr);
+}
+
 VulkanApplicationContext *VulkanApplicationContext::getInstance() {
   if (sInstance == nullptr) {
     logger::throwError("VulkanApplicationContext::getInstance: instance is not initialized");
@@ -62,6 +69,7 @@ VulkanApplicationContext::~VulkanApplicationContext() {
   logger::print("Destroying VulkanApplicationContext");
 
   vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
+  // TODO: this causes some problems
   vmaDestroyAllocator(mAllocator);
 
   for (auto &mSwapchainImageView : mSwapchainImageViews) {

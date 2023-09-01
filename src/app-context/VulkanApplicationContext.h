@@ -74,6 +74,8 @@ public:
   // use glwindow to init the instance, can be only called once
   static VulkanApplicationContext *initInstance(GLFWwindow *glWindow = nullptr);
 
+  static void destroyInstance();
+
   // get the singleton instance, must be called after initInstance()
   static VulkanApplicationContext *getInstance();
 
@@ -90,7 +92,6 @@ public:
   [[nodiscard]] VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
                                              VkFormatFeatureFlags features) const;
 
-  // TODO: rename this
   [[nodiscard]] inline const VkInstance &getVkInstance() const { return mVkInstance; }
   [[nodiscard]] inline const VkDevice &getDevice() const { return mDevice; }
   [[nodiscard]] inline const VkSurfaceKHR &getSurface() const { return mSurface; }
