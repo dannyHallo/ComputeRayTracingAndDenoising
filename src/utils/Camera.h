@@ -18,17 +18,17 @@ class Camera {
   glm::vec3 mWorldUp;
 
   // euler Angles
-  float yaw;
-  float pitch;
-  float vFov;
+  float mYaw;
+  float mPitch;
+  float mVFov;
 
   // window is owned by ApplicationContext
   Window *mWindow;
 
 public:
   Camera(Window *window, glm::vec3 camPosition = glm::vec3(0.F, 0.F, 0.F), glm::vec3 wrdUp = glm::vec3(0.F, 1.F, 0.F),
-         float camYaw = 180, float camPitch = 0)
-      : mPosition(camPosition), mWorldUp(wrdUp), yaw(camYaw), pitch(camPitch), mWindow(window) {
+         float camYaw = 180, float camPitch = 0, float vFov = 60.F)
+      : mPosition(camPosition), mWorldUp(wrdUp), mYaw(camYaw), mPitch(camPitch), mVFov(vFov), mWindow(window) {
     updateCameraVectors();
   }
 
@@ -51,7 +51,7 @@ public:
   [[nodiscard]] glm::vec3 getFront() const { return mFront; }
   [[nodiscard]] glm::vec3 getUp() const { return mUp; }
   [[nodiscard]] glm::vec3 getRight() const { return mRight; }
-  [[nodiscard]] float getVFov() const { return vFov; }
+  [[nodiscard]] float getVFov() const { return mVFov; }
 
 private:
   // calculates the front vector from the Camera's (updated) Euler Angles

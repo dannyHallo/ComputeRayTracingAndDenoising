@@ -8,8 +8,8 @@ constexpr float mouseSensitivity = 0.06F;
 
 glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear, float zFar) const {
   glm::mat4 projection =
-      glm::perspective(glm::radians(vFov), // The vertical Field of View, in radians: the amount of "zoom". Think
-                                           // "camera lens". Usually between 90° (extra wide) and 30° (quite zoomed in)
+      glm::perspective(glm::radians(mVFov), // The vertical Field of View, in radians: the amount of "zoom". Think
+                                            // "camera lens". Usually between 90° (extra wide) and 30° (quite zoomed in)
                        aspectRatio,
                        zNear, // Near clipping plane. Keep as big as possible, or you'll get precision issues.
                        zFar   // Far clipping plane. Keep as little as possible.
@@ -69,16 +69,16 @@ void Camera::processMouseMovement(float xoffset, float yoffset) {
   xoffset *= -mouseSensitivity;
   yoffset *= mouseSensitivity;
 
-  yaw += xoffset;
-  pitch += yoffset;
+  mYaw += xoffset;
+  mPitch += yoffset;
 
   constexpr float cameraLim = 89.9F;
-  // make sure that when pitch is out of bounds, screen doesn't get flipped
-  if (pitch > cameraLim) {
-    pitch = cameraLim;
+  // make sure that when mPitch is out of bounds, screen doesn't get flipped
+  if (mPitch > cameraLim) {
+    mPitch = cameraLim;
   }
-  if (pitch < -cameraLim) {
-    pitch = -cameraLim;
+  if (mPitch < -cameraLim) {
+    mPitch = -cameraLim;
   }
 
   // update Front, Right and Up Vectors using the updated Euler angles
@@ -96,8 +96,8 @@ void Camera::processMouseMovement(float xoffset, float yoffset) {
 // }
 
 void Camera::updateCameraVectors() {
-  mFront = {-sin(glm::radians(yaw)) * cos(glm::radians(pitch)), sin(glm::radians(pitch)),
-            -cos(glm::radians(yaw)) * cos(glm::radians(pitch))};
+  mFront = {-sin(glm::radians(mYaw)) * cos(glm::radians(mPitch)), sin(glm::radians(mPitch)),
+            -cos(glm::radians(mYaw)) * cos(glm::radians(mPitch))};
   // normalize the vectors, because their length gets closer to 0 the
   mRight = glm::normalize(glm::cross(mFront, mWorldUp));
   // more you look up or down which results in slower movement.

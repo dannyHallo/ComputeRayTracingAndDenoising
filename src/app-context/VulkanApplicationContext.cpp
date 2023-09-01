@@ -40,8 +40,6 @@ VulkanApplicationContext::VulkanApplicationContext() {
     logger::print("debug is disabled");
   }
 
-  logger::print("validation layer count", validationLayers.size());
-
   // mWindow = std::make_unique<HoverWindow>(1920, 1080);
   mWindow = std::make_unique<FullscreenWindow>();
 
@@ -701,7 +699,7 @@ VkExtent2D VulkanApplicationContext::getSwapExtent(const VkSurfaceCapabilitiesKH
 }
 
 static VkImageView createImageView(VkDevice device, const VkImage &image, VkFormat format,
-                                    VkImageAspectFlags aspectFlags) {
+                                   VkImageAspectFlags aspectFlags) {
   VkImageView imageView{};
 
   VkImageViewCreateInfo viewInfo{};
