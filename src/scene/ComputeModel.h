@@ -7,12 +7,14 @@
 #include <vector>
 
 class ComputeModel {
-  std::shared_ptr<ComputeMaterial> mComputeMaterial;
+  std::unique_ptr<ComputeMaterial> mComputeMaterial;
 
 public:
-  ComputeModel(std::shared_ptr<ComputeMaterial> material) : mComputeMaterial(material) { mComputeMaterial->init(); }
+  ComputeModel(std::unique_ptr<ComputeMaterial> material) : mComputeMaterial(std::move(material)) {
+    mComputeMaterial->init();
+  }
 
-  std::shared_ptr<ComputeMaterial> getMaterial() { return mComputeMaterial; }
+  ComputeMaterial *getMaterial() { return mComputeMaterial.get(); }
 
   void computeCommand(VkCommandBuffer &commandBuffer, uint32_t currentFrame, uint32_t x, uint32_t y, uint32_t z) {
     mComputeMaterial->bind(commandBuffer, currentFrame);

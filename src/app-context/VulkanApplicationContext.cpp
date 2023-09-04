@@ -69,21 +69,20 @@ VulkanApplicationContext::~VulkanApplicationContext() {
   logger::print("Destroying VulkanApplicationContext");
 
   vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
-  // TODO: this causes some problems
-  vmaDestroyAllocator(mAllocator);
+  vkDestroyCommandPool(mDevice, mGuiCommandPool, nullptr);
 
-  for (auto &mSwapchainImageView : mSwapchainImageViews) {
-    vkDestroyImageView(mDevice, mSwapchainImageView, nullptr);
+  for (auto &swapchainImageView : mSwapchainImageViews) {
+    vkDestroyImageView(mDevice, swapchainImageView, nullptr);
   }
-
-  mSwapchainImageViews.clear();
 
   vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
 
   vkDestroySurfaceKHR(mVkInstance, mSurface, nullptr);
 
+  // this step destroys allocated VkDestroyMemory allocated by VMA when creating buffers and images,
+  // by destroying the global allocator
+  vmaDestroyAllocator(mAllocator);
   vkDestroyDevice(mDevice, nullptr);
-  mDevice = nullptr;
 
   if (enableDebug) {
     vkDestroyDebugUtilsMessengerEXT(mVkInstance, mDebugMessager, nullptr);

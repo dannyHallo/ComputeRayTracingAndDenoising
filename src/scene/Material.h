@@ -8,55 +8,51 @@
 #include <vector>
 
 // A template struct to hold a descriptor and the shader stage flags.
-template <typename T> struct Descriptor {
-  std::shared_ptr<T> data;
-  VkShaderStageFlags shaderStageFlags;
-};
+// template <typename T> struct Descriptor {
+//   std::shared_ptr<T> data;
+//   VkShaderStageFlags shaderStageFlags;
+// };
 
 class Material {
-
-public:
-  Material() : mSwapchainSize(static_cast<uint32_t>(VulkanApplicationContext::getInstance()->getSwapchainSize())) {}
-
-  virtual ~Material();
-
-  virtual void addStorageImage(const std::shared_ptr<Image> &image, VkShaderStageFlags shaderStageFlags);
-  virtual void addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
-                                      VkShaderStageFlags shaderStageFlags);
-  virtual void addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
-                                      VkShaderStageFlags shaderStageFlags);
-
-  const std::vector<Descriptor<BufferBundle>> &getUniformBufferBundles() const {
-    return mUniformBufferBundleDescriptors;
-  }
-
-  const std::vector<Descriptor<BufferBundle>> &getStorageBufferBundles() const {
-    return mStorageBufferBundleDescriptors;
-  }
-
-  const std::vector<Descriptor<Image>> &getStorageImages() const { return mStorageImageDescriptors; }
-
-  // binding should be done in model, must be overridden
-  virtual void bind(VkCommandBuffer &commandBuffer, size_t currentFrame) = 0;
-
 protected:
-  std::vector<Descriptor<BufferBundle>> mUniformBufferBundleDescriptors; // buffer bundles for uniform data
-  std::vector<Descriptor<BufferBundle>> mStorageBufferBundleDescriptors; // buffer bundles for storage data
-  // std::vector<Descriptor<Texture>> mTextureDescriptors;
-  std::vector<Descriptor<Image>> mStorageImageDescriptors; // images for storage data
+  std::vector<BufferBundle *> mUniformBufferBundles; // buffer bundles for uniform data
+  std::vector<BufferBundle *> mStorageBufferBundles; // buffer bundles for storage data
+  std::vector<Image *> mStorageImages;     // images for storage data
 
   std::string mVertexShaderPath;
   std::string mFragmentShaderPath;
 
   uint32_t mSwapchainSize;
+  VkShaderStageFlags mShaderStageFlags;
 
-  VkPipeline mPipeline;
-  VkPipelineLayout mPipelineLayout;
+  VkPipeline mPipeline                       = VK_NULL_HANDLE;
+  VkPipelineLayout mPipelineLayout           = VK_NULL_HANDLE;
+  VkDescriptorPool mDescriptorPool           = VK_NULL_HANDLE;
+  VkDescriptorSetLayout mDescriptorSetLayout = VK_NULL_HANDLE;
 
-  VkDescriptorPool mDescriptorPool;
   std::vector<VkDescriptorSet> mDescriptorSets;
-  VkDescriptorSetLayout mDescriptorSetLayout;
 
+public:
+  Material(VkShaderStageFlags shaderStageFlags)
+      : mSwapchainSize(static_cast<uint32_t>(VulkanApplicationContext::getInstance()->getSwapchainSize())),
+        mShaderStageFlags(shaderStageFlags) {}
+
+  virtual ~Material();
+
+  // disable copy and move
+  Material(const Material &)            = delete;
+  Material &operator=(const Material &) = delete;
+  Material(Material &&)                 = delete;
+  Material &operator=(Material &&)      = delete;
+
+  virtual void addStorageImage(Image *storageImage);
+  virtual void addUniformBufferBundle(BufferBundle *uniformBufferBundle);
+  virtual void addStorageBufferBundle(BufferBundle *storageBufferBundle);
+
+  // binding should be done in model, must be overridden
+  virtual void bind(VkCommandBuffer &commandBuffer, size_t currentFrame) = 0;
+
+protected:
   // creates mDescriptorSetLayout from resources added to the material
   void initDescriptorSetLayout();
 
@@ -65,7 +61,7 @@ protected:
 
   void initDescriptorSets();
 
-  VkShaderModule createShaderModule(const std::vector<char> &code);
+  static VkShaderModule createShaderModule(const std::vector<char> &code);
 
   // late initialization during model creation, must be overridden
   virtual void init() = 0;

@@ -5,38 +5,36 @@
 #include <memory>
 #include <vector>
 
-Material::~Material() {
-  vkDestroyDescriptorSetLayout(VulkanApplicationContext::getInstance()->getDevice(), mDescriptorSetLayout, nullptr);
-  vkDestroyPipeline(VulkanApplicationContext::getInstance()->getDevice(), mPipeline, nullptr);
-  vkDestroyPipelineLayout(VulkanApplicationContext::getInstance()->getDevice(), mPipelineLayout, nullptr);
-  vkDestroyDescriptorPool(VulkanApplicationContext::getInstance()->getDevice(), mDescriptorPool, nullptr);
-}
-
 VkShaderModule Material::createShaderModule(const std::vector<char> &code) {
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   createInfo.codeSize = code.size();
   createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
 
-  VkShaderModule shaderModule;
+  VkShaderModule shaderModule = VK_NULL_HANDLE;
   VkResult result =
       vkCreateShaderModule(VulkanApplicationContext::getInstance()->getDevice(), &createInfo, nullptr, &shaderModule);
   logger::checkStep("vkCreateShaderModule", result);
   return shaderModule;
 }
 
-void Material::addUniformBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
-                                      VkShaderStageFlags shaderStageFlags) {
-  mUniformBufferBundleDescriptors.emplace_back(Descriptor<BufferBundle>{bufferBundle, shaderStageFlags});
+Material::~Material() {
+  vkDestroyDescriptorSetLayout(VulkanApplicationContext::getInstance()->getDevice(), mDescriptorSetLayout, nullptr);
+  vkDestroyPipeline(VulkanApplicationContext::getInstance()->getDevice(), mPipeline, nullptr);
+  vkDestroyPipelineLayout(VulkanApplicationContext::getInstance()->getDevice(), mPipelineLayout, nullptr);
+
+  // mDescriptorSets be automatically freed when the descriptor pool is destroyed
+  vkDestroyDescriptorPool(VulkanApplicationContext::getInstance()->getDevice(), mDescriptorPool, nullptr);
 }
 
-void Material::addStorageBufferBundle(const std::shared_ptr<BufferBundle> &bufferBundle,
-                                      VkShaderStageFlags shaderStageFlags) {
-  mStorageBufferBundleDescriptors.emplace_back(Descriptor<BufferBundle>{bufferBundle, shaderStageFlags});
+void Material::addStorageImage(Image *storageImage) { mStorageImages.emplace_back(storageImage); }
+
+void Material::addUniformBufferBundle(BufferBundle *uniformBufferBundle) {
+  mUniformBufferBundles.emplace_back(uniformBufferBundle);
 }
 
-void Material::addStorageImage(const std::shared_ptr<Image> &image, VkShaderStageFlags shaderStageFlags) {
-  mStorageImageDescriptors.emplace_back(Descriptor<Image>{image, shaderStageFlags});
+void Material::addStorageBufferBundle(BufferBundle *storageBufferBundle) {
+  mStorageBufferBundles.emplace_back(storageBufferBundle);
 }
 
 void Material::initDescriptorSetLayout() {
@@ -46,30 +44,30 @@ void Material::initDescriptorSetLayout() {
   uint32_t bindingNo = 0;
 
   // each binding is for each buffer BUNDLE
-  for (const auto &d : mUniformBufferBundleDescriptors) {
+  for (int i = 0; i < mUniformBufferBundles.size(); i++) {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding         = bindingNo++;
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.stageFlags      = d.shaderStageFlags;
+    uboLayoutBinding.stageFlags      = mShaderStageFlags;
     bindings.push_back(uboLayoutBinding);
   }
 
-  for (const auto &s : mStorageImageDescriptors) {
+  for (int i = 0; i < mStorageImages.size(); i++) {
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding         = bindingNo++;
     samplerLayoutBinding.descriptorCount = 1;
     samplerLayoutBinding.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    samplerLayoutBinding.stageFlags      = s.shaderStageFlags;
+    samplerLayoutBinding.stageFlags      = mShaderStageFlags;
     bindings.push_back(samplerLayoutBinding);
   }
 
-  for (const auto &s : mStorageBufferBundleDescriptors) {
+  for (int i = 0; i < mStorageBufferBundles.size(); i++) {
     VkDescriptorSetLayoutBinding storageBufferBinding{};
     storageBufferBinding.binding         = bindingNo++;
     storageBufferBinding.descriptorCount = 1;
     storageBufferBinding.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    storageBufferBinding.stageFlags      = s.shaderStageFlags;
+    storageBufferBinding.stageFlags      = mShaderStageFlags;
     bindings.push_back(storageBufferBinding);
   }
 
@@ -85,20 +83,19 @@ void Material::initDescriptorSetLayout() {
 
 void Material::initDescriptorPool() {
   std::vector<VkDescriptorPoolSize> poolSizes{};
-  poolSizes.reserve(mUniformBufferBundleDescriptors.size() + mStorageImageDescriptors.size() +
-                    mStorageBufferBundleDescriptors.size());
+  poolSizes.reserve(mUniformBufferBundles.size() + mStorageImages.size() + mStorageBufferBundles.size());
 
   // https://www.reddit.com/r/vulkan/comments/8u9zqr/having_trouble_understanding_descriptor_pool/
   // pool sizes info indicates how many descriptors of a certain type can be allocated from the pool - NOT THE SET!
-  for (size_t i = 0; i < mUniformBufferBundleDescriptors.size(); i++) {
+  for (size_t i = 0; i < mUniformBufferBundles.size(); i++) {
     poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mSwapchainSize});
   }
 
-  for (size_t i = 0; i < mStorageImageDescriptors.size(); i++) {
+  for (size_t i = 0; i < mStorageImages.size(); i++) {
     poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, mSwapchainSize});
   }
 
-  for (size_t i = 0; i < mStorageBufferBundleDescriptors.size(); i++) {
+  for (size_t i = 0; i < mStorageBufferBundles.size(); i++) {
     poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mSwapchainSize});
   }
 
@@ -135,16 +132,17 @@ void Material::initDescriptorSets() {
     VkDescriptorSet &dstSet = mDescriptorSets[j];
 
     std::vector<VkWriteDescriptorSet> descriptorWrites{};
-    descriptorWrites.reserve(mUniformBufferBundleDescriptors.size() + mStorageImageDescriptors.size() +
-                             mStorageBufferBundleDescriptors.size());
+    descriptorWrites.reserve(mUniformBufferBundles.size() + mStorageImages.size() + mStorageBufferBundles.size());
 
     uint32_t bindingNo = 0;
 
     std::vector<VkDescriptorBufferInfo> uniformBufferInfos{};
-    for (size_t i = 0; i < mUniformBufferBundleDescriptors.size(); i++) {
-      uniformBufferInfos.emplace_back(mUniformBufferBundleDescriptors[i].data->getBuffer(j)->getDescriptorInfo());
+    uniformBufferInfos.reserve(mUniformBufferBundles.size());
+    for (auto &mUniformBufferBundleDescriptor : mUniformBufferBundles) {
+      uniformBufferInfos.emplace_back(mUniformBufferBundleDescriptor->getBuffer(j)->getDescriptorInfo());
     }
-    for (size_t i = 0; i < mUniformBufferBundleDescriptors.size(); i++) {
+
+    for (size_t i = 0; i < mUniformBufferBundles.size(); i++) {
       VkWriteDescriptorSet descriptorSet{};
       descriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorSet.dstSet          = dstSet;
@@ -157,10 +155,12 @@ void Material::initDescriptorSets() {
     }
 
     std::vector<VkDescriptorImageInfo> storageImageInfos{};
-    for (size_t i = 0; i < mStorageImageDescriptors.size(); i++) {
-      storageImageInfos.push_back(mStorageImageDescriptors[i].data->getDescriptorInfo(VK_IMAGE_LAYOUT_GENERAL));
+    storageImageInfos.reserve(mStorageImages.size());
+    for (auto &mStorageImageDescriptor : mStorageImages) {
+      storageImageInfos.push_back(mStorageImageDescriptor->getDescriptorInfo(VK_IMAGE_LAYOUT_GENERAL));
     }
-    for (size_t i = 0; i < mStorageImageDescriptors.size(); i++) {
+
+    for (size_t i = 0; i < mStorageImages.size(); i++) {
       VkWriteDescriptorSet descriptorSet{};
       descriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorSet.dstSet          = dstSet;
@@ -173,10 +173,12 @@ void Material::initDescriptorSets() {
     }
 
     std::vector<VkDescriptorBufferInfo> storageBufferInfos{};
-    for (size_t i = 0; i < mStorageBufferBundleDescriptors.size(); i++) {
-      storageBufferInfos.push_back(mStorageBufferBundleDescriptors[i].data->getBuffer(j)->getDescriptorInfo());
+    storageBufferInfos.reserve(mStorageBufferBundles.size());
+    for (auto &mStorageBufferBundleDescriptor : mStorageBufferBundles) {
+      storageBufferInfos.push_back(mStorageBufferBundleDescriptor->getBuffer(j)->getDescriptorInfo());
     }
-    for (size_t i = 0; i < mStorageBufferBundleDescriptors.size(); i++) {
+
+    for (size_t i = 0; i < mStorageBufferBundles.size(); i++) {
       VkWriteDescriptorSet descriptorSet{};
       descriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       descriptorSet.dstSet          = dstSet;

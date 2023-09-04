@@ -1,6 +1,7 @@
 #include "Application.h"
 
 #include "render-context/RenderSystem.h"
+#include "scene/ComputeMaterial.h"
 #include "window/FullscreenWindow.h"
 #include "window/HoverWindow.h"
 #include "window/MaximizedWindow.h"
@@ -41,10 +42,42 @@ Application::Application() {
   mCamera     = std::make_unique<Camera>(mWindow.get());
 }
 
+// Application::~Application() { cleanup(); }
+
 void Application::run() {
   initVulkan();
   mainLoop();
   cleanup();
+}
+
+void Application::cleanup() {
+  logger::print("Application is cleaning up resources...");
+
+  for (size_t i = 0; i < kMaxFramesInFlight; i++) {
+    vkDestroySemaphore(mAppContext->getDevice(), mRenderFinishedSemaphores[i], nullptr);
+    vkDestroySemaphore(mAppContext->getDevice(), mImageAvailableSemaphores[i], nullptr);
+    vkDestroyFence(mAppContext->getDevice(), mFramesInFlightFences[i], nullptr);
+  }
+
+  for (auto &commandBuffer : mCommandBuffers) {
+    vkFreeCommandBuffers(mAppContext->getDevice(), mAppContext->getCommandPool(), 1, &commandBuffer);
+  }
+
+  for (auto &mGuiCommandBuffers : mGuiCommandBuffers) {
+    vkFreeCommandBuffers(mAppContext->getDevice(), mAppContext->getGuiCommandPool(), 1, &mGuiCommandBuffers);
+  }
+
+  for (auto &guiFrameBuffer : mGuiFrameBuffers) {
+    vkDestroyFramebuffer(mAppContext->getDevice(), guiFrameBuffer, nullptr);
+  }
+
+  vkDestroyRenderPass(mAppContext->getDevice(), mImGuiPass, nullptr);
+  vkDestroyDescriptorPool(mAppContext->getDevice(), mGuiDescriptorPool, nullptr);
+
+  // clearing resources related to ImGui, this can be rewritten by using VMA later
+  ImGui_ImplVulkan_Shutdown();
+
+  glfwTerminate();
 }
 
 void check_vk_result(VkResult resultCode) { logger::checkStep("check_vk_result", resultCode); }
@@ -54,69 +87,69 @@ void Application::initScene() {
   auto swapchainSize = static_cast<uint32_t>(mAppContext->getSwapchainSize());
 
   // creates material, loads models from files, creates bvh
-  mRtScene = std::make_shared<GpuModel::Scene>();
+  mRtScene = std::make_unique<GpuModel::Scene>();
 
   // uniform buffers are faster to fill compared to storage buffers, but they
   // are restricted in their size Buffer bundle is an array of buffers, one per
   // each swapchain image/descriptor set.
-  mRtxBufferBundle = std::make_shared<BufferBundle>(swapchainSize, sizeof(RtxUniformBufferObject),
+  mRtxBufferBundle = std::make_unique<BufferBundle>(swapchainSize, sizeof(RtxUniformBufferObject),
                                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
   mTemperalFilterBufferBundle =
-      std::make_shared<BufferBundle>(swapchainSize, sizeof(TemporalFilterUniformBufferObject),
+      std::make_unique<BufferBundle>(swapchainSize, sizeof(TemporalFilterUniformBufferObject),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
   for (int i = 0; i < kATrousSize; i++) {
     auto blurFilterBufferBundle =
-        std::make_shared<BufferBundle>(swapchainSize, sizeof(BlurFilterUniformBufferObject),
+        std::make_unique<BufferBundle>(swapchainSize, sizeof(BlurFilterUniformBufferObject),
                                        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
     mBlurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle));
   }
 
-  auto triangleBufferBundle = std::make_shared<BufferBundle>(
+  mTriangleBufferBundle = std::make_unique<BufferBundle>(
       swapchainSize, sizeof(GpuModel::Triangle) * mRtScene->triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, mRtScene->triangles.data());
 
-  auto materialBufferBundle = std::make_shared<BufferBundle>(
+  mMaterialBufferBundle = std::make_unique<BufferBundle>(
       swapchainSize, sizeof(GpuModel::Material) * mRtScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, mRtScene->materials.data());
 
-  auto bvhBufferBundle = std::make_shared<BufferBundle>(
+  mBvhBufferBundle = std::make_unique<BufferBundle>(
       swapchainSize, sizeof(GpuModel::BvhNode) * mRtScene->bvhNodes.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, mRtScene->bvhNodes.data());
 
-  auto lightsBufferBundle = std::make_shared<BufferBundle>(
-      swapchainSize, sizeof(GpuModel::Light) * mRtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      VMA_MEMORY_USAGE_CPU_TO_GPU, mRtScene->lights.data());
+  mLightsBufferBundle = std::make_unique<BufferBundle>(swapchainSize, sizeof(GpuModel::Light) * mRtScene->lights.size(),
+                                                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+                                                       mRtScene->lights.data());
 
   auto imageWidth  = mAppContext->getSwapchainExtentWidth();
   auto imageHeight = mAppContext->getSwapchainExtentHeight();
 
-  mTargetImage = std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(),
+  mTargetImage = std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(),
                                          mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
                                          VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
                                          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
                                              VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                          VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mRawImage = std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(),
+  mRawImage = std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(),
                                       mAppContext->getGraphicsQueue(), imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT,
                                       VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                       VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mBlurHImage =
-      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
                               imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
                               VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                               VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mATrousImage1 =
-      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
                               imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
                               VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                               VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mATrousImage2 = std::make_shared<Image>(
+  mATrousImage2 = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
@@ -124,121 +157,113 @@ void Application::initScene() {
 
   // introducing G-Buffers
   mPositionImage =
-      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
                               imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                               VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mDepthImage =
-      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
                               imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT,
                               VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                               VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mNormalImage =
-      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
                               imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                               VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mMeshHashImage1 =
-      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
                               imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT,
                               VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                               VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mMeshHashImage2 =
-      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
                               imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT,
                               VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                               VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mAccumulationImage =
-      std::make_shared<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
+      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
                               imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
                               VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
                               VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   // rtx.comp
-  auto rtxMat = std::make_shared<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/rtx.spv");
-  {
-    rtxMat->addUniformBufferBundle(mRtxBufferBundle);
-    // input
-    rtxMat->addStorageImage(mPositionImage);
-    rtxMat->addStorageImage(mNormalImage);
-    rtxMat->addStorageImage(mDepthImage);
-    rtxMat->addStorageImage(mMeshHashImage1);
-    // output
-    rtxMat->addStorageImage(mRawImage);
-    // buffers
-    rtxMat->addStorageBufferBundle(triangleBufferBundle);
-    rtxMat->addStorageBufferBundle(materialBufferBundle);
-    rtxMat->addStorageBufferBundle(bvhBufferBundle);
-    rtxMat->addStorageBufferBundle(lightsBufferBundle);
-  }
-  mRtxModel = std::make_shared<ComputeModel>(rtxMat);
+  auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/rtx.spv");
+  rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
+  // input
+  rtxMat->addStorageImage(mPositionImage.get());
+  rtxMat->addStorageImage(mNormalImage.get());
+  rtxMat->addStorageImage(mDepthImage.get());
+  rtxMat->addStorageImage(mMeshHashImage1.get());
+  // output
+  rtxMat->addStorageImage(mRawImage.get());
+  // buffers
+  rtxMat->addStorageBufferBundle(mTriangleBufferBundle.get());
+  rtxMat->addStorageBufferBundle(mMaterialBufferBundle.get());
+  rtxMat->addStorageBufferBundle(mBvhBufferBundle.get());
+  rtxMat->addStorageBufferBundle(mLightsBufferBundle.get());
+  mRtxModel = std::make_unique<ComputeModel>(std::move(rtxMat));
 
   // temporalFilter.comp
   auto temporalFilterMat =
-      std::make_shared<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/temporalFilter.spv");
-  {
-    temporalFilterMat->addUniformBufferBundle(mTemperalFilterBufferBundle);
-    // input
-    temporalFilterMat->addStorageImage(mPositionImage);
-    temporalFilterMat->addStorageImage(mRawImage);
-    temporalFilterMat->addStorageImage(mAccumulationImage);
-    temporalFilterMat->addStorageImage(mNormalImage);
-    temporalFilterMat->addStorageImage(mDepthImage);
-    temporalFilterMat->addStorageImage(mMeshHashImage1);
-    temporalFilterMat->addStorageImage(mMeshHashImage2);
-    // output
-    temporalFilterMat->addStorageImage(mATrousImage1);
-  }
-  mTemporalFilterModel = std::make_shared<ComputeModel>(temporalFilterMat);
+      std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/temporalFilter.spv");
+  temporalFilterMat->addUniformBufferBundle(mTemperalFilterBufferBundle.get());
+  // input
+  temporalFilterMat->addStorageImage(mPositionImage.get());
+  temporalFilterMat->addStorageImage(mRawImage.get());
+  temporalFilterMat->addStorageImage(mAccumulationImage.get());
+  temporalFilterMat->addStorageImage(mNormalImage.get());
+  temporalFilterMat->addStorageImage(mDepthImage.get());
+  temporalFilterMat->addStorageImage(mMeshHashImage1.get());
+  temporalFilterMat->addStorageImage(mMeshHashImage2.get());
+  // output
+  temporalFilterMat->addStorageImage(mATrousImage1.get());
+  mTemporalFilterModel = std::make_unique<ComputeModel>(std::move(temporalFilterMat));
 
   for (int i = 0; i < kATrousSize; i++) {
     auto blurFilterPhase1Mat =
-        std::make_shared<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/blurPhase1.spv");
-    {
-      blurFilterPhase1Mat->addUniformBufferBundle(mBlurFilterBufferBundles[i]);
-      // input
-      blurFilterPhase1Mat->addStorageImage(mATrousImage1);
-      blurFilterPhase1Mat->addStorageImage(mNormalImage);
-      blurFilterPhase1Mat->addStorageImage(mDepthImage);
-      blurFilterPhase1Mat->addStorageImage(mPositionImage);
-      // output
-      blurFilterPhase1Mat->addStorageImage(mBlurHImage);
-    }
-    mBlurFilterPhase1Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase1Mat));
+        std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/blurPhase1.spv");
+    blurFilterPhase1Mat->addUniformBufferBundle(mBlurFilterBufferBundles[i].get());
+    // input
+    blurFilterPhase1Mat->addStorageImage(mATrousImage1.get());
+    blurFilterPhase1Mat->addStorageImage(mNormalImage.get());
+    blurFilterPhase1Mat->addStorageImage(mDepthImage.get());
+    blurFilterPhase1Mat->addStorageImage(mPositionImage.get());
+    // output
+    blurFilterPhase1Mat->addStorageImage(mBlurHImage.get());
+    mBlurFilterPhase1Models.emplace_back(std::make_unique<ComputeModel>(std::move(blurFilterPhase1Mat)));
 
     auto blurFilterPhase2Mat =
-        std::make_shared<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/blurPhase2.spv");
-    {
-      blurFilterPhase2Mat->addUniformBufferBundle(mBlurFilterBufferBundles[i]);
-      // input
-      blurFilterPhase2Mat->addStorageImage(mATrousImage1);
-      blurFilterPhase2Mat->addStorageImage(mBlurHImage);
-      blurFilterPhase2Mat->addStorageImage(mNormalImage);
-      blurFilterPhase2Mat->addStorageImage(mDepthImage);
-      blurFilterPhase2Mat->addStorageImage(mPositionImage);
-      // output
-      blurFilterPhase2Mat->addStorageImage(mATrousImage2);
-    }
-    mBlurFilterPhase2Models.emplace_back(std::make_shared<ComputeModel>(blurFilterPhase2Mat));
+        std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/blurPhase2.spv");
+    blurFilterPhase2Mat->addUniformBufferBundle(mBlurFilterBufferBundles[i].get());
+    // input
+    blurFilterPhase2Mat->addStorageImage(mATrousImage1.get());
+    blurFilterPhase2Mat->addStorageImage(mBlurHImage.get());
+    blurFilterPhase2Mat->addStorageImage(mNormalImage.get());
+    blurFilterPhase2Mat->addStorageImage(mDepthImage.get());
+    blurFilterPhase2Mat->addStorageImage(mPositionImage.get());
+    // output
+    blurFilterPhase2Mat->addStorageImage(mATrousImage2.get());
+    mBlurFilterPhase2Models.emplace_back(std::make_unique<ComputeModel>(std::move(blurFilterPhase2Mat)));
   }
 
   auto blurFilterPhase3Mat =
-      std::make_shared<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/blurPhase3.spv");
+      std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/blurPhase3.spv");
   {
     // input
-    blurFilterPhase3Mat->addStorageImage(mATrousImage2);
-    blurFilterPhase3Mat->addStorageImage(mNormalImage);
-    blurFilterPhase3Mat->addStorageImage(mDepthImage);
-    blurFilterPhase3Mat->addStorageImage(mPositionImage);
+    blurFilterPhase3Mat->addStorageImage(mATrousImage2.get());
+    blurFilterPhase3Mat->addStorageImage(mNormalImage.get());
+    blurFilterPhase3Mat->addStorageImage(mDepthImage.get());
+    blurFilterPhase3Mat->addStorageImage(mPositionImage.get());
     // output
-    blurFilterPhase3Mat->addStorageImage(mTargetImage);
+    blurFilterPhase3Mat->addStorageImage(mTargetImage.get());
   }
-  mBlurFilterPhase3Model = std::make_shared<ComputeModel>(blurFilterPhase3Mat);
+  mBlurFilterPhase3Model = std::make_unique<ComputeModel>(std::move(blurFilterPhase3Mat));
 }
 
 void Application::updateScene(uint32_t currentImage) {
@@ -539,7 +564,7 @@ void Application::createGuiFramebuffers() {
   // Create gui frame buffers for gui pass to use
   // Each frame buffer will have an attachment of VkImageView, in this case, the
   // attachments are mSwapchainImageViews
-  mSwapchainGuiFrameBuffers.resize(mAppContext->getSwapchainSize());
+  mGuiFrameBuffers.resize(mAppContext->getSwapchainSize());
 
   // Iterate through image views
   for (size_t i = 0; i < mAppContext->getSwapchainSize(); i++) {
@@ -555,7 +580,7 @@ void Application::createGuiFramebuffers() {
     frameBufferCreateInfo.layers          = 1;
 
     VkResult result =
-        vkCreateFramebuffer(mAppContext->getDevice(), &frameBufferCreateInfo, nullptr, &mSwapchainGuiFrameBuffers[i]);
+        vkCreateFramebuffer(mAppContext->getDevice(), &frameBufferCreateInfo, nullptr, &mGuiFrameBuffers[i]);
     logger::checkStep("vkCreateFramebuffer", result);
   }
 }
@@ -644,7 +669,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass            = mImGuiPass;
-  renderPassInfo.framebuffer           = mSwapchainGuiFrameBuffers[imageIndex];
+  renderPassInfo.framebuffer           = mGuiFrameBuffers[imageIndex];
   renderPassInfo.renderArea.extent     = mAppContext->getSwapchainExtent();
 
   VkClearValue clearValue{};
@@ -822,15 +847,4 @@ void Application::initVulkan() {
   // set mouse callback function to be called whenever the cursor position
   // changes
   glfwSetCursorPosCallback(mWindow->getGlWindow(), mouseCallback);
-}
-
-void Application::cleanup() {
-  for (size_t i = 0; i < kMaxFramesInFlight; i++) {
-    vkDestroySemaphore(mAppContext->getDevice(), mRenderFinishedSemaphores[i], nullptr);
-    vkDestroySemaphore(mAppContext->getDevice(), mImageAvailableSemaphores[i], nullptr);
-    vkDestroyFence(mAppContext->getDevice(), mFramesInFlightFences[i], nullptr);
-  }
-
-  glfwTerminate();
-  VulkanApplicationContext::destroyInstance();
 }

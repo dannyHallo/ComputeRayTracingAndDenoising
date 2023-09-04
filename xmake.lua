@@ -13,6 +13,7 @@ target("main")
     set_configvar("PROJECT_DIR", (os.projectdir():gsub("\\", "/")))
     set_configdir("src/utils/")
     add_configfiles("src/utils/RootDir.h.in")
+    -- recursivelly add all cpp files in src, to make compile units
     add_files("src/**.cpp")
     add_files(
         "dep/imgui/backends/imgui_impl_glfw.cpp", 
@@ -30,7 +31,6 @@ target("main")
         "dep/glm",
         "dep/imgui",
         "dep/volk",
-        "dep/stb",
         "dep/obj-loader",
         "dep/memory-allocator-hpp"
     )

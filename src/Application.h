@@ -12,8 +12,6 @@
 
 #include "memory/ImageUtils.h"
 #include "ray-tracing/RtScene.h"
-#include "render-context/RenderSystem.h"
-#include "scene/ComputeMaterial.h"
 #include "scene/ComputeModel.h"
 #include "scene/Mesh.h"
 #include "utils/Camera.h"
@@ -69,40 +67,45 @@ class Application {
   VulkanApplicationContext *mAppContext;
 
   // scene for ray tracing
-  std::shared_ptr<GpuModel::Scene> mRtScene;
+  std::unique_ptr<GpuModel::Scene> mRtScene;
 
   // compute models for ray tracing, temporal filtering, and blur filtering
-  std::shared_ptr<ComputeModel> mRtxModel;
-  std::shared_ptr<ComputeModel> mTemporalFilterModel;
-  std::vector<std::shared_ptr<ComputeModel>> mBlurFilterPhase1Models;
-  std::vector<std::shared_ptr<ComputeModel>> mBlurFilterPhase2Models;
-  std::shared_ptr<ComputeModel> mBlurFilterPhase3Model;
+  std::unique_ptr<ComputeModel> mRtxModel;
+  std::unique_ptr<ComputeModel> mTemporalFilterModel;
+  std::vector<std::unique_ptr<ComputeModel>> mBlurFilterPhase1Models;
+  std::vector<std::unique_ptr<ComputeModel>> mBlurFilterPhase2Models;
+  std::unique_ptr<ComputeModel> mBlurFilterPhase3Model;
 
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
-  std::shared_ptr<BufferBundle> mRtxBufferBundle;
-  std::shared_ptr<BufferBundle> mTemperalFilterBufferBundle;
-  std::vector<std::shared_ptr<BufferBundle>> mBlurFilterBufferBundles;
+  std::unique_ptr<BufferBundle> mRtxBufferBundle;
+  std::unique_ptr<BufferBundle> mTemperalFilterBufferBundle;
+  std::vector<std::unique_ptr<BufferBundle>> mBlurFilterBufferBundles;
+
+  std::unique_ptr<BufferBundle> mTriangleBufferBundle;
+  std::unique_ptr<BufferBundle> mMaterialBufferBundle;
+  std::unique_ptr<BufferBundle> mBvhBufferBundle;
+  std::unique_ptr<BufferBundle> mLightsBufferBundle;
 
   // images for ray tracing and post-processing
-  std::shared_ptr<Image> mPositionImage;
-  std::shared_ptr<Image> mRawImage;
-  std::shared_ptr<Image> mTargetImage;
-  std::shared_ptr<Image> mAccumulationImage;
-  std::shared_ptr<Image> mDepthImage;
-  std::shared_ptr<Image> mNormalImage;
-  std::shared_ptr<Image> mHistorySamplesImage;
-  std::shared_ptr<Image> mMeshHashImage1;
-  std::shared_ptr<Image> mMeshHashImage2;
-  std::shared_ptr<Image> mBlurHImage;
-  std::shared_ptr<Image> mATrousImage1;
-  std::shared_ptr<Image> mATrousImage2;
+  std::unique_ptr<Image> mPositionImage;
+  std::unique_ptr<Image> mRawImage;
+  std::unique_ptr<Image> mTargetImage;
+  std::unique_ptr<Image> mAccumulationImage;
+  std::unique_ptr<Image> mDepthImage;
+  std::unique_ptr<Image> mNormalImage;
+  std::unique_ptr<Image> mHistorySamplesImage;
+  std::unique_ptr<Image> mMeshHashImage1;
+  std::unique_ptr<Image> mMeshHashImage2;
+  std::unique_ptr<Image> mBlurHImage;
+  std::unique_ptr<Image> mATrousImage1;
+  std::unique_ptr<Image> mATrousImage2;
 
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> mCommandBuffers;
   std::vector<VkCommandBuffer> mGuiCommandBuffers;
 
   // framebuffers for GUI
-  std::vector<VkFramebuffer> mSwapchainGuiFrameBuffers;
+  std::vector<VkFramebuffer> mGuiFrameBuffers;
 
   // render pass for GUI
   VkRenderPass mImGuiPass = VK_NULL_HANDLE;
