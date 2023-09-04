@@ -23,6 +23,9 @@ echo:
 xmake f -p windows -a x64 -m %BUILD_TYPE%
 xmake -w
 
+echo xmake is done, sleeping for 3 seconds...
+timeout /t 3 /nobreak >nul
+
 echo:
 @echo *********************** copy resources ***********************
 echo:
