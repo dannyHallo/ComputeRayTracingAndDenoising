@@ -2,11 +2,11 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "compile shaders, xmake",
+      "label": "compile shaders, xmake, copy assets, run program",
       "type": "shell",
-      "command": "${workspaceFolder}/batch/compile.bat"
+      "command": "${workspaceFolder}/batch/run.bat"
     },
-    {
+  {
       "label": "commit a checkpoint",
       "type": "shell",
       "command": "${workspaceFolder}/batch/git.bat"

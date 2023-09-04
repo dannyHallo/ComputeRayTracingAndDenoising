@@ -50,7 +50,7 @@ public:
   virtual void addStorageBufferBundle(BufferBundle *storageBufferBundle);
 
   // binding should be done in model, must be overridden
-  virtual void bind(VkCommandBuffer &commandBuffer, size_t currentFrame) = 0;
+  virtual void bind(VkCommandBuffer commandBuffer, size_t currentFrame) = 0;
 
 protected:
   // creates mDescriptorSetLayout from resources added to the material

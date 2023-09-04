@@ -2,8 +2,8 @@
 
 #include "Window.h"
 
-static constexpr int kDefaultWindowWidth  = 400;
-static constexpr int kDefaultWindowHeight = 300;
+static constexpr int kDefaultWindowWidth  = 1920;
+static constexpr int kDefaultWindowHeight = 1080;
 class HoverWindow : public Window {
 public:
   HoverWindow(int windowWidth = kDefaultWindowWidth, int windowHeight = kDefaultWindowHeight)

@@ -45,7 +45,7 @@ void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) 
   vkDestroyShaderModule(VulkanApplicationContext::getInstance()->getDevice(), shaderModule, nullptr);
 }
 
-void ComputeMaterial::bind(VkCommandBuffer &commandBuffer, size_t currentFrame) {
+void ComputeMaterial::bind(VkCommandBuffer commandBuffer, size_t currentFrame) {
   vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1,
                           &mDescriptorSets[currentFrame], 0, nullptr);
 

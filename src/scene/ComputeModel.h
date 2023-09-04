@@ -1,10 +1,10 @@
 #pragma once
 
-#include "ComputeMaterial.h"
 #include "utils/vulkan.h"
 
+#include "ComputeMaterial.h"
+
 #include <memory>
-#include <vector>
 
 class ComputeModel {
   std::unique_ptr<ComputeMaterial> mComputeMaterial;
@@ -16,7 +16,7 @@ public:
 
   ComputeMaterial *getMaterial() { return mComputeMaterial.get(); }
 
-  void computeCommand(VkCommandBuffer &commandBuffer, uint32_t currentFrame, uint32_t x, uint32_t y, uint32_t z) {
+  void computeCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t x, uint32_t y, uint32_t z) {
     mComputeMaterial->bind(commandBuffer, currentFrame);
     vkCmdDispatch(commandBuffer, x, y, z);
   }
