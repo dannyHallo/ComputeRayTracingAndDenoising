@@ -34,4 +34,7 @@ echo:
 @echo **************************** run *****************************
 echo:
 
-start /d "build/windows/x64/%BUILD_TYPE%" main.exe
+@REM run the application
+@REM /b means to stay in the command line below, 
+@REM /wait blocks the terminal to wait for the application to exit
+start /wait /b /d "build/windows/x64/%BUILD_TYPE%" main.exe
