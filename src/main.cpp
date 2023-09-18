@@ -8,7 +8,6 @@ int main() {
     Application app{};
     app.run();
   }
-  VulkanApplicationContext::destroyInstance(); // TODO:
-
+  VulkanApplicationContext::destroyInstance();
   return 0;
 }

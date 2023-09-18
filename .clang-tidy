@@ -2,6 +2,8 @@
 Checks: "
 -*,
 bugprone-*,
+-bugprone-easily-swappable-parameters,
+
 performance-*,
 readability-*,
 
@@ -27,6 +29,5 @@ WarningsAsErrors: ""
 HeaderFilterRegex: ""
 FormatStyle: llvm
 CheckOptions:
-  bugprone-easily-swappable-parameters.MinimumLength: 3
 ---
 

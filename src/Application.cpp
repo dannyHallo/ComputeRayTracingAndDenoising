@@ -633,7 +633,7 @@ void Application::initGui() {
   init_info.Instance                  = mAppContext->getVkInstance();
   init_info.PhysicalDevice            = mAppContext->getPhysicalDevice();
   init_info.Device                    = mAppContext->getDevice();
-  init_info.QueueFamily               = mAppContext->getGraphicsFamilyIndex();
+  init_info.QueueFamily               = mAppContext->getQueueFamilyIndices().graphicsFamily;
   init_info.Queue                     = mAppContext->getGraphicsQueue();
   init_info.PipelineCache             = VK_NULL_HANDLE;
   init_info.DescriptorPool            = mGuiDescriptorPool;

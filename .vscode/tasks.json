@@ -5,11 +5,6 @@
       "label": "build",
       "type": "shell",
       "command": "${workspaceFolder}/batch/build.bat"
-    },
-  {
-      "label": "commit a checkpoint",
-      "type": "shell",
-      "command": "${workspaceFolder}/batch/git.bat"
     }
   ]
 }

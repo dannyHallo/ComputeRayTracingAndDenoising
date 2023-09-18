@@ -24,7 +24,7 @@ include_directories(
 add_executable(${PROJ_NAME}
 	src/main.cpp
 	src/Application.cpp
-	src/app-context/VulkanApplicationContext.cpp
+	src/AppContext/VulkanApplicationContext.cpp
 	src/memory/Image.cpp
 	src/memory/ImageUtils.cpp
 	src/memory/Buffer.cpp

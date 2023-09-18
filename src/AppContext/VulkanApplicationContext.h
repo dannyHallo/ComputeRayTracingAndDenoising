@@ -5,7 +5,7 @@
 #define NOMINMAX
 
 // this should be defined first for the definition of VK_VERSION_1_0, which is used in glfw3.h
-#include "utils/vulkan.h"
+#include "ContextCreators/Common.h"
 
 // glfw3 will define APIENTRY if it is not defined yet
 #include "glfw/glfw3.h"
@@ -28,21 +28,9 @@ class VulkanApplicationContext {
   static std::unique_ptr<VulkanApplicationContext> sInstance;
 
   // stores the indices of the each queue family, they might not overlap
-  struct QueueFamilyIndices {
-    uint32_t graphicsFamily = -1;
-    uint32_t presentFamily  = -1;
-    uint32_t computeFamily  = -1;
-    uint32_t transferFamily = -1;
-  } mQueueFamilyIndices;
+  QueueFamilyIndices mQueueFamilyIndices;
 
-  struct SwapchainSupportDetails {
-    // Basic surface capabilities (min/max number of images in swap chain, min/max width and height
-    // of images) Surface formats (pixel format, color space) Available presentation modes
-
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-  } mSwapchainSupportDetails;
+  SwapchainSupportDetails mSwapchainSupportDetails;
 
   GLFWwindow *mGlWindow = nullptr;
 
@@ -114,18 +102,19 @@ public:
   [[nodiscard]] const VkQueue &getComputeQueue() const { return mComputeQueue; }
   [[nodiscard]] const VkQueue &getTransferQueue() const { return mTransferQueue; }
 
-  [[nodiscard]] uint32_t getGraphicsFamilyIndex() const { return mQueueFamilyIndices.graphicsFamily; }
-  [[nodiscard]] uint32_t getPresentFamilyIndex() const { return mQueueFamilyIndices.presentFamily; }
-  [[nodiscard]] uint32_t getComputeFamilyIndex() const { return mQueueFamilyIndices.computeFamily; }
-  [[nodiscard]] uint32_t getTransferFamilyIndex() const { return mQueueFamilyIndices.transferFamily; }
+  [[nodiscard]] const QueueFamilyIndices &getQueueFamilyIndices() const { return mQueueFamilyIndices; }
+
+  // [[nodiscard]] const SwapchainSupportDetails &getSwapchainSupportDetails() const { return mSwapchainSupportDetails;
+  // }
+
+  // [[nodiscard]] inline GLFWwindow *getGlWindow() const { return mGlWindow; }
+
+  // [[nodiscard]] inline bool isDebugMessengerAvailable() const { return mDebugMessager != VK_NULL_HANDLE; }
 
 private:
   VulkanApplicationContext(GLFWwindow *glWindow);
 
   void initWindow(uint8_t windowSize);
-  void createInstance();
-  void setupDebugMessager();
-  void createSurface();
   void createDevice();
   void createSwapchain();
   void createCommandPool();
@@ -133,12 +122,11 @@ private:
 
   static std::vector<const char *> getRequiredInstanceExtensions();
   void checkDeviceSuitable(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice);
-  static bool checkValidationLayerSupport();
   static bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice);
 
   // find the indices of the queue families, return whether the indices are fully filled
   bool findQueueFamilies(VkPhysicalDevice physicalDevice, QueueFamilyIndices &indices);
-  static bool queueIndicesAreFilled(const VulkanApplicationContext::QueueFamilyIndices &indices);
+  static bool queueIndicesAreFilled(const QueueFamilyIndices &indices);
 
   static SwapchainSupportDetails querySwapchainSupport(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice);
   VkPhysicalDevice selectBestDevice(std::vector<VkPhysicalDevice> physicalDevices);

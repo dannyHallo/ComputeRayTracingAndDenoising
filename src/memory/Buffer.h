@@ -1,6 +1,6 @@
 #pragma once
 
-#include "app-context/VulkanApplicationContext.h"
+#include "AppContext/VulkanApplicationContext.h"
 
 #include <iostream>
 #include <memory>

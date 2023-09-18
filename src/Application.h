@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "app-context/VulkanApplicationContext.h"
+#include "AppContext/VulkanApplicationContext.h"
 
 #include "memory/ImageUtils.h"
 #include "ray-tracing/RtScene.h"
@@ -21,7 +21,7 @@
 
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
-  
+
 class Application {
   // data alignment in c++ side to meet Vulkan specification:
   // A scalar of size N has a base alignment of N.
