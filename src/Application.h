@@ -21,7 +21,7 @@
 
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
-
+  
 class Application {
   // data alignment in c++ side to meet Vulkan specification:
   // A scalar of size N has a base alignment of N.
