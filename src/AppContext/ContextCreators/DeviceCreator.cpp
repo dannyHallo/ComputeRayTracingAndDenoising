@@ -1,7 +1,7 @@
 #include "DeviceCreator.h"
 
 #include "Common.h"
-#include "utils/logger.h"
+#include "utils/Logger.h"
 
 #include <set>
 
@@ -92,14 +92,14 @@ bool checkDeviceExtensionSupport(const VkPhysicalDevice &physicalDevice,
     availableExtensionsSet.insert(static_cast<const char *>(extension.extensionName));
   }
 
-  logger::print("available device extensions count", availableExtensions.size());
-  logger::print();
-  logger::print("using device extensions", requiredDeviceExtensions.size());
+  Logger::print("available device extensions count", availableExtensions.size());
+  Logger::print();
+  Logger::print("using device extensions", requiredDeviceExtensions.size());
   for (const auto &extensionName : requiredDeviceExtensions) {
-    logger::print("\t", extensionName);
+    Logger::print("\t", extensionName);
   }
-  logger::print();
-  logger::print();
+  Logger::print();
+  Logger::print();
 
   std::vector<std::string> unavailableExtensionNames{};
   for (const auto &requiredExtension : requiredDeviceExtensions) {
@@ -112,9 +112,9 @@ bool checkDeviceExtensionSupport(const VkPhysicalDevice &physicalDevice,
     return true;
   }
 
-  logger::print("the following device extensions are not available:");
+  Logger::print("the following device extensions are not available:");
   for (const auto &unavailableExtensionName : unavailableExtensionNames) {
-    logger::print("\t", unavailableExtensionName.c_str());
+    Logger::print("\t", unavailableExtensionName.c_str());
   }
   return false;
 }
@@ -168,7 +168,7 @@ void checkDeviceSuitable(const VkSurfaceKHR &surface, const VkPhysicalDevice &ph
     return;
   }
 
-  logger::throwError("physical device not suitable");
+  Logger::throwError("physical device not suitable");
 }
 
 // helper function to customize the physical device ranking mechanism, returns the physical device with the highest
@@ -185,7 +185,7 @@ VkPhysicalDevice selectBestDevice(const std::vector<VkPhysicalDevice> &physicalD
   std::vector<uint32_t> deviceMarks(physicalDevices.size());
   size_t deviceId = 0;
 
-  logger::print("-------------------------------------------------------");
+  Logger::print("-------------------------------------------------------");
 
   for (const auto &physicalDevice : physicalDevices) {
 
@@ -223,8 +223,8 @@ VkPhysicalDevice selectBestDevice(const std::vector<VkPhysicalDevice> &physicalD
     deviceId++;
   }
 
-  logger::print("-------------------------------------------------------");
-  logger::print();
+  Logger::print("-------------------------------------------------------");
+  Logger::print();
 
   uint32_t bestMark = 0;
   deviceId          = 0;
@@ -239,12 +239,12 @@ VkPhysicalDevice selectBestDevice(const std::vector<VkPhysicalDevice> &physicalD
   }
 
   if (bestDevice == VK_NULL_HANDLE) {
-    logger::throwError("no suitable GPU found.");
+    Logger::throwError("no suitable GPU found.");
   } else {
     VkPhysicalDeviceProperties bestDeviceProperty;
     vkGetPhysicalDeviceProperties(bestDevice, &bestDeviceProperty);
     std::cout << "Selected: " << static_cast<const char *>(bestDeviceProperty.deviceName) << std::endl;
-    logger::print();
+    Logger::print();
 
     checkDeviceSuitable(surface, bestDevice, requiredDeviceExtensions);
   }
@@ -264,7 +264,7 @@ void DeviceCreator::create(VkPhysicalDevice &physicalDevice, VkDevice &device, Q
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     if (deviceCount == 0) {
-      logger::throwError("failed to find GPUs with Vulkan support!");
+      Logger::throwError("failed to find GPUs with Vulkan support!");
     }
 
     std::vector<VkPhysicalDevice> physicalDevices(deviceCount);
@@ -331,7 +331,10 @@ void DeviceCreator::create(VkPhysicalDevice &physicalDevice, VkDevice &device, Q
     deviceCreateInfo.ppEnabledLayerNames = nullptr;
 
     VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
-    logger::checkStep("vkCreateDevice", result);
+    Logger::checkStep("vkCreateDevice", result);
+
+    // reduce loading overhead by specifing only one device is used
+    volkLoadDevice(device);
 
     vkGetDeviceQueue(device, indices.graphicsFamily, 0, &graphicsQueue);
     vkGetDeviceQueue(device, indices.presentFamily, 0, &presentQueue);

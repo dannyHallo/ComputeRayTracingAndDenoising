@@ -1,5 +1,5 @@
 #include "Buffer.h"
-#include "utils/logger.h"
+#include "utils/Logger.h"
 
 Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage, const void *data)
     : mVkBuffer(VK_NULL_HANDLE), mAllocation(VK_NULL_HANDLE), mSize(size) {
@@ -27,7 +27,7 @@ void Buffer::allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsag
 
   VkResult result = vmaCreateBuffer(VulkanApplicationContext::getInstance()->getAllocator(), &bufferInfo, &vmaallocInfo,
                                     &mVkBuffer, &mAllocation, nullptr);
-  logger::checkStep("vmaCreateBuffer", result);
+  Logger::checkStep("vmaCreateBuffer", result);
 }
 
 void Buffer::fillData(const void *data) {
@@ -45,7 +45,7 @@ void Buffer::fillData(const void *data) {
 
 std::shared_ptr<Buffer> BufferBundle::getBuffer(size_t index) {
   if (index < 0 || index >= mBuffers.size()) {
-    logger::throwError("BufferBundle::getBuffer: index out of range");
+    Logger::throwError("BufferBundle::getBuffer: index out of range");
     return nullptr; // (unreachable code)
   }
   return mBuffers[index];

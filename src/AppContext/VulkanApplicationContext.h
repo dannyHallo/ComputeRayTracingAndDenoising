@@ -14,8 +14,6 @@
 #endif
 // we undefine this to solve conflict with systemLog
 
-#include "window/Window.h"
-
 #include "vk_mem_alloc.h"
 
 #include <iostream>
@@ -61,8 +59,6 @@ class VulkanApplicationContext {
 public:
   // use glwindow to init the instance, can be only called once
   static VulkanApplicationContext *initInstance(GLFWwindow *glWindow = nullptr);
-
-  static void destroyInstance();
 
   // get the singleton instance, must be called after initInstance()
   static VulkanApplicationContext *getInstance();

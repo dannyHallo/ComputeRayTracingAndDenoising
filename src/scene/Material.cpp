@@ -1,5 +1,5 @@
 #include "Material.h"
-#include "utils/logger.h"
+#include "utils/Logger.h"
 #include "utils/readfile.h"
 
 #include <memory>
@@ -14,7 +14,7 @@ VkShaderModule Material::createShaderModule(const std::vector<char> &code) {
   VkShaderModule shaderModule = VK_NULL_HANDLE;
   VkResult result =
       vkCreateShaderModule(VulkanApplicationContext::getInstance()->getDevice(), &createInfo, nullptr, &shaderModule);
-  logger::checkStep("vkCreateShaderModule", result);
+  Logger::checkStep("vkCreateShaderModule", result);
   return shaderModule;
 }
 
@@ -78,7 +78,7 @@ void Material::initDescriptorSetLayout() {
 
   VkResult result = vkCreateDescriptorSetLayout(VulkanApplicationContext::getInstance()->getDevice(), &layoutInfo,
                                                 nullptr, &mDescriptorSetLayout);
-  logger::checkStep("vkCreateDescriptorSetLayout", result);
+  Logger::checkStep("vkCreateDescriptorSetLayout", result);
 }
 
 void Material::initDescriptorPool() {
@@ -108,7 +108,7 @@ void Material::initDescriptorPool() {
 
   VkResult result = vkCreateDescriptorPool(VulkanApplicationContext::getInstance()->getDevice(), &poolInfo, nullptr,
                                            &mDescriptorPool);
-  logger::checkStep("vkCreateDescriptorPool", result);
+  Logger::checkStep("vkCreateDescriptorPool", result);
 }
 
 // chop the buffer bundles here, and create the descriptor sets for each of the swapchains buffers are loaded to

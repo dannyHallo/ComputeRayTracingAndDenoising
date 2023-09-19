@@ -1,4 +1,4 @@
-#include "logger.h"
+#include "Logger.h"
 
 #include "spdlog/spdlog.h" // spdlog/include/spdlog/details/windows_include.h defines APIENTRY!
 
@@ -120,15 +120,15 @@ const std::unordered_map<int, std::string> resultCodeNamePair = {
                                              "compiled state was not already available in cache."},
     {VK_RESULT_MAX_ENUM, "Reserved for internal use by the Vulkan specification"}};
 
-void logger::throwWarning(const std::string content) { spdlog::warn(content); }
+void Logger::throwWarning(const std::string content) { spdlog::warn(content); }
 
-void logger::throwError(const std::string content) {
+void Logger::throwError(const std::string content) {
   spdlog::error(content);
   assert(false && content.c_str());
   exit(0);
 }
 
-void logger::checkStep(const std::string stepName, const int resultCode) {
+void Logger::checkStep(const std::string stepName, const int resultCode) {
   if (resultCode == VK_SUCCESS)
     return;
  

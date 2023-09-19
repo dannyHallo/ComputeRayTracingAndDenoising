@@ -1,5 +1,5 @@
 #include "Window.h"
-#include "utils/logger.h"
+#include "utils/Logger.h"
 
 // we define this window po
 // inter here as a handle in glfw callback function, it will be initialized after the first
@@ -13,15 +13,18 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
   assert(glfwInit() == GLFW_TRUE && "Failed to initialize GLFW");
 
   mMonitor = glfwGetPrimaryMonitor();
+  assert(mMonitor != nullptr && "Failed to get primary monitor");
+
   // get primary monitor for future maximize function
   const GLFWvidmode *mode = glfwGetVideoMode(mMonitor); // may be used to change mode for this program
+  assert(mode != nullptr && "Failed to get video mode");
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // only OpenGL Api is supported, so no API here
 
-  glfwWindowHint(GLFW_RED_BITS, mode->redBits);
-  glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-  glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);       // adapt colors (not needed)
-  glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt framerate
+  // glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+  // glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+  // glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);       // adapt colors (not needed)
+  // glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt framerate
 
   // set window size
   switch (windowStyle) {

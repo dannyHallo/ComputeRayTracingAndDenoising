@@ -37,7 +37,7 @@ void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
 Camera *Application::getCamera() { return mCamera.get(); }
 
 Application::Application() {
-  mWindow     = std::make_unique<FullscreenWindow>();
+  mWindow     = std::make_unique<MaximizedWindow>();
   mAppContext = VulkanApplicationContext::initInstance(mWindow->getGlWindow());
   mCamera     = std::make_unique<Camera>(mWindow.get());
 }
@@ -51,7 +51,7 @@ void Application::run() {
 }
 
 void Application::cleanup() {
-  logger::print("Application is cleaning up resources...");
+  Logger::print("Application is cleaning up resources...");
 
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
     vkDestroySemaphore(mAppContext->getDevice(), mRenderFinishedSemaphores[i], nullptr);
@@ -80,7 +80,7 @@ void Application::cleanup() {
   glfwTerminate();
 }
 
-void check_vk_result(VkResult resultCode) { logger::checkStep("check_vk_result", resultCode); }
+void check_vk_result(VkResult resultCode) { Logger::checkStep("check_vk_result", resultCode); }
 
 void Application::initScene() {
   // equals to descriptor sets size
@@ -313,7 +313,7 @@ void Application::createRenderCommandBuffers() {
   allocInfo.commandBufferCount = (uint32_t)mCommandBuffers.size();
 
   VkResult result = vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, mCommandBuffers.data());
-  logger::checkStep("vkAllocateCommandBuffers", result);
+  Logger::checkStep("vkAllocateCommandBuffers", result);
 
   VkImageMemoryBarrier targetTexGeneral2TransSrc = ImageUtils::generalToTransferSrcBarrier(mTargetImage->getVkImage());
   VkImageMemoryBarrier targetTexTransSrc2General = ImageUtils::transferSrcToGeneralBarrier(mTargetImage->getVkImage());
@@ -358,7 +358,7 @@ void Application::createRenderCommandBuffers() {
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
     VkResult result = vkBeginCommandBuffer(currentCommandBuffer, &beginInfo);
-    logger::checkStep("vkBeginCommandBuffer", result);
+    Logger::checkStep("vkBeginCommandBuffer", result);
 
     VkClearColorValue clearColor{{0, 0, 0, 0}};
     VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
@@ -473,7 +473,7 @@ void Application::createRenderCommandBuffers() {
     // postProcessScene->writeRenderCommand(currentCommandBuffer, i);
 
     result = vkEndCommandBuffer(currentCommandBuffer);
-    logger::checkStep("vkEndCommandBuffer", result);
+    Logger::checkStep("vkEndCommandBuffer", result);
   }
 }
 
@@ -497,7 +497,7 @@ void Application::createSyncObjects() {
         vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr, &mRenderFinishedSemaphores[i]) !=
             VK_SUCCESS ||
         vkCreateFence(mAppContext->getDevice(), &fenceInfo, nullptr, &mFramesInFlightFences[i]) != VK_SUCCESS) {
-      logger::throwError("failed to create synchronization objects for a frame!");
+      Logger::throwError("failed to create synchronization objects for a frame!");
     }
   }
 }
@@ -511,7 +511,7 @@ void Application::createGuiCommandBuffers() {
   allocInfo.commandBufferCount = (uint32_t)mGuiCommandBuffers.size();
 
   VkResult result = vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, mGuiCommandBuffers.data());
-  logger::checkStep("vkAllocateCommandBuffers", result);
+  Logger::checkStep("vkAllocateCommandBuffers", result);
 }
 
 void Application::createGuiRenderPass() {
@@ -557,7 +557,7 @@ void Application::createGuiRenderPass() {
   renderPassCreateInfo.pDependencies          = &dependency;
 
   VkResult result = vkCreateRenderPass(mAppContext->getDevice(), &renderPassCreateInfo, nullptr, &mImGuiPass);
-  logger::checkStep("vkCreateRenderPass", result);
+  Logger::checkStep("vkCreateRenderPass", result);
 }
 
 void Application::createGuiFramebuffers() {
@@ -581,7 +581,7 @@ void Application::createGuiFramebuffers() {
 
     VkResult result =
         vkCreateFramebuffer(mAppContext->getDevice(), &frameBufferCreateInfo, nullptr, &mGuiFrameBuffers[i]);
-    logger::checkStep("vkCreateFramebuffer", result);
+    Logger::checkStep("vkCreateFramebuffer", result);
   }
 }
 
@@ -606,7 +606,7 @@ void Application::createGuiDescripterPool() {
   poolInfo.pPoolSizes                 = poolSizes;
 
   VkResult result = vkCreateDescriptorPool(mAppContext->getDevice(), &poolInfo, nullptr, &mGuiDescriptorPool);
-  logger::checkStep("vkCreateDescriptorPool", result);
+  Logger::checkStep("vkCreateDescriptorPool", result);
 }
 
 void Application::initGui() {
@@ -642,7 +642,7 @@ void Application::initGui() {
   init_info.ImageCount                = static_cast<uint32_t>(mAppContext->getSwapchainSize());
   init_info.CheckVkResultFn           = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&init_info, mImGuiPass)) {
-    logger::print("failed to init impl");
+    Logger::print("failed to init impl");
   }
 
   // Create fonts texture
@@ -650,7 +650,7 @@ void Application::initGui() {
       RenderSystem::beginSingleTimeCommands(mAppContext->getDevice(), mAppContext->getCommandPool());
 
   if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer)) {
-    logger::print("failed to create fonts texture");
+    Logger::print("failed to create fonts texture");
   }
   RenderSystem::endSingleTimeCommands(mAppContext->getDevice(), mAppContext->getCommandPool(),
                                       mAppContext->getGraphicsQueue(), commandBuffer);
@@ -664,7 +664,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
 
   // A call to vkBeginCommandBuffer will implicitly reset the command buffer
   VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-  logger::checkStep("vkBeginCommandBuffer", result);
+  Logger::checkStep("vkBeginCommandBuffer", result);
 
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -686,7 +686,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   vkCmdEndRenderPass(commandBuffer);
 
   result = vkEndCommandBuffer(commandBuffer);
-  logger::checkStep("vkEndCommandBuffer", result);
+  Logger::checkStep("vkEndCommandBuffer", result);
 }
 
 void Application::drawFrame() {
@@ -705,7 +705,7 @@ void Application::drawFrame() {
   if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     // sub-optimal: a swapchain no longer matches the surface properties
     // exactly, but can still be used to present to the surface successfully
-    logger::throwError("resizing is not allowed!");
+    Logger::throwError("resizing is not allowed!");
   }
 
   updateScene(imageIndex);
@@ -733,7 +733,7 @@ void Application::drawFrame() {
   }
 
   result = vkQueueSubmit(mAppContext->getGraphicsQueue(), 1, &submitInfo, mFramesInFlightFences[currentFrame]);
-  logger::checkStep("vkQueueSubmit", result);
+  Logger::checkStep("vkQueueSubmit", result);
 
   VkPresentInfoKHR presentInfo{};
   {
@@ -747,7 +747,7 @@ void Application::drawFrame() {
   }
 
   result = vkQueuePresentKHR(mAppContext->getPresentQueue(), &presentInfo);
-  logger::checkStep("vkQueuePresentKHR", result);
+  Logger::checkStep("vkQueuePresentKHR", result);
 
   // Commented this out for playing around with it later :)
   // vkQueueWaitIdle(context.getPresentQueue());

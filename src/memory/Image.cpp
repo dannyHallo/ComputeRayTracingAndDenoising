@@ -2,7 +2,7 @@
 
 #include "Buffer.h"
 #include "render-context/RenderSystem.h"
-#include "utils/logger.h"
+#include "utils/Logger.h"
 #include "vulkan/vulkan_core.h"
 
 #include <cmath>
@@ -25,7 +25,7 @@ VkImageView Image::createImageView(VkDevice device, const VkImage &image, VkForm
   viewInfo.subresourceRange.layerCount     = 1;
 
   VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
-  logger::checkStep("vkCreateImageView", result);
+  Logger::checkStep("vkCreateImageView", result);
 
   return imageView;
 }
@@ -60,7 +60,7 @@ Image::Image(VkDevice device, VkCommandPool commandPool, VkQueue queue, uint32_t
     : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), mWidth(width), mHeight(height) {
   VkResult result = createImage(width, height, numSamples, format, tiling, usage, memoryUsage);
   if (result != VK_SUCCESS) {
-    logger::throwError("failed to create image!");
+    Logger::throwError("failed to create image!");
   }
 
   if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
@@ -120,7 +120,7 @@ void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool, Vk
     sourceStage           = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destinationStage      = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
   } else {
-    logger::throwError("unsupported layout transition!");
+    Logger::throwError("unsupported layout transition!");
   }
 
   vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);

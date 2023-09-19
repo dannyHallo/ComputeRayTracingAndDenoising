@@ -1,8 +1,8 @@
 #include "SurfaceCreator.h"
 
-#include "utils/logger.h"
+#include "utils/Logger.h"
 
 void SurfaceCreator::create(VkInstance instance, VkSurfaceKHR &surface, GLFWwindow *window) {
   VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
-  logger::checkStep("glfwCreateWindowSurface", result);
+  Logger::checkStep("glfwCreateWindowSurface", result);
 }

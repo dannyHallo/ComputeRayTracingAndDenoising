@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace logger {
+namespace Logger {
 inline void print() { std::cout << std::endl; }
 inline void print(std::string str) { std::cout << str << std::endl; }
 inline void print(const char *str) { std::cout << str << std::endl; }
@@ -25,4 +25,4 @@ void throwWarning(const std::string);
 // throw error and EXIT
 void throwError(const std::string);
 void checkStep(const std::string stepName, const int resultCode);
-}; // namespace logger
+}; // namespace Logger

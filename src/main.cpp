@@ -8,6 +8,6 @@ int main() {
     Application app{};
     app.run();
   }
-  VulkanApplicationContext::destroyInstance();
   return 0;
+  // after returning from main , the destructor of vulkanApplicationContext will be called
 }

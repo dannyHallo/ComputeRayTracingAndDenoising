@@ -10,6 +10,7 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})
 
 target("main")
+    -- add_defines("NVALIDATIONLAYERS")
     set_configvar("PROJECT_DIR", (os.projectdir():gsub("\\", "/")))
     set_configdir("src/utils/")
     add_configfiles("src/utils/RootDir.h.in")

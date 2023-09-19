@@ -2,7 +2,7 @@
 
 #include "Mesh.h"
 
-#include "utils/logger.h"
+#include "utils/Logger.h"
 
 #include <array>
 #include <iostream>
@@ -65,7 +65,7 @@ Mesh::Mesh(std::string model_path) {
     throw std::runtime_error(warn + err);
   }
 
-  logger::print("mesh loaded: " + model_path);
+  Logger::print("mesh loaded: " + model_path);
 
   std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 

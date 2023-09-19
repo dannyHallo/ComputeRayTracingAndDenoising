@@ -1,5 +1,5 @@
 #include "ComputeMaterial.h"
-#include "utils/logger.h"
+#include "utils/Logger.h"
 #include "utils/readfile.h"
 
 #include <memory>
@@ -21,7 +21,7 @@ void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) 
 
   VkResult result = vkCreatePipelineLayout(VulkanApplicationContext::getInstance()->getDevice(), &pipelineLayoutInfo,
                                            nullptr, &mPipelineLayout);
-  logger::checkStep("vkCreatePipelineLayout", result);
+  Logger::checkStep("vkCreatePipelineLayout", result);
 
   VkShaderModule shaderModule = createShaderModule(readFile(computeShaderPath));
 
@@ -39,7 +39,7 @@ void ComputeMaterial::initComputePipeline(const std::string &computeShaderPath) 
 
   result = vkCreateComputePipelines(VulkanApplicationContext::getInstance()->getDevice(), VK_NULL_HANDLE, 1,
                                     &computePipelineCreateInfo, nullptr, &mPipeline);
-  logger::checkStep("vkCreateComputePipelines", result);
+  Logger::checkStep("vkCreateComputePipelines", result);
 
   // since we have created the pipeline, we can destroy the shader module
   vkDestroyShaderModule(VulkanApplicationContext::getInstance()->getDevice(), shaderModule, nullptr);

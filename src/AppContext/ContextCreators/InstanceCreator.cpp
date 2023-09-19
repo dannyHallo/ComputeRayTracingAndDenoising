@@ -1,6 +1,6 @@
 #include "InstanceCreator.h"
 
-#include "utils/logger.h"
+#include "utils/Logger.h"
 
 #include <set>
 
@@ -19,9 +19,10 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBits
   return VK_FALSE;
 }
 
-void populateDebugMessagerInfo(VkDebugUtilsMessengerCreateInfoEXT &debugCreateInfo) {
+VkDebugUtilsMessengerCreateInfoEXT getDebugMessagerCreateInfo() {
+  VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+
   // Avoid some of the debug details by leaving some of the flags
-  debugCreateInfo       = {};
   debugCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
 
   // customize message severity here, to focus on the most significant messages that the validation layer can give us
@@ -36,19 +37,21 @@ void populateDebugMessagerInfo(VkDebugUtilsMessengerCreateInfoEXT &debugCreateIn
                                 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
   debugCreateInfo.pfnUserCallback = debugCallback;
+  return debugCreateInfo;
 }
 
 // setup runtime debug messager
-void setupDebugMessager(VkInstance &instance, VkDebugUtilsMessengerEXT &debugMessager) {
-  VkDebugUtilsMessengerCreateInfoEXT createInfo;
-  populateDebugMessagerInfo(createInfo);
+void setupDebugMessager(VkInstance instance, VkDebugUtilsMessengerEXT &debugMessager) {
+  auto createInfo = getDebugMessagerCreateInfo();
 
+  assert(vkCreateDebugUtilsMessengerEXT != VK_NULL_HANDLE &&
+         "vkCreateDebugUtilsMessengerEXT is a null function, call volkLoadInstance first");
   VkResult result = vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessager);
-  logger::checkStep("vkCreateDebugUtilsMessengerEXT", result);
+  Logger::checkStep("vkCreateDebugUtilsMessengerEXT", result);
 }
 
 // returns instance required extension names (i.e glfw, validation layers), they are device-irrational extensions
-std::vector<const char *> getRequiredInstanceExtensions(bool enableDebug) {
+std::vector<const char *> getRequiredInstanceExtensions() {
   // Get glfw required extensions
   uint32_t glfwExtensionCount = 0;
   const char **glfwExtensions = nullptr;
@@ -59,9 +62,9 @@ std::vector<const char *> getRequiredInstanceExtensions(bool enableDebug) {
   // Due to the nature of the Vulkan interface, there is very little error information available to the developer and
   // application. By using the VK_EXT_debug_utils extension, developers can obtain more information. When combined with
   // validation layers, even more detailed feedback on the application’s use of Vulkan will be provided.
-  if (enableDebug) {
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-  }
+#ifndef NVALIDATIONLAYERS
+  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif // NDEBUG
 
   return extensions;
 }
@@ -72,34 +75,34 @@ bool checkInstanceLayerSupport(const std::vector<const char *> &layers) {
   std::vector<VkLayerProperties> availableLayers(layerCount);
   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-  logger::print("available instance layers", availableLayers.size());
+  Logger::print("available instance layers", availableLayers.size());
   std::set<std::string> availableLayersSet{};
   for (const auto &layerProperty : availableLayers) {
     availableLayersSet.insert(static_cast<const char *>(layerProperty.layerName));
-    logger::print("\t", static_cast<const char *>(layerProperty.layerName));
+    Logger::print("\t", static_cast<const char *>(layerProperty.layerName));
   }
 
-  logger::print();
-  logger::print("using instance layers", layers.size());
+  Logger::print();
+  Logger::print("using instance layers", layers.size());
 
   std::vector<std::string> unavailableLayerNames{};
   // for each validation layer, we check for its validity from the avaliable layer pool
   for (const auto &layerName : layers) {
-    logger::print("\t", layerName);
+    Logger::print("\t", layerName);
     if (availableLayersSet.find(layerName) == availableLayersSet.end()) {
       unavailableLayerNames.emplace_back(layerName);
     }
   }
 
   if (unavailableLayerNames.empty()) {
-    logger::print("\t\t");
+    Logger::print("\t\t");
     return true;
   }
 
   for (const auto &unavailableLayerName : unavailableLayerNames) {
-    logger::print("\t", unavailableLayerName.c_str());
+    Logger::print("\t", unavailableLayerName.c_str());
   }
-  logger::print("\t\t");
+  Logger::print("\t\t");
   return false;
 }
 
@@ -107,12 +110,6 @@ bool checkInstanceLayerSupport(const std::vector<const char *> &layers) {
 
 void InstanceCreator::create(VkInstance &instance, VkDebugUtilsMessengerEXT &debugMessager,
                              const VkApplicationInfo &appInfo, const std::vector<const char *> &layers) {
-#ifdef DEBUG
-  const bool enableDebug = true;
-#else
-  const bool enableDebug = false;
-#endif // DEBUG
-
   VkInstanceCreateInfo createInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
 
   createInfo.pApplicationInfo = &appInfo;
@@ -123,45 +120,49 @@ void InstanceCreator::create(VkInstance &instance, VkDebugUtilsMessengerEXT &deb
   std::vector<VkExtensionProperties> availavleExtensions(extensionCount);
   vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, availavleExtensions.data());
 
-  // logger::prints all available instance extensions
-  logger::print("available instance extensions", availavleExtensions.size());
+  // Logger::prints all available instance extensions
+  Logger::print("available instance extensions", availavleExtensions.size());
   for (const auto &extension : availavleExtensions) {
-    logger::print("\t", static_cast<const char *>(extension.extensionName));
+    Logger::print("\t", static_cast<const char *>(extension.extensionName));
   }
-  logger::print();
+  Logger::print();
 
   // get glfw (+ debug) extensions
-  auto instanceRequiredExtensions    = getRequiredInstanceExtensions(enableDebug);
+  auto instanceRequiredExtensions    = getRequiredInstanceExtensions();
   createInfo.enabledExtensionCount   = static_cast<uint32_t>(instanceRequiredExtensions.size());
   createInfo.ppEnabledExtensionNames = instanceRequiredExtensions.data();
 
-  logger::print("using instance extensions", instanceRequiredExtensions.size());
+  Logger::print("using instance extensions", instanceRequiredExtensions.size());
   for (const auto &extension : instanceRequiredExtensions) {
-    logger::print("\t", extension);
+    Logger::print("\t", extension);
   }
-  logger::print();
-  logger::print();
+  Logger::print();
+  Logger::print();
 
+#ifndef NVALIDATIONLAYERS
   // Setup debug messager info during vkCreateInstance and vkDestroyInstance
-  VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-  if (enableDebug) {
-    if (!checkInstanceLayerSupport(layers)) {
-      logger::throwError("Validation layers requested, but not available!");
-    }
-    createInfo.enabledLayerCount   = static_cast<uint32_t>(layers.size());
-    createInfo.ppEnabledLayerNames = layers.data();
-    populateDebugMessagerInfo(debugCreateInfo);
-    createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debugCreateInfo;
-  } else {
-    createInfo.enabledLayerCount = 0;
-    createInfo.pNext             = nullptr;
+
+  if (!checkInstanceLayerSupport(layers)) {
+    Logger::throwError("Validation layers requested, but not available!");
   }
+
+  createInfo.enabledLayerCount   = static_cast<uint32_t>(layers.size());
+  createInfo.ppEnabledLayerNames = layers.data();
+  auto debugMessagerCreateInfo   = getDebugMessagerCreateInfo();
+  createInfo.pNext               = &debugMessagerCreateInfo;
+#else
+  createInfo.enabledLayerCount = 0;
+  createInfo.pNext             = nullptr;
+#endif // NDEBUG
 
   // create VK Instance
   VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
-  logger::checkStep("vkCreateInstance", result);
+  Logger::checkStep("vkCreateInstance", result);
 
-  if (enableDebug) {
-    setupDebugMessager(instance, debugMessager);
-  }
+  // load instance-related functions
+  volkLoadInstance(instance);
+
+#ifndef NVALIDATIONLAYERS
+  setupDebugMessager(instance, debugMessager);
+#endif // NDEBUG
 }
