@@ -6,10 +6,11 @@
 #include "window/HoverWindow.h"
 #include "window/MaximizedWindow.h"
 
-static const int kATrousSize                   = 5;
-static const int kMaxFramesInFlight            = 2;
-static const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
-static const float kFpsUpdateTime              = 0.5F;
+static const int kATrousSize        = 5;
+static const int kMaxFramesInFlight = 2;
+static const std::string kPathToResourceFolder =
+    std::string(ROOT_DIR) + "resources/";
+static const float kFpsUpdateTime = 0.5F;
 
 std::unique_ptr<Camera> Application::mCamera = nullptr;
 std::unique_ptr<Window> Application::mWindow = nullptr;
@@ -26,7 +27,9 @@ void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
   }
 
   float xoffset = static_cast<float>(xpos) - lastX;
-  float yoffset = lastY - static_cast<float>(ypos); // reversed since y-coordinates go from bottom to top
+  float yoffset =
+      lastY - static_cast<float>(
+                  ypos); // reversed since y-coordinates go from bottom to top
 
   lastX = static_cast<float>(xpos);
   lastY = static_cast<float>(ypos);
@@ -52,17 +55,22 @@ void Application::cleanup() {
   Logger::print("Application is cleaning up resources...");
 
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
-    vkDestroySemaphore(mAppContext->getDevice(), mRenderFinishedSemaphores[i], nullptr);
-    vkDestroySemaphore(mAppContext->getDevice(), mImageAvailableSemaphores[i], nullptr);
+    vkDestroySemaphore(mAppContext->getDevice(), mRenderFinishedSemaphores[i],
+                       nullptr);
+    vkDestroySemaphore(mAppContext->getDevice(), mImageAvailableSemaphores[i],
+                       nullptr);
     vkDestroyFence(mAppContext->getDevice(), mFramesInFlightFences[i], nullptr);
   }
 
   for (auto &commandBuffer : mCommandBuffers) {
-    vkFreeCommandBuffers(mAppContext->getDevice(), mAppContext->getCommandPool(), 1, &commandBuffer);
+    vkFreeCommandBuffers(mAppContext->getDevice(),
+                         mAppContext->getCommandPool(), 1, &commandBuffer);
   }
 
   for (auto &mGuiCommandBuffers : mGuiCommandBuffers) {
-    vkFreeCommandBuffers(mAppContext->getDevice(), mAppContext->getGuiCommandPool(), 1, &mGuiCommandBuffers);
+    vkFreeCommandBuffers(mAppContext->getDevice(),
+                         mAppContext->getGuiCommandPool(), 1,
+                         &mGuiCommandBuffers);
   }
 
   for (auto &guiFrameBuffer : mGuiFrameBuffers) {
@@ -70,15 +78,19 @@ void Application::cleanup() {
   }
 
   vkDestroyRenderPass(mAppContext->getDevice(), mImGuiPass, nullptr);
-  vkDestroyDescriptorPool(mAppContext->getDevice(), mGuiDescriptorPool, nullptr);
+  vkDestroyDescriptorPool(mAppContext->getDevice(), mGuiDescriptorPool,
+                          nullptr);
 
-  // clearing resources related to ImGui, this can be rewritten by using VMA later
+  // clearing resources related to ImGui, this can be rewritten by using VMA
+  // later
   ImGui_ImplVulkan_Shutdown();
 
   glfwTerminate();
 }
 
-void check_vk_result(VkResult resultCode) { Logger::checkStep("check_vk_result", resultCode); }
+void check_vk_result(VkResult resultCode) {
+  Logger::checkStep("check_vk_result", resultCode);
+}
 
 void Application::initScene() {
   // equals to descriptor sets size
@@ -90,108 +102,129 @@ void Application::initScene() {
   // uniform buffers are faster to fill compared to storage buffers, but they
   // are restricted in their size Buffer bundle is an array of buffers, one per
   // each swapchain image/descriptor set.
-  mRtxBufferBundle = std::make_unique<BufferBundle>(swapchainSize, sizeof(RtxUniformBufferObject),
-                                                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  mRtxBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(RtxUniformBufferObject),
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-  mTemperalFilterBufferBundle =
-      std::make_unique<BufferBundle>(swapchainSize, sizeof(TemporalFilterUniformBufferObject),
-                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  mTemperalFilterBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(TemporalFilterUniformBufferObject),
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
   for (int i = 0; i < kATrousSize; i++) {
-    auto blurFilterBufferBundle =
-        std::make_unique<BufferBundle>(swapchainSize, sizeof(BlurFilterUniformBufferObject),
-                                       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+    auto blurFilterBufferBundle = std::make_unique<BufferBundle>(
+        swapchainSize, sizeof(BlurFilterUniformBufferObject),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
     mBlurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle));
   }
 
   mTriangleBufferBundle = std::make_unique<BufferBundle>(
-      swapchainSize, sizeof(GpuModel::Triangle) * mRtScene->triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      VMA_MEMORY_USAGE_CPU_TO_GPU, mRtScene->triangles.data());
+      swapchainSize, sizeof(GpuModel::Triangle) * mRtScene->triangles.size(),
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+      mRtScene->triangles.data());
 
   mMaterialBufferBundle = std::make_unique<BufferBundle>(
-      swapchainSize, sizeof(GpuModel::Material) * mRtScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      VMA_MEMORY_USAGE_CPU_TO_GPU, mRtScene->materials.data());
+      swapchainSize, sizeof(GpuModel::Material) * mRtScene->materials.size(),
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+      mRtScene->materials.data());
 
   mBvhBufferBundle = std::make_unique<BufferBundle>(
-      swapchainSize, sizeof(GpuModel::BvhNode) * mRtScene->bvhNodes.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      VMA_MEMORY_USAGE_CPU_TO_GPU, mRtScene->bvhNodes.data());
+      swapchainSize, sizeof(GpuModel::BvhNode) * mRtScene->bvhNodes.size(),
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+      mRtScene->bvhNodes.data());
 
-  mLightsBufferBundle = std::make_unique<BufferBundle>(swapchainSize, sizeof(GpuModel::Light) * mRtScene->lights.size(),
-                                                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
-                                                       mRtScene->lights.data());
+  mLightsBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(GpuModel::Light) * mRtScene->lights.size(),
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+      mRtScene->lights.data());
 
   auto imageWidth  = mAppContext->getSwapchainExtentWidth();
   auto imageHeight = mAppContext->getSwapchainExtentHeight();
 
-  mTargetImage = std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(),
-                                         mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
-                                         VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-                                         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
-                                             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                         VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mTargetImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
+          VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mRawImage = std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(),
-                                      mAppContext->getGraphicsQueue(), imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT,
-                                      VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mRawImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mBlurHImage =
-      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
-                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
-                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mBlurHImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mATrousImage1 =
-      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
-                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
-                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mATrousImage1 = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mATrousImage2 = std::make_unique<Image>(
-      mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+          VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   // introducing G-Buffers
-  mPositionImage =
-      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
-                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
-                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mPositionImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mDepthImage =
-      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
-                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT,
-                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mDepthImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mNormalImage =
-      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
-                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
-                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mNormalImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mMeshHashImage1 =
-      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
-                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mMeshHashImage1 = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mMeshHashImage2 =
-      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
-                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mMeshHashImage2 = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mAccumulationImage =
-      std::make_unique<Image>(mAppContext->getDevice(), mAppContext->getCommandPool(), mAppContext->getGraphicsQueue(),
-                              imageWidth, imageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
-                              VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                              VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mAccumulationImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   // rtx.comp
-  auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/rtx.spv");
+  auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder +
+                                                  "/shaders/generated/rtx.spv");
   rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
   // input
   rtxMat->addStorageImage(mPositionImage.get());
@@ -208,8 +241,8 @@ void Application::initScene() {
   mRtxModel = std::make_unique<ComputeModel>(std::move(rtxMat));
 
   // temporalFilter.comp
-  auto temporalFilterMat =
-      std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/temporalFilter.spv");
+  auto temporalFilterMat = std::make_unique<ComputeMaterial>(
+      kPathToResourceFolder + "/shaders/generated/temporalFilter.spv");
   temporalFilterMat->addUniformBufferBundle(mTemperalFilterBufferBundle.get());
   // input
   temporalFilterMat->addStorageImage(mPositionImage.get());
@@ -221,12 +254,14 @@ void Application::initScene() {
   temporalFilterMat->addStorageImage(mMeshHashImage2.get());
   // output
   temporalFilterMat->addStorageImage(mATrousImage1.get());
-  mTemporalFilterModel = std::make_unique<ComputeModel>(std::move(temporalFilterMat));
+  mTemporalFilterModel =
+      std::make_unique<ComputeModel>(std::move(temporalFilterMat));
 
   for (int i = 0; i < kATrousSize; i++) {
-    auto blurFilterPhase1Mat =
-        std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/blurPhase1.spv");
-    blurFilterPhase1Mat->addUniformBufferBundle(mBlurFilterBufferBundles[i].get());
+    auto blurFilterPhase1Mat = std::make_unique<ComputeMaterial>(
+        kPathToResourceFolder + "/shaders/generated/blurPhase1.spv");
+    blurFilterPhase1Mat->addUniformBufferBundle(
+        mBlurFilterBufferBundles[i].get());
     // input
     blurFilterPhase1Mat->addStorageImage(mATrousImage1.get());
     blurFilterPhase1Mat->addStorageImage(mNormalImage.get());
@@ -234,11 +269,13 @@ void Application::initScene() {
     blurFilterPhase1Mat->addStorageImage(mPositionImage.get());
     // output
     blurFilterPhase1Mat->addStorageImage(mBlurHImage.get());
-    mBlurFilterPhase1Models.emplace_back(std::make_unique<ComputeModel>(std::move(blurFilterPhase1Mat)));
+    mBlurFilterPhase1Models.emplace_back(
+        std::make_unique<ComputeModel>(std::move(blurFilterPhase1Mat)));
 
-    auto blurFilterPhase2Mat =
-        std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/blurPhase2.spv");
-    blurFilterPhase2Mat->addUniformBufferBundle(mBlurFilterBufferBundles[i].get());
+    auto blurFilterPhase2Mat = std::make_unique<ComputeMaterial>(
+        kPathToResourceFolder + "/shaders/generated/blurPhase2.spv");
+    blurFilterPhase2Mat->addUniformBufferBundle(
+        mBlurFilterBufferBundles[i].get());
     // input
     blurFilterPhase2Mat->addStorageImage(mATrousImage1.get());
     blurFilterPhase2Mat->addStorageImage(mBlurHImage.get());
@@ -247,11 +284,12 @@ void Application::initScene() {
     blurFilterPhase2Mat->addStorageImage(mPositionImage.get());
     // output
     blurFilterPhase2Mat->addStorageImage(mATrousImage2.get());
-    mBlurFilterPhase2Models.emplace_back(std::make_unique<ComputeModel>(std::move(blurFilterPhase2Mat)));
+    mBlurFilterPhase2Models.emplace_back(
+        std::make_unique<ComputeModel>(std::move(blurFilterPhase2Mat)));
   }
 
-  auto blurFilterPhase3Mat =
-      std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/blurPhase3.spv");
+  auto blurFilterPhase3Mat = std::make_unique<ComputeMaterial>(
+      kPathToResourceFolder + "/shaders/generated/blurPhase3.spv");
   {
     // input
     blurFilterPhase3Mat->addStorageImage(mATrousImage2.get());
@@ -261,7 +299,8 @@ void Application::initScene() {
     // output
     blurFilterPhase3Mat->addStorageImage(mTargetImage.get());
   }
-  mBlurFilterPhase3Model = std::make_unique<ComputeModel>(std::move(blurFilterPhase3Mat));
+  mBlurFilterPhase3Model =
+      std::make_unique<ComputeModel>(std::move(blurFilterPhase3Mat));
 }
 
 void Application::updateScene(uint32_t currentImage) {
@@ -270,31 +309,36 @@ void Application::updateScene(uint32_t currentImage) {
 
   auto currentTime = static_cast<float>(glfwGetTime());
 
-  RtxUniformBufferObject rtxUbo = {mCamera->getPosition(),
-                                   mCamera->getFront(),
-                                   mCamera->getUp(),
-                                   mCamera->getRight(),
-                                   mCamera->getVFov(),
-                                   currentTime,
-                                   currentSample,
-                                   static_cast<uint32_t>(mRtScene->triangles.size()),
-                                   static_cast<uint32_t>(mRtScene->lights.size())};
+  RtxUniformBufferObject rtxUbo = {
+      mCamera->getPosition(),
+      mCamera->getFront(),
+      mCamera->getUp(),
+      mCamera->getRight(),
+      mCamera->getVFov(),
+      currentTime,
+      currentSample,
+      static_cast<uint32_t>(mRtScene->triangles.size()),
+      static_cast<uint32_t>(mRtScene->lights.size())};
 
   mRtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
 
-  TemporalFilterUniformBufferObject tfUbo = {!mUseTemporal, lastMvpe, mAppContext->getSwapchainExtentWidth(),
-                                             mAppContext->getSwapchainExtentHeight()};
+  TemporalFilterUniformBufferObject tfUbo = {
+      !mUseTemporal, lastMvpe, mAppContext->getSwapchainExtentWidth(),
+      mAppContext->getSwapchainExtentHeight()};
   {
     mTemperalFilterBufferBundle->getBuffer(currentImage)->fillData(&tfUbo);
 
-    lastMvpe = mCamera->getProjectionMatrix(static_cast<float>(mAppContext->getSwapchainExtentWidth()) /
-                                            static_cast<float>(mAppContext->getSwapchainExtentHeight())) *
-               mCamera->getViewMatrix();
+    lastMvpe =
+        mCamera->getProjectionMatrix(
+            static_cast<float>(mAppContext->getSwapchainExtentWidth()) /
+            static_cast<float>(mAppContext->getSwapchainExtentHeight())) *
+        mCamera->getViewMatrix();
   }
 
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {!mUseBlur, j, mUseThreeByThreeKernel, mIgnoreLuminanceAtFirstIteration};
+    BlurFilterUniformBufferObject bfUbo = {!mUseBlur, j, mUseThreeByThreeKernel,
+                                           mIgnoreLuminanceAtFirstIteration};
     mBlurFilterBufferBundles[j]->getBuffer(currentImage)->fillData(&bfUbo);
   }
 
@@ -310,11 +354,14 @@ void Application::createRenderCommandBuffers() {
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)mCommandBuffers.size();
 
-  VkResult result = vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, mCommandBuffers.data());
+  VkResult result = vkAllocateCommandBuffers(
+      mAppContext->getDevice(), &allocInfo, mCommandBuffers.data());
   Logger::checkStep("vkAllocateCommandBuffers", result);
 
-  VkImageMemoryBarrier targetTexGeneral2TransSrc = ImageUtils::generalToTransferSrcBarrier(mTargetImage->getVkImage());
-  VkImageMemoryBarrier targetTexTransSrc2General = ImageUtils::transferSrcToGeneralBarrier(mTargetImage->getVkImage());
+  VkImageMemoryBarrier targetTexGeneral2TransSrc =
+      ImageUtils::generalToTransferSrcBarrier(mTargetImage->getVkImage());
+  VkImageMemoryBarrier targetTexTransSrc2General =
+      ImageUtils::transferSrcToGeneralBarrier(mTargetImage->getVkImage());
 
   VkImageMemoryBarrier accumTexGeneral2TransDst =
       ImageUtils::generalToTransferDstBarrier(mAccumulationImage->getVkImage());
@@ -340,13 +387,16 @@ void Application::createRenderCommandBuffers() {
       ImageUtils::transferDstToGeneralBarrier(mMeshHashImage2->getVkImage());
 
   VkImageCopy imgCopyRegion =
-      ImageUtils::imageCopyRegion(mAppContext->getSwapchainExtentWidth(), mAppContext->getSwapchainExtentHeight());
+      ImageUtils::imageCopyRegion(mAppContext->getSwapchainExtentWidth(),
+                                  mAppContext->getSwapchainExtentHeight());
 
   for (size_t i = 0; i < mCommandBuffers.size(); i++) {
     VkImageMemoryBarrier swapchainImageUndefined2TransferDst =
-        ImageUtils::undefinedToTransferDstBarrier(mAppContext->getSwapchainImages()[i]);
+        ImageUtils::undefinedToTransferDstBarrier(
+            mAppContext->getSwapchainImages()[i]);
     VkImageMemoryBarrier swapchainImageTransferDst2ColorAttachment =
-        ImageUtils::transferDstToColorAttachmentBarrier(mAppContext->getSwapchainImages()[i]);
+        ImageUtils::transferDstToColorAttachmentBarrier(
+            mAppContext->getSwapchainImages()[i]);
 
     VkCommandBuffer &currentCommandBuffer = mCommandBuffers[i];
 
@@ -360,26 +410,32 @@ void Application::createRenderCommandBuffers() {
 
     VkClearColorValue clearColor{{0, 0, 0, 0}};
     VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    vkCmdClearColorImage(currentCommandBuffer, mTargetImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
-                         &clearRange);
-    vkCmdClearColorImage(currentCommandBuffer, mATrousImage1->getVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
-                         &clearRange);
-    vkCmdClearColorImage(currentCommandBuffer, mATrousImage2->getVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
-                         &clearRange);
-    vkCmdClearColorImage(currentCommandBuffer, mBlurHImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1,
-                         &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer, mTargetImage->getVkImage(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer, mATrousImage1->getVkImage(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer, mATrousImage2->getVkImage(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer, mBlurHImage->getVkImage(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
 
-    mRtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), mTargetImage->getWidth() / 32,
+    mRtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
+                              mTargetImage->getWidth() / 32,
                               mTargetImage->getHeight() / 32, 1);
 
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
+    vkCmdPipelineBarrier(currentCommandBuffer,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 0, nullptr);
 
-    mTemporalFilterModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), mTargetImage->getWidth() / 32,
-                                         mTargetImage->getHeight() / 32, 1);
+    mTemporalFilterModel->computeCommand(
+        currentCommandBuffer, static_cast<uint32_t>(i),
+        mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
 
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
+    vkCmdPipelineBarrier(currentCommandBuffer,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 0, nullptr);
 
     /////////////////////////////////////////////
 
@@ -387,7 +443,8 @@ void Application::createRenderCommandBuffers() {
       // update ubo for the sampleDistance
       BlurFilterUniformBufferObject bfUbo = {!mUseBlur, j};
       {
-        auto &allocation = mBlurFilterBufferBundles[j]->getBuffer(i)->getAllocation();
+        auto &allocation =
+            mBlurFilterBufferBundles[j]->getBuffer(i)->getAllocation();
         void *data;
         vmaMapMemory(mAppContext->getAllocator(), allocation, &data);
         memcpy(data, &bfUbo, sizeof(bfUbo));
@@ -395,77 +452,125 @@ void Application::createRenderCommandBuffers() {
       }
 
       // dispatch 2 stages of separate shaders
-      mBlurFilterPhase1Models[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                                 mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
-      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0, nullptr);
-      mBlurFilterPhase2Models[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                                 mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
+      mBlurFilterPhase1Models[j]->computeCommand(
+          currentCommandBuffer, static_cast<uint32_t>(i),
+          mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
+      vkCmdPipelineBarrier(currentCommandBuffer,
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr,
+                           0, nullptr, 0, nullptr);
+      mBlurFilterPhase2Models[j]->computeCommand(
+          currentCommandBuffer, static_cast<uint32_t>(i),
+          mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
 
       // accum texture when the first filter is done
       // (from SVGF) accumulation image should use a properly smoothed image,
       // the presented one is not ideal due to the over-blur over time
       if (j == 0) {
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &aTrousTex2General2TransSrc);
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &accumTexGeneral2TransDst);
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &aTrousTex1General2TransDst);
-        vkCmdCopyImage(currentCommandBuffer, mATrousImage2->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       mATrousImage1->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-        vkCmdCopyImage(currentCommandBuffer, mATrousImage2->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       mAccumulationImage->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &aTrousTex1TransDst2General);
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &aTrousTex2TransSrc2General);
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &accumTexTransDst2General);
+        vkCmdPipelineBarrier(currentCommandBuffer,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                             nullptr, 1, &aTrousTex2General2TransSrc);
+        vkCmdPipelineBarrier(currentCommandBuffer,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                             nullptr, 1, &accumTexGeneral2TransDst);
+        vkCmdPipelineBarrier(currentCommandBuffer,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                             nullptr, 1, &aTrousTex1General2TransDst);
+        vkCmdCopyImage(currentCommandBuffer, mATrousImage2->getVkImage(),
+                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       mATrousImage1->getVkImage(),
+                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+        vkCmdCopyImage(currentCommandBuffer, mATrousImage2->getVkImage(),
+                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       mAccumulationImage->getVkImage(),
+                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+        vkCmdPipelineBarrier(
+            currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+            &aTrousTex1TransDst2General);
+        vkCmdPipelineBarrier(
+            currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+            &aTrousTex2TransSrc2General);
+        vkCmdPipelineBarrier(currentCommandBuffer,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+                             nullptr, 0, nullptr, 1, &accumTexTransDst2General);
       }
       // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
       else if (j != kATrousSize - 1) {
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &aTrousTex1General2TransDst);
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &aTrousTex2General2TransSrc);
-        vkCmdCopyImage(currentCommandBuffer, mATrousImage2->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       mATrousImage1->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &aTrousTex1TransDst2General);
-        vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             0, 0, nullptr, 0, nullptr, 1, &aTrousTex2TransSrc2General);
+        vkCmdPipelineBarrier(currentCommandBuffer,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                             nullptr, 1, &aTrousTex1General2TransDst);
+        vkCmdPipelineBarrier(currentCommandBuffer,
+                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                             nullptr, 1, &aTrousTex2General2TransSrc);
+        vkCmdCopyImage(currentCommandBuffer, mATrousImage2->getVkImage(),
+                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       mATrousImage1->getVkImage(),
+                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+        vkCmdPipelineBarrier(
+            currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+            &aTrousTex1TransDst2General);
+        vkCmdPipelineBarrier(
+            currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+            &aTrousTex2TransSrc2General);
       }
     }
 
     /////////////////////////////////////////////
 
-    mBlurFilterPhase3Model->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                           mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
+    mBlurFilterPhase3Model->computeCommand(
+        currentCommandBuffer, static_cast<uint32_t>(i),
+        mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
 
     // copy targetTex to swapchainImage
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                         0, nullptr, 0, nullptr, 1, &targetTexGeneral2TransSrc);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                         0, nullptr, 0, nullptr, 1, &swapchainImageUndefined2TransferDst);
-    vkCmdCopyImage(currentCommandBuffer, mTargetImage->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   mAppContext->getSwapchainImages()[i], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                         0, nullptr, 0, nullptr, 1, &targetTexTransSrc2General);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                         0, nullptr, 0, nullptr, 1, &swapchainImageTransferDst2ColorAttachment);
+    vkCmdPipelineBarrier(currentCommandBuffer,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &targetTexGeneral2TransSrc);
+    vkCmdPipelineBarrier(currentCommandBuffer,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &swapchainImageUndefined2TransferDst);
+    vkCmdCopyImage(currentCommandBuffer, mTargetImage->getVkImage(),
+                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   mAppContext->getSwapchainImages()[i],
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &targetTexTransSrc2General);
+    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1,
+                         &swapchainImageTransferDst2ColorAttachment);
 
     // sync mesh hash image for next frame
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                         0, nullptr, 0, nullptr, 1, &triIdTex1General2TransSrc);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                         0, nullptr, 0, nullptr, 1, &triIdTex2General2TransDst);
-    vkCmdCopyImage(currentCommandBuffer, mMeshHashImage1->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   mMeshHashImage2->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                         0, nullptr, 0, nullptr, 1, &triIdTex1TransSrc2General);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                         0, nullptr, 0, nullptr, 1, &triIdTex2TransDst2General);
+    vkCmdPipelineBarrier(currentCommandBuffer,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &triIdTex1General2TransSrc);
+    vkCmdPipelineBarrier(currentCommandBuffer,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &triIdTex2General2TransDst);
+    vkCmdCopyImage(currentCommandBuffer, mMeshHashImage1->getVkImage(),
+                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   mMeshHashImage2->getVkImage(),
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &triIdTex1TransSrc2General);
+    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1, &triIdTex2TransDst2General);
 
     // Bind graphics pipeline and dispatch draw command.
     // postProcessScene->writeRenderCommand(currentCommandBuffer, i);
@@ -490,12 +595,14 @@ void Application::createSyncObjects() {
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
-    if (vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr, &mImageAvailableSemaphores[i]) !=
-            VK_SUCCESS ||
-        vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr, &mRenderFinishedSemaphores[i]) !=
-            VK_SUCCESS ||
-        vkCreateFence(mAppContext->getDevice(), &fenceInfo, nullptr, &mFramesInFlightFences[i]) != VK_SUCCESS) {
-      Logger::throwError("failed to create synchronization objects for a frame!");
+    if (vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr,
+                          &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
+        vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr,
+                          &mRenderFinishedSemaphores[i]) != VK_SUCCESS ||
+        vkCreateFence(mAppContext->getDevice(), &fenceInfo, nullptr,
+                      &mFramesInFlightFences[i]) != VK_SUCCESS) {
+      Logger::throwError(
+          "failed to create synchronization objects for a frame!");
     }
   }
 }
@@ -508,7 +615,8 @@ void Application::createGuiCommandBuffers() {
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)mGuiCommandBuffers.size();
 
-  VkResult result = vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, mGuiCommandBuffers.data());
+  VkResult result = vkAllocateCommandBuffers(
+      mAppContext->getDevice(), &allocInfo, mGuiCommandBuffers.data());
   Logger::checkStep("vkAllocateCommandBuffers", result);
 }
 
@@ -530,7 +638,7 @@ void Application::createGuiRenderPass() {
 
   VkAttachmentReference colorAttachment = {};
   colorAttachment.attachment            = 0;
-  colorAttachment.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  colorAttachment.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
   VkSubpassDescription subpass = {};
   subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
@@ -540,21 +648,22 @@ void Application::createGuiRenderPass() {
   VkSubpassDependency dependency = {};
   dependency.srcSubpass          = VK_SUBPASS_EXTERNAL;
   dependency.dstSubpass          = 0;
-  dependency.srcStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.dstStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.srcAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  dependency.dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  dependency.srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
   VkRenderPassCreateInfo renderPassCreateInfo = {};
-  renderPassCreateInfo.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  renderPassCreateInfo.attachmentCount        = 1;
-  renderPassCreateInfo.pAttachments           = &attachment;
-  renderPassCreateInfo.subpassCount           = 1;
-  renderPassCreateInfo.pSubpasses             = &subpass;
-  renderPassCreateInfo.dependencyCount        = 1;
-  renderPassCreateInfo.pDependencies          = &dependency;
+  renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+  renderPassCreateInfo.attachmentCount = 1;
+  renderPassCreateInfo.pAttachments    = &attachment;
+  renderPassCreateInfo.subpassCount    = 1;
+  renderPassCreateInfo.pSubpasses      = &subpass;
+  renderPassCreateInfo.dependencyCount = 1;
+  renderPassCreateInfo.pDependencies   = &dependency;
 
-  VkResult result = vkCreateRenderPass(mAppContext->getDevice(), &renderPassCreateInfo, nullptr, &mImGuiPass);
+  VkResult result = vkCreateRenderPass(
+      mAppContext->getDevice(), &renderPassCreateInfo, nullptr, &mImGuiPass);
   Logger::checkStep("vkCreateRenderPass", result);
 }
 
@@ -569,41 +678,44 @@ void Application::createGuiFramebuffers() {
     VkImageView attachment = mAppContext->getSwapchainImageViews()[i];
 
     VkFramebufferCreateInfo frameBufferCreateInfo{};
-    frameBufferCreateInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     frameBufferCreateInfo.renderPass      = mImGuiPass;
     frameBufferCreateInfo.attachmentCount = 1;
     frameBufferCreateInfo.pAttachments    = &attachment;
-    frameBufferCreateInfo.width           = mAppContext->getSwapchainExtentWidth();
-    frameBufferCreateInfo.height          = mAppContext->getSwapchainExtentHeight();
-    frameBufferCreateInfo.layers          = 1;
+    frameBufferCreateInfo.width  = mAppContext->getSwapchainExtentWidth();
+    frameBufferCreateInfo.height = mAppContext->getSwapchainExtentHeight();
+    frameBufferCreateInfo.layers = 1;
 
     VkResult result =
-        vkCreateFramebuffer(mAppContext->getDevice(), &frameBufferCreateInfo, nullptr, &mGuiFrameBuffers[i]);
+        vkCreateFramebuffer(mAppContext->getDevice(), &frameBufferCreateInfo,
+                            nullptr, &mGuiFrameBuffers[i]);
     Logger::checkStep("vkCreateFramebuffer", result);
   }
 }
 
 void Application::createGuiDescripterPool() {
-  VkDescriptorPoolSize poolSizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-                                      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-                                      {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-                                      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-                                      {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+  VkDescriptorPoolSize poolSizes[] = {
+      {VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
+      {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
+      {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
 
   VkDescriptorPoolCreateInfo poolInfo = {};
-  poolInfo.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-  poolInfo.maxSets                    = 1000 * IM_ARRAYSIZE(poolSizes);
-  poolInfo.poolSizeCount              = (uint32_t)IM_ARRAYSIZE(poolSizes);
-  poolInfo.pPoolSizes                 = poolSizes;
+  poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  poolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+  poolInfo.maxSets       = 1000 * IM_ARRAYSIZE(poolSizes);
+  poolInfo.poolSizeCount = (uint32_t)IM_ARRAYSIZE(poolSizes);
+  poolInfo.pPoolSizes    = poolSizes;
 
-  VkResult result = vkCreateDescriptorPool(mAppContext->getDevice(), &poolInfo, nullptr, &mGuiDescriptorPool);
+  VkResult result = vkCreateDescriptorPool(mAppContext->getDevice(), &poolInfo,
+                                           nullptr, &mGuiDescriptorPool);
   Logger::checkStep("vkCreateDescriptorPool", result);
 }
 
@@ -612,9 +724,10 @@ void Application::initGui() {
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO &io = ImGui::GetIO();
-
-  // Does nothing, avoid compiler warning
-  (void)io;
+  // io.Fonts->AddFontDefault();
+  io.Fonts->AddFontFromFileTTF(
+      (kPathToResourceFolder + "/fonts/OverpassMono-Medium.ttf").c_str(),
+      16.0f);
 
   // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard
   // Controls io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable
@@ -631,30 +744,33 @@ void Application::initGui() {
   init_info.Instance                  = mAppContext->getVkInstance();
   init_info.PhysicalDevice            = mAppContext->getPhysicalDevice();
   init_info.Device                    = mAppContext->getDevice();
-  init_info.QueueFamily               = mAppContext->getQueueFamilyIndices().graphicsFamily;
-  init_info.Queue                     = mAppContext->getGraphicsQueue();
-  init_info.PipelineCache             = VK_NULL_HANDLE;
-  init_info.DescriptorPool            = mGuiDescriptorPool;
-  init_info.Allocator                 = VK_NULL_HANDLE;
-  init_info.MinImageCount             = static_cast<uint32_t>(mAppContext->getSwapchainSize());
-  init_info.ImageCount                = static_cast<uint32_t>(mAppContext->getSwapchainSize());
-  init_info.CheckVkResultFn           = check_vk_result;
+  init_info.QueueFamily   = mAppContext->getQueueFamilyIndices().graphicsFamily;
+  init_info.Queue         = mAppContext->getGraphicsQueue();
+  init_info.PipelineCache = VK_NULL_HANDLE;
+  init_info.DescriptorPool = mGuiDescriptorPool;
+  init_info.Allocator      = VK_NULL_HANDLE;
+  init_info.MinImageCount =
+      static_cast<uint32_t>(mAppContext->getSwapchainSize());
+  init_info.ImageCount = static_cast<uint32_t>(mAppContext->getSwapchainSize());
+  init_info.CheckVkResultFn = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&init_info, mImGuiPass)) {
     Logger::print("failed to init impl");
   }
 
   // Create fonts texture
-  VkCommandBuffer commandBuffer =
-      RenderSystem::beginSingleTimeCommands(mAppContext->getDevice(), mAppContext->getCommandPool());
+  VkCommandBuffer commandBuffer = RenderSystem::beginSingleTimeCommands(
+      mAppContext->getDevice(), mAppContext->getCommandPool());
 
   if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer)) {
     Logger::print("failed to create fonts texture");
   }
-  RenderSystem::endSingleTimeCommands(mAppContext->getDevice(), mAppContext->getCommandPool(),
-                                      mAppContext->getGraphicsQueue(), commandBuffer);
+  RenderSystem::endSingleTimeCommands(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), commandBuffer);
 }
 
-void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex) {
+void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer,
+                                         uint32_t imageIndex) {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags            = 0;       // Optional
@@ -665,10 +781,10 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   Logger::checkStep("vkBeginCommandBuffer", result);
 
   VkRenderPassBeginInfo renderPassInfo = {};
-  renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass            = mImGuiPass;
-  renderPassInfo.framebuffer           = mGuiFrameBuffers[imageIndex];
-  renderPassInfo.renderArea.extent     = mAppContext->getSwapchainExtent();
+  renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  renderPassInfo.renderPass        = mImGuiPass;
+  renderPassInfo.framebuffer       = mGuiFrameBuffers[imageIndex];
+  renderPassInfo.renderArea.extent = mAppContext->getSwapchainExtent();
 
   VkClearValue clearValue{};
   clearValue.color = {{0.0F, 0.0F, 0.0F, 1.0F}};
@@ -676,7 +792,8 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   renderPassInfo.clearValueCount = 1;
   renderPassInfo.pClearValues    = &clearValue;
 
-  vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
+                       VK_SUBPASS_CONTENTS_INLINE);
 
   // Record Imgui Draw Data and draw funcs into command buffer
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
@@ -689,12 +806,15 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
 
 void Application::drawFrame() {
   static size_t currentFrame = 0;
-  vkWaitForFences(mAppContext->getDevice(), 1, &mFramesInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-  vkResetFences(mAppContext->getDevice(), 1, &mFramesInFlightFences[currentFrame]);
+  vkWaitForFences(mAppContext->getDevice(), 1,
+                  &mFramesInFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+  vkResetFences(mAppContext->getDevice(), 1,
+                &mFramesInFlightFences[currentFrame]);
 
   uint32_t imageIndex = 0;
-  VkResult result     = vkAcquireNextImageKHR(mAppContext->getDevice(), mAppContext->getSwapchain(), UINT64_MAX,
-                                              mImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+  VkResult result     = vkAcquireNextImageKHR(
+      mAppContext->getDevice(), mAppContext->getSwapchain(), UINT64_MAX,
+      mImageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
     return;
@@ -709,7 +829,8 @@ void Application::drawFrame() {
   updateScene(imageIndex);
 
   recordGuiCommandBuffer(mGuiCommandBuffers[imageIndex], imageIndex);
-  std::array<VkCommandBuffer, 2> submitCommandBuffers = {mCommandBuffers[imageIndex], mGuiCommandBuffers[imageIndex]};
+  std::array<VkCommandBuffer, 2> submitCommandBuffers = {
+      mCommandBuffers[imageIndex], mGuiCommandBuffers[imageIndex]};
 
   VkSubmitInfo submitInfo{};
   {
@@ -724,13 +845,16 @@ void Application::drawFrame() {
 
     // wait for no stage
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
-    submitInfo.pWaitDstStageMask      = static_cast<VkPipelineStageFlags *>(waitStages);
+    submitInfo.pWaitDstStageMask =
+        static_cast<VkPipelineStageFlags *>(waitStages);
 
-    submitInfo.commandBufferCount = static_cast<uint32_t>(submitCommandBuffers.size());
-    submitInfo.pCommandBuffers    = submitCommandBuffers.data();
+    submitInfo.commandBufferCount =
+        static_cast<uint32_t>(submitCommandBuffers.size());
+    submitInfo.pCommandBuffers = submitCommandBuffers.data();
   }
 
-  result = vkQueueSubmit(mAppContext->getGraphicsQueue(), 1, &submitInfo, mFramesInFlightFences[currentFrame]);
+  result = vkQueueSubmit(mAppContext->getGraphicsQueue(), 1, &submitInfo,
+                         mFramesInFlightFences[currentFrame]);
   Logger::checkStep("vkQueueSubmit", result);
 
   VkPresentInfoKHR presentInfo{};
@@ -765,7 +889,8 @@ void Application::prepareGui() {
   if (ImGui::BeginMenu("Config")) {
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporal);
     ImGui::Checkbox("Use 3x3 A-Trous", &mUseThreeByThreeKernel);
-    ImGui::Checkbox("Ignore Luminance For First Iteration", &mIgnoreLuminanceAtFirstIteration);
+    ImGui::Checkbox("Ignore Luminance For First Iteration",
+                    &mIgnoreLuminanceAtFirstIteration);
     ImGui::Checkbox("A-Trous", &mUseBlur);
     ImGui::EndMenu();
   }
@@ -779,16 +904,20 @@ void Application::prepareGui() {
   const float kStatsWindowHeight = 120.0F;
 
   ImGui::SetNextWindowPos(ImVec2(0, height - kStatsWindowHeight));
-  ImGui::Begin("Stats", nullptr,
-               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse |
-                   ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing |
-                   ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
+  ImGui::Begin(
+      "Stats", nullptr,
+      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+          ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar |
+          ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse |
+          ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs |
+          ImGuiWindowFlags_NoFocusOnAppearing |
+          ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
 
   ImGui::SetWindowSize(ImVec2(kStatsWindowWidth, kStatsWindowHeight));
   ImGui::SetWindowFontScale(1.2F);
   ImGui::Text("fps : %s", (std::to_string(static_cast<int>(mFps))).c_str());
-  ImGui::Text("mspf: %s", (std::to_string(static_cast<int>(1 / mFps * 1000.F))).c_str());
+  ImGui::Text("mspf: %s",
+              (std::to_string(static_cast<int>(1 / mFps * 1000.F))).c_str());
 
   ImGui::End();
   ImGui::Render();
