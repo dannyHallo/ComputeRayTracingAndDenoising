@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "AppContext/VulkanApplicationContext.h"
+#include "app-context/VulkanApplicationContext.h"
 
 #include "memory/ImageUtils.h"
 #include "ray-tracing/RtScene.h"
@@ -18,7 +18,6 @@
 #include "utils/Logger.h"
 #include "utils/RootDir.h"
 #include "utils/glm.h"
-
 
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"

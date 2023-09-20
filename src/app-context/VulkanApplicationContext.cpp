@@ -5,16 +5,16 @@
 // VOLK_IMPLEMENTATION lets volk define the functions, by letting volk.h include volk.c
 // this must only be defined in one translation unit
 #define VOLK_IMPLEMENTATION
-#include "AppContext/VulkanApplicationContext.h"
+#include "app-context/VulkanApplicationContext.h"
 
 #include "utils/Logger.h"
 
 #include "memory/Image.h"
 
-#include "ContextCreators/DeviceCreator.h"
-#include "ContextCreators/InstanceCreator.h"
-#include "ContextCreators/SurfaceCreator.h"
-#include "ContextCreators/SwapchainCreator.h"
+#include "context-creators/DeviceCreator.h"
+#include "context-creators/InstanceCreator.h"
+#include "context-creators/SurfaceCreator.h"
+#include "context-creators/SwapchainCreator.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -154,22 +154,4 @@ void VulkanApplicationContext::createCommandPool() {
 
   result = vkCreateCommandPool(mDevice, &commandPoolCreateInfo2, nullptr, &mGuiCommandPool);
   Logger::checkStep("vkCreateCommandPool(commandPoolCreateInfo2)", result);
-}
-
-VkFormat VulkanApplicationContext::findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
-                                                       VkFormatFeatureFlags features) const {
-  for (VkFormat format : candidates) {
-    VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties(mPhysicalDevice, format, &props);
-
-    if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-      return format;
-    }
-    if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
-      return format;
-    }
-  }
-
-  Logger::throwError("failed to find supported format!");
-  return VK_FORMAT_UNDEFINED;
 }

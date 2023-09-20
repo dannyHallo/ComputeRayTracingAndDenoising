@@ -37,12 +37,10 @@ void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
 Camera *Application::getCamera() { return mCamera.get(); }
 
 Application::Application() {
-  mWindow     = std::make_unique<MaximizedWindow>();
+  mWindow     = std::make_unique<FullscreenWindow>();
   mAppContext = VulkanApplicationContext::initInstance(mWindow->getGlWindow());
   mCamera     = std::make_unique<Camera>(mWindow.get());
 }
-
-// Application::~Application() { cleanup(); }
 
 void Application::run() {
   initVulkan();

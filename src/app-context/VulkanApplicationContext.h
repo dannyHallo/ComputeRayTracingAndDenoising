@@ -5,12 +5,12 @@
 #define NOMINMAX
 
 // this should be defined first for the definition of VK_VERSION_1_0, which is used in glfw3.h
-#include "ContextCreators/Common.h"
+#include "context-creators/Common.h"
 
 // glfw3 will define APIENTRY if it is not defined yet
 #include "glfw/glfw3.h"
 #ifdef APIENTRY
-#undef APIENTRY
+    #undef APIENTRY
 #endif
 // we undefine this to solve conflict with systemLog
 
@@ -71,11 +71,6 @@ public:
   VulkanApplicationContext(VulkanApplicationContext &&)                 = delete;
   VulkanApplicationContext &operator=(VulkanApplicationContext &&)      = delete;
 
-  // find the indices of the queue families that support drawing commands and presentation
-  // respectively
-  [[nodiscard]] VkFormat findSupportedFormat(const std::vector<VkFormat> &candidates, VkImageTiling tiling,
-                                             VkFormatFeatureFlags features) const;
-
   [[nodiscard]] inline const VkInstance &getVkInstance() const { return mVkInstance; }
   [[nodiscard]] inline const VkDevice &getDevice() const { return mDevice; }
   [[nodiscard]] inline const VkSurfaceKHR &getSurface() const { return mSurface; }
@@ -100,19 +95,11 @@ public:
 
   [[nodiscard]] const QueueFamilyIndices &getQueueFamilyIndices() const { return mQueueFamilyIndices; }
 
-  // [[nodiscard]] const SwapchainSupportDetails &getSwapchainSupportDetails() const { return mSwapchainSupportDetails;
-  // }
-
-  // [[nodiscard]] inline GLFWwindow *getGlWindow() const { return mGlWindow; }
-
-  // [[nodiscard]] inline bool isDebugMessengerAvailable() const { return mDebugMessager != VK_NULL_HANDLE; }
-
 private:
   VulkanApplicationContext(GLFWwindow *glWindow);
 
   void initWindow(uint8_t windowSize);
-  void createDevice();
-  void createSwapchain();
+
   void createCommandPool();
   void createAllocator();
 
