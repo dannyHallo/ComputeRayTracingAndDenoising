@@ -49,14 +49,19 @@ class Application {
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
     int i;
+    int useThreeByThreeKernel;
+    int ignoreLuminanceAtFirstIteration;
   };
 
   float mFps       = 0;
-  float mFrameTime = 0;
 
   // whether to use temporal and blur filtering
   bool mUseTemporal = true;
   bool mUseBlur     = true;
+
+  // atrous twicking
+  bool mUseThreeByThreeKernel          = true;
+  bool mIgnoreLuminanceAtFirstIteration = true;
 
   // delta time and last recorded frame time
   float mDeltaTime = 0, mFrameRecordLastTime = 0;

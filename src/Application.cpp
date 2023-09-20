@@ -294,7 +294,7 @@ void Application::updateScene(uint32_t currentImage) {
 
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {!mUseBlur, j};
+    BlurFilterUniformBufferObject bfUbo = {!mUseBlur, j, mUseThreeByThreeKernel, mIgnoreLuminanceAtFirstIteration};
     mBlurFilterBufferBundles[j]->getBuffer(currentImage)->fillData(&bfUbo);
   }
 
@@ -760,26 +760,35 @@ void Application::prepareGui() {
 
   ImGui::NewFrame();
 
-  // ImGui::ShowDemoWindow();
-  // ImGui::ShowStackToolWindow();
-
-  ImGui::Begin("little gui ( press TAB to use me )");
-  ImGui::Text("%s", (std::to_string(static_cast<int>(mFps)) + " frames per second").c_str());
-  const float kMsInSec = 1000.0F;
-  ImGui::Text("%s", (std::to_string(static_cast<int>(mFrameTime * kMsInSec)) + " ms per frame").c_str());
-
-  ImGui::Separator();
-
-  // ImGui::Checkbox("Temporal Accumulation", &mUseTemporal);
-  // ImGui::Checkbox("A-Trous", &mUseBlur);`
-
   ImGui::BeginMainMenuBar();
+  ImGui::SetWindowFontScale(1.2F);
   if (ImGui::BeginMenu("Config")) {
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporal);
+    ImGui::Checkbox("Use 3x3 A-Trous", &mUseThreeByThreeKernel);
+    ImGui::Checkbox("Ignore Luminance For First Iteration", &mIgnoreLuminanceAtFirstIteration);
     ImGui::Checkbox("A-Trous", &mUseBlur);
     ImGui::EndMenu();
   }
   ImGui::EndMainMenuBar();
+
+  auto *mainGuiViewPort = ImGui::GetMainViewport();
+  // float width           = mainGuiViewPort->Size.x;
+  float height = mainGuiViewPort->Size.y;
+
+  const float kStatsWindowWidth  = 100.0F;
+  const float kStatsWindowHeight = 120.0F;
+
+  ImGui::SetNextWindowPos(ImVec2(0, height - kStatsWindowHeight));
+  ImGui::Begin("Stats", nullptr,
+               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoCollapse |
+                   ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing |
+                   ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
+
+  ImGui::SetWindowSize(ImVec2(kStatsWindowWidth, kStatsWindowHeight));
+  ImGui::SetWindowFontScale(1.2F);
+  ImGui::Text("fps : %s", (std::to_string(static_cast<int>(mFps))).c_str());
+  ImGui::Text("mspf: %s", (std::to_string(static_cast<int>(1 / mFps * 1000.F))).c_str());
 
   ImGui::End();
   ImGui::Render();
@@ -801,7 +810,6 @@ void Application::mainLoop() {
 
     if (currentTime - fpsRecordLastTime >= kFpsUpdateTime) {
       mFps              = fpsFrameCount / kFpsUpdateTime;
-      mFrameTime        = 1 / mFps;
       std::string title = "FPS - " + std::to_string(static_cast<int>(mFps));
       glfwSetWindowTitle(mWindow->getGlWindow(), title.c_str());
       fpsFrameCount = 0;
