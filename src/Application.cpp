@@ -155,14 +155,14 @@ void Application::initScene() {
       VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mATrousImage1 = std::make_unique<Image>(
+  mATrousInputImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mATrousImage2 = std::make_unique<Image>(
+  mATrousOutputImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
@@ -246,7 +246,7 @@ void Application::initScene() {
   temporalFilterMat->addStorageImage(mMeshHashImage1.get());
   temporalFilterMat->addStorageImage(mMeshHashImage2.get());
   // output
-  temporalFilterMat->addStorageImage(mATrousImage1.get());
+  temporalFilterMat->addStorageImage(mATrousInputImage.get());
   mTemporalFilterModel =
       std::make_unique<ComputeModel>(std::move(temporalFilterMat));
 
@@ -256,12 +256,12 @@ void Application::initScene() {
     blurFilterPhase1Mat->addUniformBufferBundle(
         mBlurFilterBufferBundles[i].get());
     // input
-    blurFilterPhase1Mat->addStorageImage(mATrousImage1.get());
+    blurFilterPhase1Mat->addStorageImage(mATrousInputImage.get());
     blurFilterPhase1Mat->addStorageImage(mNormalImage.get());
     blurFilterPhase1Mat->addStorageImage(mDepthImage.get());
     blurFilterPhase1Mat->addStorageImage(mPositionImage.get());
     // output
-    blurFilterPhase1Mat->addStorageImage(mATrousImage2.get());
+    blurFilterPhase1Mat->addStorageImage(mATrousOutputImage.get());
     mBlurFilterPhase1Models.emplace_back(
         std::make_unique<ComputeModel>(std::move(blurFilterPhase1Mat)));
   }
@@ -270,7 +270,7 @@ void Application::initScene() {
       kPathToResourceFolder + "/shaders/generated/blurPhase3.spv");
   {
     // input
-    blurFilterPhase3Mat->addStorageImage(mATrousImage2.get());
+    blurFilterPhase3Mat->addStorageImage(mATrousOutputImage.get());
     blurFilterPhase3Mat->addStorageImage(mNormalImage.get());
     blurFilterPhase3Mat->addStorageImage(mDepthImage.get());
     blurFilterPhase3Mat->addStorageImage(mPositionImage.get());
@@ -357,13 +357,13 @@ void Application::createRenderCommandBuffers() {
       ImageUtils::transferDstToGeneralBarrier(mAccumulationImage->getVkImage());
 
   VkImageMemoryBarrier aTrousTex1General2TransDst =
-      ImageUtils::generalToTransferDstBarrier(mATrousImage1->getVkImage());
+      ImageUtils::generalToTransferDstBarrier(mATrousInputImage->getVkImage());
   VkImageMemoryBarrier aTrousTex1TransDst2General =
-      ImageUtils::transferDstToGeneralBarrier(mATrousImage1->getVkImage());
+      ImageUtils::transferDstToGeneralBarrier(mATrousInputImage->getVkImage());
   VkImageMemoryBarrier aTrousTex2General2TransSrc =
-      ImageUtils::generalToTransferSrcBarrier(mATrousImage2->getVkImage());
+      ImageUtils::generalToTransferSrcBarrier(mATrousOutputImage->getVkImage());
   VkImageMemoryBarrier aTrousTex2TransSrc2General =
-      ImageUtils::transferSrcToGeneralBarrier(mATrousImage2->getVkImage());
+      ImageUtils::transferSrcToGeneralBarrier(mATrousOutputImage->getVkImage());
 
   VkImageMemoryBarrier triIdTex1General2TransSrc =
       ImageUtils::generalToTransferSrcBarrier(mMeshHashImage1->getVkImage());
@@ -400,9 +400,9 @@ void Application::createRenderCommandBuffers() {
     VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     vkCmdClearColorImage(currentCommandBuffer, mTargetImage->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
-    vkCmdClearColorImage(currentCommandBuffer, mATrousImage1->getVkImage(),
+    vkCmdClearColorImage(currentCommandBuffer, mATrousInputImage->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
-    vkCmdClearColorImage(currentCommandBuffer, mATrousImage2->getVkImage(),
+    vkCmdClearColorImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
 
     mRtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
@@ -462,11 +462,11 @@ void Application::createRenderCommandBuffers() {
                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                              VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
                              nullptr, 1, &aTrousTex1General2TransDst);
-        vkCmdCopyImage(currentCommandBuffer, mATrousImage2->getVkImage(),
+        vkCmdCopyImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       mATrousImage1->getVkImage(),
+                       mATrousInputImage->getVkImage(),
                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-        vkCmdCopyImage(currentCommandBuffer, mATrousImage2->getVkImage(),
+        vkCmdCopyImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                        mAccumulationImage->getVkImage(),
                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
@@ -493,9 +493,9 @@ void Application::createRenderCommandBuffers() {
                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                              VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
                              nullptr, 1, &aTrousTex2General2TransSrc);
-        vkCmdCopyImage(currentCommandBuffer, mATrousImage2->getVkImage(),
+        vkCmdCopyImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       mATrousImage1->getVkImage(),
+                       mATrousInputImage->getVkImage(),
                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
         vkCmdPipelineBarrier(
             currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -710,7 +710,7 @@ void Application::initGui() {
   // io.Fonts->AddFontDefault();
   io.Fonts->AddFontFromFileTTF(
       (kPathToResourceFolder + "/fonts/OverpassMono-Medium.ttf").c_str(),
-      16.0f);
+      22.0f);
 
   // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard
   // Controls io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable
@@ -868,11 +868,10 @@ void Application::prepareGui() {
   ImGui::NewFrame();
 
   ImGui::BeginMainMenuBar();
-  ImGui::SetWindowFontScale(1.2F);
   if (ImGui::BeginMenu("Config")) {
     ImGui::SliderInt("A-Trous times", &mICap, 0, 5);
     ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 10.0F);
     ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 500.0F);
     ImGui::SliderFloat("Central Kernel Weight", &mCentralKernelWeight, 0.0F,
                        1.0F);
@@ -890,8 +889,8 @@ void Application::prepareGui() {
   // float width           = mainGuiViewPort->Size.x;
   float height = mainGuiViewPort->Size.y;
 
-  const float kStatsWindowWidth  = 100.0F;
-  const float kStatsWindowHeight = 120.0F;
+  const float kStatsWindowWidth  = 200.0F;
+  const float kStatsWindowHeight = 80.0F;
 
   ImGui::SetNextWindowPos(ImVec2(0, height - kStatsWindowHeight));
   ImGui::Begin(
@@ -904,10 +903,8 @@ void Application::prepareGui() {
           ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
 
   ImGui::SetWindowSize(ImVec2(kStatsWindowWidth, kStatsWindowHeight));
-  ImGui::SetWindowFontScale(1.2F);
-  ImGui::Text("fps : %s", (std::to_string(static_cast<int>(mFps))).c_str());
-  ImGui::Text("mspf: %s",
-              (std::to_string(static_cast<int>(1 / mFps * 1000.F))).c_str());
+  ImGui::Text("fps : %.2f", mFps);
+  ImGui::Text("mspf: %.2f", 1 / mFps * 1000.F);
 
   ImGui::End();
   ImGui::Render();

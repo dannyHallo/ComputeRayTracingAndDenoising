@@ -13,11 +13,11 @@ ubo;
 layout(binding = 1, rgba32f) uniform image2D posTex;
 layout(binding = 2, rgba32f) uniform image2D rawTex;
 layout(binding = 3, rgba8) uniform image2D accumTex;
-layout(binding = 4, rgba8) uniform image2D normalTex;
-layout(binding = 5, r32f) uniform image2D depthTex;
+layout(binding = 4, rgba8) uniform image2D normalTex; // not used
+layout(binding = 5, r32f) uniform image2D depthTex;   // not used
 layout(binding = 6, r32ui) uniform uimage2D meshHashTex1;
 layout(binding = 7, r32ui) uniform uimage2D meshHashTex2;
-layout(binding = 8, rgba8) uniform image2D aTrousTex1;
+layout(binding = 8, rgba8) uniform image2D blendedTex;
 
 // when alpha is too low, the image is over-smoothed -> loss of detail
 // when alpha is too high, the image is unstable     -> jitter of noise
@@ -63,7 +63,7 @@ void main() {
 
   if (ubo.bypassTemporalFiltering) {
     colToWrite = thisTimeTracingResult;
-    imageStore(aTrousTex1, uv, colToWrite);
+    imageStore(blendedTex, uv, colToWrite);
     return;
   }
 
@@ -72,11 +72,12 @@ void main() {
   vec4 accumTracingResult = imageLoad(accumTex, uv2);
 
   // invalid prev accumTex || different prev mesh (not triangle)
-  if (accumTracingResult.a == 0 || imageLoad(meshHashTex1, uv) != imageLoad(meshHashTex2, uv2)) {
+  if (accumTracingResult.a == 0 ||
+      imageLoad(meshHashTex1, uv) != imageLoad(meshHashTex2, uv2)) {
     alpha = 1;
   }
 
   // colToWrite = mix(accumTracingResult, thisTimeTracingResult, alpha);
   colToWrite = customMixing(accumTracingResult, thisTimeTracingResult, alpha);
-  imageStore(aTrousTex1, uv, colToWrite);
+  imageStore(blendedTex, uv, colToWrite);
 }

@@ -71,18 +71,15 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
 
   // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
-  float weightN       = max(0., pow(dot(normalAtSample, normalAtUV), 128.));
+  float weightN = max(0., pow(dot(normalAtSample, normalAtUV), ubo.phiNormal));
 
-  // ---- method SVGF
   float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float weightFac     = abs(depthAtUV - depthAtSample) /
-                    (abs(dot(gradientAtUV, vec2(x, y))) + epsilon);
-  weightFac     = min(weightFac, 1);
+  float weightFac =
+      abs(depthAtUV - depthAtSample) /
+      (abs(dot(gradientAtUV, vec2(x, y))) * ubo.phiDepth + epsilon);
   float weightZ = exp(-weightFac);
-  // ---- end of SVGF
 
-  float weight = weightDistFalloff * weightN * weightZ * weightC;
-  // float weight = weightDistFalloff;
+  float weight = weightDistFalloff * weightN * weightC * weightZ;
 
   sumOfWeightedValues += weight * imageLoad(aTrousTex1, uv + ivec2(x, y));
   sumOfWeights += weight;
@@ -126,5 +123,8 @@ void main() {
   }
 
   vec4 weightedColor = sumOfWeightedValues / sumOfWeights;
+
+  float depthValue = depthAtUV.x / 1.;
+  // imageStore(aTrousTex2, uv, vec4(gradientAtUV * 20, 1., 1));
   imageStore(aTrousTex2, uv, weightedColor);
 }

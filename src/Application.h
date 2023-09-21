@@ -70,7 +70,7 @@ class Application {
   int mICap                             = 5;
   float mPhiLuminance                   = 0.5f;
   float mPhiDepth                       = 0.5f;
-  float mPhiNormal                      = 0.5f;
+  float mPhiNormal                      = 128.f;
   float mCentralKernelWeight            = 0.5f;
   bool mUseThreeByThreeKernel           = true;
   bool mIgnoreLuminanceAtFirstIteration = true;
@@ -113,8 +113,8 @@ class Application {
   std::unique_ptr<Image> mHistorySamplesImage;
   std::unique_ptr<Image> mMeshHashImage1;
   std::unique_ptr<Image> mMeshHashImage2;
-  std::unique_ptr<Image> mATrousImage1;
-  std::unique_ptr<Image> mATrousImage2;
+  std::unique_ptr<Image> mATrousInputImage;
+  std::unique_ptr<Image> mATrousOutputImage;
 
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> mCommandBuffers;
