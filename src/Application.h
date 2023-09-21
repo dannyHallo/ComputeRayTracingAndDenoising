@@ -50,6 +50,7 @@ class Application {
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
     int i;
+    int iCap;
     float phiLuminance;
     float phiDepth;
     float phiNormal;
@@ -66,6 +67,7 @@ class Application {
   bool mUseBlur     = true;
 
   // atrous twicking
+  int mICap                             = 5;
   float mPhiLuminance                   = 0.5f;
   float mPhiDepth                       = 0.5f;
   float mPhiNormal                      = 0.5f;

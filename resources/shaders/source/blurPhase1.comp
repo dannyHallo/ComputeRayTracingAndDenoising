@@ -16,6 +16,7 @@ float rgbToLuminance(vec4 rgba) {
 layout(binding = 0) uniform UniformBufferObject {
   bool bypassBluring;
   int i;
+  int iCap; // ranged from 0 - 5
   float phiLuminance;
   float phiDepth;
   float phiNormal;
@@ -88,10 +89,14 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
 }
 
 void main() {
-  uv             = ivec2(gl_GlobalInvocationID.xy);
-  vec2 imageSize = vec2(imageSize(aTrousTex1));
+  uv        = ivec2(gl_GlobalInvocationID.xy);
+  colorAtUV = imageLoad(aTrousTex1, uv);
 
-  colorAtUV     = imageLoad(aTrousTex1, uv);
+  if (ubo.i >= ubo.iCap) {
+    imageStore(aTrousTex2, uv, imageLoad(aTrousTex1, uv));
+    return;
+  }
+
   luminanceAtUV = rgbToLuminance(colorAtUV);
   positionAtUV  = imageLoad(posTex, uv).xyz;
   normalAtUV    = imageLoad(normalTex, uv).xyz;
@@ -113,7 +118,6 @@ void main() {
 
   float sumOfWeights       = 0;
   vec4 sumOfWeightedValues = vec4(0);
-  vec4 weightedColor       = vec4(0);
   for (int indexX = 0; indexX < kernelSize; indexX++) {
     for (int indexY = 0; indexY < kernelSize; indexY++) {
       blurKernel(indexX, indexY, kernalHalfSize, sumOfWeights,
@@ -121,6 +125,6 @@ void main() {
     }
   }
 
-  weightedColor = sumOfWeightedValues / sumOfWeights;
+  vec4 weightedColor = sumOfWeightedValues / sumOfWeights;
   imageStore(aTrousTex2, uv, weightedColor);
 }

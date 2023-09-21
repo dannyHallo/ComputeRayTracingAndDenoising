@@ -318,6 +318,7 @@ void Application::updateScene(uint32_t currentImage) {
     BlurFilterUniformBufferObject bfUbo = {
         !mUseBlur,
         j,
+        mICap,
         mPhiLuminance,
         mPhiDepth,
         mPhiNormal,
@@ -869,10 +870,8 @@ void Application::prepareGui() {
   ImGui::BeginMainMenuBar();
   ImGui::SetWindowFontScale(1.2F);
   if (ImGui::BeginMenu("Config")) {
+    ImGui::SliderInt("A-Trous times", &mICap, 0, 5);
     ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
-    //   float phiDepth;
-    // float phiNormal;
-    // float centralKernelWeight;
     ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 500.0F);
     ImGui::SliderFloat("Central Kernel Weight", &mCentralKernelWeight, 0.0F,
