@@ -25,7 +25,8 @@
 class Application {
   // data alignment in c++ side to meet Vulkan specification:
   // A scalar of size N has a base alignment of N.
-  // A three- or four-component vector, with components of size N, has a base alignment of 4 N.
+  // A three- or four-component vector, with components of size N, has a base
+  // alignment of 4 N.
   // https://fvcaputo.github.io/2019/02/06/memory-alignment.html
   struct RtxUniformBufferObject {
     alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camPosition;
@@ -49,19 +50,25 @@ class Application {
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
     int i;
+    float phiLuminance;
     int useThreeByThreeKernel;
     int ignoreLuminanceAtFirstIteration;
+    int changingLuminancePhi;
+    int separateKernel;
   };
 
-  float mFps       = 0;
+  float mFps = 0;
 
   // whether to use temporal and blur filtering
   bool mUseTemporal = true;
   bool mUseBlur     = true;
 
   // atrous twicking
-  bool mUseThreeByThreeKernel          = true;
+  float mPhiLuminance                   = 0.5f;
+  bool mUseThreeByThreeKernel           = true;
   bool mIgnoreLuminanceAtFirstIteration = true;
+  bool mChangingLuminancePhi            = true;
+  bool mSeparateKernel                  = false;
 
   // delta time and last recorded frame time
   float mDeltaTime = 0, mFrameRecordLastTime = 0;
@@ -171,7 +178,8 @@ private:
   void initGui();
 
   // record command buffer for GUI
-  void recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex);
+  void recordGuiCommandBuffer(VkCommandBuffer &commandBuffer,
+                              uint32_t imageIndex);
 
   // draw a frame
   void drawFrame();

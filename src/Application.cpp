@@ -337,8 +337,13 @@ void Application::updateScene(uint32_t currentImage) {
 
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {!mUseBlur, j, mUseThreeByThreeKernel,
-                                           mIgnoreLuminanceAtFirstIteration};
+    BlurFilterUniformBufferObject bfUbo = {!mUseBlur,
+                                           j,
+                                           mPhiLuminance,
+                                           mUseThreeByThreeKernel,
+                                           mIgnoreLuminanceAtFirstIteration,
+                                           mChangingLuminancePhi,
+                                           mSeparateKernel};
     mBlurFilterBufferBundles[j]->getBuffer(currentImage)->fillData(&bfUbo);
   }
 
@@ -887,10 +892,13 @@ void Application::prepareGui() {
   ImGui::BeginMainMenuBar();
   ImGui::SetWindowFontScale(1.2F);
   if (ImGui::BeginMenu("Config")) {
+    ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporal);
     ImGui::Checkbox("Use 3x3 A-Trous", &mUseThreeByThreeKernel);
     ImGui::Checkbox("Ignore Luminance For First Iteration",
                     &mIgnoreLuminanceAtFirstIteration);
+    ImGui::Checkbox("Changing luminance phi", &mChangingLuminancePhi);
+    ImGui::Checkbox("Separete Kernel", &mSeparateKernel);
     ImGui::Checkbox("A-Trous", &mUseBlur);
     ImGui::EndMenu();
   }

@@ -8,8 +8,11 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 layout(binding = 0) uniform UniformBufferObject {
   bool bypassBluring;
   int i;
+  float phiLuminance;
   bool useThreeByThreeKernel;
   bool ignoreLuminanceAtFirstIteration;
+  bool changingLuminancePhi;
+  bool separateKernel;
 }
 ubo;
 
@@ -26,7 +29,8 @@ vec3 positionAtUV, normalAtUV;
 vec4 colorAtUV;
 float luminanceAtUV, depthAtUV;
 
-void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights, inout vec4 sumOfWeightedValues) {
+void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights,
+                inout vec4 sumOfWeightedValues) {
   int x = 0;
   int y = int((indexY - kernalHalfSize) * pow(2, ubo.i));
 
@@ -37,10 +41,14 @@ void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights, inout 
     weightDistFalloff = weightsATrous5x5[indexY];
   }
 
-  float luminanceAtSample    = rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
+  float luminanceAtSample =
+      rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
-  // float weightC              = exp(-differenceInColorVec * 3);
-  float weightC = exp(-differenceInColorVec * 3);
+  float phiC                 = ubo.phiLuminance;
+  float weightC              = exp(-differenceInColorVec / phiC);
+  if (ubo.changingLuminancePhi) {
+    phiC = pow(2, -ubo.i) * ubo.phiLuminance;
+  }
   if (ubo.ignoreLuminanceAtFirstIteration && ubo.i == 0) {
     weightC = 1.0;
   }
@@ -51,9 +59,10 @@ void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights, inout 
 
   // ---- method SVGF
   float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float weightFac     = abs(depthAtUV - depthAtSample) / (abs(dot(gradientAtUV, vec2(x, y))) + epsilon);
-  weightFac           = min(weightFac, 1);
-  float weightZ       = exp(-weightFac);
+  float weightFac     = abs(depthAtUV - depthAtSample) /
+                    (abs(dot(gradientAtUV, vec2(x, y))) + epsilon);
+  weightFac     = min(weightFac, 1);
+  float weightZ = exp(-weightFac);
   // ---- end of SVGF
 
   float weight = weightDistFalloff * weightN * weightZ * weightC;
@@ -65,9 +74,13 @@ void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights, inout 
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
-  // vec2 imageSize = vec2(imageSize(blurHTex));
 
-  colorAtUV     = imageLoad(blurHTex, uv);
+  colorAtUV = imageLoad(blurHTex, uv);
+  if (ubo.bypassBluring || !ubo.separateKernel) {
+    imageStore(aTrousTex2, uv, colorAtUV);
+    return;
+  }
+
   luminanceAtUV = rgbToLuminance(colorAtUV);
   positionAtUV  = imageLoad(posTex, uv).xyz;
   normalAtUV    = imageLoad(normalTex, uv).xyz;
@@ -78,11 +91,6 @@ void main() {
   float dep7     = imageLoad(depthTex, uv + ivec2(0, 1)).x;
   gradientAtUV.x = dep5 - dep4;
   gradientAtUV.y = dep7 - dep4;
-
-  if (ubo.bypassBluring) {
-    imageStore(aTrousTex2, uv, colorAtUV);
-    return;
-  }
 
   float sumOfWeights       = 0;
   vec4 sumOfWeightedValues = vec4(0);

@@ -9,7 +9,11 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 3. Implement the sparse voxel octree
 4. Ray trace the sparse voxel octree
 
-# Screenshots 
+# Design Decisions
+
+1. Separable kernels for A-Trous denoiser is just not correct. And the performance gain is subtle regarding to a 3x3 kernel. So I decided to use the non-separable version.
+
+# Screenshots
 
 | Image Type | Image                                 |
 | ---------- | ------------------------------------- |
