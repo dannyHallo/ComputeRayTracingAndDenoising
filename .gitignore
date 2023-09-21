@@ -3,4 +3,6 @@ build/
 .vscode/.cache
 .vscode/compile_commands.json
 
+resources/shaders/generated/
+
 .xmake/

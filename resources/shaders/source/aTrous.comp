@@ -27,15 +27,14 @@ layout(binding = 0) uniform UniformBufferObject {
 }
 ubo;
 
-layout(binding = 1, rgba8) uniform image2D aTrousTex1;
+layout(binding = 1, rgba8) uniform image2D aTrousInputTex;
 layout(binding = 2, rgba8) uniform image2D normalTex;
 layout(binding = 3, r32f) uniform image2D depthTex;
-layout(binding = 4, rgba32f) uniform image2D posTex;
-layout(binding = 5, rgba8) uniform image2D aTrousTex2;
+layout(binding = 4, rgba8) uniform image2D aTrousOutputTex;
 
 ivec2 uv;
 vec2 gradientAtUV;
-vec3 positionAtUV, normalAtUV;
+vec3 normalAtUV;
 vec4 colorAtUV;
 float luminanceAtUV, depthAtUV;
 
@@ -57,7 +56,7 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
   }
 
   float luminanceAtSample =
-      rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
+      rgbToLuminance(imageLoad(aTrousInputTex, uv + ivec2(x, y)));
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
 
   float phiC = ubo.phiLuminance;
@@ -80,21 +79,20 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
 
   float weight = weightDistFalloff * weightN * weightC * weightZ;
 
-  sumOfWeightedValues += weight * imageLoad(aTrousTex1, uv + ivec2(x, y));
+  sumOfWeightedValues += weight * imageLoad(aTrousInputTex, uv + ivec2(x, y));
   sumOfWeights += weight;
 }
 
 void main() {
   uv        = ivec2(gl_GlobalInvocationID.xy);
-  colorAtUV = imageLoad(aTrousTex1, uv);
+  colorAtUV = imageLoad(aTrousInputTex, uv);
 
   if (ubo.i >= ubo.iCap) {
-    imageStore(aTrousTex2, uv, imageLoad(aTrousTex1, uv));
+    imageStore(aTrousOutputTex, uv, imageLoad(aTrousInputTex, uv));
     return;
   }
 
   luminanceAtUV = rgbToLuminance(colorAtUV);
-  positionAtUV  = imageLoad(posTex, uv).xyz;
   normalAtUV    = imageLoad(normalTex, uv).xyz;
   depthAtUV     = imageLoad(depthTex, uv).x;
 
@@ -105,7 +103,7 @@ void main() {
   gradientAtUV.y = dep7 - dep4;
 
   if (ubo.bypassBluring) {
-    imageStore(aTrousTex2, uv, colorAtUV);
+    imageStore(aTrousOutputTex, uv, colorAtUV);
     return;
   }
 
@@ -124,6 +122,6 @@ void main() {
   vec4 weightedColor = sumOfWeightedValues / sumOfWeights;
 
   float depthValue = depthAtUV.x / 1.;
-  // imageStore(aTrousTex2, uv, vec4(gradientAtUV * 20, 1., 1));
-  imageStore(aTrousTex2, uv, weightedColor);
+  // imageStore(aTrousOutputTex, uv, vec4(gradientAtUV * 20, 1., 1));
+  imageStore(aTrousOutputTex, uv, weightedColor);
 }

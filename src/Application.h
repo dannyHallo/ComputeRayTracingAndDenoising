@@ -63,8 +63,12 @@ class Application {
   float mFps = 0;
 
   // whether to use temporal and blur filtering
-  bool mUseTemporal = true;
-  bool mUseBlur     = true;
+  bool mUseTemporalBlend = true;
+  bool mUseATrous        = true;
+
+  // variance estimation
+  bool mUseVarianceEstimation = true;
+  int mVarianceKernelSize     = 7;
 
   // atrous twicking
   int mICap                             = 5;
@@ -91,7 +95,7 @@ class Application {
   std::unique_ptr<ComputeModel> mRtxModel;
   std::unique_ptr<ComputeModel> mTemporalFilterModel;
   std::vector<std::unique_ptr<ComputeModel>> mBlurFilterPhase1Models;
-  std::unique_ptr<ComputeModel> mBlurFilterPhase3Model;
+  std::unique_ptr<ComputeModel> mPostProcessingModel;
 
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
   std::unique_ptr<BufferBundle> mRtxBufferBundle;

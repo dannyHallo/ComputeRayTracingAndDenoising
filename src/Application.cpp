@@ -251,34 +251,29 @@ void Application::initScene() {
       std::make_unique<ComputeModel>(std::move(temporalFilterMat));
 
   for (int i = 0; i < kATrousSize; i++) {
-    auto blurFilterPhase1Mat = std::make_unique<ComputeMaterial>(
-        kPathToResourceFolder + "/shaders/generated/blurPhase1.spv");
-    blurFilterPhase1Mat->addUniformBufferBundle(
-        mBlurFilterBufferBundles[i].get());
+    auto aTrousMat = std::make_unique<ComputeMaterial>(
+        kPathToResourceFolder + "/shaders/generated/aTrous.spv");
+    aTrousMat->addUniformBufferBundle(mBlurFilterBufferBundles[i].get());
     // input
-    blurFilterPhase1Mat->addStorageImage(mATrousInputImage.get());
-    blurFilterPhase1Mat->addStorageImage(mNormalImage.get());
-    blurFilterPhase1Mat->addStorageImage(mDepthImage.get());
-    blurFilterPhase1Mat->addStorageImage(mPositionImage.get());
+    aTrousMat->addStorageImage(mATrousInputImage.get());
+    aTrousMat->addStorageImage(mNormalImage.get());
+    aTrousMat->addStorageImage(mDepthImage.get());
     // output
-    blurFilterPhase1Mat->addStorageImage(mATrousOutputImage.get());
+    aTrousMat->addStorageImage(mATrousOutputImage.get());
     mBlurFilterPhase1Models.emplace_back(
-        std::make_unique<ComputeModel>(std::move(blurFilterPhase1Mat)));
+        std::make_unique<ComputeModel>(std::move(aTrousMat)));
   }
 
-  auto blurFilterPhase3Mat = std::make_unique<ComputeMaterial>(
-      kPathToResourceFolder + "/shaders/generated/blurPhase3.spv");
+  auto postProcessingMat = std::make_unique<ComputeMaterial>(
+      kPathToResourceFolder + "/shaders/generated/postProcessing.spv");
   {
     // input
-    blurFilterPhase3Mat->addStorageImage(mATrousOutputImage.get());
-    blurFilterPhase3Mat->addStorageImage(mNormalImage.get());
-    blurFilterPhase3Mat->addStorageImage(mDepthImage.get());
-    blurFilterPhase3Mat->addStorageImage(mPositionImage.get());
+    postProcessingMat->addStorageImage(mATrousOutputImage.get());
     // output
-    blurFilterPhase3Mat->addStorageImage(mTargetImage.get());
+    postProcessingMat->addStorageImage(mTargetImage.get());
   }
-  mBlurFilterPhase3Model =
-      std::make_unique<ComputeModel>(std::move(blurFilterPhase3Mat));
+  mPostProcessingModel =
+      std::make_unique<ComputeModel>(std::move(postProcessingMat));
 }
 
 void Application::updateScene(uint32_t currentImage) {
@@ -301,7 +296,7 @@ void Application::updateScene(uint32_t currentImage) {
   mRtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
 
   TemporalFilterUniformBufferObject tfUbo = {
-      !mUseTemporal, lastMvpe, mAppContext->getSwapchainExtentWidth(),
+      !mUseTemporalBlend, lastMvpe, mAppContext->getSwapchainExtentWidth(),
       mAppContext->getSwapchainExtentHeight()};
   {
     mTemperalFilterBufferBundle->getBuffer(currentImage)->fillData(&tfUbo);
@@ -316,7 +311,7 @@ void Application::updateScene(uint32_t currentImage) {
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
     BlurFilterUniformBufferObject bfUbo = {
-        !mUseBlur,
+        !mUseATrous,
         j,
         mICap,
         mPhiLuminance,
@@ -427,7 +422,7 @@ void Application::createRenderCommandBuffers() {
 
     for (int j = 0; j < kATrousSize; j++) {
       // update ubo for the sampleDistance
-      BlurFilterUniformBufferObject bfUbo = {!mUseBlur, j};
+      BlurFilterUniformBufferObject bfUbo = {!mUseATrous, j};
       {
         auto &allocation =
             mBlurFilterBufferBundles[j]->getBuffer(i)->getAllocation();
@@ -510,7 +505,7 @@ void Application::createRenderCommandBuffers() {
 
     /////////////////////////////////////////////
 
-    mBlurFilterPhase3Model->computeCommand(
+    mPostProcessingModel->computeCommand(
         currentCommandBuffer, static_cast<uint32_t>(i),
         mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
 
@@ -869,18 +864,24 @@ void Application::prepareGui() {
 
   ImGui::BeginMainMenuBar();
   if (ImGui::BeginMenu("Config")) {
+    ImGui::SeparatorText("Temporal Blend");
+    ImGui::Checkbox("Temporal Accumulation", &mUseTemporalBlend);
+
+    ImGui::SeparatorText("Variance Estimation");
+    ImGui::Checkbox("Variance Calculation", &mUseVarianceEstimation);
+
+    ImGui::SeparatorText("A-Trous");
+    ImGui::Checkbox("A-Trous", &mUseATrous);
     ImGui::SliderInt("A-Trous times", &mICap, 0, 5);
     ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 200.0F);
     ImGui::SliderFloat("Central Kernel Weight", &mCentralKernelWeight, 0.0F,
                        1.0F);
-    ImGui::Checkbox("Temporal Accumulation", &mUseTemporal);
     ImGui::Checkbox("Use 3x3 A-Trous", &mUseThreeByThreeKernel);
     ImGui::Checkbox("Ignore Luminance For First Iteration",
                     &mIgnoreLuminanceAtFirstIteration);
     ImGui::Checkbox("Changing luminance phi", &mChangingLuminancePhi);
-    ImGui::Checkbox("A-Trous", &mUseBlur);
     ImGui::EndMenu();
   }
   ImGui::EndMainMenuBar();
