@@ -2,13 +2,15 @@
 #include "utils/Logger.h"
 
 // we define this window po
-// inter here as a handle in glfw callback function, it will be initialized after the first
-// construction of this class
+// inter here as a handle in glfw callback function, it will be initialized
+// after the first construction of this class
 Window *Window::thisWindowClass = nullptr;
 
-Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowed)
-    : mWindowStyle(windowStyle), mCursorState(CursorState::INVISIBLE), mWidthIfWindowed(widthIfWindowed),
-      mHeightIfWindowed(heightIfWindowed), mKeyInputBits(0) {
+Window::Window(WindowStyle windowStyle, int widthIfWindowed,
+               int heightIfWindowed)
+    : mWindowStyle(windowStyle), mCursorState(CursorState::INVISIBLE),
+      mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed),
+      mKeyInputBits(0) {
   thisWindowClass = this;
   assert(glfwInit() == GLFW_TRUE && "Failed to initialize GLFW");
 
@@ -16,27 +18,33 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
   assert(mMonitor != nullptr && "Failed to get primary monitor");
 
   // get primary monitor for future maximize function
-  const GLFWvidmode *mode = glfwGetVideoMode(mMonitor); // may be used to change mode for this program
+  const GLFWvidmode *mode =
+      glfwGetVideoMode(mMonitor); // may be used to change mode for this program
   assert(mode != nullptr && "Failed to get video mode");
 
-  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API); // only OpenGL Api is supported, so no API here
+  glfwWindowHint(GLFW_CLIENT_API,
+                 GLFW_NO_API); // only OpenGL Api is supported, so no API here
 
   // glfwWindowHint(GLFW_RED_BITS, mode->redBits);
   // glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-  // glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);       // adapt colors (not needed)
-  // glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt framerate
+  // glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);       // adapt colors (not
+  // needed) glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt
+  // framerate
 
   // set window size
   switch (windowStyle) {
   case WindowStyle::FULLSCREEN:
-    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...", mMonitor, nullptr);
+    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...",
+                               mMonitor, nullptr);
     break;
   case WindowStyle::MAXIMAZED:
-    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...", nullptr, nullptr);
+    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...",
+                               nullptr, nullptr);
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
     break;
   case WindowStyle::HOVER:
-    mWindow = glfwCreateWindow(mWidthIfWindowed, mHeightIfWindowed, "Loading window...", nullptr, nullptr);
+    mWindow = glfwCreateWindow(mWidthIfWindowed, mHeightIfWindowed,
+                               "Loading window...", nullptr, nullptr);
     break;
   }
 
@@ -72,7 +80,8 @@ void Window::toggleCursor() {
   }
 }
 
-void Window::keyCallback(GLFWwindow * /*window*/, int key, int /*scancode*/, int action, int /*mods*/) {
+void Window::keyCallback(GLFWwindow * /*window*/, int key, int /*scancode*/,
+                         int action, int /*mods*/) {
   if (action == GLFW_PRESS) {
     // Direction keycodes
     switch (key) {

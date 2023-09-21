@@ -14,8 +14,9 @@ struct QueueFamilyIndices {
 };
 
 struct SwapchainSupportDetails {
-  // Basic surface capabilities (min/max number of images in swap chain, min/max width and height
-  // of images) Surface formats (pixel format, color space) Available presentation modes
+  // Basic surface capabilities (min/max number of images in swap chain, min/max
+  // width and height of images) Surface formats (pixel format, color space)
+  // Available presentation modes
 
   VkSurfaceCapabilitiesKHR capabilities;
   std::vector<VkSurfaceFormatKHR> formats;

@@ -9,7 +9,8 @@
 
 /**
  * Functions and structs for bvh construction.
- * Since GPU doesn't support recursion, non-recursive structures are used as much as possible.
+ * Since GPU doesn't support recursion, non-recursive structures are used as
+ * much as possible.
  */
 namespace Bvh {
 const glm::vec3 eps(0.0001f);
@@ -23,10 +24,8 @@ struct Aabb {
     float y = abs(max[1] - min[1]);
     float z = abs(max[2] - min[2]);
 
-    if (y > x && y > z)
-      return 1;
-    if (z > x && z > y)
-      return 2;
+    if (y > x && y > z) return 1;
+    if (z > x && z > y) return 2;
     return 0;
   }
 
@@ -40,7 +39,8 @@ struct Object0 {
 
 struct BvhNode0 {
   Aabb box;
-  // index refers to the index in the final array of nodes. Used for sorting a flattened Bvh.
+  // index refers to the index in the final array of nodes. Used for sorting a
+  // flattened Bvh.
   int index          = -1;
   int leftNodeIndex  = -1;
   int rightNodeIndex = -1;
@@ -60,7 +60,6 @@ struct BvhNode0 {
   }
 };
 
-
 bool nodeCompare(BvhNode0 &a, BvhNode0 &b);
 
 Aabb surroundingBox(Aabb box0, Aabb box1);
@@ -70,7 +69,8 @@ Aabb objectBoundingBox(const GpuModel::Triangle &t);
 /// @return the bounding box of all objects
 Aabb objectListBoundingBox(std::vector<Object0> &objects);
 
-inline bool boxCompare(const GpuModel::Triangle &a, const GpuModel::Triangle &b, const int axis);
+inline bool boxCompare(const GpuModel::Triangle &a, const GpuModel::Triangle &b,
+                       const int axis);
 
 bool boxXCompare(const Object0 &a, const Object0 &b);
 bool boxYCompare(const Object0 &a, const Object0 &b);
@@ -78,6 +78,6 @@ bool boxZCompare(const Object0 &a, const Object0 &b);
 
 // Since GPU can't deal with tree structures we need to create a flattened BVH.
 // Stack is used instead of a tree.
-std::vector<GpuModel::BvhNode> createBvh(const std::vector<Object0> &srcObjects);
+std::vector<GpuModel::BvhNode>
+createBvh(const std::vector<Object0> &srcObjects);
 } // namespace Bvh
-

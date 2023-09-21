@@ -51,10 +51,12 @@ class Application {
     int bypassBluring;
     int i;
     float phiLuminance;
+    float phiDepth;
+    float phiNormal;
+    float centralKernelWeight;
     int useThreeByThreeKernel;
     int ignoreLuminanceAtFirstIteration;
     int changingLuminancePhi;
-    int separateKernel;
   };
 
   float mFps = 0;
@@ -65,10 +67,12 @@ class Application {
 
   // atrous twicking
   float mPhiLuminance                   = 0.5f;
+  float mPhiDepth                       = 0.5f;
+  float mPhiNormal                      = 0.5f;
+  float mCentralKernelWeight            = 0.5f;
   bool mUseThreeByThreeKernel           = true;
   bool mIgnoreLuminanceAtFirstIteration = true;
   bool mChangingLuminancePhi            = true;
-  bool mSeparateKernel                  = false;
 
   // delta time and last recorded frame time
   float mDeltaTime = 0, mFrameRecordLastTime = 0;
@@ -85,7 +89,6 @@ class Application {
   std::unique_ptr<ComputeModel> mRtxModel;
   std::unique_ptr<ComputeModel> mTemporalFilterModel;
   std::vector<std::unique_ptr<ComputeModel>> mBlurFilterPhase1Models;
-  std::vector<std::unique_ptr<ComputeModel>> mBlurFilterPhase2Models;
   std::unique_ptr<ComputeModel> mBlurFilterPhase3Model;
 
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
@@ -108,7 +111,6 @@ class Application {
   std::unique_ptr<Image> mHistorySamplesImage;
   std::unique_ptr<Image> mMeshHashImage1;
   std::unique_ptr<Image> mMeshHashImage2;
-  std::unique_ptr<Image> mBlurHImage;
   std::unique_ptr<Image> mATrousImage1;
   std::unique_ptr<Image> mATrousImage2;
 

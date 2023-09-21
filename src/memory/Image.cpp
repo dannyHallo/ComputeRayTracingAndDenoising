@@ -9,15 +9,16 @@
 #include <iostream>
 #include <string>
 
-VkImageView Image::createImageView(VkDevice device, const VkImage &image, VkFormat format,
+VkImageView Image::createImageView(VkDevice device, const VkImage &image,
+                                   VkFormat format,
                                    VkImageAspectFlags aspectFlags) {
   VkImageView imageView{};
 
   VkImageViewCreateInfo viewInfo{};
-  viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  viewInfo.image                           = image;
-  viewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-  viewInfo.format                          = format;
+  viewInfo.sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.image    = image;
+  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  viewInfo.format   = format;
   viewInfo.subresourceRange.aspectMask     = aspectFlags;
   viewInfo.subresourceRange.baseMipLevel   = 0;
   viewInfo.subresourceRange.levelCount     = 1;
@@ -30,8 +31,10 @@ VkImageView Image::createImageView(VkDevice device, const VkImage &image, VkForm
   return imageView;
 }
 
-VkResult Image::createImage(uint32_t width, uint32_t height, VkSampleCountFlagBits numSamples, VkFormat format,
-                            VkImageTiling tiling, VkImageUsageFlags usage, VmaMemoryUsage memoryUsage) {
+VkResult Image::createImage(uint32_t width, uint32_t height,
+                            VkSampleCountFlagBits numSamples, VkFormat format,
+                            VkImageTiling tiling, VkImageUsageFlags usage,
+                            VmaMemoryUsage memoryUsage) {
   VkImageCreateInfo imageInfo{};
   imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType     = VK_IMAGE_TYPE_2D;
@@ -50,15 +53,20 @@ VkResult Image::createImage(uint32_t width, uint32_t height, VkSampleCountFlagBi
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage                   = memoryUsage;
 
-  return vmaCreateImage(VulkanApplicationContext::getInstance()->getAllocator(), &imageInfo, &vmaallocInfo, &mVkImage,
-                        &mAllocation, nullptr);
+  return vmaCreateImage(VulkanApplicationContext::getInstance()->getAllocator(),
+                        &imageInfo, &vmaallocInfo, &mVkImage, &mAllocation,
+                        nullptr);
 }
 
-Image::Image(VkDevice device, VkCommandPool commandPool, VkQueue queue, uint32_t width, uint32_t height,
-             VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-             VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage, VkImageLayout initialImageLayout)
-    : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), mWidth(width), mHeight(height) {
-  VkResult result = createImage(width, height, numSamples, format, tiling, usage, memoryUsage);
+Image::Image(VkDevice device, VkCommandPool commandPool, VkQueue queue,
+             uint32_t width, uint32_t height, VkSampleCountFlagBits numSamples,
+             VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
+             VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage,
+             VkImageLayout initialImageLayout)
+    : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), mWidth(width),
+      mHeight(height) {
+  VkResult result = createImage(width, height, numSamples, format, tiling,
+                                usage, memoryUsage);
   if (result != VK_SUCCESS) {
     Logger::throwError("failed to create image!");
   }
@@ -71,29 +79,35 @@ Image::Image(VkDevice device, VkCommandPool commandPool, VkQueue queue, uint32_t
 
 Image::~Image() {
   if (mVkImage != VK_NULL_HANDLE) {
-    vkDestroyImageView(VulkanApplicationContext::getInstance()->getDevice(), mVkImageView, nullptr);
-    vkDestroyImage(VulkanApplicationContext::getInstance()->getDevice(), mVkImage, nullptr);
-    vmaFreeMemory(VulkanApplicationContext::getInstance()->getAllocator(), mAllocation);
+    vkDestroyImageView(VulkanApplicationContext::getInstance()->getDevice(),
+                       mVkImageView, nullptr);
+    vkDestroyImage(VulkanApplicationContext::getInstance()->getDevice(),
+                   mVkImage, nullptr);
+    vmaFreeMemory(VulkanApplicationContext::getInstance()->getAllocator(),
+                  mAllocation);
   }
 }
 
-VkDescriptorImageInfo Image::getDescriptorInfo(VkImageLayout imageLayout) const {
+VkDescriptorImageInfo
+Image::getDescriptorInfo(VkImageLayout imageLayout) const {
   VkDescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = imageLayout;
   imageInfo.imageView   = mVkImageView;
   return imageInfo;
 }
 
-void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool, VkQueue queue, VkImageLayout newLayout) {
-  VkCommandBuffer commandBuffer = RenderSystem::beginSingleTimeCommands(device, commandPool);
+void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool,
+                                  VkQueue queue, VkImageLayout newLayout) {
+  VkCommandBuffer commandBuffer =
+      RenderSystem::beginSingleTimeCommands(device, commandPool);
   VkImageMemoryBarrier barrier{};
-  barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.oldLayout                       = mCurrentImageLayout;
-  barrier.newLayout                       = newLayout;
-  barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-  barrier.image                           = mVkImage;
-  barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+  barrier.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.oldLayout                   = mCurrentImageLayout;
+  barrier.newLayout                   = newLayout;
+  barrier.srcQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex         = VK_QUEUE_FAMILY_IGNORED;
+  barrier.image                       = mVkImage;
+  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   barrier.subresourceRange.baseMipLevel   = 0;
   barrier.subresourceRange.levelCount     = 1;
   barrier.subresourceRange.baseArrayLayer = 0;
@@ -101,7 +115,8 @@ void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool, Vk
 
   VkPipelineStageFlags sourceStage      = VK_PIPELINE_STAGE_NONE;
   VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_NONE;
-  if (mCurrentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+  if (mCurrentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+      newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
@@ -114,7 +129,8 @@ void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool, Vk
     sourceStage           = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destinationStage      = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
   } else if (mCurrentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-             (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL || newLayout == VK_IMAGE_LAYOUT_GENERAL)) {
+             (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ||
+              newLayout == VK_IMAGE_LAYOUT_GENERAL)) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
     sourceStage           = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -123,9 +139,11 @@ void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool, Vk
     Logger::throwError("unsupported layout transition!");
   }
 
-  vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+  vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0,
+                       nullptr, 0, nullptr, 1, &barrier);
 
-  RenderSystem::endSingleTimeCommands(device, commandPool, queue, commandBuffer);
+  RenderSystem::endSingleTimeCommands(device, commandPool, queue,
+                                      commandBuffer);
 
   mCurrentImageLayout = newLayout;
 }

@@ -4,11 +4,15 @@ namespace Bvh {
 
 bool nodeCompare(BvhNode0 &a, BvhNode0 &b) { return a.index < b.index; }
 
-Aabb surroundingBox(Aabb box0, Aabb box1) { return {glm::min(box0.min, box1.min), glm::max(box0.max, box1.max)}; }
+Aabb surroundingBox(Aabb box0, Aabb box1) {
+  return {glm::min(box0.min, box1.min), glm::max(box0.max, box1.max)};
+}
 
 Aabb objectBoundingBox(const GpuModel::Triangle &t) {
-  // Need to add eps to correctly construct an AABB for flat objects like planes.
-  return {glm::min(glm::min(t.v0, t.v1), t.v2) - eps, glm::max(glm::max(t.v0, t.v1), t.v2) + eps};
+  // Need to add eps to correctly construct an AABB for flat objects like
+  // planes.
+  return {glm::min(glm::min(t.v0, t.v1), t.v2) - eps,
+          glm::max(glm::max(t.v0, t.v1), t.v2) + eps};
 }
 
 Aabb objectListBoundingBox(std::vector<Object0> &objects) {
@@ -24,20 +28,28 @@ Aabb objectListBoundingBox(std::vector<Object0> &objects) {
   return outputBox;
 }
 
-inline bool boxCompare(const GpuModel::Triangle &a, const GpuModel::Triangle &b, const int axis) {
+inline bool boxCompare(const GpuModel::Triangle &a, const GpuModel::Triangle &b,
+                       const int axis) {
   Aabb boxA = objectBoundingBox(a);
   Aabb boxB = objectBoundingBox(b);
 
   return boxA.min[axis] < boxB.min[axis];
 }
 
-bool boxXCompare(const Object0 &a, const Object0 &b) { return boxCompare(a.t, b.t, 0); }
+bool boxXCompare(const Object0 &a, const Object0 &b) {
+  return boxCompare(a.t, b.t, 0);
+}
 
-bool boxYCompare(const Object0 &a, const Object0 &b) { return boxCompare(a.t, b.t, 1); }
+bool boxYCompare(const Object0 &a, const Object0 &b) {
+  return boxCompare(a.t, b.t, 1);
+}
 
-bool boxZCompare(const Object0 &a, const Object0 &b) { return boxCompare(a.t, b.t, 2); }
+bool boxZCompare(const Object0 &a, const Object0 &b) {
+  return boxCompare(a.t, b.t, 2);
+}
 
-std::vector<GpuModel::BvhNode> createBvh(const std::vector<Object0> &srcObjects) {
+std::vector<GpuModel::BvhNode>
+createBvh(const std::vector<Object0> &srcObjects) {
   std::vector<BvhNode0> intermediate;
   int nodeCounter = 0;
   std::stack<BvhNode0> nodeStack;
@@ -60,8 +72,11 @@ std::vector<GpuModel::BvhNode> createBvh(const std::vector<Object0> &srcObjects)
       continue;
     } else {
       int axis        = currentNode.box.longestAxis();
-      auto comparator = (axis == 0) ? boxXCompare : (axis == 1) ? boxYCompare : boxZCompare;
-      std::sort(currentNode.objects.begin(), currentNode.objects.end(), comparator);
+      auto comparator = (axis == 0)   ? boxXCompare
+                        : (axis == 1) ? boxYCompare
+                                      : boxZCompare;
+      std::sort(currentNode.objects.begin(), currentNode.objects.end(),
+                comparator);
 
       auto mid = objectSpan / 2;
 

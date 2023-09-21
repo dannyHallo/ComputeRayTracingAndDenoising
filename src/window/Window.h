@@ -36,8 +36,10 @@ class Window {
   GLFWmonitor *mMonitor = nullptr;
 
 public:
-  // universal constructor, the last two parameters only will be used to construct a hover window
-  Window(WindowStyle windowStyle, int widthIfWindowed = 0, int heightIfWindowed = 0);
+  // universal constructor, the last two parameters only will be used to
+  // construct a hover window
+  Window(WindowStyle windowStyle, int widthIfWindowed = 0,
+         int heightIfWindowed = 0);
 
   ~Window() { glfwDestroyWindow(mWindow); }
 
@@ -56,8 +58,11 @@ public:
   void hideCursor();
   void toggleCursor();
 
-  void disableInputBit(int bitToBeDisabled) { mKeyInputBits &= ~bitToBeDisabled; }
+  void disableInputBit(int bitToBeDisabled) {
+    mKeyInputBits &= ~bitToBeDisabled;
+  }
 
 private:
-  static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+  static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
+                          int mods);
 };

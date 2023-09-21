@@ -10,32 +10,9 @@ layout(binding = 2, rgba8) uniform image2D depthTex;
 layout(binding = 3, rgba32f) uniform image2D posTex;
 layout(binding = 4, rgba8) uniform image2D targetTex;
 
-ivec2 uv;
-vec3 positionAtUV, normalAtUV;
-vec4 colorAtUV;
-float luminanceAtUV, depthAtUV;
-
-// void blurKernel(int indexX, int indexY, inout float sumOfWeights, inout vec4 sumOfWeightedValues) {
-//   int x = indexX - kernalHalfSize;
-//   int y = indexY - kernalHalfSize;
-
-//   float luminanceAtSample    = rgbToLuminance(imageLoad(aTrousTex2, uv + ivec2(x, y)));
-//   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
-//   float weightC              = exp(-differenceInColorVec * 10);
-
-//   // introduce the cosine term to describe normal edge stopping function
-//   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
-//   float weightN       = max(0., pow(dot(normalAtSample, normalAtUV), 128.));
-
-//   float weight = weightN * weightC;
-
-//   sumOfWeightedValues += weight * imageLoad(aTrousTex2, uv + ivec2(x, y));
-//   sumOfWeights += weight;
-// }
-
 // Converts a color from linear light gamma to sRGB gamma
 // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
-vec4 fromLinear(vec4 linearRGB) {
+vec4 linearToSrgb(vec4 linearRGB) {
   bvec4 cutoff = lessThan(linearRGB, vec4(0.0031308));
   vec4 higher  = vec4(1.055) * pow(linearRGB, vec4(1.0 / 2.4)) - vec4(0.055);
   vec4 lower   = linearRGB * vec4(12.92);
@@ -44,26 +21,9 @@ vec4 fromLinear(vec4 linearRGB) {
 }
 
 void main() {
-  uv = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 uv       = ivec2(gl_GlobalInvocationID.xy);
+  vec4 colorAtUV = imageLoad(aTrousTex2, uv);
 
-  colorAtUV     = imageLoad(aTrousTex2, uv);
-  luminanceAtUV = rgbToLuminance(colorAtUV);
-  positionAtUV  = imageLoad(posTex, uv).xyz;
-  normalAtUV    = imageLoad(normalTex, uv).xyz;
-  depthAtUV     = imageLoad(depthTex, uv).x;
-
-  float sumOfWeights       = 0;
-  vec4 sumOfWeightedValues = vec4(0);
-  vec4 weightedColor       = vec4(0);
-
-  // for (int indexX = 0; indexX < kernelSize; indexX++) {
-  //   for (int indexY = 0; indexY < kernelSize; indexY++) {
-  //     blurKernel(indexX, indexY, sumOfWeights, sumOfWeightedValues);
-  //   }
-  // }
-  // weightedColor = sumOfWeightedValues / sumOfWeights;
-  weightedColor = colorAtUV;
-  weightedColor = fromLinear(weightedColor);
-  imageStore(targetTex, uv, vec4(weightedColor.zyx, 1));
-  // imageStore(targetTex, uv, colorAtUV);
+  colorAtUV = linearToSrgb(colorAtUV);
+  imageStore(targetTex, uv, vec4(colorAtUV.zyx, 1));
 }

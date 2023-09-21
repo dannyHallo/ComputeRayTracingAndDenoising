@@ -6,14 +6,17 @@ constexpr float mouseSensitivity = 0.06F;
 // constexpr float zoom             = 45;
 } // namespace
 
-glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear, float zFar) const {
-  glm::mat4 projection =
-      glm::perspective(glm::radians(mVFov), // The vertical Field of View, in radians: the amount of "zoom". Think
-                                            // "camera lens". Usually between 90° (extra wide) and 30° (quite zoomed in)
-                       aspectRatio,
-                       zNear, // Near clipping plane. Keep as big as possible, or you'll get precision issues.
-                       zFar   // Far clipping plane. Keep as little as possible.
-      );
+glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear,
+                                      float zFar) const {
+  glm::mat4 projection = glm::perspective(
+      glm::radians(mVFov), // The vertical Field of View, in radians: the amount
+                           // of "zoom". Think "camera lens". Usually between
+                           // 90° (extra wide) and 30° (quite zoomed in)
+      aspectRatio,
+      zNear, // Near clipping plane. Keep as big as possible, or you'll get
+             // precision issues.
+      zFar   // Far clipping plane. Keep as little as possible.
+  );
   return projection;
 }
 
@@ -29,7 +32,9 @@ void Camera::processInput(float deltaTime) {
     mWindow->disableInputBit(TAB_BIT);
   }
 
-  if ((inputBits & (SPACE_BIT | SHIFT_BIT | W_BIT | S_BIT | A_BIT | D_BIT)) != 0) processKeyboard(inputBits, deltaTime);
+  if ((inputBits & (SPACE_BIT | SHIFT_BIT | W_BIT | S_BIT | A_BIT | D_BIT)) !=
+      0)
+    processKeyboard(inputBits, deltaTime);
 }
 
 void Camera::processKeyboard(uint32_t inputBits, float deltaTime) {
@@ -96,7 +101,8 @@ void Camera::processMouseMovement(float xoffset, float yoffset) {
 // }
 
 void Camera::updateCameraVectors() {
-  mFront = {-sin(glm::radians(mYaw)) * cos(glm::radians(mPitch)), sin(glm::radians(mPitch)),
+  mFront = {-sin(glm::radians(mYaw)) * cos(glm::radians(mPitch)),
+            sin(glm::radians(mPitch)),
             -cos(glm::radians(mYaw)) * cos(glm::radians(mPitch))};
   // normalize the vectors, because their length gets closer to 0 the
   mRight = glm::normalize(glm::cross(mFront, mWorldUp));

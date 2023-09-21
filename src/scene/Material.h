@@ -15,9 +15,11 @@
 
 class Material {
 protected:
-  std::vector<BufferBundle *> mUniformBufferBundles; // buffer bundles for uniform data
-  std::vector<BufferBundle *> mStorageBufferBundles; // buffer bundles for storage data
-  std::vector<Image *> mStorageImages;     // images for storage data
+  std::vector<BufferBundle *>
+      mUniformBufferBundles; // buffer bundles for uniform data
+  std::vector<BufferBundle *>
+      mStorageBufferBundles;           // buffer bundles for storage data
+  std::vector<Image *> mStorageImages; // images for storage data
 
   std::string mVertexShaderPath;
   std::string mFragmentShaderPath;
@@ -34,7 +36,8 @@ protected:
 
 public:
   Material(VkShaderStageFlags shaderStageFlags)
-      : mSwapchainSize(static_cast<uint32_t>(VulkanApplicationContext::getInstance()->getSwapchainSize())),
+      : mSwapchainSize(static_cast<uint32_t>(
+            VulkanApplicationContext::getInstance()->getSwapchainSize())),
         mShaderStageFlags(shaderStageFlags) {}
 
   virtual ~Material();

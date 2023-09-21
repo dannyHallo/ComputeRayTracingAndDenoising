@@ -9,5 +9,6 @@ int main() {
     app.run();
   }
   return 0;
-  // after returning from main , the destructor of vulkanApplicationContext will be called
+  // after returning from main , the destructor of vulkanApplicationContext will
+  // be called
 }

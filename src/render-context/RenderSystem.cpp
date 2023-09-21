@@ -5,7 +5,9 @@
 
 #include "RenderSystem.h"
 
-VkCommandBuffer RenderSystem::beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool) {
+VkCommandBuffer
+RenderSystem::beginSingleTimeCommands(VkDevice device,
+                                      VkCommandPool commandPool) {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -24,7 +26,9 @@ VkCommandBuffer RenderSystem::beginSingleTimeCommands(VkDevice device, VkCommand
   return commandBuffer;
 }
 
-void RenderSystem::endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue,
+void RenderSystem::endSingleTimeCommands(VkDevice device,
+                                         VkCommandPool commandPool,
+                                         VkQueue queue,
                                          VkCommandBuffer commandBuffer) {
   vkEndCommandBuffer(commandBuffer);
 

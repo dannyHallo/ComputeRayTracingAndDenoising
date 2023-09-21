@@ -12,6 +12,7 @@
 #include <vector>
 
 namespace InstanceCreator {
-void create(VkInstance &instance, VkDebugUtilsMessengerEXT &debugMessager, const VkApplicationInfo &appInfo,
+void create(VkInstance &instance, VkDebugUtilsMessengerEXT &debugMessager,
+            const VkApplicationInfo &appInfo,
             const std::vector<const char *> &layers);
 }

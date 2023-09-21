@@ -6,7 +6,7 @@ set BUILD_TYPE=debug
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
 
 set GLSLC_PATH=%GLSLC%
-set SHADERS=rtx blurPhase1 blurPhase2 blurPhase3 temporalFilter
+set SHADERS=rtx blurPhase1 blurPhase3 temporalFilter
 
 echo Compiling shaders...
 if not exist "resources/shaders/generated" mkdir "resources/shaders/generated"

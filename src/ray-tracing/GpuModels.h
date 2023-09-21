@@ -11,7 +11,8 @@
 #define uint uint32_t
 
 /**
- * Geometry and material objects to be used on GPU. To minimize data size integer links are used.
+ * Geometry and material objects to be used on GPU. To minimize data size
+ * integer links are used.
  */
 namespace GpuModel {
 enum MaterialType { LightSource, Lambertian, Metal, Glass };
@@ -21,7 +22,9 @@ struct Material {
   MaterialType type;
   alignas(16) glm::vec3 albedo;
 
-  Material(MaterialType t, glm::vec3 a, ColorInputType c = ColorInputType::Normalized) : type(t) {
+  Material(MaterialType t, glm::vec3 a,
+           ColorInputType c = ColorInputType::Normalized)
+      : type(t) {
     if (c == ColorInputType::Normalized) {
       albedo = a;
     } else {

@@ -155,13 +155,6 @@ void Application::initScene() {
       VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mBlurHImage = std::make_unique<Image>(
-      mAppContext->getDevice(), mAppContext->getCommandPool(),
-      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
-      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
   mATrousImage1 = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
@@ -268,24 +261,9 @@ void Application::initScene() {
     blurFilterPhase1Mat->addStorageImage(mDepthImage.get());
     blurFilterPhase1Mat->addStorageImage(mPositionImage.get());
     // output
-    blurFilterPhase1Mat->addStorageImage(mBlurHImage.get());
+    blurFilterPhase1Mat->addStorageImage(mATrousImage2.get());
     mBlurFilterPhase1Models.emplace_back(
         std::make_unique<ComputeModel>(std::move(blurFilterPhase1Mat)));
-
-    auto blurFilterPhase2Mat = std::make_unique<ComputeMaterial>(
-        kPathToResourceFolder + "/shaders/generated/blurPhase2.spv");
-    blurFilterPhase2Mat->addUniformBufferBundle(
-        mBlurFilterBufferBundles[i].get());
-    // input
-    blurFilterPhase2Mat->addStorageImage(mATrousImage1.get());
-    blurFilterPhase2Mat->addStorageImage(mBlurHImage.get());
-    blurFilterPhase2Mat->addStorageImage(mNormalImage.get());
-    blurFilterPhase2Mat->addStorageImage(mDepthImage.get());
-    blurFilterPhase2Mat->addStorageImage(mPositionImage.get());
-    // output
-    blurFilterPhase2Mat->addStorageImage(mATrousImage2.get());
-    mBlurFilterPhase2Models.emplace_back(
-        std::make_unique<ComputeModel>(std::move(blurFilterPhase2Mat)));
   }
 
   auto blurFilterPhase3Mat = std::make_unique<ComputeMaterial>(
@@ -337,13 +315,17 @@ void Application::updateScene(uint32_t currentImage) {
 
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {!mUseBlur,
-                                           j,
-                                           mPhiLuminance,
-                                           mUseThreeByThreeKernel,
-                                           mIgnoreLuminanceAtFirstIteration,
-                                           mChangingLuminancePhi,
-                                           mSeparateKernel};
+    BlurFilterUniformBufferObject bfUbo = {
+        !mUseBlur,
+        j,
+        mPhiLuminance,
+        mPhiDepth,
+        mPhiNormal,
+        mCentralKernelWeight,
+        mUseThreeByThreeKernel,
+        mIgnoreLuminanceAtFirstIteration,
+        mChangingLuminancePhi,
+    };
     mBlurFilterBufferBundles[j]->getBuffer(currentImage)->fillData(&bfUbo);
   }
 
@@ -421,8 +403,6 @@ void Application::createRenderCommandBuffers() {
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
     vkCmdClearColorImage(currentCommandBuffer, mATrousImage2->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
-    vkCmdClearColorImage(currentCommandBuffer, mBlurHImage->getVkImage(),
-                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
 
     mRtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
                               mTargetImage->getWidth() / 32,
@@ -456,7 +436,7 @@ void Application::createRenderCommandBuffers() {
         vmaUnmapMemory(mAppContext->getAllocator(), allocation);
       }
 
-      // dispatch 2 stages of separate shaders
+      // dispatch filter shader
       mBlurFilterPhase1Models[j]->computeCommand(
           currentCommandBuffer, static_cast<uint32_t>(i),
           mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
@@ -464,9 +444,6 @@ void Application::createRenderCommandBuffers() {
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr,
                            0, nullptr, 0, nullptr);
-      mBlurFilterPhase2Models[j]->computeCommand(
-          currentCommandBuffer, static_cast<uint32_t>(i),
-          mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
 
       // accum texture when the first filter is done
       // (from SVGF) accumulation image should use a properly smoothed image,
@@ -893,12 +870,18 @@ void Application::prepareGui() {
   ImGui::SetWindowFontScale(1.2F);
   if (ImGui::BeginMenu("Config")) {
     ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
+    //   float phiDepth;
+    // float phiNormal;
+    // float centralKernelWeight;
+    ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 500.0F);
+    ImGui::SliderFloat("Central Kernel Weight", &mCentralKernelWeight, 0.0F,
+                       1.0F);
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporal);
     ImGui::Checkbox("Use 3x3 A-Trous", &mUseThreeByThreeKernel);
     ImGui::Checkbox("Ignore Luminance For First Iteration",
                     &mIgnoreLuminanceAtFirstIteration);
     ImGui::Checkbox("Changing luminance phi", &mChangingLuminancePhi);
-    ImGui::Checkbox("Separete Kernel", &mSeparateKernel);
     ImGui::Checkbox("A-Trous", &mUseBlur);
     ImGui::EndMenu();
   }

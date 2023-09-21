@@ -15,4 +15,4 @@ VkImageMemoryBarrier transferDstToTransferSrcBarrier(const VkImage &image);
 VkImageMemoryBarrier transferDstToReadOnlyBarrier(const VkImage &image);
 VkImageMemoryBarrier transferDstToColorAttachmentBarrier(const VkImage &image);
 VkImageCopy imageCopyRegion(uint32_t width, uint32_t height);
-}
+} // namespace ImageUtils
