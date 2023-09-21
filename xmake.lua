@@ -10,7 +10,10 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})
 
 target("main")
-    -- add_defines("NVALIDATIONLAYERS")
+    if is_mode("release") then
+        add_defines("NVALIDATIONLAYERS")
+    end
+    -- add_defines("NDEBUG")
     set_configvar("PROJECT_DIR", (os.projectdir():gsub("\\", "/")))
     set_configdir("src/utils/")
     add_configfiles("src/utils/RootDir.h.in")
@@ -39,7 +42,7 @@ target("main")
     -- add_linkdirs("C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22621.0/um/x64")
     -- add_linkdirs("C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.36.32532/lib/x64") -- for msvcrt
     
-    add_links(
+    add_links( 
     "dep/glfw/Release/glfw3.lib", 
     "User32", 
     "Gdi32", 

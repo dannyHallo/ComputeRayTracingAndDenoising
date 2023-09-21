@@ -65,7 +65,7 @@ Mesh::Mesh(std::string model_path) {
 
   if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
                         model_path.c_str())) {
-    throw std::runtime_error(warn + err);
+    Logger::throwError("Mesh::Mesh: " + warn + err);
   }
 
   Logger::print("mesh loaded: " + model_path);

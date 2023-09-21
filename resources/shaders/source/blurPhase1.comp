@@ -74,10 +74,9 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
   float weightN = max(0., pow(dot(normalAtSample, normalAtUV), ubo.phiNormal));
 
   float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float weightFac =
-      abs(depthAtUV - depthAtSample) /
-      (abs(dot(gradientAtUV, vec2(x, y))) * ubo.phiDepth + epsilon);
-  float weightZ = exp(-weightFac);
+  float differenceInDepth =
+      abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(x, y)));
+  float weightZ = exp(-differenceInDepth / ubo.phiDepth);
 
   float weight = weightDistFalloff * weightN * weightC * weightZ;
 

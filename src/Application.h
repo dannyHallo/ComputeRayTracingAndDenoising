@@ -69,7 +69,7 @@ class Application {
   // atrous twicking
   int mICap                             = 5;
   float mPhiLuminance                   = 0.5f;
-  float mPhiDepth                       = 0.5f;
+  float mPhiDepth                       = 0.2f;
   float mPhiNormal                      = 128.f;
   float mCentralKernelWeight            = 0.5f;
   bool mUseThreeByThreeKernel           = true;

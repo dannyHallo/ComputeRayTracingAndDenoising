@@ -2,9 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build",
+      "label": "build debug version",
       "type": "shell",
-      "command": "${workspaceFolder}/batch/build.bat"
+      "command": "${workspaceFolder}/batch/build.bat debug"
+    },
+    {
+      "label": "build release version",
+      "type": "shell",
+      "command": "${workspaceFolder}/batch/build.bat release"
     }
   ]
 }

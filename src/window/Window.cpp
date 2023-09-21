@@ -12,7 +12,8 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed,
       mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed),
       mKeyInputBits(0) {
   thisWindowClass = this;
-  assert(glfwInit() == GLFW_TRUE && "Failed to initialize GLFW");
+  auto result     = glfwInit();
+  assert(result == GLFW_TRUE && "Failed to initialize GLFW");
 
   mMonitor = glfwGetPrimaryMonitor();
   assert(mMonitor != nullptr && "Failed to get primary monitor");
@@ -25,11 +26,10 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed,
   glfwWindowHint(GLFW_CLIENT_API,
                  GLFW_NO_API); // only OpenGL Api is supported, so no API here
 
-  // glfwWindowHint(GLFW_RED_BITS, mode->redBits);
-  // glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-  // glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);       // adapt colors (not
-  // needed) glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt
-  // framerate
+  glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+  glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+  glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits); // adapt colors (notneeded)
+  glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt framerate
 
   // set window size
   switch (windowStyle) {

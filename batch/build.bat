@@ -1,7 +1,14 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-set BUILD_TYPE=debug
+if %1==debug (
+    set BUILD_TYPE=debug
+) else if %1==release (
+    set BUILD_TYPE=release
+) else (
+    echo Invalid build type %1. Exiting...
+    goto :eof
+)
 
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
 
@@ -42,6 +49,3 @@ echo run
 @REM /b means to stay in the command line below, 
 @REM /wait blocks the terminal to wait for the application to exit
 start /wait /b /d "build/windows/x64/%BUILD_TYPE%" main.exe
-
-set errorlevel=%ERRORLEVEL%
-

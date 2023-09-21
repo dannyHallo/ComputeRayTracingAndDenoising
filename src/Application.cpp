@@ -871,8 +871,8 @@ void Application::prepareGui() {
   if (ImGui::BeginMenu("Config")) {
     ImGui::SliderInt("A-Trous times", &mICap, 0, 5);
     ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 10.0F);
-    ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 500.0F);
+    ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 200.0F);
     ImGui::SliderFloat("Central Kernel Weight", &mCentralKernelWeight, 0.0F,
                        1.0F);
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporal);
