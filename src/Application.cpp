@@ -110,6 +110,10 @@ void Application::initScene() {
       swapchainSize, sizeof(TemporalFilterUniformBufferObject),
       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
+  mVarianceBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(VarianceUniformBufferObject),
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
   for (int i = 0; i < kATrousSize; i++) {
     auto blurFilterBufferBundle = std::make_unique<BufferBundle>(
         swapchainSize, sizeof(BlurFilterUniformBufferObject),
@@ -264,6 +268,7 @@ void Application::initScene() {
 
   auto varianceMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/variance.spv");
+  varianceMat->addUniformBufferBundle(mVarianceBufferBundle.get());
   // input
   varianceMat->addStorageImage(mATrousInputImage.get());
   varianceMat->addStorageImage(mNormalImage.get());
@@ -333,12 +338,19 @@ void Application::updateScene(uint32_t currentImage) {
         mCamera->getViewMatrix();
   }
 
+  VarianceUniformBufferObject varianceUbo = {
+      !mUseVarianceEstimation, mSkipStoppingFunctions, mVarianceKernelSize,
+      mVariancePhiGaussian, mVariancePhiDepth};
+  mVarianceBufferBundle->getBuffer(currentImage)->fillData(&varianceUbo);
+
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
     BlurFilterUniformBufferObject bfUbo = {
         !mUseATrous,
         j,
         mICap,
+        mShowVariance,
+        mUseVarianceGuidedFiltering,
         mPhiLuminance,
         mPhiDepth,
         mPhiNormal,
@@ -451,7 +463,7 @@ void Application::createRenderCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
                          nullptr, 0, nullptr);
-    
+
     /////////////////////////////////////////////
 
     for (int j = 0; j < kATrousSize; j++) {
@@ -903,11 +915,19 @@ void Application::prepareGui() {
 
     ImGui::SeparatorText("Variance Estimation");
     ImGui::Checkbox("Variance Calculation", &mUseVarianceEstimation);
+    ImGui::Checkbox("Skip Stopping Functions", &mSkipStoppingFunctions);
+    ImGui::SliderInt("Variance Kernel Size", &mVarianceKernelSize, 1, 15);
+    ImGui::SliderFloat("Variance Phi Gaussian", &mVariancePhiGaussian, 0.0F,
+                       1.0F);
+    ImGui::SliderFloat("Variance Phi Depth", &mVariancePhiDepth, 0.0F, 1.0F);
 
     ImGui::SeparatorText("A-Trous");
     ImGui::Checkbox("A-Trous", &mUseATrous);
+    ImGui::Checkbox("Show variance", &mShowVariance);
     ImGui::SliderInt("A-Trous times", &mICap, 0, 5);
-    ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
+    ImGui::Checkbox("Use variance guided filtering",
+                    &mUseVarianceGuidedFiltering);
+    ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 10.0F);
     ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 200.0F);
     ImGui::SliderFloat("Central Kernel Weight", &mCentralKernelWeight, 0.0F,

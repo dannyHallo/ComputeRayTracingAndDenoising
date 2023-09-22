@@ -15,6 +15,8 @@ layout(binding = 0) uniform UniformBufferObject {
   bool bypassBluring;
   int i;
   int iCap; // ranged from 0 - 5
+  bool showVariance;
+  bool useVarianceGuidedFiltering;
   float phiLuminance;
   float phiDepth;
   float phiNormal;
@@ -35,10 +37,10 @@ layout(binding = 6, rgba8) writeonly uniform image2D aTrousOutputTex;
 ivec2 uv;
 vec2 gradientAtUV;
 vec3 normalAtUV;
-float luminanceAtUV, depthAtUV;
+float luminanceAtUV, depthAtUV, varianceAtUV;
 
 void blurKernel(int indexX, int indexY, int kernalHalfSize,
-                inout float sumOfWeights, inout vec4 sumOfWeightedValues) {
+                inout float weightSum, inout vec4 sumOfWeightedValues) {
   int x = int((indexX - kernalHalfSize) * pow(2, ubo.i));
   int y = int((indexY - kernalHalfSize) * pow(2, ubo.i));
 
@@ -46,12 +48,12 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
       float[]((1 - ubo.centralKernelWeight) * 0.5, ubo.centralKernelWeight,
               (1 - ubo.centralKernelWeight) * 0.5);
 
-  float weightDistFalloff = 0;
+  float weightK = 0;
   if (ubo.useThreeByThreeKernel) {
-    weightDistFalloff = customizedWeightsForATrous3x3[indexX] *
-                        customizedWeightsForATrous3x3[indexY];
+    weightK = customizedWeightsForATrous3x3[indexX] *
+              customizedWeightsForATrous3x3[indexY];
   } else {
-    weightDistFalloff = weightsATrous5x5[indexX] * weightsATrous5x5[indexY];
+    weightK = weightsATrous5x5[indexX] * weightsATrous5x5[indexY];
   }
 
   float luminanceAtSample =
@@ -63,12 +65,17 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
   if (ubo.changingLuminancePhi) {
     phiC = pow(2, -ubo.i) * ubo.phiLuminance;
   }
-  float weightC = exp(-differenceInColorVec / phiC);
+  float weightC = 0;
+  if (ubo.useVarianceGuidedFiltering) {
+    weightC =
+        exp(-differenceInColorVec / (phiC * sqrt(abs(varianceAtUV)) + epsilon));
+  } else {
+    weightC = exp(-differenceInColorVec / phiC);
+  }
   if (ubo.ignoreLuminanceAtFirstIteration && ubo.i == 0) {
     weightC = 1.0;
   }
 
-  // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
   float weightN = max(0., pow(dot(normalAtSample, normalAtUV), ubo.phiNormal));
 
@@ -77,10 +84,10 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
       abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(x, y)));
   float weightZ = exp(-differenceInDepth / ubo.phiDepth);
 
-  float weight = weightDistFalloff * weightN * weightC * weightZ;
+  float weight = weightK * weightN * weightC * weightZ;
 
+  weightSum += weight;
   sumOfWeightedValues += weight * imageLoad(aTrousInputTex, uv + ivec2(x, y));
-  sumOfWeights += weight;
 }
 
 void main() {
@@ -95,8 +102,8 @@ void main() {
   luminanceAtUV = dot(rgbToLuminanceMat, colorAtUV.xyz);
   normalAtUV    = imageLoad(normalTex, uv).xyz;
   depthAtUV     = imageLoad(depthTex, uv).x;
-
-  gradientAtUV = imageLoad(gradientTex, uv).xy;
+  gradientAtUV  = imageLoad(gradientTex, uv).xy;
+  varianceAtUV  = imageLoad(varianceTex, uv).y; // TODO: gaussian is needed here
 
   if (ubo.bypassBluring) {
     imageStore(aTrousOutputTex, uv, colorAtUV);
@@ -106,17 +113,21 @@ void main() {
   int kernelSize     = ubo.useThreeByThreeKernel ? 3 : 5;
   int kernalHalfSize = (kernelSize - 1) / 2;
 
-  float sumOfWeights       = 0;
+  float weightSum          = 0;
   vec4 sumOfWeightedValues = vec4(0);
   for (int indexX = 0; indexX < kernelSize; indexX++) {
     for (int indexY = 0; indexY < kernelSize; indexY++) {
-      blurKernel(indexX, indexY, kernalHalfSize, sumOfWeights,
+      blurKernel(indexX, indexY, kernalHalfSize, weightSum,
                  sumOfWeightedValues);
     }
   }
 
-  vec4 weightedColor = sumOfWeightedValues / sumOfWeights;
+  vec4 weightedColor = sumOfWeightedValues / weightSum;
 
-  // imageStore(aTrousOutputTex, uv, vec4(gradientAtUV, 0, 1));
-  imageStore(aTrousOutputTex, uv, weightedColor);
+  varianceAtUV = min(varianceAtUV * 50, 1);
+  if (!ubo.showVariance) {
+    imageStore(aTrousOutputTex, uv, weightedColor);
+    return;
+  }
+  imageStore(aTrousOutputTex, uv, vec4(varianceAtUV, 0, 0, 1));
 }

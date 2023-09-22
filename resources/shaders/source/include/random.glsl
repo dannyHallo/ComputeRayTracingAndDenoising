@@ -2,8 +2,8 @@
 
 const float pi = 3.1415926535897932385;
 
-uint index =
-    ubo.currentSample + gl_GlobalInvocationID.x + imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
+uint index = ubo.currentSample + gl_GlobalInvocationID.x +
+             imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
 
 uint rngState = index * ubo.currentSample + 1;
 
@@ -52,27 +52,15 @@ float random() {
 // Returns a random real in [min,max).
 float random(float min, float max) { return min + (max - min) * random(); }
 
-vec2 random_uv_test1() {
-  uint randOffsetInPixel = hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
-  vec2 rand =
-      ldsNoise2d(gl_GlobalInvocationID.x + uint(ubo.currentSample) * 19937u + randOffsetInPixel,
-                 gl_GlobalInvocationID.y + uint(ubo.currentSample) * 3719u + randOffsetInPixel);
-  return rand;
-}
-
-vec2 random_uv_test2() {
-  uint randOffsetInPixel = hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
-  vec2 rand              = ldsNoise(randOffsetInPixel + ubo.currentSample);
-  return rand;
-}
-
 vec2 random_uv() {
-  // if (gl_GlobalInvocationID.x < 2560 / 2) {
-  //   return random_uv_test1();
-  // } else {
-  //   return random_uv_test2();
-  // }
-  return random_uv_test1();
+  uint randOffsetInPixel =
+      hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
+  vec2 rand =
+      ldsNoise2d(gl_GlobalInvocationID.x + uint(ubo.currentSample) * 19937u +
+                     randOffsetInPixel,
+                 gl_GlobalInvocationID.y + uint(ubo.currentSample) * 3719u +
+                     randOffsetInPixel);
+  return rand;
 }
 
 // ---- Low discrepancy noise

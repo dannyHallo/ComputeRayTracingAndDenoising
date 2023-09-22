@@ -43,14 +43,24 @@ class Application {
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
     alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
-    uint swapchainWidth;
+    uint swapchainWidth; // TODO: remove this
     uint swapchainHeight;
+  };
+
+  struct VarianceUniformBufferObject {
+    int bypassVarianceEstimation;
+    int skipStoppingFunctions;
+    int kernelSize;
+    float phiGaussian;
+    float phiDepth;
   };
 
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
     int i;
     int iCap;
+    int showVariance;
+    int useVarianceGuidedFiltering;
     float phiLuminance;
     float phiDepth;
     float phiNormal;
@@ -68,10 +78,15 @@ class Application {
 
   // variance estimation
   bool mUseVarianceEstimation = true;
+  bool mSkipStoppingFunctions = false;
   int mVarianceKernelSize     = 7;
+  float mVariancePhiGaussian  = 0.6f;
+  float mVariancePhiDepth     = 0.2f;
 
   // atrous twicking
   int mICap                             = 5;
+  bool mShowVariance                    = false;
+  bool mUseVarianceGuidedFiltering      = true;
   float mPhiLuminance                   = 0.5f;
   float mPhiDepth                       = 0.2f;
   float mPhiNormal                      = 128.f;
@@ -101,6 +116,7 @@ class Application {
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
   std::unique_ptr<BufferBundle> mRtxBufferBundle;
   std::unique_ptr<BufferBundle> mTemperalFilterBufferBundle;
+  std::unique_ptr<BufferBundle> mVarianceBufferBundle;
   std::vector<std::unique_ptr<BufferBundle>> mBlurFilterBufferBundles;
 
   std::unique_ptr<BufferBundle> mTriangleBufferBundle;

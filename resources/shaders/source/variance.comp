@@ -2,31 +2,27 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout(binding = 0, rgba8) readonly uniform image2D textureForVarianceCalc;
-layout(binding = 1, rgba8) readonly uniform image2D normalTex;
-layout(binding = 2, r32f) readonly uniform image2D depthTex;
-layout(binding = 3, rg32f) writeonly uniform image2D gradientTex;
-layout(binding = 4, rg32f) writeonly uniform image2D varianceTex;
+layout(binding = 0) uniform UniformBufferObject {
+  bool bypassVarianceEstimation;
+  bool skipStoppingFunctions;
+  int kernelSize; // not used
+  float phiGaussian;
+  float phiDepth;
+}
+ubo;
+
+layout(binding = 1, rgba8) readonly uniform image2D textureForVarianceCalc;
+layout(binding = 2, rgba8) readonly uniform image2D normalTex;
+layout(binding = 3, r32f) readonly uniform image2D depthTex;
+layout(binding = 4, rg32f) writeonly uniform image2D gradientTex;
+layout(binding = 5, rg32f) writeonly uniform image2D varianceTex;
 
 ivec2 uv;
 vec2 gradientAtUV;
 vec3 normalAtUV;
 float luminanceAtUV, depthAtUV;
 
-const int varianceKernelSize = 7; // 7x7 kernel
-int varianceKernelHalfSize =
-    (varianceKernelSize - 1) / 2; // 3 <- if using 7x7 kernel
-
 const vec3 rgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
-
-vec2 getVariancePairAtPoint(ivec2 offset) {
-  ivec2 p    = uv + offset;
-  vec4 pxCol = imageLoad(textureForVarianceCalc, p);
-
-  float samp  = dot(rgbToLuminanceMat, pxCol.rgb);
-  float samp2 = samp * samp;
-  return vec2(samp, samp2);
-}
 
 float readDepth(ivec2 offset) {
   ivec2 texSize = imageSize(depthTex);
@@ -53,26 +49,67 @@ vec2 calculateGradient() {
   return vec2(gradientX, gradientY);
 }
 
+vec2 getLuminancePair(ivec2 offset) {
+  ivec2 p         = uv + offset;
+  vec3 color      = imageLoad(textureForVarianceCalc, p).xyz;
+  float luminance = dot(rgbToLuminanceMat, color);
+
+  float l2 = luminance * luminance;
+  return vec2(luminance, l2);
+}
+
+const int varianceKernelSize     = 7;
+const int varianceKernelHalfSize = (varianceKernelSize - 1) / 2;
+const float kernelSigma          = varianceKernelHalfSize / 3.;
+const float usingSigmaInv        = 1. / (2. * kernelSigma * kernelSigma);
+
+vec2 calculateVariance() {
+  vec2 luminancePair = vec2(0);
+  float weightSum    = 0;
+  for (int indexY = 0; indexY < varianceKernelSize; indexY++) {
+    for (int indexX = 0; indexX < varianceKernelSize; indexX++) {
+      int x = indexX - varianceKernelHalfSize;
+      int y = indexY - varianceKernelHalfSize;
+
+      float weight = 1.;
+      if (ubo.skipStoppingFunctions) {
+        weight = 1.;
+      } else {
+        // float weightK = 1;
+        float weightK = exp(-(x * x + y * y) * ubo.phiGaussian);
+
+        vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
+        float weightN = max(0., pow(dot(normalAtSample, normalAtUV), 128.));
+
+        float depthAtSample = readDepth(ivec2(x, y));
+        float differenceInDepth =
+            abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(x, y)));
+        float weightZ = exp(-differenceInDepth / ubo.phiDepth);
+
+        weight = weightK * weightN * weightZ;
+      }
+      weightSum += weight;
+      luminancePair += weight * getLuminancePair(ivec2(x, y));
+    }
+  }
+  weightSum      = max(weightSum, 1e-8); // TODO: this needs a workaround
+  float mean     = luminancePair.x / weightSum;
+  float variance = luminancePair.y / weightSum - mean * mean;
+  return vec2(mean, variance); // mean is not used
+}
+
 void main() {
-  uv             = ivec2(gl_GlobalInvocationID.xy);
-  vec4 colorAtUV = imageLoad(textureForVarianceCalc, uv);
+  uv = ivec2(gl_GlobalInvocationID.xy);
 
-  luminanceAtUV = dot(rgbToLuminanceMat, colorAtUV.xyz);
-  // normalAtUV    = imageLoad(normalTex, uv).xyz;
-  // depthAtUV     = imageLoad(depthTex, uv).x;
+  if (ubo.bypassVarianceEstimation) {
+    imageStore(gradientTex, uv, vec4(calculateGradient(), 0, 0));
+    return;
+  }
 
-  imageStore(gradientTex, uv, vec4(calculateGradient(), 0, 0));
+  normalAtUV   = imageLoad(normalTex, uv).xyz;
+  depthAtUV    = imageLoad(depthTex, uv).x;
+  gradientAtUV = calculateGradient();
 
-  // uint samplesThisTime           = 0;
-  // vec2 sigmaVariancePairThisTime = vec2(0);
-  // for (int indexY = 0; indexY < varianceKernelSize; indexY++) {
-  //   for (int indexX = 0; indexX < varianceKernelSize; indexX++) {
-  //     int x = indexX - varianceKernelHalfSize;
-  //     int y = indexY - varianceKernelHalfSize;
-  //     sigmaVariancePairThisTime += getVariancePairAtPoint(ivec2(x, y));
-  //     samplesThisTime++;
-  //   }
-  // }
-  // sigmaVariancePairThisTime /= float(samplesThisTime);
-  // imageStore(varianceTex, uv, vec4(sigmaVariancePairThisTime, 0, 0));
+  imageStore(gradientTex, uv, vec4(gradientAtUV, 0, 0));
+  imageStore(varianceTex, uv, vec4(calculateVariance(), 0, 0));
 }

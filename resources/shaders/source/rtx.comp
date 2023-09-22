@@ -32,16 +32,22 @@ layout(binding = 4, r32ui) uniform uimage2D meshHashTex1;
 layout(binding = 5, rgba32f) uniform image2D rawTex;
 
 // the buffer that contains all triangles (read only)
-layout(std430, binding = 6) readonly buffer TriangleBufferObject { triangle[] triangles; };
+layout(std430, binding = 6) readonly buffer TriangleBufferObject {
+  triangle[] triangles;
+};
 
 // the buffer that contains all materials (read only)
-layout(std430, binding = 7) readonly buffer MaterialBufferObject { material[] materials; };
+layout(std430, binding = 7) readonly buffer MaterialBufferObject {
+  material[] materials;
+};
 
 // the buffer that contains all bvh nodes (read only)
 layout(std430, binding = 8) readonly buffer AabbBufferObject { bvhNode[] bvh; };
 
 // the buffer that contains all lights (read only)
-layout(std430, binding = 9) readonly buffer LightsBufferObject { light[] lights; };
+layout(std430, binding = 9) readonly buffer LightsBufferObject {
+  light[] lights;
+};
 
 #include "include/random.glsl"
 
@@ -63,8 +69,8 @@ struct hitRecord {
   int backFaceInt;
 };
 
-bool triIntersect(vec3 origin, vec3 dir, triangle tri, out vec3 normal, out vec2 uv,
-                  out float tNear) {
+bool triIntersect(vec3 origin, vec3 dir, triangle tri, out vec3 normal,
+                  out vec2 uv, out float tNear) {
   vec3 e1 = tri.v1 - tri.v0;
   vec3 e2 = tri.v2 - tri.v0;
   vec3 s  = origin - tri.v0;
@@ -87,15 +93,17 @@ bool triIntersect(vec3 origin, vec3 dir, triangle tri, out vec3 normal, out vec2
 }
 
 // wrapper function
-bool hit_triangle(int triangle_index, ray r, float tMin, float tMax, inout hitRecord rec) {
+bool hit_triangle(int triangle_index, ray r, float tMin, float tMax,
+                  inout hitRecord rec) {
   triangle tri = triangles[triangle_index];
 
   vec3 normal;
   vec2 uv;
   float tNear;
   if (triIntersect(r.origin, r.dir, tri, normal, uv, tNear)) {
-    rec.backFaceInt   = int(step(0, dot(r.dir, normal)));
-    rec.normal        = normal * (1 - 2 * rec.backFaceInt); // make normal points to cam
+    rec.backFaceInt = int(step(0, dot(r.dir, normal)));
+    rec.normal =
+        normal * (1 - 2 * rec.backFaceInt); // make normal points to cam
     rec.p             = r.origin + tNear * r.dir;
     rec.t             = tNear;
     rec.materialIndex = tri.materialIndex;
@@ -163,7 +171,8 @@ bool hit_bvh(ray r, inout hitRecord rec) {
     int currentNode = nodeStack[stackIndex];
     if (currentNode == -1) continue;
 
-    bool intersect = intersectAABB(r, bvh[currentNode].min, bvh[currentNode].max);
+    bool intersect =
+        intersectAABB(r, bvh[currentNode].min, bvh[currentNode].max);
     if (!intersect) // no intersection
       continue;
 
@@ -203,10 +212,10 @@ vec3 pathTracingRayColorIndirect(ray r) {
     uint lightId    = lights[i].triangleIndex;
     float lightArea = lights[i].area;
 
-    vec3 e1 = triangles[lightId].v1 - triangles[lightId].v0;
-    vec3 e2 = triangles[lightId].v2 - triangles[lightId].v0;
-    vec3 lightNormal =
-        normalize(cross(e1, e2)); // CAUTION: direction is unfixed! lit from both sides!
+    vec3 e1          = triangles[lightId].v1 - triangles[lightId].v0;
+    vec3 e2          = triangles[lightId].v2 - triangles[lightId].v0;
+    vec3 lightNormal = normalize(
+        cross(e1, e2)); // CAUTION: direction is unfixed! lit from both sides!
 
     vec2 randomUV = random_uv();
     float x       = randomUV.x;
@@ -229,8 +238,9 @@ vec3 pathTracingRayColorIndirect(ray r) {
     hitRecord rec2;
     if (hit_bvh(ray(rec.p + rec.normal * 0.0001, o2l), rec2)) {
       if (materials[rec2.materialIndex].materialType == LIGHT_MATERIAL) {
-        colReturn += materials[rec2.materialIndex].albedo * dot(o2l, rec.normal) *
-                     abs(dot(o2l, lightNormal)) / distSqr * lightArea;
+        colReturn += materials[rec2.materialIndex].albedo *
+                     dot(o2l, rec.normal) * abs(dot(o2l, lightNormal)) /
+                     distSqr * lightArea;
       }
     }
   }
@@ -238,8 +248,8 @@ vec3 pathTracingRayColorIndirect(ray r) {
   return materials[rec.materialIndex].albedo * colReturn;
 }
 
-void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos, out vec4 hitNormal,
-                 out float hitDepth, out uint meshHash) {
+void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
+                 out vec4 hitNormal, out float hitDepth, out uint meshHash) {
   hitRecord rec;
 
   colReturn   = vec3(0, 0, 0);
@@ -283,10 +293,10 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos, out vec4 hitNo
   uint lightId    = lights[i].triangleIndex;
   float lightArea = lights[i].area;
 
-  vec3 e1 = triangles[lightId].v1 - triangles[lightId].v0;
-  vec3 e2 = triangles[lightId].v2 - triangles[lightId].v0;
-  vec3 lightNormal =
-      normalize(cross(e1, e2)); // CAUTION: direction is unfixed! lit from both sides!
+  vec3 e1          = triangles[lightId].v1 - triangles[lightId].v0;
+  vec3 e2          = triangles[lightId].v2 - triangles[lightId].v0;
+  vec3 lightNormal = normalize(
+      cross(e1, e2)); // CAUTION: direction is unfixed! lit from both sides!
 
   vec3 randomSamplingPointOnLight = triangles[lightId].v0 + e1 * x + e2 * y;
 
@@ -307,11 +317,13 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos, out vec4 hitNo
   // indirect lighting
   if (materials[rec.materialIndex].materialType == METAL_MATERIAL) {
     secondaryRayDir = reflect(r.dir, rec.normal);
-    colReturn += pathTracingRayColorIndirect(ray(rec.p + rec.normal * 0.0001, secondaryRayDir)) *
+    colReturn += pathTracingRayColorIndirect(
+                     ray(rec.p + rec.normal * 0.0001, secondaryRayDir)) *
                  dot(secondaryRayDir, rec.normal);
   } else {
     secondaryRayDir = random_in_hemisphere(rec.normal);
-    colReturn += pathTracingRayColorIndirect(ray(rec.p + rec.normal * 0.0001, secondaryRayDir)) *
+    colReturn += pathTracingRayColorIndirect(
+                     ray(rec.p + rec.normal * 0.0001, secondaryRayDir)) *
                  dot(secondaryRayDir, rec.normal) * 2 * pi;
   }
 
@@ -375,12 +387,13 @@ ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right) {
   vec3 rayPropDir      = viewport_width * right - viewport_height * up;
   vec3 top_left_corner = front - rayPropDir / 2;
 
-  vec2 uv =
-      (gl_GlobalInvocationID.xy + tinyDriftInPixelGenerator(ubo.currentSample)) / imageSize.xy;
+  vec2 uv = (gl_GlobalInvocationID.xy +
+             tinyDriftInPixelGenerator(ubo.currentSample)) /
+            imageSize.xy;
 
-  vec3 rayDir =
-      normalize(top_left_corner + viewport_width * right * uv.x - viewport_height * up * uv.y);
-  ray r = {origin, rayDir};
+  vec3 rayDir = normalize(top_left_corner + viewport_width * right * uv.x -
+                          viewport_height * up * uv.y);
+  ray r       = {origin, rayDir};
   return r;
 }
 
@@ -402,8 +415,8 @@ void main() {
   pathTracing(camRay, hitColor, hitWorldPos, hitNormal, hitDepth, meshHash);
 
   imageStore(rawTex, uv, vec4(fireflyRejectionClamp(hitColor), 1));
-  imageStore(posTex, uv, hitWorldPos);                    // w: -1 (invalid) or 1 (valid)
-  imageStore(normalTex, uv, hitNormal);                   // w: -1 (invalid) or 0 (valid)
+  imageStore(posTex, uv, hitWorldPos);  // w: -1 (invalid) or 1 (valid)
+  imageStore(normalTex, uv, hitNormal); // w: -1 (invalid) or 0 (valid)
   imageStore(depthTex, uv, vec4(hitDepth, 0, 0, 0));      // -1 (invalid)
   imageStore(meshHashTex1, uv, ivec4(meshHash, 0, 0, 0)); // -1 (invalid)
 }

@@ -11,8 +11,6 @@
 
 const float invExp = 1 / exp2(24.);
 
-vec2 ldsNoise(uint n) { return fract(vec2(12664746 * n, 9560334 * n) * invExp); }
-
 vec2 ldsNoise2d(uint x, uint y) {
   uint n     = x + y * 57u;
   n          = (n << 13u) ^ n;
