@@ -32,7 +32,8 @@ layout(binding = 2, rgba8) readonly uniform image2D normalTex;
 layout(binding = 3, r32f) readonly uniform image2D depthTex;
 layout(binding = 4, rg32f) readonly uniform image2D gradientTex;
 layout(binding = 5, rg32f) readonly uniform image2D varianceTex;
-layout(binding = 6, rgba8) writeonly uniform image2D aTrousOutputTex;
+layout(binding = 6, rgba8) writeonly uniform image2D accumTex;
+layout(binding = 7, rgba8) writeonly uniform image2D aTrousOutputTex;
 
 ivec2 uv;
 vec2 gradientAtUV;
@@ -125,9 +126,14 @@ void main() {
   vec4 weightedColor = sumOfWeightedValues / weightSum;
 
   varianceAtUV = min(varianceAtUV * 50, 1);
+
+  if (ubo.i == 0) {
+    imageStore(accumTex, uv, weightedColor);
+  }
+
   if (!ubo.showVariance) {
     imageStore(aTrousOutputTex, uv, weightedColor);
-    return;
+  } else {
+    imageStore(aTrousOutputTex, uv, vec4(varianceAtUV, 0, 0, 1));
   }
-  imageStore(aTrousOutputTex, uv, vec4(varianceAtUV, 0, 0, 1));
 }

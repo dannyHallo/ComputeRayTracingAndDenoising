@@ -230,8 +230,8 @@ void Application::initScene() {
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY);
 
   auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder +
                                                   "/shaders/generated/rtx.spv");
@@ -289,6 +289,7 @@ void Application::initScene() {
     aTrousMat->addStorageImage(mGradientImage.get());
     aTrousMat->addStorageImage(mVarianceImage.get());
     // output
+    aTrousMat->addStorageImage(mAccumulationImage.get());
     aTrousMat->addStorageImage(mATrousOutputImage.get());
     mATrousModels.emplace_back(
         std::make_unique<ComputeModel>(std::move(aTrousMat)));
@@ -383,10 +384,10 @@ void Application::createRenderCommandBuffers() {
   VkImageMemoryBarrier targetTexTransSrc2General =
       ImageUtils::transferSrcToGeneralBarrier(mTargetImage->getVkImage());
 
-  VkImageMemoryBarrier accumTexGeneral2TransDst =
-      ImageUtils::generalToTransferDstBarrier(mAccumulationImage->getVkImage());
-  VkImageMemoryBarrier accumTexTransDst2General =
-      ImageUtils::transferDstToGeneralBarrier(mAccumulationImage->getVkImage());
+  // VkImageMemoryBarrier accumTexGeneral2TransDst =
+  //     ImageUtils::generalToTransferDstBarrier(mAccumulationImage->getVkImage());
+  // VkImageMemoryBarrier accumTexTransDst2General =
+  //     ImageUtils::transferDstToGeneralBarrier(mAccumulationImage->getVkImage());
 
   VkImageMemoryBarrier aTrousTex1General2TransDst =
       ImageUtils::generalToTransferDstBarrier(mATrousInputImage->getVkImage());
@@ -487,45 +488,8 @@ void Application::createRenderCommandBuffers() {
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr,
                            0, nullptr, 0, nullptr);
 
-      // accum texture when the first filter is done
-      // (from SVGF) accumulation image should use a properly smoothed image,
-      // the presented one is not ideal due to the over-blur over time
-      if (j == 0) {
-        vkCmdPipelineBarrier(currentCommandBuffer,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                             nullptr, 1, &aTrousTex2General2TransSrc);
-        vkCmdPipelineBarrier(currentCommandBuffer,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                             nullptr, 1, &accumTexGeneral2TransDst);
-        vkCmdPipelineBarrier(currentCommandBuffer,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                             nullptr, 1, &aTrousTex1General2TransDst);
-        vkCmdCopyImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
-                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       mATrousInputImage->getVkImage(),
-                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-        vkCmdCopyImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
-                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       mAccumulationImage->getVkImage(),
-                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-        vkCmdPipelineBarrier(
-            currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-            &aTrousTex1TransDst2General);
-        vkCmdPipelineBarrier(
-            currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-            &aTrousTex2TransSrc2General);
-        vkCmdPipelineBarrier(currentCommandBuffer,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
-                             nullptr, 0, nullptr, 1, &accumTexTransDst2General);
-      }
       // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
-      else if (j != kATrousSize - 1) {
+      if (j != kATrousSize - 1) {
         vkCmdPipelineBarrier(currentCommandBuffer,
                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                              VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
