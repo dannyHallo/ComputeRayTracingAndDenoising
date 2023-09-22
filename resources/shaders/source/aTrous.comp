@@ -68,6 +68,7 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
   }
   float weightC = 0;
   if (ubo.useVarianceGuidedFiltering) {
+    phiC *= 100.;
     weightC =
         exp(-differenceInColorVec / (phiC * sqrt(abs(varianceAtUV)) + epsilon));
   } else {
@@ -95,8 +96,11 @@ void main() {
   uv             = ivec2(gl_GlobalInvocationID.xy);
   vec4 colorAtUV = imageLoad(aTrousInputTex, uv);
 
-  if (ubo.i >= ubo.iCap) {
-    imageStore(aTrousOutputTex, uv, imageLoad(aTrousInputTex, uv));
+  if (ubo.bypassBluring || ubo.i >= ubo.iCap) {
+    if (ubo.i == 0) {
+      imageStore(accumTex, uv, colorAtUV);
+    }
+    imageStore(aTrousOutputTex, uv, colorAtUV);
     return;
   }
 
@@ -105,11 +109,6 @@ void main() {
   depthAtUV     = imageLoad(depthTex, uv).x;
   gradientAtUV  = imageLoad(gradientTex, uv).xy;
   varianceAtUV  = imageLoad(varianceTex, uv).y; // TODO: gaussian is needed here
-
-  if (ubo.bypassBluring) {
-    imageStore(aTrousOutputTex, uv, colorAtUV);
-    return;
-  }
 
   int kernelSize     = ubo.useThreeByThreeKernel ? 3 : 5;
   int kernalHalfSize = (kernelSize - 1) / 2;

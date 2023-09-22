@@ -891,7 +891,7 @@ void Application::prepareGui() {
     ImGui::SliderInt("A-Trous times", &mICap, 0, 5);
     ImGui::Checkbox("Use variance guided filtering",
                     &mUseVarianceGuidedFiltering);
-    ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 10.0F);
+    ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 200.0F);
     ImGui::SliderFloat("Central Kernel Weight", &mCentralKernelWeight, 0.0F,
