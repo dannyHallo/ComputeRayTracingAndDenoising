@@ -194,6 +194,20 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
+  mGradientImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY);
+
+  mVarianceImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY);
+
   mMeshHashImage1 = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
@@ -215,7 +229,6 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  // rtx.comp
   auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder +
                                                   "/shaders/generated/rtx.spv");
   rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
@@ -233,7 +246,6 @@ void Application::initScene() {
   rtxMat->addStorageBufferBundle(mLightsBufferBundle.get());
   mRtxModel = std::make_unique<ComputeModel>(std::move(rtxMat));
 
-  // temporalFilter.comp
   auto temporalFilterMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/temporalFilter.spv");
   temporalFilterMat->addUniformBufferBundle(mTemperalFilterBufferBundle.get());
@@ -250,6 +262,17 @@ void Application::initScene() {
   mTemporalFilterModel =
       std::make_unique<ComputeModel>(std::move(temporalFilterMat));
 
+  auto varianceMat = std::make_unique<ComputeMaterial>(
+      kPathToResourceFolder + "/shaders/generated/variance.spv");
+  // input
+  varianceMat->addStorageImage(mATrousInputImage.get());
+  varianceMat->addStorageImage(mNormalImage.get());
+  varianceMat->addStorageImage(mDepthImage.get());
+  // output
+  varianceMat->addStorageImage(mGradientImage.get());
+  varianceMat->addStorageImage(mVarianceImage.get());
+  mVarianceModel = std::make_unique<ComputeModel>(std::move(varianceMat));
+
   for (int i = 0; i < kATrousSize; i++) {
     auto aTrousMat = std::make_unique<ComputeMaterial>(
         kPathToResourceFolder + "/shaders/generated/aTrous.spv");
@@ -258,9 +281,11 @@ void Application::initScene() {
     aTrousMat->addStorageImage(mATrousInputImage.get());
     aTrousMat->addStorageImage(mNormalImage.get());
     aTrousMat->addStorageImage(mDepthImage.get());
+    aTrousMat->addStorageImage(mGradientImage.get());
+    aTrousMat->addStorageImage(mVarianceImage.get());
     // output
     aTrousMat->addStorageImage(mATrousOutputImage.get());
-    mBlurFilterPhase1Models.emplace_back(
+    mATrousModels.emplace_back(
         std::make_unique<ComputeModel>(std::move(aTrousMat)));
   }
 
@@ -418,6 +443,15 @@ void Application::createRenderCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
                          nullptr, 0, nullptr);
 
+    mVarianceModel->computeCommand(
+        currentCommandBuffer, static_cast<uint32_t>(i),
+        mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
+
+    vkCmdPipelineBarrier(currentCommandBuffer,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 0, nullptr);
+    
     /////////////////////////////////////////////
 
     for (int j = 0; j < kATrousSize; j++) {
@@ -433,7 +467,7 @@ void Application::createRenderCommandBuffers() {
       }
 
       // dispatch filter shader
-      mBlurFilterPhase1Models[j]->computeCommand(
+      mATrousModels[j]->computeCommand(
           currentCommandBuffer, static_cast<uint32_t>(i),
           mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
       vkCmdPipelineBarrier(currentCommandBuffer,

@@ -94,7 +94,8 @@ class Application {
   // compute models for ray tracing, temporal filtering, and blur filtering
   std::unique_ptr<ComputeModel> mRtxModel;
   std::unique_ptr<ComputeModel> mTemporalFilterModel;
-  std::vector<std::unique_ptr<ComputeModel>> mBlurFilterPhase1Models;
+  std::unique_ptr<ComputeModel> mVarianceModel;
+  std::vector<std::unique_ptr<ComputeModel>> mATrousModels;
   std::unique_ptr<ComputeModel> mPostProcessingModel;
 
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
@@ -114,7 +115,9 @@ class Application {
   std::unique_ptr<Image> mAccumulationImage;
   std::unique_ptr<Image> mDepthImage;
   std::unique_ptr<Image> mNormalImage;
-  std::unique_ptr<Image> mHistorySamplesImage;
+  std::unique_ptr<Image> mGradientImage;
+  // std::unique_ptr<Image> mHistorySamplesImage;
+  std::unique_ptr<Image> mVarianceImage;
   std::unique_ptr<Image> mMeshHashImage1;
   std::unique_ptr<Image> mMeshHashImage2;
   std::unique_ptr<Image> mATrousInputImage;
