@@ -58,3 +58,24 @@ private:
                        VkImageTiling tiling, VkImageUsageFlags usage,
                        VmaMemoryUsage memoryUsage);
 };
+
+// storing a pair of images, support for easy dumping
+class ImageForwardingPair {
+  VkImage mImage1;
+  VkImage mImage2;
+
+  VkImageCopy mCopyRegion{};
+  VkImageMemoryBarrier mImage1BeforeCopy{};
+  VkImageMemoryBarrier mImage2BeforeCopy{};
+  VkImageMemoryBarrier mImage1AfterCopy{};
+  VkImageMemoryBarrier mImage2AfterCopy{};
+
+public:
+  ImageForwardingPair(VkImage image1, VkImage image2);
+  ImageForwardingPair(VkImage image1, VkImage image2,
+                      VkImageMemoryBarrier image1BeforeCopy,
+                      VkImageMemoryBarrier image2BeforeCopy,
+                      VkImageMemoryBarrier image1AfterCopy,
+                      VkImageMemoryBarrier image2AfterCopy);
+  void forwardCopying(VkCommandBuffer commandBuffer);
+};

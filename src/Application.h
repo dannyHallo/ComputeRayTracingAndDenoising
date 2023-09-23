@@ -133,18 +133,30 @@ class Application {
   // images for ray tracing and post-processing
   std::unique_ptr<Image> mPositionImage;
   std::unique_ptr<Image> mRawImage;
+
   std::unique_ptr<Image> mTargetImage;
+  std::vector<std::unique_ptr<ImageForwardingPair>> mTargetForwardingPairs;
+
   std::unique_ptr<Image> mLastFrameAccumImage;
   std::unique_ptr<Image> mDepthImage;
   std::unique_ptr<Image> mNormalImage;
   std::unique_ptr<Image> mGradientImage;
+
+  std::unique_ptr<Image> mVarianceImage;
+
   std::unique_ptr<Image> mLastFrameVarianceHistImage;
   std::unique_ptr<Image> mThisFrameVarianceHistImage;
-  std::unique_ptr<Image> mVarianceImage;
+  std::unique_ptr<ImageForwardingPair> mVarianceHistForwardingPair;
+
   std::unique_ptr<Image> mThisFrameMeshHashImage;
   std::unique_ptr<Image> mLastFrameMeshHashImage;
+  std::unique_ptr<ImageForwardingPair> mMeshHashForwardingPair;
+
   std::unique_ptr<Image> mATrousInputImage;
   std::unique_ptr<Image> mATrousOutputImage;
+  std::unique_ptr<ImageForwardingPair> mATrousForwardingPair;
+
+  // std::unique_ptr<ImageForwardingPair> mTemporalFilterForwardingPair;
 
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> mCommandBuffers;

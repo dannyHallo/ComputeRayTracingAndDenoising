@@ -1,6 +1,9 @@
 #include "Image.h"
 
+#include "app-context/VulkanApplicationContext.h"
+
 #include "Buffer.h"
+#include "ImageUtils.h"
 #include "render-context/RenderSystem.h"
 #include "utils/Logger.h"
 #include "vulkan/vulkan_core.h"
@@ -146,4 +149,50 @@ void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool,
                                       commandBuffer);
 
   mCurrentImageLayout = newLayout;
+}
+
+ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2)
+    : mImage1(image1), mImage2(image2) {
+  mCopyRegion = ImageUtils::imageCopyRegion(
+      VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
+      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight());
+
+  mImage1BeforeCopy = ImageUtils::generalToTransferSrcBarrier(mImage1);
+  mImage2BeforeCopy = ImageUtils::undefinedToTransferDstBarrier(mImage2);
+  mImage1AfterCopy  = ImageUtils::transferSrcToGeneralBarrier(mImage1);
+  mImage2AfterCopy  = ImageUtils::transferDstToGeneralBarrier(mImage2);
+}
+
+ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2,
+                                         VkImageMemoryBarrier image1BeforeCopy,
+                                         VkImageMemoryBarrier image2BeforeCopy,
+                                         VkImageMemoryBarrier image1AfterCopy,
+                                         VkImageMemoryBarrier image2AfterCopy)
+    : mImage1(image1), mImage2(image2) {
+  mCopyRegion = ImageUtils::imageCopyRegion(
+      VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
+      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight());
+
+  mImage1BeforeCopy = image1BeforeCopy;
+  mImage2BeforeCopy = image2BeforeCopy;
+  mImage1AfterCopy  = image1AfterCopy;
+  mImage2AfterCopy  = image2AfterCopy;
+}
+
+void ImageForwardingPair::forwardCopying(VkCommandBuffer commandBuffer) {
+  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                       nullptr, 1, &mImage1BeforeCopy);
+  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                       nullptr, 1, &mImage2BeforeCopy);
+  vkCmdCopyImage(commandBuffer, mImage1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                 mImage2, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                 &mCopyRegion);
+  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                       nullptr, 1, &mImage1AfterCopy);
+  vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                       nullptr, 1, &mImage2AfterCopy);
 }

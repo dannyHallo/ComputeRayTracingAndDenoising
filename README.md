@@ -4,10 +4,9 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 
 # Roadmap
 
-1. Change the buffers to fit in single sized cubes
-2. Ray trace those cubes, change alpha due to the times of cubu-hitting of a single ray
-3. Implement the sparse voxel octree
-4. Ray trace the sparse voxel octree
+1. memory barrier structure & forwarding pairs
+2. add normal and depth edge stopping functions to temporal accumulation
+3. tap filter to temporal accumulation
 
 # Design Decisions
 

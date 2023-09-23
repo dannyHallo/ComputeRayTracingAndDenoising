@@ -152,6 +152,19 @@ void Application::initScene() {
           VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
+  // creating forwarding pairs to copy the image result each frame to a specific
+  // swapchain
+  for (int i = 0; i < mAppContext->getSwapchainSize(); i++) {
+    mTargetForwardingPairs.emplace_back(std::make_unique<ImageForwardingPair>(
+        mTargetImage->getVkImage(), mAppContext->getSwapchainImages()[i],
+        ImageUtils::generalToTransferSrcBarrier(mTargetImage->getVkImage()),
+        ImageUtils::undefinedToTransferDstBarrier(
+            mAppContext->getSwapchainImages()[i]),
+        ImageUtils::transferSrcToGeneralBarrier(mTargetImage->getVkImage()),
+        ImageUtils::transferDstToColorAttachmentBarrier(
+            mAppContext->getSwapchainImages()[i])));
+  }
+
   mRawImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
@@ -173,6 +186,9 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
           VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+  mATrousForwardingPair = std::make_unique<ImageForwardingPair>(
+      mATrousOutputImage->getVkImage(), mATrousInputImage->getVkImage());
 
   // introducing G-Buffers
   mPositionImage = std::make_unique<Image>(
@@ -221,6 +237,10 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
+  mVarianceHistForwardingPair = std::make_unique<ImageForwardingPair>(
+      mThisFrameVarianceHistImage->getVkImage(),
+      mLastFrameVarianceHistImage->getVkImage());
+
   mVarianceImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
@@ -241,6 +261,10 @@ void Application::initScene() {
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+  mMeshHashForwardingPair = std::make_unique<ImageForwardingPair>(
+      mThisFrameMeshHashImage->getVkImage(),
+      mLastFrameMeshHashImage->getVkImage());
 
   mLastFrameAccumImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
@@ -397,59 +421,7 @@ void Application::createRenderCommandBuffers() {
       mAppContext->getDevice(), &allocInfo, mCommandBuffers.data());
   Logger::checkStep("vkAllocateCommandBuffers", result);
 
-  VkImageMemoryBarrier targetTexGeneral2TransSrc =
-      ImageUtils::generalToTransferSrcBarrier(mTargetImage->getVkImage());
-  VkImageMemoryBarrier targetTexTransSrc2General =
-      ImageUtils::transferSrcToGeneralBarrier(mTargetImage->getVkImage());
-
-  VkImageMemoryBarrier thisFrameVarianceHistImageGeneral2TransSrc =
-      ImageUtils::generalToTransferSrcBarrier(
-          mThisFrameVarianceHistImage->getVkImage());
-  VkImageMemoryBarrier thisFrameVarianceHistImageTransSrc2General =
-      ImageUtils::transferSrcToGeneralBarrier(
-          mThisFrameVarianceHistImage->getVkImage());
-
-  VkImageMemoryBarrier lastFrameVarianceHistImageGeneral2TransDst =
-      ImageUtils::generalToTransferDstBarrier(
-          mLastFrameVarianceHistImage->getVkImage());
-  VkImageMemoryBarrier lastFrameVarianceHistImageTransDst2General =
-      ImageUtils::transferDstToGeneralBarrier(
-          mLastFrameVarianceHistImage->getVkImage());
-
-  VkImageMemoryBarrier aTrousTex1General2TransDst =
-      ImageUtils::generalToTransferDstBarrier(mATrousInputImage->getVkImage());
-  VkImageMemoryBarrier aTrousTex1TransDst2General =
-      ImageUtils::transferDstToGeneralBarrier(mATrousInputImage->getVkImage());
-  VkImageMemoryBarrier aTrousTex2General2TransSrc =
-      ImageUtils::generalToTransferSrcBarrier(mATrousOutputImage->getVkImage());
-  VkImageMemoryBarrier aTrousTex2TransSrc2General =
-      ImageUtils::transferSrcToGeneralBarrier(mATrousOutputImage->getVkImage());
-
-  VkImageMemoryBarrier triIdTex1General2TransSrc =
-      ImageUtils::generalToTransferSrcBarrier(
-          mThisFrameMeshHashImage->getVkImage());
-  VkImageMemoryBarrier triIdTex1TransSrc2General =
-      ImageUtils::transferSrcToGeneralBarrier(
-          mThisFrameMeshHashImage->getVkImage());
-  VkImageMemoryBarrier triIdTex2General2TransDst =
-      ImageUtils::generalToTransferDstBarrier(
-          mLastFrameMeshHashImage->getVkImage());
-  VkImageMemoryBarrier triIdTex2TransDst2General =
-      ImageUtils::transferDstToGeneralBarrier(
-          mLastFrameMeshHashImage->getVkImage());
-
-  VkImageCopy imgCopyRegion =
-      ImageUtils::imageCopyRegion(mAppContext->getSwapchainExtentWidth(),
-                                  mAppContext->getSwapchainExtentHeight());
-
   for (size_t i = 0; i < mCommandBuffers.size(); i++) {
-    VkImageMemoryBarrier swapchainImageUndefined2TransferDst =
-        ImageUtils::undefinedToTransferDstBarrier(
-            mAppContext->getSwapchainImages()[i]);
-    VkImageMemoryBarrier swapchainImageTransferDst2ColorAttachment =
-        ImageUtils::transferDstToColorAttachmentBarrier(
-            mAppContext->getSwapchainImages()[i]);
-
     VkCommandBuffer &currentCommandBuffer = mCommandBuffers[i];
 
     VkCommandBufferBeginInfo beginInfo{};
@@ -521,26 +493,7 @@ void Application::createRenderCommandBuffers() {
 
       // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
       if (j != kATrousSize - 1) {
-        vkCmdPipelineBarrier(currentCommandBuffer,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                             nullptr, 1, &aTrousTex1General2TransDst);
-        vkCmdPipelineBarrier(currentCommandBuffer,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                             nullptr, 1, &aTrousTex2General2TransSrc);
-        vkCmdCopyImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
-                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       mATrousInputImage->getVkImage(),
-                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-        vkCmdPipelineBarrier(
-            currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-            &aTrousTex1TransDst2General);
-        vkCmdPipelineBarrier(
-            currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-            &aTrousTex2TransSrc2General);
+        mATrousForwardingPair->forwardCopying(currentCommandBuffer);
       }
     }
 
@@ -550,69 +503,36 @@ void Application::createRenderCommandBuffers() {
         currentCommandBuffer, static_cast<uint32_t>(i),
         mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
 
-    // copy targetTex to swapchainImage
-    vkCmdPipelineBarrier(currentCommandBuffer,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1, &targetTexGeneral2TransSrc);
-    vkCmdPipelineBarrier(currentCommandBuffer,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1, &swapchainImageUndefined2TransferDst);
-    vkCmdCopyImage(currentCommandBuffer, mTargetImage->getVkImage(),
-                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   mAppContext->getSwapchainImages()[i],
-                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1, &targetTexTransSrc2General);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1,
-                         &swapchainImageTransferDst2ColorAttachment);
+    // // copy targetTex to swapchainImage
+    // vkCmdPipelineBarrier(currentCommandBuffer,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //                      VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
+    //                      0, nullptr, 1, &targetTexGeneral2TransSrc);
+    // vkCmdPipelineBarrier(currentCommandBuffer,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //                      VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
+    //                      0, nullptr, 1,
+    //                      &swapchainImageUndefined2TransferDst);
+    // vkCmdCopyImage(currentCommandBuffer, mTargetImage->getVkImage(),
+    //                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    //                mAppContext->getSwapchainImages()[i],
+    //                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+    //                &imgCopyRegion);
+    // vkCmdPipelineBarrier(currentCommandBuffer,
+    // VK_PIPELINE_STAGE_TRANSFER_BIT,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+    //                      nullptr, 0, nullptr, 1,
+    //                      &targetTexTransSrc2General);
+    // vkCmdPipelineBarrier(currentCommandBuffer,
+    // VK_PIPELINE_STAGE_TRANSFER_BIT,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
+    //                      nullptr, 0, nullptr, 1,
+    //                      &swapchainImageTransferDst2ColorAttachment);
+    mTargetForwardingPairs[i]->forwardCopying(currentCommandBuffer);
 
-    // copy this frame variance hist image to last frame variance hist image
-    vkCmdPipelineBarrier(
-        currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-        &thisFrameVarianceHistImageGeneral2TransSrc);
-    vkCmdPipelineBarrier(
-        currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-        &lastFrameVarianceHistImageGeneral2TransDst);
-    vkCmdCopyImage(currentCommandBuffer,
-                   mThisFrameVarianceHistImage->getVkImage(),
-                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   mLastFrameVarianceHistImage->getVkImage(),
-                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1,
-                         &thisFrameVarianceHistImageTransSrc2General);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1,
-                         &lastFrameVarianceHistImageTransDst2General);
-
-    // sync mesh hash image for next frame
-    vkCmdPipelineBarrier(currentCommandBuffer,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1, &triIdTex1General2TransSrc);
-    vkCmdPipelineBarrier(currentCommandBuffer,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1, &triIdTex2General2TransDst);
-    vkCmdCopyImage(currentCommandBuffer, mThisFrameMeshHashImage->getVkImage(),
-                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   mLastFrameMeshHashImage->getVkImage(),
-                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1, &triIdTex1TransSrc2General);
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
-                         nullptr, 1, &triIdTex2TransDst2General);
+    // copy to history images
+    mVarianceHistForwardingPair->forwardCopying(currentCommandBuffer);
+    mMeshHashForwardingPair->forwardCopying(currentCommandBuffer);
 
     // Bind graphics pipeline and dispatch draw command.
     // postProcessScene->writeRenderCommand(currentCommandBuffer, i);
