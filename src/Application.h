@@ -132,7 +132,7 @@ class Application {
   std::unique_ptr<Image> mDepthImage;
   std::unique_ptr<Image> mNormalImage;
   std::unique_ptr<Image> mGradientImage;
-  // std::unique_ptr<Image> mHistorySamplesImage;
+  std::unique_ptr<Image> mVarianceHistoryImage;
   std::unique_ptr<Image> mVarianceImage;
   std::unique_ptr<Image> mMeshHashImage1;
   std::unique_ptr<Image> mMeshHashImage2;
