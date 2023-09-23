@@ -50,18 +50,17 @@ vec2 calculateGradient() {
 }
 
 vec2 getLuminancePair(ivec2 offset) {
-  ivec2 p         = uv + offset;
-  vec3 color      = imageLoad(textureForVarianceCalc, p).xyz;
-  float luminance = dot(rgbToLuminanceMat, color);
-
-  float l2 = luminance * luminance;
-  return vec2(luminance, l2);
+  ivec2 p    = uv + offset;
+  vec3 color = imageLoad(textureForVarianceCalc, p).xyz;
+  float l1   = dot(rgbToLuminanceMat, color);
+  float l2   = l1 * l1;
+  return vec2(l1, l2);
 }
 
-const int varianceKernelSize     = 7;
-const int varianceKernelHalfSize = (varianceKernelSize - 1) / 2;
-const float kernelSigma          = varianceKernelHalfSize / 3.;
-const float usingSigmaInv        = 1. / (2. * kernelSigma * kernelSigma);
+int varianceKernelSize     = ubo.kernelSize;
+int varianceKernelHalfSize = (varianceKernelSize - 1) / 2;
+float kernelSigma          = varianceKernelHalfSize / 3.;
+float usingSigmaInv        = 1. / (2. * kernelSigma * kernelSigma);
 
 vec2 calculateVariance() {
   vec2 luminancePair = vec2(0);
@@ -72,6 +71,8 @@ vec2 calculateVariance() {
       int y = indexY - varianceKernelHalfSize;
 
       float weight = 1.;
+      // these stopping functions reduce performances greatly, and don't seem to
+      // be useful
       if (ubo.skipStoppingFunctions) {
         weight = 1.;
       } else {
@@ -88,6 +89,7 @@ vec2 calculateVariance() {
 
         weight = weightK * weightN * weightZ;
       }
+
       weightSum += weight;
       luminancePair += weight * getLuminancePair(ivec2(x, y));
     }
