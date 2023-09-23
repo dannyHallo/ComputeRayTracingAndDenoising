@@ -76,7 +76,7 @@ int varianceKernelHalfSize = (varianceKernelSize - 1) / 2;
 float calculateVariance() {
   vec2 luminancePairCalc = vec2(0);
   vec2 luminancePairAtUV = getLuminancePair(ivec2(0, 0));
-  if (luminancePairAtUV.x <= 0) {
+  if (luminancePairAtUV.x < 0) {
     return 0;
   }
   float weightSumCalc = 0;
@@ -111,12 +111,12 @@ float calculateVariance() {
         }
 
         vec2 luminancePair = getLuminancePair(ivec2(x, y));
-        if (luminancePair.x <= 0) {
+        if (luminancePair.x < 0) {
           continue;
         }
 
         weightSumCalc += weight;
-        luminancePairCalc += weight * getLuminancePair(ivec2(x, y));
+        luminancePairCalc += weight * luminancePair;
       }
     }
   }
@@ -125,7 +125,7 @@ float calculateVariance() {
              vec4(luminancePairHist + luminancePairAtUV,
                   varianceHistSampleCount + 1, 0));
 
-  weightSumCalc = max(weightSumCalc, 1e-8);
+  weightSumCalc  = max(weightSumCalc, 1e-8);
   float mean     = luminancePairCalc.x / weightSumCalc;
   float variance = luminancePairCalc.y / weightSumCalc - mean * mean;
 
