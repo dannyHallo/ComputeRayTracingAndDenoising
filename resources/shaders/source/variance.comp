@@ -5,6 +5,7 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 layout(binding = 0) uniform UniformBufferObject {
   bool bypassVarianceEstimation;
   bool skipStoppingFunctions;
+  bool useTemporalVariance;
   int kernelSize; // not used
   float phiGaussian;
   float phiDepth;
@@ -25,13 +26,17 @@ vec3 normalAtUV;
 float luminanceAtUV, depthAtUV, varianceAtUV;
 
 const vec3 rgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
+ivec2 texSize                = imageSize(depthTex);
+
+bool outofBounds(ivec2 p) {
+  return any(lessThan(p, ivec2(0))) || any(greaterThanEqual(p, texSize));
+}
 
 float readDepth(ivec2 offset) {
-  ivec2 texSize = imageSize(depthTex);
-  ivec2 p       = uv + offset;
+  ivec2 p = uv + offset;
 
   // if read pos is out of image bounds, return -1
-  if (any(lessThan(p, ivec2(0))) || any(greaterThanEqual(p, texSize))) {
+  if (outofBounds(p)) {
     return -1;
   }
 
@@ -52,7 +57,12 @@ vec2 calculateGradient() {
 }
 
 vec2 getLuminancePair(ivec2 offset) {
-  ivec2 p    = uv + offset;
+  ivec2 p = uv + offset;
+
+  if (outofBounds(p)) {
+    return vec2(-1, -1);
+  }
+
   vec3 color = imageLoad(textureForVarianceCalc, p).xyz;
   float l1   = dot(rgbToLuminanceMat, color);
   float l2   = l1 * l1;
@@ -61,19 +71,20 @@ vec2 getLuminancePair(ivec2 offset) {
 
 int varianceKernelSize     = ubo.kernelSize;
 int varianceKernelHalfSize = (varianceKernelSize - 1) / 2;
-float kernelSigma          = varianceKernelHalfSize / 3.;
-float usingSigmaInv        = 1. / (2. * kernelSigma * kernelSigma);
 
 // calculate variance using the variance kernel, or temporally
 float calculateVariance() {
   vec2 luminancePairCalc = vec2(0);
   vec2 luminancePairAtUV = getLuminancePair(ivec2(0, 0));
-  float weightSumCalc    = 0;
+  if (luminancePairAtUV.x <= 0) {
+    return 0;
+  }
+  float weightSumCalc = 0;
 
   vec3 varianceHist             = imageLoad(varianceHistTex, uv).xyz;
   vec2 luminancePairHist        = varianceHist.xy;
   float varianceHistSampleCount = varianceHist.z;
-  if (false) {
+  if (ubo.useTemporalVariance && varianceHistSampleCount > 4) {
     weightSumCalc     = varianceHistSampleCount + 1;
     luminancePairCalc = luminancePairHist + luminancePairAtUV;
   } else {
@@ -83,12 +94,9 @@ float calculateVariance() {
         int y = indexY - varianceKernelHalfSize;
 
         float weight = 1.;
-        // these stopping functions reduce performances greatly, and don't seem
-        // to be useful
-        if (ubo.skipStoppingFunctions) {
-          weight = 1.;
-        } else {
-          // float weightK = 1;
+        // these stopping functions reduce performances and don't seem
+        // to be useful to the visual effect
+        if (!ubo.skipStoppingFunctions) {
           float weightK = exp(-(x * x + y * y) * ubo.phiGaussian);
 
           vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
@@ -102,6 +110,11 @@ float calculateVariance() {
           weight = weightK * weightN * weightZ;
         }
 
+        vec2 luminancePair = getLuminancePair(ivec2(x, y));
+        if (luminancePair.x <= 0) {
+          continue;
+        }
+
         weightSumCalc += weight;
         luminancePairCalc += weight * getLuminancePair(ivec2(x, y));
       }
@@ -112,7 +125,7 @@ float calculateVariance() {
              vec4(luminancePairHist + luminancePairAtUV,
                   varianceHistSampleCount + 1, 0));
 
-  weightSumCalc  = max(weightSumCalc, 1e-8); // TODO: this might need a workaround
+  weightSumCalc = max(weightSumCalc, 1e-8);
   float mean     = luminancePairCalc.x / weightSumCalc;
   float variance = luminancePairCalc.y / weightSumCalc - mean * mean;
 

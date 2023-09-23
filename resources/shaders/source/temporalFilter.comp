@@ -4,24 +4,24 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(binding = 0) uniform UniformBufferObject {
   bool bypassTemporalFiltering;
+  float blendingAlpha;
   mat4 lastMvpe;
   uint swapchainWidth;
   uint swapchainHeight;
 }
 ubo;
 
-layout(binding = 1, rgba32f) uniform image2D posTex;
-layout(binding = 2, rgba32f) uniform image2D rawTex;
-layout(binding = 3, rgba8) uniform image2D accumTex;
-layout(binding = 4, rgba8) uniform image2D normalTex; // not used
-layout(binding = 5, r32f) uniform image2D depthTex;   // not used
-layout(binding = 6, r32ui) uniform uimage2D meshHashTex1;
-layout(binding = 7, r32ui) uniform uimage2D meshHashTex2;
-layout(binding = 8, rgba8) uniform image2D blendedTex;
+layout(binding = 1, rgba32f) readonly uniform image2D posTex;
+layout(binding = 2, rgba32f) readonly uniform image2D rawTex;
+layout(binding = 3, r32ui) readonly uniform uimage2D meshHashTex1;
+layout(binding = 4, r32ui) readonly uniform uimage2D meshHashTex2;
+layout(binding = 5, rgba8) readonly uniform image2D lastFrameAccumTex;
+layout(binding = 6, rgba8) readonly uniform image2D lastFrameVarianceHistTex;
+layout(binding = 7, rgba8) writeonly uniform image2D thisFrameAccumTex;
+layout(binding = 8, rgba8) writeonly uniform image2D thisFrameVarianceHistTex;
 
 // when alpha is too low, the image is over-smoothed -> loss of detail
 // when alpha is too high, the image is unstable     -> jitter of noise
-float alpha = 0.15;
 
 ivec2 uv;
 vec4 pixPos;
@@ -37,47 +37,47 @@ ivec2 backwardProjection() {
   return ivec2(uvCoord.x * ubo.swapchainWidth, uvCoord.y * ubo.swapchainHeight);
 }
 
-vec4 customMixing(vec4 accum, vec4 thisTime, float alpha) {
-  if (alpha == 1) {
-    return thisTime;
+vec4 getAccumColor() {
+  ivec2 uv2 = backwardProjection();
+
+  ivec2 texSize = imageSize(lastFrameAccumTex);
+  // if read pos is out of image bounds, return -1
+  if (any(lessThan(uv2, ivec2(0))) || any(greaterThanEqual(uv2, texSize))) {
+    return vec4(0, 0, 0, 0);
   }
 
-  alpha = 0.05;
-
-  vec4 result = mix(accum, thisTime, alpha);
-  return result;
+  return imageLoad(lastFrameAccumTex, uv2);
 }
 
 void main() {
-  uv     = ivec2(gl_GlobalInvocationID.xy);
-  pixPos = imageLoad(posTex, uv);
+  uv          = ivec2(gl_GlobalInvocationID.xy);
+  pixPos      = imageLoad(posTex, uv);
+  float alpha = ubo.blendingAlpha;
 
   vec4 thisTimeTracingResult = imageLoad(rawTex, uv);
 
   // invalid pos culling
-  if (pixPos.a == -1) {
-    return;
-  }
-
-  vec4 colToWrite;
+  // if (pixPos.a == -1) {
+  //   return;
+  // }
 
   if (ubo.bypassTemporalFiltering) {
-    colToWrite = thisTimeTracingResult;
-    imageStore(blendedTex, uv, colToWrite);
-    return;
+    alpha = 1;
   }
 
   ivec2 uv2 = backwardProjection();
 
-  vec4 accumTracingResult = imageLoad(accumTex, uv2);
+  vec4 lastFrameAccumResult = getAccumColor();
 
-  // invalid prev accumTex || different prev mesh (not triangle)
-  if (accumTracingResult.a == 0 ||
-      imageLoad(meshHashTex1, uv) != imageLoad(meshHashTex2, uv2)) {
-    alpha = 1;
+  if (imageLoad(meshHashTex1, uv) != imageLoad(meshHashTex2, uv2)) {
+    imageStore(thisFrameAccumTex, uv, thisTimeTracingResult);
+    imageStore(thisFrameVarianceHistTex, uv, vec4(0, 0, 0, 0));
+    return;
   }
 
-  // colToWrite = mix(accumTracingResult, thisTimeTracingResult, alpha);
-  colToWrite = customMixing(accumTracingResult, thisTimeTracingResult, alpha);
-  imageStore(blendedTex, uv, colToWrite);
+  vec4 colToWrite;
+  vec4 accumVarianceHist = imageLoad(lastFrameVarianceHistTex, uv2);
+  colToWrite = mix(lastFrameAccumResult, thisTimeTracingResult, alpha);
+  imageStore(thisFrameAccumTex, uv, colToWrite);
+  imageStore(thisFrameVarianceHistTex, uv, accumVarianceHist);
 }

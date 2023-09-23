@@ -260,7 +260,7 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
 
   // not hit bvh
   if (!hit_bvh(r, rec)) {
-    colReturn = vec3(1, 1, 0); // background color
+    colReturn = vec3(0, 0, 0); // background color
     return;
   }
 

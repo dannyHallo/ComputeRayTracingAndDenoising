@@ -42,6 +42,7 @@ class Application {
 
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
+    float blendingAlpha;
     alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
     uint swapchainWidth; // TODO: remove this
     uint swapchainHeight;
@@ -50,6 +51,7 @@ class Application {
   struct VarianceUniformBufferObject {
     int bypassVarianceEstimation;
     int skipStoppingFunctions;
+    int useTemporalVariance;
     int kernelSize;
     float phiGaussian;
     float phiDepth;
@@ -76,16 +78,20 @@ class Application {
   bool mUseTemporalBlend = true;
   bool mUseATrous        = true;
 
+  // temporal filter
+  float mBlendingAlpha = 0.15;
+
   // variance estimation
   bool mUseVarianceEstimation = true;
   bool mSkipStoppingFunctions = false;
-  int mVarianceKernelSize     = 7;
-  float mVariancePhiGaussian  = 0.6f;
+  bool mUseTemporalVariance   = true;
+  int mVarianceKernelSize     = 4;
+  float mVariancePhiGaussian  = 1.f;
   float mVariancePhiDepth     = 0.2f;
 
   // atrous twicking
   int mICap                             = 5;
-  bool mShowVariance                    = false;
+  bool mShowVariance                    = true;
   bool mUseVarianceGuidedFiltering      = true;
   float mPhiLuminance                   = 0.5f;
   float mPhiDepth                       = 0.2f;
@@ -128,11 +134,12 @@ class Application {
   std::unique_ptr<Image> mPositionImage;
   std::unique_ptr<Image> mRawImage;
   std::unique_ptr<Image> mTargetImage;
-  std::unique_ptr<Image> mAccumulationImage;
+  std::unique_ptr<Image> mLastFrameAccumImage;
   std::unique_ptr<Image> mDepthImage;
   std::unique_ptr<Image> mNormalImage;
   std::unique_ptr<Image> mGradientImage;
-  std::unique_ptr<Image> mVarianceHistoryImage;
+  std::unique_ptr<Image> mLastFrameVarianceHistImage;
+  std::unique_ptr<Image> mThisFrameVarianceHistImage;
   std::unique_ptr<Image> mVarianceImage;
   std::unique_ptr<Image> mMeshHashImage1;
   std::unique_ptr<Image> mMeshHashImage2;

@@ -124,7 +124,7 @@ void main() {
 
   vec4 weightedColor = sumOfWeightedValues / weightSum;
 
-  varianceAtUV = min(varianceAtUV * 50, 1);
+  varianceAtUV = min(varianceAtUV * 1, 1);
 
   if (ubo.i == 0) {
     imageStore(accumTex, uv, weightedColor);

@@ -205,11 +205,20 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mVarianceHistoryImage = std::make_unique<Image>(
+  mLastFrameVarianceHistImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+  mThisFrameVarianceHistImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mVarianceImage = std::make_unique<Image>(
@@ -233,7 +242,7 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mAccumulationImage = std::make_unique<Image>(
+  mLastFrameAccumImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
@@ -263,13 +272,13 @@ void Application::initScene() {
   // input
   temporalFilterMat->addStorageImage(mPositionImage.get());
   temporalFilterMat->addStorageImage(mRawImage.get());
-  temporalFilterMat->addStorageImage(mAccumulationImage.get());
-  temporalFilterMat->addStorageImage(mNormalImage.get());
-  temporalFilterMat->addStorageImage(mDepthImage.get());
   temporalFilterMat->addStorageImage(mMeshHashImage1.get());
   temporalFilterMat->addStorageImage(mMeshHashImage2.get());
+  temporalFilterMat->addStorageImage(mLastFrameAccumImage.get());
+  temporalFilterMat->addStorageImage(mLastFrameVarianceHistImage.get());
   // output
   temporalFilterMat->addStorageImage(mATrousInputImage.get());
+  temporalFilterMat->addStorageImage(mThisFrameVarianceHistImage.get());
   mTemporalFilterModel =
       std::make_unique<ComputeModel>(std::move(temporalFilterMat));
 
@@ -283,7 +292,7 @@ void Application::initScene() {
   // output
   varianceMat->addStorageImage(mGradientImage.get());
   varianceMat->addStorageImage(mVarianceImage.get());
-  varianceMat->addStorageImage(mVarianceHistoryImage.get());
+  varianceMat->addStorageImage(mThisFrameVarianceHistImage.get());
   mVarianceModel = std::make_unique<ComputeModel>(std::move(varianceMat));
 
   for (int i = 0; i < kATrousSize; i++) {
@@ -297,7 +306,7 @@ void Application::initScene() {
     aTrousMat->addStorageImage(mGradientImage.get());
     aTrousMat->addStorageImage(mVarianceImage.get());
     // output
-    aTrousMat->addStorageImage(mAccumulationImage.get());
+    aTrousMat->addStorageImage(mLastFrameAccumImage.get());
     aTrousMat->addStorageImage(mATrousOutputImage.get());
     mATrousModels.emplace_back(
         std::make_unique<ComputeModel>(std::move(aTrousMat)));
@@ -335,7 +344,8 @@ void Application::updateScene(uint32_t currentImage) {
   mRtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
 
   TemporalFilterUniformBufferObject tfUbo = {
-      !mUseTemporalBlend, lastMvpe, mAppContext->getSwapchainExtentWidth(),
+      !mUseTemporalBlend, mBlendingAlpha, lastMvpe,
+      mAppContext->getSwapchainExtentWidth(),
       mAppContext->getSwapchainExtentHeight()};
   {
     mTemperalFilterBufferBundle->getBuffer(currentImage)->fillData(&tfUbo);
@@ -348,8 +358,8 @@ void Application::updateScene(uint32_t currentImage) {
   }
 
   VarianceUniformBufferObject varianceUbo = {
-      !mUseVarianceEstimation, mSkipStoppingFunctions, mVarianceKernelSize,
-      mVariancePhiGaussian, mVariancePhiDepth};
+      !mUseVarianceEstimation, mSkipStoppingFunctions, mUseTemporalVariance,
+      mVarianceKernelSize,     mVariancePhiGaussian,   mVariancePhiDepth};
   mVarianceBufferBundle->getBuffer(currentImage)->fillData(&varianceUbo);
 
   for (int j = 0; j < kATrousSize; j++) {
@@ -392,10 +402,19 @@ void Application::createRenderCommandBuffers() {
   VkImageMemoryBarrier targetTexTransSrc2General =
       ImageUtils::transferSrcToGeneralBarrier(mTargetImage->getVkImage());
 
-  // VkImageMemoryBarrier accumTexGeneral2TransDst =
-  //     ImageUtils::generalToTransferDstBarrier(mAccumulationImage->getVkImage());
-  // VkImageMemoryBarrier accumTexTransDst2General =
-  //     ImageUtils::transferDstToGeneralBarrier(mAccumulationImage->getVkImage());
+  VkImageMemoryBarrier thisFrameVarianceHistImageGeneral2TransSrc =
+      ImageUtils::generalToTransferSrcBarrier(
+          mThisFrameVarianceHistImage->getVkImage());
+  VkImageMemoryBarrier thisFrameVarianceHistImageTransSrc2General =
+      ImageUtils::transferSrcToGeneralBarrier(
+          mThisFrameVarianceHistImage->getVkImage());
+
+  VkImageMemoryBarrier lastFrameVarianceHistImageGeneral2TransDst =
+      ImageUtils::generalToTransferDstBarrier(
+          mLastFrameVarianceHistImage->getVkImage());
+  VkImageMemoryBarrier lastFrameVarianceHistImageTransDst2General =
+      ImageUtils::transferDstToGeneralBarrier(
+          mLastFrameVarianceHistImage->getVkImage());
 
   VkImageMemoryBarrier aTrousTex1General2TransDst =
       ImageUtils::generalToTransferDstBarrier(mATrousInputImage->getVkImage());
@@ -547,6 +566,29 @@ void Application::createRenderCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
                          nullptr, 1,
                          &swapchainImageTransferDst2ColorAttachment);
+
+    // copy this frame variance hist image to last frame variance hist image
+    vkCmdPipelineBarrier(
+        currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+        &thisFrameVarianceHistImageGeneral2TransSrc);
+    vkCmdPipelineBarrier(
+        currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+        &lastFrameVarianceHistImageGeneral2TransDst);
+    vkCmdCopyImage(currentCommandBuffer,
+                   mThisFrameVarianceHistImage->getVkImage(),
+                   VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   mLastFrameVarianceHistImage->getVkImage(),
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
+    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1,
+                         &thisFrameVarianceHistImageTransSrc2General);
+    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 1,
+                         &lastFrameVarianceHistImageTransDst2General);
 
     // sync mesh hash image for next frame
     vkCmdPipelineBarrier(currentCommandBuffer,
@@ -884,10 +926,13 @@ void Application::prepareGui() {
   if (ImGui::BeginMenu("Config")) {
     ImGui::SeparatorText("Temporal Blend");
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporalBlend);
+    ImGui::SliderFloat("Blending Alpha", &mBlendingAlpha, 0.0F, 1.0F);
 
     ImGui::SeparatorText("Variance Estimation");
     ImGui::Checkbox("Variance Calculation", &mUseVarianceEstimation);
     ImGui::Checkbox("Skip Stopping Functions", &mSkipStoppingFunctions);
+    ImGui::Checkbox("Use Temporal Variance", &mUseTemporalVariance);
+
     ImGui::SliderInt("Variance Kernel Size", &mVarianceKernelSize, 1, 15);
     ImGui::SliderFloat("Variance Phi Gaussian", &mVariancePhiGaussian, 0.0F,
                        1.0F);
