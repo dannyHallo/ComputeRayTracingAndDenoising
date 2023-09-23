@@ -228,14 +228,14 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mMeshHashImage1 = std::make_unique<Image>(
+  mThisFrameMeshHashImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mMeshHashImage2 = std::make_unique<Image>(
+  mLastFrameMeshHashImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
@@ -256,7 +256,7 @@ void Application::initScene() {
   rtxMat->addStorageImage(mPositionImage.get());
   rtxMat->addStorageImage(mNormalImage.get());
   rtxMat->addStorageImage(mDepthImage.get());
-  rtxMat->addStorageImage(mMeshHashImage1.get());
+  rtxMat->addStorageImage(mThisFrameMeshHashImage.get());
   // output
   rtxMat->addStorageImage(mRawImage.get());
   // buffers
@@ -272,8 +272,8 @@ void Application::initScene() {
   // input
   temporalFilterMat->addStorageImage(mPositionImage.get());
   temporalFilterMat->addStorageImage(mRawImage.get());
-  temporalFilterMat->addStorageImage(mMeshHashImage1.get());
-  temporalFilterMat->addStorageImage(mMeshHashImage2.get());
+  temporalFilterMat->addStorageImage(mThisFrameMeshHashImage.get());
+  temporalFilterMat->addStorageImage(mLastFrameMeshHashImage.get());
   temporalFilterMat->addStorageImage(mLastFrameAccumImage.get());
   temporalFilterMat->addStorageImage(mLastFrameVarianceHistImage.get());
   // output
@@ -426,13 +426,17 @@ void Application::createRenderCommandBuffers() {
       ImageUtils::transferSrcToGeneralBarrier(mATrousOutputImage->getVkImage());
 
   VkImageMemoryBarrier triIdTex1General2TransSrc =
-      ImageUtils::generalToTransferSrcBarrier(mMeshHashImage1->getVkImage());
+      ImageUtils::generalToTransferSrcBarrier(
+          mThisFrameMeshHashImage->getVkImage());
   VkImageMemoryBarrier triIdTex1TransSrc2General =
-      ImageUtils::transferSrcToGeneralBarrier(mMeshHashImage1->getVkImage());
+      ImageUtils::transferSrcToGeneralBarrier(
+          mThisFrameMeshHashImage->getVkImage());
   VkImageMemoryBarrier triIdTex2General2TransDst =
-      ImageUtils::generalToTransferDstBarrier(mMeshHashImage2->getVkImage());
+      ImageUtils::generalToTransferDstBarrier(
+          mLastFrameMeshHashImage->getVkImage());
   VkImageMemoryBarrier triIdTex2TransDst2General =
-      ImageUtils::transferDstToGeneralBarrier(mMeshHashImage2->getVkImage());
+      ImageUtils::transferDstToGeneralBarrier(
+          mLastFrameMeshHashImage->getVkImage());
 
   VkImageCopy imgCopyRegion =
       ImageUtils::imageCopyRegion(mAppContext->getSwapchainExtentWidth(),
@@ -599,9 +603,9 @@ void Application::createRenderCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
                          nullptr, 1, &triIdTex2General2TransDst);
-    vkCmdCopyImage(currentCommandBuffer, mMeshHashImage1->getVkImage(),
+    vkCmdCopyImage(currentCommandBuffer, mThisFrameMeshHashImage->getVkImage(),
                    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                   mMeshHashImage2->getVkImage(),
+                   mLastFrameMeshHashImage->getVkImage(),
                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopyRegion);
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,

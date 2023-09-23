@@ -141,8 +141,8 @@ class Application {
   std::unique_ptr<Image> mLastFrameVarianceHistImage;
   std::unique_ptr<Image> mThisFrameVarianceHistImage;
   std::unique_ptr<Image> mVarianceImage;
-  std::unique_ptr<Image> mMeshHashImage1;
-  std::unique_ptr<Image> mMeshHashImage2;
+  std::unique_ptr<Image> mThisFrameMeshHashImage;
+  std::unique_ptr<Image> mLastFrameMeshHashImage;
   std::unique_ptr<Image> mATrousInputImage;
   std::unique_ptr<Image> mATrousOutputImage;
 

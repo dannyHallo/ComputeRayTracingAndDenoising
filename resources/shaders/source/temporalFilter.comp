@@ -13,8 +13,8 @@ ubo;
 
 layout(binding = 1, rgba32f) readonly uniform image2D posTex;
 layout(binding = 2, rgba32f) readonly uniform image2D rawTex;
-layout(binding = 3, r32ui) readonly uniform uimage2D meshHashTex1;
-layout(binding = 4, r32ui) readonly uniform uimage2D meshHashTex2;
+layout(binding = 3, r32ui) readonly uniform uimage2D thisFrameMeshHashTex;
+layout(binding = 4, r32ui) readonly uniform uimage2D lastFrameMeshHashTex;
 layout(binding = 5, rgba8) readonly uniform image2D lastFrameAccumTex;
 layout(binding = 6, rgba8) readonly uniform image2D lastFrameVarianceHistTex;
 layout(binding = 7, rgba8) writeonly uniform image2D thisFrameAccumTex;
@@ -69,7 +69,7 @@ void main() {
 
   vec4 lastFrameAccumResult = getAccumColor();
 
-  if (imageLoad(meshHashTex1, uv) != imageLoad(meshHashTex2, uv2)) {
+  if (imageLoad(thisFrameMeshHashTex, uv) != imageLoad(lastFrameMeshHashTex, uv2)) {
     imageStore(thisFrameAccumTex, uv, thisTimeTracingResult);
     imageStore(thisFrameVarianceHistTex, uv, vec4(0, 0, 0, 0));
     return;
