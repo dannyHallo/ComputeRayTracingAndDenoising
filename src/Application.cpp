@@ -318,12 +318,26 @@ void Application::initScene() {
   rtxMat->addStorageBufferBundle(mLightsBufferBundle.get());
   mRtxModel = std::make_unique<ComputeModel>(std::move(rtxMat));
 
+  auto gradientMat = std::make_unique<ComputeMaterial>(
+      kPathToResourceFolder + "/shaders/generated/gradient.spv");
+  // input
+  gradientMat->addStorageImage(mDepthImage.get());
+  // output
+  gradientMat->addStorageImage(mGradientImage.get());
+  mGradientModel = std::make_unique<ComputeModel>(std::move(gradientMat));
+
   auto temporalFilterMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/temporalFilter.spv");
   temporalFilterMat->addUniformBufferBundle(mTemperalFilterBufferBundle.get());
   // input
   temporalFilterMat->addStorageImage(mPositionImage.get());
   temporalFilterMat->addStorageImage(mRawImage.get());
+  temporalFilterMat->addStorageImage(mDepthImage.get());
+  temporalFilterMat->addStorageImage(mDepthImagePrev.get());
+  temporalFilterMat->addStorageImage(mNormalImage.get());
+  temporalFilterMat->addStorageImage(mNormalImagePrev.get());
+  temporalFilterMat->addStorageImage(mGradientImage.get());
+  temporalFilterMat->addStorageImage(mGradientImagePrev.get());
   temporalFilterMat->addStorageImage(mMeshHashImage.get());
   temporalFilterMat->addStorageImage(mMeshHashImagePrev.get());
   temporalFilterMat->addStorageImage(mLastFrameAccumImage.get());
@@ -396,7 +410,13 @@ void Application::updateScene(uint32_t currentImage) {
   mRtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
 
   TemporalFilterUniformBufferObject tfUbo = {
-      !mUseTemporalBlend, mBlendingAlpha, lastMvpe,
+      !mUseTemporalBlend,
+      mUseDepthTest,
+      mDepthThreshold,
+      mUseNormalTest,
+      mNormalThreshold,
+      mBlendingAlpha,
+      lastMvpe,
       mAppContext->getSwapchainExtentWidth(),
       mAppContext->getSwapchainExtentHeight()};
   {
@@ -472,6 +492,15 @@ void Application::createRenderCommandBuffers() {
     mRtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
                               mTargetImage->getWidth() / 32,
                               mTargetImage->getHeight() / 32, 1);
+
+    vkCmdPipelineBarrier(currentCommandBuffer,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 0, nullptr);
+
+    mGradientModel->computeCommand(
+        currentCommandBuffer, static_cast<uint32_t>(i),
+        mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -856,6 +885,10 @@ void Application::prepareGui() {
   if (ImGui::BeginMenu("Config")) {
     ImGui::SeparatorText("Temporal Blend");
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporalBlend);
+    ImGui::Checkbox("Depth Test", &mUseDepthTest);
+    ImGui::SliderFloat("Depth threhold", &mDepthThreshold, 0.0F, 1.0F);
+    ImGui::Checkbox("Use normal test", &mUseNormalTest);
+    ImGui::SliderFloat("Normal threhold", &mNormalThreshold, 0.0F, 1.0F);
     ImGui::SliderFloat("Blending Alpha", &mBlendingAlpha, 0.0F, 1.0F);
 
     ImGui::SeparatorText("Variance Estimation");

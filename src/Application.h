@@ -41,6 +41,10 @@ class Application {
 
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
+    int useDepthTest;
+    float depthThrehold;
+    int useNormalTest;
+    float normalThrehold;
     float blendingAlpha;
     alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
     uint swapchainWidth; // TODO: remove this
@@ -74,11 +78,15 @@ class Application {
   float mFps = 0;
 
   // whether to use temporal and blur filtering
-  bool mUseTemporalBlend = true;
-  bool mUseATrous        = true;
+  bool mUseATrous = true;
 
   // temporal filter
-  float mBlendingAlpha = 0.15;
+  bool mUseTemporalBlend = true;
+  bool mUseDepthTest     = true;
+  float mDepthThreshold  = 0.07;
+  bool mUseNormalTest    = true;
+  float mNormalThreshold = 0.99;
+  float mBlendingAlpha   = 0.15;
 
   // variance estimation
   bool mUseVarianceEstimation = true;
@@ -113,6 +121,7 @@ class Application {
 
   // compute models for ray tracing, temporal filtering, and blur filtering
   std::unique_ptr<ComputeModel> mRtxModel;
+  std::unique_ptr<ComputeModel> mGradientModel;
   std::unique_ptr<ComputeModel> mTemporalFilterModel;
   std::unique_ptr<ComputeModel> mVarianceModel;
   std::vector<std::unique_ptr<ComputeModel>> mATrousModels;

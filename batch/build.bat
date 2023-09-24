@@ -13,7 +13,7 @@ if %1==debug (
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
 
 set GLSLC_PATH=%GLSLC%
-set SHADERS=rtx temporalFilter variance aTrous postProcessing 
+set SHADERS=rtx gradient temporalFilter variance aTrous postProcessing 
 
 echo Compiling shaders...
 if not exist "resources/shaders/generated" mkdir "resources/shaders/generated"

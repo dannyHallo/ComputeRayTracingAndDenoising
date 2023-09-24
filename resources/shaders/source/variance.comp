@@ -15,7 +15,7 @@ ubo;
 layout(binding = 1, rgba8) readonly uniform image2D textureForVarianceCalc;
 layout(binding = 2, rgba8) readonly uniform image2D normalTex;
 layout(binding = 3, r32f) readonly uniform image2D depthTex;
-layout(binding = 4, rg32f) writeonly uniform image2D gradientTex;
+layout(binding = 4, rg32f) readonly uniform image2D gradientTex;
 layout(binding = 5, r32f) writeonly uniform image2D varianceTex;
 // l1, l2, sample count, NA
 layout(binding = 6, rgba32f) uniform image2D varianceHistTex;
@@ -43,17 +43,6 @@ float readDepth(ivec2 offset) {
   // otherwise, return the depth, if depth is -1 (nothit), return 100000
   float rawDepth = imageLoad(depthTex, p).x;
   return rawDepth == -1 ? 100000 : rawDepth;
-}
-
-vec2 calculateGradient() {
-  float cDepth = readDepth(ivec2(0, 0));
-  float rDepth = readDepth(ivec2(1, 0));
-  float uDepth = readDepth(ivec2(0, 1));
-
-  float gradientX = rDepth == -1 ? 0 : rDepth - cDepth;
-  float gradientY = uDepth == -1 ? 0 : uDepth - cDepth;
-
-  return vec2(gradientX, gradientY);
 }
 
 vec2 getLuminancePair(ivec2 offset) {
@@ -135,16 +124,14 @@ float calculateVariance() {
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
 
-  if (ubo.bypassVarianceEstimation) {
-    imageStore(gradientTex, uv, vec4(calculateGradient(), 0, 0));
+  if (ubo.bypassVarianceEstimation) { // TODO: remove this
     return;
   }
 
   normalAtUV   = imageLoad(normalTex, uv).xyz;
-  depthAtUV    = imageLoad(depthTex, uv).x;
-  gradientAtUV = calculateGradient();
+  depthAtUV    = readDepth(ivec2(0, 0));
+  gradientAtUV = imageLoad(gradientTex, uv).xy;
   varianceAtUV = calculateVariance();
 
-  imageStore(gradientTex, uv, vec4(gradientAtUV, 0, 0));
   imageStore(varianceTex, uv, vec4(varianceAtUV, 0, 0, 0));
 }

@@ -4,6 +4,10 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(binding = 0) uniform UniformBufferObject {
   bool bypassTemporalFiltering;
+  bool useDepthTest;
+  float depthTestThreshold;
+  bool useNormalTest;
+  float normalTestThreshold;
   float blendingAlpha;
   mat4 lastMvpe;
   uint swapchainWidth;
@@ -13,17 +17,23 @@ ubo;
 
 layout(binding = 1, rgba32f) readonly uniform image2D posTex;
 layout(binding = 2, rgba32f) readonly uniform image2D rawTex;
-layout(binding = 3, r32ui) readonly uniform uimage2D thisFrameMeshHashTex;
-layout(binding = 4, r32ui) readonly uniform uimage2D lastFrameMeshHashTex;
-layout(binding = 5, rgba8) readonly uniform image2D lastFrameAccumTex;
-layout(binding = 6, rgba8) readonly uniform image2D lastFrameVarianceHistTex;
-layout(binding = 7, rgba8) writeonly uniform image2D thisFrameAccumTex;
-layout(binding = 8, rgba8) writeonly uniform image2D thisFrameVarianceHistTex;
+layout(binding = 3, r32f) readonly uniform image2D thisFrameDepthTex;
+layout(binding = 4, r32f) readonly uniform image2D lastFrameDepthTex;
+layout(binding = 5, rgba32f) readonly uniform image2D thisFrameNormalTex;
+layout(binding = 6, rgba32f) readonly uniform image2D lastFrameNormalTex;
+layout(binding = 7, rg32f) readonly uniform image2D thisFrameGradientTex;
+layout(binding = 8, rg32f) readonly uniform image2D lastFrameGradientTex;
+layout(binding = 9, r32ui) readonly uniform uimage2D thisFrameMeshHashTex;
+layout(binding = 10, r32ui) readonly uniform uimage2D lastFrameMeshHashTex;
+layout(binding = 11, rgba8) readonly uniform image2D lastFrameAccumTex;
+layout(binding = 12, rgba8) readonly uniform image2D lastFrameVarianceHistTex;
+layout(binding = 13, rgba8) writeonly uniform image2D thisFrameAccumTex;
+layout(binding = 14, rgba8) writeonly uniform image2D thisFrameVarianceHistTex;
 
 // when alpha is too low, the image is over-smoothed -> loss of detail
 // when alpha is too high, the image is unstable     -> jitter of noise
 
-ivec2 uv;
+ivec2 uv, uv2;
 vec4 pixPos;
 
 ivec2 backwardProjection() {
@@ -38,8 +48,6 @@ ivec2 backwardProjection() {
 }
 
 vec4 getAccumColor() {
-  ivec2 uv2 = backwardProjection();
-
   ivec2 texSize = imageSize(lastFrameAccumTex);
   // if read pos is out of image bounds, return -1
   if (any(lessThan(uv2, ivec2(0))) || any(greaterThanEqual(uv2, texSize))) {
@@ -47,6 +55,32 @@ vec4 getAccumColor() {
   }
 
   return imageLoad(lastFrameAccumTex, uv2);
+}
+
+bool isConsistent() {
+  bool depthConsistent =
+      ubo.useDepthTest
+          ? abs(imageLoad(thisFrameDepthTex, uv).r -
+                imageLoad(lastFrameDepthTex, uv2).r) < ubo.depthTestThreshold
+          : true;
+
+  vec3 thisFrameNormal  = imageLoad(thisFrameNormalTex, uv).xyz;
+  vec3 lastFrameNormal  = imageLoad(lastFrameNormalTex, uv2).xyz;
+  bool normalConsistent = true;
+  if (ubo.useNormalTest) {
+    if (thisFrameNormal + lastFrameNormal != vec3(0) &&
+        dot(thisFrameNormal, lastFrameNormal) == 0) {
+      normalConsistent = false;
+    } else {
+      float normalFac  = max(0., dot(thisFrameNormal, lastFrameNormal));
+      normalConsistent = normalFac > ubo.normalTestThreshold || normalFac == 0;
+    }
+  }
+
+  bool meshIdConsistent = imageLoad(thisFrameMeshHashTex, uv) ==
+                          imageLoad(lastFrameMeshHashTex, uv2);
+
+  return depthConsistent && normalConsistent && meshIdConsistent;
 }
 
 void main() {
@@ -65,11 +99,11 @@ void main() {
     alpha = 1;
   }
 
-  ivec2 uv2 = backwardProjection();
+  uv2 = backwardProjection();
 
   vec4 lastFrameAccumResult = getAccumColor();
 
-  if (imageLoad(thisFrameMeshHashTex, uv) != imageLoad(lastFrameMeshHashTex, uv2)) {
+  if (!isConsistent()) {
     imageStore(thisFrameAccumTex, uv, thisTimeTracingResult);
     imageStore(thisFrameVarianceHistTex, uv, vec4(0, 0, 0, 0));
     return;
