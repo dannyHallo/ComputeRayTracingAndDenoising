@@ -219,7 +219,7 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mLastFrameVarianceHistImage = std::make_unique<Image>(
+  mVarianceHistImagePrev = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -227,7 +227,7 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mThisFrameVarianceHistImage = std::make_unique<Image>(
+  mVarianceHistImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -236,8 +236,8 @@ void Application::initScene() {
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mVarianceHistForwardingPair = std::make_unique<ImageForwardingPair>(
-      mThisFrameVarianceHistImage->getVkImage(),
-      mLastFrameVarianceHistImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+      mVarianceHistImage->getVkImage(),
+      mVarianceHistImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_GENERAL);
 
@@ -248,14 +248,14 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mThisFrameMeshHashImage = std::make_unique<Image>(
+  mMeshHashImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  mLastFrameMeshHashImage = std::make_unique<Image>(
+  mMeshHashImagePrev = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
@@ -263,8 +263,8 @@ void Application::initScene() {
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mMeshHashForwardingPair = std::make_unique<ImageForwardingPair>(
-      mThisFrameMeshHashImage->getVkImage(),
-      mLastFrameMeshHashImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+      mMeshHashImage->getVkImage(),
+      mMeshHashImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_GENERAL);
 
@@ -282,7 +282,7 @@ void Application::initScene() {
   rtxMat->addStorageImage(mPositionImage.get());
   rtxMat->addStorageImage(mNormalImage.get());
   rtxMat->addStorageImage(mDepthImage.get());
-  rtxMat->addStorageImage(mThisFrameMeshHashImage.get());
+  rtxMat->addStorageImage(mMeshHashImage.get());
   // output
   rtxMat->addStorageImage(mRawImage.get());
   // buffers
@@ -298,13 +298,13 @@ void Application::initScene() {
   // input
   temporalFilterMat->addStorageImage(mPositionImage.get());
   temporalFilterMat->addStorageImage(mRawImage.get());
-  temporalFilterMat->addStorageImage(mThisFrameMeshHashImage.get());
-  temporalFilterMat->addStorageImage(mLastFrameMeshHashImage.get());
+  temporalFilterMat->addStorageImage(mMeshHashImage.get());
+  temporalFilterMat->addStorageImage(mMeshHashImagePrev.get());
   temporalFilterMat->addStorageImage(mLastFrameAccumImage.get());
-  temporalFilterMat->addStorageImage(mLastFrameVarianceHistImage.get());
+  temporalFilterMat->addStorageImage(mVarianceHistImagePrev.get());
   // output
   temporalFilterMat->addStorageImage(mATrousInputImage.get());
-  temporalFilterMat->addStorageImage(mThisFrameVarianceHistImage.get());
+  temporalFilterMat->addStorageImage(mVarianceHistImage.get());
   mTemporalFilterModel =
       std::make_unique<ComputeModel>(std::move(temporalFilterMat));
 
@@ -318,7 +318,7 @@ void Application::initScene() {
   // output
   varianceMat->addStorageImage(mGradientImage.get());
   varianceMat->addStorageImage(mVarianceImage.get());
-  varianceMat->addStorageImage(mThisFrameVarianceHistImage.get());
+  varianceMat->addStorageImage(mVarianceHistImage.get());
   mVarianceModel = std::make_unique<ComputeModel>(std::move(varianceMat));
 
   for (int i = 0; i < kATrousSize; i++) {

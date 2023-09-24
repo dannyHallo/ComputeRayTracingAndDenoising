@@ -144,19 +144,17 @@ class Application {
 
   std::unique_ptr<Image> mVarianceImage;
 
-  std::unique_ptr<Image> mLastFrameVarianceHistImage;
-  std::unique_ptr<Image> mThisFrameVarianceHistImage;
+  std::unique_ptr<Image> mVarianceHistImage;
+  std::unique_ptr<Image> mVarianceHistImagePrev;
   std::unique_ptr<ImageForwardingPair> mVarianceHistForwardingPair;
 
-  std::unique_ptr<Image> mThisFrameMeshHashImage;
-  std::unique_ptr<Image> mLastFrameMeshHashImage;
+  std::unique_ptr<Image> mMeshHashImage;
+  std::unique_ptr<Image> mMeshHashImagePrev;
   std::unique_ptr<ImageForwardingPair> mMeshHashForwardingPair;
 
   std::unique_ptr<Image> mATrousInputImage;
   std::unique_ptr<Image> mATrousOutputImage;
   std::unique_ptr<ImageForwardingPair> mATrousForwardingPair;
-
-  // std::unique_ptr<ImageForwardingPair> mTemporalFilterForwardingPair;
 
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> mCommandBuffers;
