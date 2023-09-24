@@ -69,8 +69,8 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
   float weightC = 0;
   if (ubo.useVarianceGuidedFiltering) {
     phiC *= 100.;
-    weightC =
-        exp(-differenceInColorVec / (phiC * sqrt(abs(varianceAtUV)) + epsilon));
+    weightC = exp(-differenceInColorVec /
+                  max(phiC * sqrt(abs(varianceAtUV)), epsilon));
   } else {
     weightC = exp(-differenceInColorVec / phiC);
   }

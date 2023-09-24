@@ -82,7 +82,7 @@ class Application {
 
   // temporal filter
   bool mUseTemporalBlend = true;
-  bool mUseDepthTest     = true;
+  bool mUseDepthTest     = false;
   float mDepthThreshold  = 0.07;
   bool mUseNormalTest    = true;
   float mNormalThreshold = 0.99;
@@ -98,7 +98,7 @@ class Application {
 
   // atrous twicking
   int mICap                             = 5;
-  bool mShowVariance                    = true;
+  bool mShowVariance                    = false;
   bool mUseVarianceGuidedFiltering      = true;
   float mPhiLuminance                   = 0.5f;
   float mPhiDepth                       = 0.2f;
