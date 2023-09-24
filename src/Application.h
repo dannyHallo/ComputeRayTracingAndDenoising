@@ -10,7 +10,6 @@
 
 #include "app-context/VulkanApplicationContext.h"
 
-#include "memory/ImageUtils.h"
 #include "ray-tracing/RtScene.h"
 #include "scene/ComputeModel.h"
 #include "scene/Mesh.h"
@@ -138,11 +137,20 @@ class Application {
   std::vector<std::unique_ptr<ImageForwardingPair>> mTargetForwardingPairs;
 
   std::unique_ptr<Image> mLastFrameAccumImage;
-  std::unique_ptr<Image> mDepthImage;
-  std::unique_ptr<Image> mNormalImage;
-  std::unique_ptr<Image> mGradientImage;
 
   std::unique_ptr<Image> mVarianceImage;
+
+  std::unique_ptr<Image> mDepthImage;
+  std::unique_ptr<Image> mDepthImagePrev;
+  std::unique_ptr<ImageForwardingPair> mDepthForwardingPair;
+
+  std::unique_ptr<Image> mNormalImage;
+  std::unique_ptr<Image> mNormalImagePrev;
+  std::unique_ptr<ImageForwardingPair> mNormalForwardingPair;
+
+  std::unique_ptr<Image> mGradientImage;
+  std::unique_ptr<Image> mGradientImagePrev;
+  std::unique_ptr<ImageForwardingPair> mGradientForwardingPair;
 
   std::unique_ptr<Image> mVarianceHistImage;
   std::unique_ptr<Image> mVarianceHistImagePrev;

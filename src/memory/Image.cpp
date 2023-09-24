@@ -3,7 +3,6 @@
 #include "app-context/VulkanApplicationContext.h"
 
 #include "Buffer.h"
-#include "ImageUtils.h"
 #include "render-context/RenderSystem.h"
 #include "utils/Logger.h"
 #include "vulkan/vulkan_core.h"
@@ -166,6 +165,22 @@ VkImageMemoryBarrier getMemoryBarrier(VkImage image, VkImageLayout oldLayout,
   memoryBarrier.dstAccessMask        = dstAccessMask;
   return memoryBarrier;
 }
+
+VkImageCopy imageCopyRegion(uint32_t width, uint32_t height) {
+  VkImageCopy region;
+  region.dstOffset                     = {0, 0, 0};
+  region.srcOffset                     = {0, 0, 0};
+  region.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.dstSubresource.mipLevel       = 0;
+  region.dstSubresource.baseArrayLayer = 0;
+  region.dstSubresource.layerCount     = 1;
+  region.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.srcSubresource.mipLevel       = 0;
+  region.srcSubresource.baseArrayLayer = 0;
+  region.srcSubresource.layerCount     = 1;
+  region.extent                        = {width, height, 1};
+  return region;
+}
 } // namespace
 
 ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2,
@@ -174,7 +189,7 @@ ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2,
                                          VkImageLayout image1AfterCopy,
                                          VkImageLayout image2AfterCopy)
     : mImage1(image1), mImage2(image2) {
-  mCopyRegion = ImageUtils::imageCopyRegion(
+  mCopyRegion = imageCopyRegion(
       VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
       VulkanApplicationContext::getInstance()->getSwapchainExtentHeight());
 

@@ -197,35 +197,59 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
+  // TODO:
   mDepthImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mDepthImagePrev = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mDepthForwardingPair = std::make_unique<ImageForwardingPair>(
+      mDepthImage->getVkImage(), mDepthImagePrev->getVkImage(),
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
   mNormalImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
       VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
-  mGradientImage = std::make_unique<Image>(
-      mAppContext->getDevice(), mAppContext->getCommandPool(),
-      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
-      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-      VMA_MEMORY_USAGE_GPU_ONLY);
-
-  mVarianceHistImagePrev = std::make_unique<Image>(
+  mNormalImagePrev = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mNormalForwardingPair = std::make_unique<ImageForwardingPair>(
+      mNormalImage->getVkImage(), mNormalImagePrev->getVkImage(),
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+
+  mGradientImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mGradientImagePrev = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mGradientForwardingPair = std::make_unique<ImageForwardingPair>(
+      mGradientImage->getVkImage(), mGradientImagePrev->getVkImage(),
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
   mVarianceHistImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
@@ -234,19 +258,17 @@ void Application::initScene() {
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
-  mVarianceHistForwardingPair = std::make_unique<ImageForwardingPair>(
-      mVarianceHistImage->getVkImage(),
-      mVarianceHistImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_GENERAL);
-
-  mVarianceImage = std::make_unique<Image>(
+  mVarianceHistImagePrev = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
-      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-      VMA_MEMORY_USAGE_GPU_ONLY);
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mVarianceHistForwardingPair = std::make_unique<ImageForwardingPair>(
+      mVarianceHistImage->getVkImage(), mVarianceHistImagePrev->getVkImage(),
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
   mMeshHashImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
@@ -254,19 +276,23 @@ void Application::initScene() {
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
   mMeshHashImagePrev = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
   mMeshHashForwardingPair = std::make_unique<ImageForwardingPair>(
-      mMeshHashImage->getVkImage(),
-      mMeshHashImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_GENERAL);
+      mMeshHashImage->getVkImage(), mMeshHashImagePrev->getVkImage(),
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+
+  mVarianceImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY);
 
   mLastFrameAccumImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
@@ -505,34 +531,12 @@ void Application::createRenderCommandBuffers() {
         currentCommandBuffer, static_cast<uint32_t>(i),
         mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
 
-    // // copy targetTex to swapchainImage
-    // vkCmdPipelineBarrier(currentCommandBuffer,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
-    //                      0, nullptr, 1, &targetTexGeneral2TransSrc);
-    // vkCmdPipelineBarrier(currentCommandBuffer,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr,
-    //                      0, nullptr, 1,
-    //                      &swapchainImageUndefined2TransferDst);
-    // vkCmdCopyImage(currentCommandBuffer, mTargetImage->getVkImage(),
-    //                VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    //                mAppContext->getSwapchainImages()[i],
-    //                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-    //                &imgCopyRegion);
-    // vkCmdPipelineBarrier(currentCommandBuffer,
-    // VK_PIPELINE_STAGE_TRANSFER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
-    //                      nullptr, 0, nullptr, 1,
-    //                      &targetTexTransSrc2General);
-    // vkCmdPipelineBarrier(currentCommandBuffer,
-    // VK_PIPELINE_STAGE_TRANSFER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0,
-    //                      nullptr, 0, nullptr, 1,
-    //                      &swapchainImageTransferDst2ColorAttachment);
     mTargetForwardingPairs[i]->forwardCopying(currentCommandBuffer);
 
     // copy to history images
+    mDepthForwardingPair->forwardCopying(currentCommandBuffer);
+    mNormalForwardingPair->forwardCopying(currentCommandBuffer);
+    mGradientForwardingPair->forwardCopying(currentCommandBuffer);
     mVarianceHistForwardingPair->forwardCopying(currentCommandBuffer);
     mMeshHashForwardingPair->forwardCopying(currentCommandBuffer);
 
