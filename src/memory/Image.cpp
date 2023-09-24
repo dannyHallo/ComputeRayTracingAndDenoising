@@ -151,32 +151,49 @@ void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool,
   mCurrentImageLayout = newLayout;
 }
 
-ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2)
-    : mImage1(image1), mImage2(image2) {
-  mCopyRegion = ImageUtils::imageCopyRegion(
-      VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight());
-
-  mImage1BeforeCopy = ImageUtils::generalToTransferSrcBarrier(mImage1);
-  mImage2BeforeCopy = ImageUtils::undefinedToTransferDstBarrier(mImage2);
-  mImage1AfterCopy  = ImageUtils::transferSrcToGeneralBarrier(mImage1);
-  mImage2AfterCopy  = ImageUtils::transferDstToGeneralBarrier(mImage2);
+namespace {
+VkImageMemoryBarrier getMemoryBarrier(VkImage image, VkImageLayout oldLayout,
+                                      VkImageLayout newLayout,
+                                      VkAccessFlags srcAccessMask,
+                                      VkAccessFlags dstAccessMask) {
+  VkImageMemoryBarrier memoryBarrier = {};
+  memoryBarrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  memoryBarrier.oldLayout            = oldLayout;
+  memoryBarrier.newLayout            = newLayout;
+  memoryBarrier.image                = image;
+  memoryBarrier.subresourceRange     = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  memoryBarrier.srcAccessMask        = srcAccessMask;
+  memoryBarrier.dstAccessMask        = dstAccessMask;
+  return memoryBarrier;
 }
+} // namespace
 
 ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2,
-                                         VkImageMemoryBarrier image1BeforeCopy,
-                                         VkImageMemoryBarrier image2BeforeCopy,
-                                         VkImageMemoryBarrier image1AfterCopy,
-                                         VkImageMemoryBarrier image2AfterCopy)
+                                         VkImageLayout image1BeforeCopy,
+                                         VkImageLayout image2BeforeCopy,
+                                         VkImageLayout image1AfterCopy,
+                                         VkImageLayout image2AfterCopy)
     : mImage1(image1), mImage2(image2) {
   mCopyRegion = ImageUtils::imageCopyRegion(
       VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
       VulkanApplicationContext::getInstance()->getSwapchainExtentHeight());
 
-  mImage1BeforeCopy = image1BeforeCopy;
-  mImage2BeforeCopy = image2BeforeCopy;
-  mImage1AfterCopy  = image1AfterCopy;
-  mImage2AfterCopy  = image2AfterCopy;
+  mImage1BeforeCopy = getMemoryBarrier(
+      image1, image1BeforeCopy, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+      VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+      VK_ACCESS_TRANSFER_READ_BIT);
+  mImage2BeforeCopy = getMemoryBarrier(
+      image2, image2BeforeCopy, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+      VK_ACCESS_TRANSFER_WRITE_BIT);
+  mImage1AfterCopy =
+      getMemoryBarrier(image1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       image1AfterCopy, VK_ACCESS_TRANSFER_READ_BIT,
+                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
+  mImage2AfterCopy =
+      getMemoryBarrier(image2, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                       image2AfterCopy, VK_ACCESS_TRANSFER_WRITE_BIT,
+                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
 }
 
 void ImageForwardingPair::forwardCopying(VkCommandBuffer commandBuffer) {

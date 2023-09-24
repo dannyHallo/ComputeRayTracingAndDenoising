@@ -71,11 +71,16 @@ class ImageForwardingPair {
   VkImageMemoryBarrier mImage2AfterCopy{};
 
 public:
-  ImageForwardingPair(VkImage image1, VkImage image2);
   ImageForwardingPair(VkImage image1, VkImage image2,
-                      VkImageMemoryBarrier image1BeforeCopy,
-                      VkImageMemoryBarrier image2BeforeCopy,
-                      VkImageMemoryBarrier image1AfterCopy,
-                      VkImageMemoryBarrier image2AfterCopy);
+                      VkImageLayout image1BeforeCopy,
+                      VkImageLayout image2BeforeCopy,
+                      VkImageLayout image1AfterCopy,
+                      VkImageLayout image2AfterCopy);
+
+  // ImageForwardingPair(VkImage image1, VkImage image2,
+  //                     VkImageMemoryBarrier image1BeforeCopy,
+  //                     VkImageMemoryBarrier image2BeforeCopy,
+  //                     VkImageMemoryBarrier image1AfterCopy,
+  //                     VkImageMemoryBarrier image2AfterCopy);
   void forwardCopying(VkCommandBuffer commandBuffer);
 };

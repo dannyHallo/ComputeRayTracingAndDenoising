@@ -157,12 +157,8 @@ void Application::initScene() {
   for (int i = 0; i < mAppContext->getSwapchainSize(); i++) {
     mTargetForwardingPairs.emplace_back(std::make_unique<ImageForwardingPair>(
         mTargetImage->getVkImage(), mAppContext->getSwapchainImages()[i],
-        ImageUtils::generalToTransferSrcBarrier(mTargetImage->getVkImage()),
-        ImageUtils::undefinedToTransferDstBarrier(
-            mAppContext->getSwapchainImages()[i]),
-        ImageUtils::transferSrcToGeneralBarrier(mTargetImage->getVkImage()),
-        ImageUtils::transferDstToColorAttachmentBarrier(
-            mAppContext->getSwapchainImages()[i])));
+        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
   }
 
   mRawImage = std::make_unique<Image>(
@@ -188,7 +184,9 @@ void Application::initScene() {
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mATrousForwardingPair = std::make_unique<ImageForwardingPair>(
-      mATrousOutputImage->getVkImage(), mATrousInputImage->getVkImage());
+      mATrousOutputImage->getVkImage(), mATrousInputImage->getVkImage(),
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
   // introducing G-Buffers
   mPositionImage = std::make_unique<Image>(
@@ -239,7 +237,9 @@ void Application::initScene() {
 
   mVarianceHistForwardingPair = std::make_unique<ImageForwardingPair>(
       mThisFrameVarianceHistImage->getVkImage(),
-      mLastFrameVarianceHistImage->getVkImage());
+      mLastFrameVarianceHistImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_GENERAL);
 
   mVarianceImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
@@ -264,7 +264,9 @@ void Application::initScene() {
 
   mMeshHashForwardingPair = std::make_unique<ImageForwardingPair>(
       mThisFrameMeshHashImage->getVkImage(),
-      mLastFrameMeshHashImage->getVkImage());
+      mLastFrameMeshHashImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_GENERAL);
 
   mLastFrameAccumImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),

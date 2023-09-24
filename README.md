@@ -4,7 +4,6 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 
 # Roadmap
 
-1. memory barrier structure & forwarding pairs
 2. add normal and depth edge stopping functions to temporal accumulation
 3. tap filter to temporal accumulation
 
