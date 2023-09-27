@@ -25,30 +25,7 @@ static const std::vector<const char *> validationLayers = {
 static const std::vector<const char *> requiredDeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-std::unique_ptr<VulkanApplicationContext> VulkanApplicationContext::sInstance =
-    nullptr;
-
-VulkanApplicationContext *
-VulkanApplicationContext::initInstance(GLFWwindow *window) {
-  if (sInstance != nullptr) {
-    Logger::throwError("VulkanApplicationContext::initInstance: instance is "
-                       "already initialized");
-  }
-  sInstance = std::unique_ptr<VulkanApplicationContext>(
-      new VulkanApplicationContext(window));
-  return sInstance.get();
-}
-
-VulkanApplicationContext *VulkanApplicationContext::getInstance() {
-  if (sInstance == nullptr) {
-    Logger::throwError(
-        "VulkanApplicationContext::getInstance: instance is not initialized");
-  }
-  return sInstance.get();
-}
-
-VulkanApplicationContext::VulkanApplicationContext(GLFWwindow *glWindow)
-    : mGlWindow(glWindow) {
+void VulkanApplicationContext::init(GLFWwindow *window) {
   Logger::print("Creating VulkanApplicationContext");
 #ifndef NVALIDATIONLAYERS
   Logger::print("DEBUG mode is enabled");
@@ -56,6 +33,7 @@ VulkanApplicationContext::VulkanApplicationContext(GLFWwindow *glWindow)
   Logger::print("DEBUG mode is disabled");
 #endif // NDEBUG
 
+  mGlWindow       = window;
   VkResult result = volkInitialize();
   Logger::checkStep("volkInitialize", result);
 
@@ -84,6 +62,13 @@ VulkanApplicationContext::VulkanApplicationContext(GLFWwindow *glWindow)
   createAllocator();
   createCommandPool();
 }
+
+VulkanApplicationContext *VulkanApplicationContext::getInstance() {
+  static VulkanApplicationContext instance{};
+  return &instance;
+}
+
+VulkanApplicationContext::VulkanApplicationContext() {}
 
 VulkanApplicationContext::~VulkanApplicationContext() {
   Logger::print("Destroying VulkanApplicationContext");

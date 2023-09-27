@@ -40,9 +40,10 @@ void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
 Camera *Application::getCamera() { return mCamera.get(); }
 
 Application::Application() {
-  mWindow     = std::make_unique<FullscreenWindow>();
-  mAppContext = VulkanApplicationContext::initInstance(mWindow->getGlWindow());
-  mCamera     = std::make_unique<Camera>(mWindow.get());
+  mWindow     = std::make_unique<HoverWindow>(1080, 720);
+  mAppContext = VulkanApplicationContext::getInstance();
+  mAppContext->init(mWindow->getGlWindow());
+  mCamera = std::make_unique<Camera>(mWindow.get());
 }
 
 void Application::run() {

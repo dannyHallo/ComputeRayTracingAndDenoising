@@ -24,8 +24,6 @@
 
 // also, this class should be configed out of class
 class VulkanApplicationContext {
-  static std::unique_ptr<VulkanApplicationContext> sInstance;
-
   // stores the indices of the each queue family, they might not overlap
   QueueFamilyIndices mQueueFamilyIndices;
 
@@ -58,11 +56,10 @@ class VulkanApplicationContext {
   std::vector<VkImageView> mSwapchainImageViews;
 
 public:
-  // use glwindow to init the instance, can be only called once
-  static VulkanApplicationContext *initInstance(GLFWwindow *glWindow = nullptr);
-
-  // get the singleton instance, must be called after initInstance()
   static VulkanApplicationContext *getInstance();
+
+  // use glwindow to init the instance, can be only called once
+  void init(GLFWwindow *glWindow);
 
   ~VulkanApplicationContext();
 
@@ -133,7 +130,7 @@ public:
   }
 
 private:
-  VulkanApplicationContext(GLFWwindow *glWindow);
+  VulkanApplicationContext();
 
   void initWindow(uint8_t windowSize);
 
