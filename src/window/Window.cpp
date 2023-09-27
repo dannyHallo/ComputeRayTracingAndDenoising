@@ -1,18 +1,31 @@
 #include "Window.h"
 #include "utils/Logger.h"
 
-// we define this window po
-// inter here as a handle in glfw callback function, it will be initialized
-// after the first construction of this class
-Window *Window::thisWindowClass = nullptr;
+namespace {
+void frameBufferResizeCallback(GLFWwindow *window, int width, int height) {
+  auto *thisWindowClass =
+      reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
+  thisWindowClass->setWindowSizeChanged(true);
+
+  // debug functions
+  Logger::print("window size changed");
+  Logger::print("Frame Width is changing to:",
+                thisWindowClass->getFrameBufferWidth());
+  Logger::print("Frame Height is changing to:",
+                thisWindowClass->getFrameBufferHeight());
+  Logger::print("Window Width is changing to:",
+                thisWindowClass->getWindowWidth());
+  Logger::print("Window Height is changing to:",
+                thisWindowClass->getWindowHeight());
+}
+} // namespace
 
 Window::Window(WindowStyle windowStyle, int widthIfWindowed,
                int heightIfWindowed)
     : mWindowStyle(windowStyle), mCursorState(CursorState::INVISIBLE),
       mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed),
       mKeyInputBits(0) {
-  thisWindowClass = this;
-  auto result     = glfwInit();
+  auto result = glfwInit();
   assert(result == GLFW_TRUE && "Failed to initialize GLFW");
 
   mMonitor = glfwGetPrimaryMonitor();
@@ -54,7 +67,9 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed,
     showCursor();
   }
 
+  glfwSetWindowUserPointer(mWindow, this);
   glfwSetKeyCallback(mWindow, keyCallback);
+  glfwSetFramebufferSizeCallback(mWindow, frameBufferResizeCallback);
 }
 
 void Window::showCursor() {
@@ -80,8 +95,11 @@ void Window::toggleCursor() {
   }
 }
 
-void Window::keyCallback(GLFWwindow * /*window*/, int key, int /*scancode*/,
+void Window::keyCallback(GLFWwindow *window, int key, int /*scancode*/,
                          int action, int /*mods*/) {
+  auto *thisWindowClass =
+      reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
+
   if (action == GLFW_PRESS) {
     // Direction keycodes
     switch (key) {

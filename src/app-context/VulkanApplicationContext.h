@@ -130,7 +130,7 @@ public:
   }
 
 private:
-  VulkanApplicationContext();
+  VulkanApplicationContext() = default;
 
   void initWindow(uint8_t windowSize);
 

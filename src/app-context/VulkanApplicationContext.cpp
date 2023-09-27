@@ -68,8 +68,6 @@ VulkanApplicationContext *VulkanApplicationContext::getInstance() {
   return &instance;
 }
 
-VulkanApplicationContext::VulkanApplicationContext() {}
-
 VulkanApplicationContext::~VulkanApplicationContext() {
   Logger::print("Destroying VulkanApplicationContext");
 

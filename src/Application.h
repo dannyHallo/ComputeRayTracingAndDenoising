@@ -229,6 +229,9 @@ private:
   // create descriptor pool for GUI
   void createGuiDescripterPool();
 
+  // this step nearly destroys everything before recreating them
+  void recreateSwapchain();
+
   // begin single time commands
   VkCommandBuffer beginSingleTimeCommands();
 

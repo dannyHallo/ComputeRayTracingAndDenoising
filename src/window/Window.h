@@ -23,14 +23,14 @@ constexpr int ESC_BIT   = 128;
 constexpr int TAB_BIT   = 256;
 
 class Window {
-  static Window *thisWindowClass;
-
   WindowStyle mWindowStyle;
   CursorState mCursorState;
 
   int mWidthIfWindowed;
   int mHeightIfWindowed;
   int mKeyInputBits;
+
+  bool mWindowSizeChanged = false;
 
   GLFWwindow *mWindow   = nullptr;
   GLFWmonitor *mMonitor = nullptr;
@@ -53,6 +53,34 @@ public:
   [[nodiscard]] GLFWmonitor *getMonitor() const { return mMonitor; }
   [[nodiscard]] uint32_t getKeyInputs() const { return mKeyInputBits; }
   [[nodiscard]] CursorState getCursorState() const { return mCursorState; }
+  [[nodiscard]] bool windowSizeChanged() const { return mWindowSizeChanged; }
+
+  // be careful to use these two functions, you might want to query the
+  // framebuffer size, not the window size
+  [[nodiscard]] int getWindowWidth() const {
+    int width, height;
+    glfwGetWindowSize(mWindow, &width, &height);
+    return width;
+  }
+  [[nodiscard]] int getWindowHeight() const {
+    int width, height;
+    glfwGetWindowSize(mWindow, &width, &height);
+    return height;
+  }
+  [[nodiscard]] int getFrameBufferWidth() const {
+    int width, height;
+    glfwGetFramebufferSize(mWindow, &width, &height);
+    return width;
+  }
+  [[nodiscard]] int getFrameBufferHeight() const {
+    int width, height;
+    glfwGetFramebufferSize(mWindow, &width, &height);
+    return height;
+  }
+
+  void setWindowSizeChanged(bool windowSizeChanged) {
+    mWindowSizeChanged = windowSizeChanged;
+  }
 
   void showCursor();
   void hideCursor();

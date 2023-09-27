@@ -953,6 +953,10 @@ void Application::mainLoop() {
   while (glfwWindowShouldClose(mWindow->getGlWindow()) == 0) {
     glfwPollEvents();
 
+    if (mWindow->windowSizeChanged()) {
+      
+      break;
+    }
     prepareGui();
 
     fpsFrameCount++;
@@ -975,6 +979,8 @@ void Application::mainLoop() {
 
   vkDeviceWaitIdle(mAppContext->getDevice());
 }
+
+void Application::recreateSwapchain() {}
 
 void Application::initVulkan() {
 
