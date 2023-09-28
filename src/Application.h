@@ -116,6 +116,7 @@ class Application {
 
   VulkanApplicationContext *mAppContext;
 
+  /// the following resources are NOT swapchain size related
   // scene for ray tracing
   std::unique_ptr<GpuModel::Scene> mRtScene;
 
@@ -138,6 +139,22 @@ class Application {
   std::unique_ptr<BufferBundle> mBvhBufferBundle;
   std::unique_ptr<BufferBundle> mLightsBufferBundle;
 
+  // command buffers for rendering and GUI
+  std::vector<VkCommandBuffer> mCommandBuffers;
+  std::vector<VkCommandBuffer> mGuiCommandBuffers;
+
+  // render pass for GUI
+  VkRenderPass mGuiPass = VK_NULL_HANDLE;
+
+  // descriptor pool for GUI
+  VkDescriptorPool mGuiDescriptorPool = VK_NULL_HANDLE;
+
+  // semaphores and fences for synchronization
+  std::vector<VkSemaphore> mImageAvailableSemaphores;
+  std::vector<VkSemaphore> mRenderFinishedSemaphores;
+  std::vector<VkFence> mFramesInFlightFences;
+
+  /// the following resources ARE swapchain size related
   // images for ray tracing and post-processing
   std::unique_ptr<Image> mPositionImage;
   std::unique_ptr<Image> mRawImage;
@@ -173,23 +190,8 @@ class Application {
   std::unique_ptr<Image> mATrousOutputImage;
   std::unique_ptr<ImageForwardingPair> mATrousForwardingPair;
 
-  // command buffers for rendering and GUI
-  std::vector<VkCommandBuffer> mCommandBuffers;
-  std::vector<VkCommandBuffer> mGuiCommandBuffers;
-
   // framebuffers for GUI
   std::vector<VkFramebuffer> mGuiFrameBuffers;
-
-  // render pass for GUI
-  VkRenderPass mImGuiPass = VK_NULL_HANDLE;
-
-  // descriptor pool for GUI
-  VkDescriptorPool mGuiDescriptorPool = VK_NULL_HANDLE;
-
-  // semaphores and fences for synchronization
-  std::vector<VkSemaphore> mImageAvailableSemaphores;
-  std::vector<VkSemaphore> mRenderFinishedSemaphores;
-  std::vector<VkFence> mFramesInFlightFences;
 
 public:
   Application();

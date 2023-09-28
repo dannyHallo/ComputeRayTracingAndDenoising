@@ -70,6 +70,13 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed,
   glfwSetWindowUserPointer(mWindow, this);
   glfwSetKeyCallback(mWindow, keyCallback);
   glfwSetFramebufferSizeCallback(mWindow, frameBufferResizeCallback);
+
+  // debug functions
+  Logger::print("Window created");
+  Logger::print("Frame Width is:", getFrameBufferWidth());
+  Logger::print("Frame Height is:", getFrameBufferHeight());
+  Logger::print("Window Width is:", getWindowWidth());
+  Logger::print("Window Height is:", getWindowHeight());
 }
 
 void Window::showCursor() {

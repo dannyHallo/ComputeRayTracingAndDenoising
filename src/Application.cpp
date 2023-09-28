@@ -78,7 +78,7 @@ void Application::cleanup() {
     vkDestroyFramebuffer(mAppContext->getDevice(), guiFrameBuffer, nullptr);
   }
 
-  vkDestroyRenderPass(mAppContext->getDevice(), mImGuiPass, nullptr);
+  vkDestroyRenderPass(mAppContext->getDevice(), mGuiPass, nullptr);
   vkDestroyDescriptorPool(mAppContext->getDevice(), mGuiDescriptorPool,
                           nullptr);
 
@@ -661,7 +661,7 @@ void Application::createGuiRenderPass() {
   renderPassCreateInfo.pDependencies   = &dependency;
 
   VkResult result = vkCreateRenderPass(
-      mAppContext->getDevice(), &renderPassCreateInfo, nullptr, &mImGuiPass);
+      mAppContext->getDevice(), &renderPassCreateInfo, nullptr, &mGuiPass);
   Logger::checkStep("vkCreateRenderPass", result);
 }
 
@@ -677,7 +677,7 @@ void Application::createGuiFramebuffers() {
 
     VkFramebufferCreateInfo frameBufferCreateInfo{};
     frameBufferCreateInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    frameBufferCreateInfo.renderPass      = mImGuiPass;
+    frameBufferCreateInfo.renderPass      = mGuiPass;
     frameBufferCreateInfo.attachmentCount = 1;
     frameBufferCreateInfo.pAttachments    = &attachment;
     frameBufferCreateInfo.width  = mAppContext->getSwapchainExtentWidth();
@@ -751,7 +751,7 @@ void Application::initGui() {
       static_cast<uint32_t>(mAppContext->getSwapchainSize());
   init_info.ImageCount = static_cast<uint32_t>(mAppContext->getSwapchainSize());
   init_info.CheckVkResultFn = check_vk_result;
-  if (!ImGui_ImplVulkan_Init(&init_info, mImGuiPass)) {
+  if (!ImGui_ImplVulkan_Init(&init_info, mGuiPass)) {
     Logger::print("failed to init impl");
   }
 
@@ -780,7 +780,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer,
 
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass        = mImGuiPass;
+  renderPassInfo.renderPass        = mGuiPass;
   renderPassInfo.framebuffer       = mGuiFrameBuffers[imageIndex];
   renderPassInfo.renderArea.extent = mAppContext->getSwapchainExtent();
 
@@ -954,7 +954,7 @@ void Application::mainLoop() {
     glfwPollEvents();
 
     if (mWindow->windowSizeChanged()) {
-      
+      mWindow->setWindowSizeChanged(false);
       break;
     }
     prepareGui();
