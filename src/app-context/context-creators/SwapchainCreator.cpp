@@ -158,13 +158,13 @@ void SwapchainCreator::create(VkSwapchainKHR &swapchain,
   // obtain the actual number of swapchain images
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);
   swapchainImages.resize(imageCount);
-  swapchainImageViews.reserve(imageCount);
+  swapchainImageViews.resize(imageCount);
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount,
                           swapchainImages.data());
 
   for (size_t i = 0; i < imageCount; i++) {
-    swapchainImageViews.emplace_back(
+    swapchainImageViews[i] =
         Image::createImageView(device, swapchainImages[i], swapchainImageFormat,
-                               VK_IMAGE_ASPECT_COLOR_BIT));
+                               VK_IMAGE_ASPECT_COLOR_BIT);
   }
 }

@@ -47,7 +47,7 @@ Application::Application() {
 }
 
 void Application::run() {
-  initVulkan();
+  init();
   mainLoop();
   cleanup();
 }
@@ -93,13 +93,15 @@ void check_vk_result(VkResult resultCode) {
   Logger::checkStep("check_vk_result", resultCode);
 }
 
-void Application::initScene() {
-  // equals to descriptor sets size
-  auto swapchainSize = static_cast<uint32_t>(mAppContext->getSwapchainSize());
+void Application::createScene() {
 
   // creates material, loads models from files, creates bvh
   mRtScene = std::make_unique<GpuModel::Scene>();
+}
 
+void Application::createBufferBundles() {
+  // equals to descriptor sets size
+  auto swapchainSize = static_cast<uint32_t>(mAppContext->getSwapchainSize());
   // uniform buffers are faster to fill compared to storage buffers, but they
   // are restricted in their size Buffer bundle is an array of buffers, one per
   // each swapchain image/descriptor set.
@@ -141,7 +143,9 @@ void Application::initScene() {
       swapchainSize, sizeof(GpuModel::Light) * mRtScene->lights.size(),
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
       mRtScene->lights.data());
+}
 
+void Application::createImagesAndForwardingPairs() {
   auto imageWidth  = mAppContext->getSwapchainExtentWidth();
   auto imageHeight = mAppContext->getSwapchainExtentHeight();
 
@@ -198,7 +202,6 @@ void Application::initScene() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
-  // TODO:
   mDepthImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
@@ -301,7 +304,11 @@ void Application::initScene() {
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY);
+}
 
+// TODO: this step might need to be rebinded after all the resources are
+// recreated
+void Application::createComputeModels() {
   auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder +
                                                   "/shaders/generated/rtx.spv");
   rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
@@ -578,7 +585,81 @@ void Application::createRenderCommandBuffers() {
   }
 }
 
-void Application::createSyncObjects() {
+void Application::cleanupImagesAndForwardingPairs() {
+  mPositionImage.reset();
+  mRawImage.reset();
+
+  mTargetImage.reset();
+  mTargetForwardingPairs.clear();
+
+  mLastFrameAccumImage.reset();
+
+  mVarianceImage.reset();
+
+  mDepthImage.reset();
+  mDepthImagePrev.reset();
+  mDepthForwardingPair.reset();
+
+  mNormalImage.reset();
+  mNormalImagePrev.reset();
+  mNormalForwardingPair.reset();
+
+  mGradientImage.reset();
+  mGradientImagePrev.reset();
+  mGradientForwardingPair.reset();
+
+  mVarianceHistImage.reset();
+  mVarianceHistImagePrev.reset();
+  mVarianceHistForwardingPair.reset();
+
+  mMeshHashImage.reset();
+  mMeshHashImagePrev.reset();
+  mMeshHashForwardingPair.reset();
+
+  mATrousInputImage.reset();
+  mATrousOutputImage.reset();
+  mATrousForwardingPair.reset();
+}
+
+void Application::cleanupGuiFrameBuffers() {
+  for (auto &framebuffer : mGuiFrameBuffers) {
+    vkDestroyFramebuffer(mAppContext->getDevice(), framebuffer, nullptr);
+  }
+}
+
+// these models are binded with image resources
+void Application::cleanupComputeModels() {
+  mRtxModel.reset();
+  mGradientModel.reset();
+  mTemporalFilterModel.reset();
+  mVarianceModel.reset();
+  mATrousModels.clear();
+  mPostProcessingModel.reset();
+}
+
+// these commandbuffers are initially recorded with the models
+void Application::cleanupRenderCommandBuffers() {
+
+  for (auto &commandBuffer : mCommandBuffers) {
+    vkFreeCommandBuffers(mAppContext->getDevice(),
+                         mAppContext->getCommandPool(), 1, &commandBuffer);
+  }
+}
+void Application::cleanupSwapchainDimensionRelatedResources() {
+  cleanupImagesAndForwardingPairs();
+  cleanupComputeModels();
+  cleanupRenderCommandBuffers();
+  cleanupGuiFrameBuffers();
+}
+
+void Application::createSwapchainDimensionRelatedResources() {
+  createImagesAndForwardingPairs();
+  createComputeModels();
+  createRenderCommandBuffers();
+  createGuiFramebuffers();
+}
+
+void Application::vkCreateSemaphoresAndFences() {
   mImageAvailableSemaphores.resize(kMaxFramesInFlight);
   mRenderFinishedSemaphores.resize(kMaxFramesInFlight);
   mFramesInFlightFences.resize(kMaxFramesInFlight);
@@ -946,6 +1027,17 @@ void Application::prepareGui() {
   ImGui::Render();
 }
 
+void Application::waitForTheWindowToBeResumed() {
+  int width  = mWindow->getFrameBufferWidth();
+  int height = mWindow->getFrameBufferHeight();
+
+  while (width == 0 || height == 0) {
+    glfwWaitEvents();
+    width  = mWindow->getFrameBufferWidth();
+    height = mWindow->getFrameBufferHeight();
+  }
+}
+
 void Application::mainLoop() {
   static float fpsFrameCount     = 0;
   static float fpsRecordLastTime = 0;
@@ -955,7 +1047,19 @@ void Application::mainLoop() {
 
     if (mWindow->windowSizeChanged()) {
       mWindow->setWindowSizeChanged(false);
-      break;
+
+      vkDeviceWaitIdle(mAppContext->getDevice());
+      waitForTheWindowToBeResumed();
+
+      cleanupSwapchainDimensionRelatedResources();
+      mAppContext->cleanupSwapchainDimensionRelatedResources();
+      mAppContext->createSwapchainDimensionRelatedResources();
+      createSwapchainDimensionRelatedResources();
+
+      // TODO:
+      fpsFrameCount     = 0;
+      fpsRecordLastTime = 0;
+      continue;
     }
     prepareGui();
 
@@ -980,12 +1084,11 @@ void Application::mainLoop() {
   vkDeviceWaitIdle(mAppContext->getDevice());
 }
 
-void Application::recreateSwapchain() {}
-
-void Application::initVulkan() {
-
-  // initialize the scene
-  initScene();
+void Application::init() {
+  createScene();
+  createBufferBundles();
+  createImagesAndForwardingPairs();
+  createComputeModels();
 
   // create render command buffers
   createRenderCommandBuffers();
@@ -994,7 +1097,7 @@ void Application::initVulkan() {
   createGuiCommandBuffers();
 
   // create synchronization objects
-  createSyncObjects();
+  vkCreateSemaphoresAndFences();
 
   // create GUI render pass
   createGuiRenderPass();

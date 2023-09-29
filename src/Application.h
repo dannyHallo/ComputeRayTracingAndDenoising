@@ -116,7 +116,7 @@ class Application {
 
   VulkanApplicationContext *mAppContext;
 
-  /// the following resources are NOT swapchain size related
+  /// the following resources are NOT swapchain dim related
   // scene for ray tracing
   std::unique_ptr<GpuModel::Scene> mRtScene;
 
@@ -154,7 +154,7 @@ class Application {
   std::vector<VkSemaphore> mRenderFinishedSemaphores;
   std::vector<VkFence> mFramesInFlightFences;
 
-  /// the following resources ARE swapchain size related
+  /// the following resources ARE swapchain dim related
   // images for ray tracing and post-processing
   std::unique_ptr<Image> mPositionImage;
   std::unique_ptr<Image> mRawImage;
@@ -207,38 +207,34 @@ public:
   void run();
 
 private:
-  // initialize layouts and models
-  void initScene();
+  void createScene();
+  void createBufferBundles();
+  void createImagesAndForwardingPairs();
+  void createComputeModels();
 
   // update uniform buffer object for each frame and save last mvpe matrix
   void updateScene(uint32_t currentImage);
 
-  // create command buffers for rendering
   void createRenderCommandBuffers();
 
-  // create semaphores and fences for synchronization
-  void createSyncObjects();
+  void vkCreateSemaphoresAndFences();
 
-  // create command buffers for GUI
   void createGuiCommandBuffers();
 
-  // create render pass for GUI
   void createGuiRenderPass();
 
-  // create framebuffers for GUI
   void createGuiFramebuffers();
 
-  // create descriptor pool for GUI
   void createGuiDescripterPool();
 
-  // this step nearly destroys everything before recreating them
-  void recreateSwapchain();
+  void cleanupSwapchainDimensionRelatedResources();
+  void cleanupImagesAndForwardingPairs();
+  void cleanupBufferBundles();
+  void cleanupGuiFrameBuffers();
+  void cleanupComputeModels();
+  void cleanupRenderCommandBuffers();
 
-  // begin single time commands
-  VkCommandBuffer beginSingleTimeCommands();
-
-  // end single time commands
-  void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+  void createSwapchainDimensionRelatedResources();
 
   // initialize GUI
   void initGui();
@@ -246,6 +242,8 @@ private:
   // record command buffer for GUI
   void recordGuiCommandBuffer(VkCommandBuffer &commandBuffer,
                               uint32_t imageIndex);
+
+  void waitForTheWindowToBeResumed();
 
   // draw a frame
   void drawFrame();
@@ -257,7 +255,7 @@ private:
   void mainLoop();
 
   // initialize Vulkan
-  void initVulkan();
+  void init();
 
   // cleanup resources
   void cleanup();

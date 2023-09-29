@@ -7,16 +7,14 @@ void frameBufferResizeCallback(GLFWwindow *window, int width, int height) {
       reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
   thisWindowClass->setWindowSizeChanged(true);
 
-  // debug functions
-  Logger::print("window size changed");
-  Logger::print("Frame Width is changing to:",
-                thisWindowClass->getFrameBufferWidth());
-  Logger::print("Frame Height is changing to:",
-                thisWindowClass->getFrameBufferHeight());
-  Logger::print("Window Width is changing to:",
-                thisWindowClass->getWindowWidth());
-  Logger::print("Window Height is changing to:",
-                thisWindowClass->getWindowHeight());
+  // Logger::print("Frame Width is changing to",
+  //               thisWindowClass->getFrameBufferWidth());
+  // Logger::print("Frame Height is changing to",
+  //               thisWindowClass->getFrameBufferHeight());
+  // Logger::print("Window Width is changing to",
+  //               thisWindowClass->getWindowWidth());
+  // Logger::print("Window Height is changing to",
+  //               thisWindowClass->getWindowHeight());
 }
 } // namespace
 

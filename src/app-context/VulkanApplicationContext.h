@@ -70,6 +70,9 @@ public:
   VulkanApplicationContext(VulkanApplicationContext &&)            = delete;
   VulkanApplicationContext &operator=(VulkanApplicationContext &&) = delete;
 
+  void cleanupSwapchainDimensionRelatedResources();
+  void createSwapchainDimensionRelatedResources();
+
   [[nodiscard]] inline const VkInstance &getVkInstance() const {
     return mVkInstance;
   }

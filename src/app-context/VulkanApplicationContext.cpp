@@ -68,6 +68,20 @@ VulkanApplicationContext *VulkanApplicationContext::getInstance() {
   return &instance;
 }
 
+void VulkanApplicationContext::cleanupSwapchainDimensionRelatedResources() {
+  for (auto &swapchainImageView : mSwapchainImageViews) {
+    vkDestroyImageView(mDevice, swapchainImageView, nullptr);
+  }
+
+  vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+}
+
+void VulkanApplicationContext::createSwapchainDimensionRelatedResources() {
+  SwapchainCreator::create(mSwapchain, mSwapchainImages, mSwapchainImageViews,
+                           mSwapchainImageFormat, mSwapchainExtent, mSurface,
+                           mDevice, mPhysicalDevice, mQueueFamilyIndices);
+}
+
 VulkanApplicationContext::~VulkanApplicationContext() {
   Logger::print("Destroying VulkanApplicationContext");
 
