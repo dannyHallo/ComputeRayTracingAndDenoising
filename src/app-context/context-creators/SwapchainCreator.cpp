@@ -70,18 +70,14 @@ VkPresentModeKHR chooseSwapPresentMode(
 
 // return the current extent, or create another one
 VkExtent2D getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
-  // if the current extent is valid (we can read the width and height out of it)
-  if (capabilities.currentExtent.width !=
-      std::numeric_limits<uint32_t>::max()) {
-    std::cout << "Using resolution: (" << capabilities.currentExtent.width
-              << ", " << capabilities.currentExtent.height << ")" << std::endl;
-    return capabilities.currentExtent;
-  }
+  assert(capabilities.currentExtent.width !=
+             std::numeric_limits<uint32_t>::max() &&
+         "currentExtent.width should be valid!");
 
-  Logger::throwError("This part shouldn't be reached!");
-  return {};
+  std::cout << "Using resolution: (" << capabilities.currentExtent.width << ", "
+            << capabilities.currentExtent.height << ")" << std::endl;
+  return capabilities.currentExtent;
 }
-
 } // namespace
 
 void SwapchainCreator::create(VkSwapchainKHR &swapchain,
@@ -135,8 +131,8 @@ void SwapchainCreator::create(VkSwapchainKHR &swapchain,
         static_cast<const uint32_t *>(queueFamilyIndicesArray);
   } else {
     // an image is owned by one queue family at a time and ownership must be
-    // explicitly transferred before the image is being used in another queue
-    // family. This offers the best performance.
+    // explicitly transferred before the image is being used in another
+    // queue family. This offers the best performance.
     swapchainCreateInfo.imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE;
     swapchainCreateInfo.queueFamilyIndexCount = 0;       // Optional
     swapchainCreateInfo.pQueueFamilyIndices   = nullptr; // Optional

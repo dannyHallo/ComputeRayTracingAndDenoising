@@ -9,18 +9,10 @@
 
 #include "utils/vulkan.h"
 
+#include <map>
+
 enum class WindowStyle { FULLSCREEN, MAXIMAZED, HOVER };
 enum class CursorState { INVISIBLE, VISIBLE };
-
-constexpr int W_BIT     = 1;
-constexpr int A_BIT     = 2;
-constexpr int S_BIT     = 4;
-constexpr int D_BIT     = 8;
-constexpr int SPACE_BIT = 16;
-constexpr int SHIFT_BIT = 32;
-constexpr int CTRL_BIT  = 64;
-constexpr int ESC_BIT   = 128;
-constexpr int TAB_BIT   = 256;
 
 class Window {
   WindowStyle mWindowStyle;
@@ -28,7 +20,7 @@ class Window {
 
   int mWidthIfWindowed;
   int mHeightIfWindowed;
-  int mKeyInputBits;
+  std::map<int, bool> mKeyInputMap;
 
   bool mWindowSizeChanged = false;
 
@@ -51,7 +43,15 @@ public:
 
   [[nodiscard]] GLFWwindow *getGlWindow() const { return mWindow; }
   [[nodiscard]] GLFWmonitor *getMonitor() const { return mMonitor; }
-  [[nodiscard]] uint32_t getKeyInputs() const { return mKeyInputBits; }
+  // [[nodiscard]] uint32_t getKeyInputs() const { return mKeyInputBits; }
+  // [[nodiscard]] const std::map<int, bool> &getKeyInputs() const {
+  //   return mKeyInputMap;
+  // }
+  [[nodiscard]] bool isInputBitActive(int inputBit) {
+    return mKeyInputMap.contains(inputBit) && mKeyInputMap[inputBit];
+  }
+
+  [[nodiscard]] WindowStyle getWindowStyle() const { return mWindowStyle; }
   [[nodiscard]] CursorState getCursorState() const { return mCursorState; }
   [[nodiscard]] bool windowSizeChanged() const { return mWindowSizeChanged; }
 
@@ -87,7 +87,7 @@ public:
   void toggleCursor();
 
   void disableInputBit(int bitToBeDisabled) {
-    mKeyInputBits &= ~bitToBeDisabled;
+    mKeyInputMap[bitToBeDisabled] = false;
   }
 
 private:

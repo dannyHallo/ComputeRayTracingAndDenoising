@@ -43,7 +43,7 @@ public:
   // processes input received from any keyboard-like input system. Accepts input
   // parameter in the form of camera defined ENUM (to abstract it from windowing
   // systems)
-  void processKeyboard(uint32_t inputBits, float deltaTime);
+  void processKeyboard(float deltaTime);
 
   // processes input received from a mouse input system. Expects the offset
   // value in both the x and y direction.

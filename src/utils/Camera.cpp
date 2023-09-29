@@ -21,23 +21,21 @@ glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear,
 }
 
 void Camera::processInput(float deltaTime) {
-  uint32_t inputBits = mWindow->getKeyInputs();
-
-  if ((inputBits & ESC_BIT) != 0) {
+  if (mWindow->isInputBitActive(GLFW_KEY_ESCAPE)) {
     glfwSetWindowShouldClose(mWindow->getGlWindow(), 1);
+    return;
   }
 
-  if ((inputBits & TAB_BIT) != 0) {
+  if (mWindow->isInputBitActive(GLFW_KEY_TAB)) {
     mWindow->toggleCursor();
-    mWindow->disableInputBit(TAB_BIT);
+    mWindow->disableInputBit(GLFW_KEY_TAB);
+    return;
   }
 
-  if ((inputBits & (SPACE_BIT | SHIFT_BIT | W_BIT | S_BIT | A_BIT | D_BIT)) !=
-      0)
-    processKeyboard(inputBits, deltaTime);
+  processKeyboard(deltaTime);
 }
 
-void Camera::processKeyboard(uint32_t inputBits, float deltaTime) {
+void Camera::processKeyboard(float deltaTime) {
   if (!canMove()) {
     return;
   }
@@ -46,22 +44,22 @@ void Camera::processKeyboard(uint32_t inputBits, float deltaTime) {
 
   float velocity = movementSpeedMultiplier * movementSpeed * deltaTime;
 
-  if ((inputBits & W_BIT) != 0) {
+  if (mWindow->isInputBitActive(GLFW_KEY_W)) {
     mPosition += mFront * velocity;
   }
-  if ((inputBits & S_BIT) != 0) {
+  if (mWindow->isInputBitActive(GLFW_KEY_S)) {
     mPosition -= mFront * velocity;
   }
-  if ((inputBits & A_BIT) != 0) {
+  if (mWindow->isInputBitActive(GLFW_KEY_A)) {
     mPosition -= mRight * velocity;
   }
-  if ((inputBits & D_BIT) != 0) {
+  if (mWindow->isInputBitActive(GLFW_KEY_D)) {
     mPosition += mRight * velocity;
   }
-  if ((inputBits & SPACE_BIT) != 0) {
+  if (mWindow->isInputBitActive(GLFW_KEY_SPACE)) {
     mPosition += mUp * velocity;
   }
-  if ((inputBits & SHIFT_BIT) != 0) {
+  if (mWindow->isInputBitActive(GLFW_KEY_LEFT_SHIFT)) {
     mPosition -= mUp * velocity;
   }
 }
@@ -89,16 +87,6 @@ void Camera::processMouseMovement(float xoffset, float yoffset) {
   // update Front, Right and Up Vectors using the updated Euler angles
   updateCameraVectors();
 }
-
-// void Camera::processMouseScroll(float yoffset) {
-//   if (!canMove()) {
-//     return;
-//   }
-
-// zoom -= (float)yoffset;
-// if (zoom < 1.0f) zoom = 1.0f;
-// if (zoom > 45.0f) zoom = 45.0f;
-// }
 
 void Camera::updateCameraVectors() {
   mFront = {-sin(glm::radians(mYaw)) * cos(glm::radians(mPitch)),

@@ -21,8 +21,7 @@ void frameBufferResizeCallback(GLFWwindow *window, int width, int height) {
 Window::Window(WindowStyle windowStyle, int widthIfWindowed,
                int heightIfWindowed)
     : mWindowStyle(windowStyle), mCursorState(CursorState::INVISIBLE),
-      mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed),
-      mKeyInputBits(0) {
+      mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed) {
   auto result = glfwInit();
   assert(result == GLFW_TRUE && "Failed to initialize GLFW");
 
@@ -105,68 +104,7 @@ void Window::keyCallback(GLFWwindow *window, int key, int /*scancode*/,
   auto *thisWindowClass =
       reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
 
-  if (action == GLFW_PRESS) {
-    // Direction keycodes
-    switch (key) {
-    case GLFW_KEY_W:
-      thisWindowClass->mKeyInputBits |= W_BIT;
-      break;
-    case GLFW_KEY_A:
-      thisWindowClass->mKeyInputBits |= A_BIT;
-      break;
-    case GLFW_KEY_S:
-      thisWindowClass->mKeyInputBits |= S_BIT;
-      break;
-    case GLFW_KEY_D:
-      thisWindowClass->mKeyInputBits |= D_BIT;
-      break;
-    case GLFW_KEY_SPACE:
-      thisWindowClass->mKeyInputBits |= SPACE_BIT;
-      break;
-    case GLFW_KEY_LEFT_SHIFT:
-      thisWindowClass->mKeyInputBits |= SHIFT_BIT;
-      break;
-    case GLFW_KEY_LEFT_CONTROL:
-      thisWindowClass->mKeyInputBits |= CTRL_BIT;
-      break;
-    case GLFW_KEY_ESCAPE:
-      thisWindowClass->mKeyInputBits |= ESC_BIT;
-      break;
-    case GLFW_KEY_TAB:
-      thisWindowClass->mKeyInputBits |= TAB_BIT;
-      break;
-    }
-  } else if (action == GLFW_RELEASE) {
-    switch (key) {
-    case GLFW_KEY_W:
-      thisWindowClass->mKeyInputBits &= ~W_BIT;
-      break;
-    case GLFW_KEY_A:
-      thisWindowClass->mKeyInputBits &= ~A_BIT;
-      break;
-    case GLFW_KEY_S:
-      thisWindowClass->mKeyInputBits &= ~S_BIT;
-      break;
-    case GLFW_KEY_D:
-      thisWindowClass->mKeyInputBits &= ~D_BIT;
-      break;
-    case GLFW_KEY_SPACE:
-      thisWindowClass->mKeyInputBits &= ~SPACE_BIT;
-      break;
-    case GLFW_KEY_LEFT_SHIFT:
-      thisWindowClass->mKeyInputBits &= ~SHIFT_BIT;
-      break;
-    case GLFW_KEY_LEFT_CONTROL:
-      thisWindowClass->mKeyInputBits &= ~CTRL_BIT;
-      break;
-    case GLFW_KEY_ESCAPE:
-      thisWindowClass->mKeyInputBits &= ~ESC_BIT;
-      break;
-    case GLFW_KEY_TAB:
-      thisWindowClass->mKeyInputBits &= ~TAB_BIT;
-      break;
-    }
-
-    return;
+  if (action == GLFW_PRESS || action == GLFW_RELEASE) {
+    thisWindowClass->mKeyInputMap[key] = action == GLFW_PRESS;
   }
 }
