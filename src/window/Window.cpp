@@ -11,17 +11,12 @@ void frameBufferResizeCallback(GLFWwindow *window, int width, int height) {
   //               thisWindowClass->getFrameBufferWidth());
   // Logger::print("Frame Height is changing to",
   //               thisWindowClass->getFrameBufferHeight());
-  // Logger::print("Window Width is changing to",
-  //               thisWindowClass->getWindowWidth());
-  // Logger::print("Window Height is changing to",
-  //               thisWindowClass->getWindowHeight());
 }
 } // namespace
 
 Window::Window(WindowStyle windowStyle, int widthIfWindowed,
                int heightIfWindowed)
-    : mWindowStyle(windowStyle), mCursorState(CursorState::INVISIBLE),
-      mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed) {
+    : mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed) {
   auto result = glfwInit();
   assert(result == GLFW_TRUE && "Failed to initialize GLFW");
 
@@ -29,36 +24,32 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed,
   assert(mMonitor != nullptr && "Failed to get primary monitor");
 
   // get primary monitor for future maximize function
-  const GLFWvidmode *mode =
-      glfwGetVideoMode(mMonitor); // may be used to change mode for this program
+  // may be used to change mode for this program
+  const GLFWvidmode *mode = glfwGetVideoMode(mMonitor);
   assert(mode != nullptr && "Failed to get video mode");
 
-  glfwWindowHint(GLFW_CLIENT_API,
-                 GLFW_NO_API); // only OpenGL Api is supported, so no API here
+  // only OpenGL Api is supported, so no API here
+  glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
   glfwWindowHint(GLFW_RED_BITS, mode->redBits);
   glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
   glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits); // adapt colors (notneeded)
   glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt framerate
 
-  // set window size
-  switch (windowStyle) {
-  case WindowStyle::FULLSCREEN:
-    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...",
-                               mMonitor, nullptr);
-    break;
-  case WindowStyle::MAXIMAZED:
-    mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...",
-                               nullptr, nullptr);
-    glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-    break;
-  case WindowStyle::HOVER:
-    mWindow = glfwCreateWindow(mWidthIfWindowed, mHeightIfWindowed,
-                               "Loading window...", nullptr, nullptr);
-    break;
-  }
+  // create a windowed fullscreen window temporalily, to obtain its property
+  mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...",
+                             nullptr, nullptr);
+  glfwMaximizeWindow(mWindow);
+  glfwGetWindowPos(mWindow, 0, &mTitleBarHeight);
+  glfwGetFramebufferSize(mWindow, &mMaximizedFullscreenClientWidth,
+                         &mMaximizedFullscreenClientHeight);
 
-  if (mCursorState == CursorState::INVISIBLE) {
+  // change the created window to the desired style
+  setWindowStyle(windowStyle);
+
+  mWindowStyle = windowStyle;
+
+  if (mCursorState == CursorState::kInvisible) {
     hideCursor();
   } else {
     showCursor();
@@ -68,17 +59,71 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed,
   glfwSetKeyCallback(mWindow, keyCallback);
   glfwSetFramebufferSizeCallback(mWindow, frameBufferResizeCallback);
 
-  // debug functions
-  Logger::print("Window created");
-  Logger::print("Frame Width is:", getFrameBufferWidth());
-  Logger::print("Frame Height is:", getFrameBufferHeight());
-  Logger::print("Window Width is:", getWindowWidth());
-  Logger::print("Window Height is:", getWindowHeight());
+  // Logger::print("Window created");
+  // Logger::print("Frame Width is:", getFrameBufferWidth());
+  // Logger::print("Frame Height is:", getFrameBufferHeight());
+  // Logger::print("Window Width is:", getWindowWidth());
+  // Logger::print("Window Height is:", getWindowHeight());
+}
+
+void Window::toggleWindowStyle() {
+  switch (mWindowStyle) {
+  case WindowStyle::kNone:
+    assert(false && "Cannot toggle window style while it is none");
+    break;
+  case WindowStyle::kFullScreen:
+    setWindowStyle(WindowStyle::kMaximized);
+    break;
+  case WindowStyle::kMaximized:
+    setWindowStyle(WindowStyle::kHover);
+    break;
+  case WindowStyle::kHover:
+    setWindowStyle(WindowStyle::kFullScreen);
+    break;
+  }
+}
+
+void Window::setWindowStyle(WindowStyle newStyle) {
+  if (newStyle == mWindowStyle) {
+    return;
+  }
+
+  const GLFWvidmode *mode = glfwGetVideoMode(mMonitor);
+  assert(mode != nullptr && "Failed to get video mode");
+
+  switch (newStyle) {
+  case WindowStyle::kNone:
+    assert(false && "Cannot set window style to none");
+    break;
+
+  case WindowStyle::kFullScreen:
+    glfwSetWindowMonitor(mWindow, mMonitor, 0, 0, mode->width, mode->height,
+                         mode->refreshRate);
+    break;
+
+  case WindowStyle::kMaximized:
+    glfwSetWindowMonitor(mWindow, nullptr, 0, mTitleBarHeight,
+                         mMaximizedFullscreenClientWidth,
+                         mMaximizedFullscreenClientHeight, mode->refreshRate);
+    break;
+
+  case WindowStyle::kHover:
+    int hoverWindowX = static_cast<int>(mMaximizedFullscreenClientWidth / 2.F -
+                                        mWidthIfWindowed / 2.F);
+    int hoverWindowY = static_cast<int>(mMaximizedFullscreenClientHeight / 2.F -
+                                        mHeightIfWindowed / 2.F);
+    glfwSetWindowMonitor(mWindow, nullptr, hoverWindowX, hoverWindowY,
+                         mWidthIfWindowed, mHeightIfWindowed,
+                         mode->refreshRate);
+    break;
+  }
+
+  mWindowStyle = newStyle;
 }
 
 void Window::showCursor() {
   glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-  mCursorState = CursorState::VISIBLE;
+  mCursorState = CursorState::kVisible;
 }
 
 void Window::hideCursor() {
@@ -88,11 +133,11 @@ void Window::hideCursor() {
     glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
   }
 
-  mCursorState = CursorState::INVISIBLE;
+  mCursorState = CursorState::kInvisible;
 }
 
 void Window::toggleCursor() {
-  if (mCursorState == CursorState::INVISIBLE) {
+  if (mCursorState == CursorState::kInvisible) {
     showCursor();
   } else {
     hideCursor();

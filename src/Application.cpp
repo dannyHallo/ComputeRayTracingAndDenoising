@@ -2,9 +2,7 @@
 
 #include "render-context/RenderSystem.h"
 #include "scene/ComputeMaterial.h"
-#include "window/FullscreenWindow.h"
-#include "window/HoverWindow.h"
-#include "window/MaximizedWindow.h"
+#include "window/Window.h"
 
 static const int kATrousSize        = 5;
 static const int kMaxFramesInFlight = 2;
@@ -40,7 +38,7 @@ void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
 Camera *Application::getCamera() { return mCamera.get(); }
 
 Application::Application() {
-  mWindow     = std::make_unique<HoverWindow>(1080, 720);
+  mWindow     = std::make_unique<Window>(WindowStyle::kFullScreen);
   mAppContext = VulkanApplicationContext::getInstance();
   mAppContext->init(mWindow->getGlWindow());
   mCamera = std::make_unique<Camera>(mWindow.get());
@@ -1045,7 +1043,7 @@ void Application::mainLoop() {
   while (glfwWindowShouldClose(mWindow->getGlWindow()) == 0) {
     glfwPollEvents();
 
-    if (mWindow->windowSizeChanged()) {
+    if (mWindow->windowSizeChanged() || needToToggleWindowStyle()) {
       mWindow->setWindowSizeChanged(false);
 
       vkDeviceWaitIdle(mAppContext->getDevice());
@@ -1082,6 +1080,15 @@ void Application::mainLoop() {
   }
 
   vkDeviceWaitIdle(mAppContext->getDevice());
+}
+
+bool Application::needToToggleWindowStyle() {
+  if (mWindow->isInputBitActive(GLFW_KEY_F)) {
+    mWindow->disableInputBit(GLFW_KEY_F);
+    mWindow->toggleWindowStyle();
+    return true;
+  }
+  return false;
 }
 
 void Application::init() {

@@ -11,12 +11,12 @@
 
 #include <map>
 
-enum class WindowStyle { FULLSCREEN, MAXIMAZED, HOVER };
-enum class CursorState { INVISIBLE, VISIBLE };
+enum class WindowStyle { kNone, kFullScreen, kMaximized, kHover };
+enum class CursorState { kNone, kInvisible, kVisible };
 
 class Window {
-  WindowStyle mWindowStyle;
-  CursorState mCursorState;
+  WindowStyle mWindowStyle = WindowStyle::kNone;
+  CursorState mCursorState = CursorState::kInvisible;
 
   int mWidthIfWindowed;
   int mHeightIfWindowed;
@@ -27,11 +27,16 @@ class Window {
   GLFWwindow *mWindow   = nullptr;
   GLFWmonitor *mMonitor = nullptr;
 
+  // these are used to restore maximized window to its original size and pos
+  int mTitleBarHeight                  = 0;
+  int mMaximizedFullscreenClientWidth  = 0;
+  int mMaximizedFullscreenClientHeight = 0;
+
 public:
   // universal constructor, the last two parameters only will be used to
   // construct a hover window
-  Window(WindowStyle windowStyle, int widthIfWindowed = 0,
-         int heightIfWindowed = 0);
+  Window(WindowStyle windowStyle, int widthIfWindowed = 400,
+         int heightIfWindowed = 300);
 
   ~Window() { glfwDestroyWindow(mWindow); }
 
@@ -43,10 +48,6 @@ public:
 
   [[nodiscard]] GLFWwindow *getGlWindow() const { return mWindow; }
   [[nodiscard]] GLFWmonitor *getMonitor() const { return mMonitor; }
-  // [[nodiscard]] uint32_t getKeyInputs() const { return mKeyInputBits; }
-  // [[nodiscard]] const std::map<int, bool> &getKeyInputs() const {
-  //   return mKeyInputMap;
-  // }
   [[nodiscard]] bool isInputBitActive(int inputBit) {
     return mKeyInputMap.contains(inputBit) && mKeyInputMap[inputBit];
   }
@@ -77,6 +78,10 @@ public:
     glfwGetFramebufferSize(mWindow, &width, &height);
     return height;
   }
+
+  void toggleWindowStyle();
+
+  void setWindowStyle(WindowStyle newStyle);
 
   void setWindowSizeChanged(bool windowSizeChanged) {
     mWindowSizeChanged = windowSizeChanged;

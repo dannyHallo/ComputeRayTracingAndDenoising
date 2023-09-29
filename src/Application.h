@@ -259,4 +259,6 @@ private:
 
   // cleanup resources
   void cleanup();
+
+  bool needToToggleWindowStyle();
 };
