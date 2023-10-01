@@ -10,6 +10,8 @@ add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})
 
 target("main")
+    -- disable vsprintf warnings in glm lib
+    add_defines("_CRT_SECURE_NO_WARNINGS")
     if is_mode("release") then
         add_defines("NVALIDATIONLAYERS")
     end

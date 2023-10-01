@@ -1038,14 +1038,15 @@ void Application::mainLoop() {
 
   while (glfwWindowShouldClose(mWindow->getGlWindow()) == 0) {
     glfwPollEvents();
+    auto &io = ImGui::GetIO();
+    // the MousePos is problematic when the window is not focused, so we set it
+    // manually :<
+    io.MousePos = ImVec2(mWindow->getCursorXPos(), mWindow->getCursorYPos());
 
     if (glfwGetWindowAttrib(mWindow->getGlWindow(), GLFW_FOCUSED) ==
         GLFW_FALSE) {
       Logger::print("window is not focused");
     }
-
-    Logger::print("Mouse pos: {}, {}", ImGui::GetIO().MousePos.x,
-                  ImGui::GetIO().MousePos.y);
 
     if (mWindow->windowSizeChanged() || needToToggleWindowStyle()) {
       mWindow->setWindowSizeChanged(false);
@@ -1058,7 +1059,6 @@ void Application::mainLoop() {
       mAppContext->createSwapchainDimensionRelatedResources();
       createSwapchainDimensionRelatedResources();
 
-      // TODO:
       fpsFrameCount     = 0;
       fpsRecordLastTime = 0;
       continue;

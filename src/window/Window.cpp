@@ -124,6 +124,8 @@ void Window::setWindowStyle(WindowStyle newStyle) {
 void Window::showCursor() {
   glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   mCursorState = CursorState::kVisible;
+  glfwSetCursorPos(mWindow, getFrameBufferWidth() / 2.F,
+                   getFrameBufferHeight() / 2.F);
 }
 
 void Window::hideCursor() {

@@ -5952,7 +5952,7 @@ void VmaBlockMetadata::DebugLogAllocation(VkDeviceSize offset, VkDeviceSize size
     VmaAllocation allocation = reinterpret_cast<VmaAllocation>(userData);
 
     userData         = allocation->GetUserData();
-    const char *name = allocation->GetName();
+    [[maybe_unused]] const char *name = allocation->GetName();
 
 #if VMA_STATS_STRING_ENABLED
     VMA_DEBUG_LOG_FORMAT("UNFREED ALLOCATION; Offset: %llu; Size: %llu; UserData: %p; Name: %s; Type: %s; Usage: %u", offset,
@@ -13548,7 +13548,7 @@ VkResult VmaAllocator_T::CheckCorruption(uint32_t memoryTypeBits) {
 
 VkResult VmaAllocator_T::AllocateVulkanMemory(const VkMemoryAllocateInfo *pAllocateInfo, VkDeviceMemory *pMemory) {
   AtomicTransactionalIncrement<VMA_ATOMIC_UINT32> deviceMemoryCountIncrement;
-  const uint64_t prevDeviceMemoryCount = deviceMemoryCountIncrement.Increment(&m_DeviceMemoryCount);
+  [[maybe_unused]] const uint64_t prevDeviceMemoryCount = deviceMemoryCountIncrement.Increment(&m_DeviceMemoryCount);
 #if VMA_DEBUG_DONT_EXCEED_MAX_MEMORY_ALLOCATION_COUNT
   if (prevDeviceMemoryCount >= m_PhysicalDeviceProperties.limits.maxMemoryAllocationCount) {
     return VK_ERROR_TOO_MANY_OBJECTS;
