@@ -78,6 +78,16 @@ public:
     glfwGetFramebufferSize(mWindow, &width, &height);
     return height;
   }
+  [[nodiscard]] int getCursorXPos() const {
+    double xPos, yPos;
+    glfwGetCursorPos(mWindow, &xPos, &yPos);
+    return static_cast<int>(xPos);
+  }
+  [[nodiscard]] int getCursorYPos() const {
+    double xPos, yPos;
+    glfwGetCursorPos(mWindow, &xPos, &yPos);
+    return static_cast<int>(yPos);
+  }
 
   void toggleWindowStyle();
 
