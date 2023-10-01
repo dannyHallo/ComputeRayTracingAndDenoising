@@ -87,12 +87,15 @@ Scene::Scene() {
 
   for (uint32_t i = 0; i < triangles.size(); i++) {
     Triangle t = triangles[i];
-    objects.emplace_back(Bvh::Object0{i, t});
     if (materials[t.materialIndex].type == MaterialType::LightSource) {
       // add light separatly
       // calculate the area of this lighting triangle
       float area = glm::length(glm::cross(t.v0, t.v1)) * 0.5f;
       lights.emplace_back(Light{i, area});
+      objects.emplace_back(
+          Bvh::Object0{i, t, glm::vec3(-0.2F, 0, 0), glm::vec3(0.2F, 0, 0)});
+    } else {
+      objects.emplace_back(Bvh::Object0{i, t});
     }
   }
 
