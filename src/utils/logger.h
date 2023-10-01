@@ -2,7 +2,7 @@
 
 #include "glm/glm.hpp"
 #include "spdlog/spdlog.h"
-#include "utils/vulkan.h"
+#include "utils/Vulkan.h"
 
 #include <iostream>
 #include <string>
@@ -37,6 +37,6 @@ inline void throwError(const std::string &error) {
   exit(1);
 }
 
-// Check a step's result code 
+// Check a step's result code
 void checkStep(const std::string stepName, const int resultCode);
 }; // namespace Logger

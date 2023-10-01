@@ -2,7 +2,7 @@
 
 #include "memory/Buffer.h"
 #include "memory/Image.h"
-#include "utils/vulkan.h"
+#include "utils/Vulkan.h"
 
 #include <memory>
 #include <vector>

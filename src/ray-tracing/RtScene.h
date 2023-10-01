@@ -3,8 +3,9 @@
 #include "Bvh.h"
 #include "GpuModels.h"
 #include "scene/Mesh.h"
+#include "utils/Glm.h"
 #include "utils/RootDir.h"
-#include "utils/glm.h"
+
 
 #include <functional> // for std::hash
 #include <iostream>

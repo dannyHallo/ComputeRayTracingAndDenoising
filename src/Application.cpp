@@ -2,7 +2,7 @@
 
 #include "render-context/RenderSystem.h"
 #include "scene/ComputeMaterial.h"
-#include "Window/Window.h"
+#include "window/Window.h"
 
 static const int kATrousSize        = 5;
 static const int kMaxFramesInFlight = 2;
@@ -1043,10 +1043,10 @@ void Application::mainLoop() {
         GLFW_FALSE) {
       Logger::print("window is not focused");
     }
-    // ImGui::GetIO().MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
+
     Logger::print("Mouse pos: {}, {}", ImGui::GetIO().MousePos.x,
                   ImGui::GetIO().MousePos.y);
-    
+
     if (mWindow->windowSizeChanged() || needToToggleWindowStyle()) {
       mWindow->setWindowSizeChanged(false);
 

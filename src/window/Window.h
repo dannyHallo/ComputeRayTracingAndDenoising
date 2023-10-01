@@ -1,13 +1,13 @@
 #pragma once
 
-#include "glfw/glfw3.h"
+#include "GLFW/glfw3.h"
 #include <cstdint>
 
 #ifdef APIENTRY
 #undef APIENTRY
 #endif
 
-#include "utils/vulkan.h"
+#include "utils/Vulkan.h"
 
 #include <map>
 

@@ -3,7 +3,7 @@
 #include "memory/Buffer.h"
 #include "memory/Image.h"
 #include "scene/Material.h"
-#include "utils/vulkan.h"
+#include "utils/Vulkan.h"
 
 #include <string>
 
