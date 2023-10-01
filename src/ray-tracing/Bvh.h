@@ -13,7 +13,7 @@
  * much as possible.
  */
 namespace Bvh {
-const glm::vec3 eps(0.0001f);
+const glm::vec3 eps(1e-4F);
 
 struct Aabb {
   alignas(16) glm::vec3 min = {FLT_MAX, FLT_MAX, FLT_MAX};
@@ -35,6 +35,15 @@ struct Aabb {
 struct Object0 {
   uint32_t index;
   GpuModel::Triangle t;
+  glm::vec3 minOffset;
+  glm::vec3 maxOffset;
+
+  Object0(uint32_t i, GpuModel::Triangle t)
+      : index(i), t(t), minOffset(0), maxOffset(0) {}
+
+  Object0(uint32_t i, GpuModel::Triangle t, glm::vec3 minOffset,
+          glm::vec3 maxOffset)
+      : index(i), t(t), minOffset(minOffset), maxOffset(maxOffset) {}
 };
 
 struct BvhNode0 {
@@ -59,22 +68,6 @@ struct BvhNode0 {
     return node;
   }
 };
-
-bool nodeCompare(BvhNode0 &a, BvhNode0 &b);
-
-Aabb surroundingBox(Aabb box0, Aabb box1);
-
-Aabb objectBoundingBox(const GpuModel::Triangle &t);
-
-/// @return the bounding box of all objects
-Aabb objectListBoundingBox(std::vector<Object0> &objects);
-
-inline bool boxCompare(const GpuModel::Triangle &a, const GpuModel::Triangle &b,
-                       const int axis);
-
-bool boxXCompare(const Object0 &a, const Object0 &b);
-bool boxYCompare(const Object0 &a, const Object0 &b);
-bool boxZCompare(const Object0 &a, const Object0 &b);
 
 // Since GPU can't deal with tree structures we need to create a flattened BVH.
 // Stack is used instead of a tree.

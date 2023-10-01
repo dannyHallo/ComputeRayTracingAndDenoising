@@ -2,17 +2,25 @@
 
 namespace Bvh {
 
+namespace {
 bool nodeCompare(BvhNode0 &a, BvhNode0 &b) { return a.index < b.index; }
 
 Aabb surroundingBox(Aabb box0, Aabb box1) {
   return {glm::min(box0.min, box1.min), glm::max(box0.max, box1.max)};
 }
 
-Aabb objectBoundingBox(const GpuModel::Triangle &t) {
+Aabb objectBoundingBox(const Bvh::Object0 &object) {
   // Need to add eps to correctly construct an AABB for flat objects like
   // planes.
-  return {glm::min(glm::min(t.v0, t.v1), t.v2) - eps,
-          glm::max(glm::max(t.v0, t.v1), t.v2) + eps};
+  // return {glm::min(glm::min(t.v0, t.v1), t.v2) - eps,
+  //         glm::max(glm::max(t.v0, t.v1), t.v2) + eps};
+
+  auto &t         = object.t;
+  auto &minOffset = object.minOffset;
+  auto &maxOffset = object.maxOffset;
+
+  return {glm::min(glm::min(t.v0, t.v1), t.v2) + minOffset - eps,
+          glm::max(glm::max(t.v0, t.v1), t.v2) + maxOffset + eps};
 }
 
 Aabb objectListBoundingBox(std::vector<Object0> &objects) {
@@ -20,7 +28,7 @@ Aabb objectListBoundingBox(std::vector<Object0> &objects) {
   bool firstBox = true;
 
   for (auto &object : objects) {
-    tempBox   = objectBoundingBox(object.t);
+    tempBox   = objectBoundingBox(object);
     outputBox = firstBox ? tempBox : surroundingBox(outputBox, tempBox);
     firstBox  = false;
   }
@@ -28,7 +36,7 @@ Aabb objectListBoundingBox(std::vector<Object0> &objects) {
   return outputBox;
 }
 
-inline bool boxCompare(const GpuModel::Triangle &a, const GpuModel::Triangle &b,
+inline bool boxCompare(const Bvh::Object0 &a, const Bvh::Object0 &b,
                        const int axis) {
   Aabb boxA = objectBoundingBox(a);
   Aabb boxB = objectBoundingBox(b);
@@ -37,16 +45,17 @@ inline bool boxCompare(const GpuModel::Triangle &a, const GpuModel::Triangle &b,
 }
 
 bool boxXCompare(const Object0 &a, const Object0 &b) {
-  return boxCompare(a.t, b.t, 0);
+  return boxCompare(a, b, 0);
 }
 
 bool boxYCompare(const Object0 &a, const Object0 &b) {
-  return boxCompare(a.t, b.t, 1);
+  return boxCompare(a, b, 1);
 }
 
 bool boxZCompare(const Object0 &a, const Object0 &b) {
-  return boxCompare(a.t, b.t, 2);
+  return boxCompare(a, b, 2);
 }
+} // namespace
 
 std::vector<GpuModel::BvhNode>
 createBvh(const std::vector<Object0> &srcObjects) {
