@@ -101,15 +101,15 @@ bool checkDeviceExtensionSupport(
         static_cast<const char *>(extension.extensionName));
   }
 
-  Logger::print("available device extensions count",
+  Logger::print("available device extensions count: {}",
                 availableExtensions.size());
-  Logger::print();
-  Logger::print("using device extensions", requiredDeviceExtensions.size());
+  Logger::print("\n");
+  Logger::print("using device extensions: {}", requiredDeviceExtensions.size());
   for (const auto &extensionName : requiredDeviceExtensions) {
     Logger::print("\t", extensionName);
   }
-  Logger::print();
-  Logger::print();
+  Logger::print("\n");
+  Logger::print("\n");
 
   std::vector<std::string> unavailableExtensionNames{};
   for (const auto &requiredExtension : requiredDeviceExtensions) {
@@ -125,7 +125,7 @@ bool checkDeviceExtensionSupport(
 
   Logger::print("the following device extensions are not available:");
   for (const auto &unavailableExtensionName : unavailableExtensionNames) {
-    Logger::print("\t", unavailableExtensionName.c_str());
+    Logger::print("\t{}", unavailableExtensionName);
   }
   return false;
 }
@@ -254,7 +254,7 @@ selectBestDevice(const std::vector<VkPhysicalDevice> &physicalDevices,
   }
 
   Logger::print("-------------------------------------------------------");
-  Logger::print();
+  Logger::print("\n");
 
   uint32_t bestMark = 0;
   deviceId          = 0;
@@ -276,7 +276,7 @@ selectBestDevice(const std::vector<VkPhysicalDevice> &physicalDevices,
     std::cout << "Selected: "
               << static_cast<const char *>(bestDeviceProperty.deviceName)
               << std::endl;
-    Logger::print();
+    Logger::print("\n");
 
     checkDeviceSuitable(surface, bestDevice, requiredDeviceExtensions);
   }

@@ -4,8 +4,6 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(binding = 0) uniform UniformBufferObject {
   bool bypassTemporalFiltering;
-  bool useDepthTest;
-  float depthTestThreshold;
   bool useNormalTest;
   float normalTestThreshold;
   float blendingAlpha;
@@ -58,12 +56,6 @@ vec4 getAccumColor() {
 }
 
 bool isConsistent() {
-  bool depthConsistent =
-      ubo.useDepthTest
-          ? abs(imageLoad(thisFrameDepthTex, uv).r -
-                imageLoad(lastFrameDepthTex, uv2).r) < ubo.depthTestThreshold
-          : true;
-
   vec3 thisFrameNormal  = imageLoad(thisFrameNormalTex, uv).xyz;
   vec3 lastFrameNormal  = imageLoad(lastFrameNormalTex, uv2).xyz;
   bool normalConsistent = true;
@@ -83,7 +75,7 @@ bool isConsistent() {
   bool meshIdConsistent = imageLoad(thisFrameMeshHashTex, uv) ==
                           imageLoad(lastFrameMeshHashTex, uv2);
 
-  return depthConsistent && normalConsistent && meshIdConsistent;
+  return normalConsistent && meshIdConsistent;
 }
 
 void main() {

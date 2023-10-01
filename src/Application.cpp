@@ -2,7 +2,7 @@
 
 #include "render-context/RenderSystem.h"
 #include "scene/ComputeMaterial.h"
-#include "window/Window.h"
+#include "Window/Window.h"
 
 static const int kATrousSize        = 5;
 static const int kMaxFramesInFlight = 2;
@@ -417,8 +417,6 @@ void Application::updateScene(uint32_t currentImage) {
 
   TemporalFilterUniformBufferObject tfUbo = {
       !mUseTemporalBlend,
-      mUseDepthTest,
-      mDepthThreshold,
       mUseNormalTest,
       mNormalThreshold,
       mBlendingAlpha,
@@ -965,8 +963,6 @@ void Application::prepareGui() {
   if (ImGui::BeginMenu("Config")) {
     ImGui::SeparatorText("Temporal Blend");
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporalBlend);
-    ImGui::Checkbox("Depth Test", &mUseDepthTest);
-    ImGui::SliderFloat("Depth threhold", &mDepthThreshold, 0.0F, 1.0F);
     ImGui::Checkbox("Use normal test", &mUseNormalTest);
     ImGui::SliderFloat("Normal threhold", &mNormalThreshold, 0.0F, 1.0F);
     ImGui::SliderFloat("Blending Alpha", &mBlendingAlpha, 0.0F, 1.0F);
@@ -1043,6 +1039,14 @@ void Application::mainLoop() {
   while (glfwWindowShouldClose(mWindow->getGlWindow()) == 0) {
     glfwPollEvents();
 
+    if (glfwGetWindowAttrib(mWindow->getGlWindow(), GLFW_FOCUSED) ==
+        GLFW_FALSE) {
+      Logger::print("window is not focused");
+    }
+    // ImGui::GetIO().MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
+    Logger::print("Mouse pos: {}, {}", ImGui::GetIO().MousePos.x,
+                  ImGui::GetIO().MousePos.y);
+    
     if (mWindow->windowSizeChanged() || needToToggleWindowStyle()) {
       mWindow->setWindowSizeChanged(false);
 

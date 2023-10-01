@@ -41,8 +41,6 @@ class Application {
 
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
-    int useDepthTest;
-    float depthThrehold;
     int useNormalTest;
     float normalThrehold;
     float blendingAlpha;

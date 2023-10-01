@@ -87,7 +87,7 @@ bool checkInstanceLayerSupport(const std::vector<const char *> &layers) {
   std::vector<VkLayerProperties> availableLayers(layerCount);
   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-  Logger::print("available instance layers", availableLayers.size());
+  Logger::print("available instance layers: {}", availableLayers.size());
   std::set<std::string> availableLayersSet{};
   for (const auto &layerProperty : availableLayers) {
     availableLayersSet.insert(
@@ -95,8 +95,7 @@ bool checkInstanceLayerSupport(const std::vector<const char *> &layers) {
     Logger::print("\t", static_cast<const char *>(layerProperty.layerName));
   }
 
-  Logger::print();
-  Logger::print("using instance layers", layers.size());
+  Logger::print("\nusing instance layers: {}", layers.size());
 
   std::vector<std::string> unavailableLayerNames{};
   // for each validation layer, we check for its validity from the avaliable
@@ -114,7 +113,7 @@ bool checkInstanceLayerSupport(const std::vector<const char *> &layers) {
   }
 
   for (const auto &unavailableLayerName : unavailableLayerNames) {
-    Logger::print("\t", unavailableLayerName.c_str());
+    Logger::print("\t", unavailableLayerName);
   }
   Logger::print("\t\t");
   return false;
@@ -142,7 +141,7 @@ void InstanceCreator::create(VkInstance &instance,
   for (const auto &extension : availavleExtensions) {
     Logger::print("\t", static_cast<const char *>(extension.extensionName));
   }
-  Logger::print();
+  Logger::print("\n");
 
   // get glfw (+ debug) extensions
   auto instanceRequiredExtensions = getRequiredInstanceExtensions();
@@ -154,8 +153,8 @@ void InstanceCreator::create(VkInstance &instance,
   for (const auto &extension : instanceRequiredExtensions) {
     Logger::print("\t", extension);
   }
-  Logger::print();
-  Logger::print();
+  Logger::print("\n");
+  Logger::print("\n");
 
 #ifndef NVALIDATIONLAYERS
   // Setup debug messager info during vkCreateInstance and vkDestroyInstance

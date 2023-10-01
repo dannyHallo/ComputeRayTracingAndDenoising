@@ -1,38 +1,42 @@
 #pragma once
 
 #include "glm/glm.hpp"
+#include "spdlog/spdlog.h"
 #include "utils/vulkan.h"
 
 #include <iostream>
 #include <string>
 #include <unordered_map>
 
+#pragma once
+
 namespace Logger {
-inline void print() { std::cout << std::endl; }
-inline void print(std::string str) { std::cout << str << std::endl; }
-inline void print(const char *str) { std::cout << str << std::endl; }
-inline void print(const char *str, const char *str2) {
-  std::cout << str << str2 << std::endl;
-}
-inline void print(const int num) { std::cout << num << std::endl; }
-inline void print(const size_t num) { std::cout << num << std::endl; }
-inline void print(const uint32_t num) { std::cout << num << std::endl; }
-inline void print(const char *str, const int num) {
-  std::cout << str << ": " << num << std::endl;
-}
-inline void print(const char *str, const size_t num) {
-  std::cout << str << ": " << num << std::endl;
-}
-inline void print(const char *str, const uint32_t num) {
-  std::cout << str << ": " << num << std::endl;
-}
-inline void print(glm::vec3 v) {
-  std::cout << v.x << ", " << v.y << ", " << v.z << std::endl;
+
+// Print glm::vec3 directly
+inline void print(const glm::vec3 &v) {
+  spdlog::info("{}, {}, {}", v.x, v.y, v.z);
 }
 
-void throwWarning(const std::string);
+// Print with a format string and a variable number of arguments
+template <typename... Args>
+inline void print(const std::string &format, Args &&...args) {
+  spdlog::info(fmt::runtime(format), args...);
+}
 
-// throw error and EXIT
-void throwError(const std::string);
+// Print a single argument
+template <typename T> inline void print(const T &t) { spdlog::info("{}", t); }
+
+// Throw a warning
+inline void throwWarning(const std::string &warning) {
+  spdlog::warn("Warning: {}", warning);
+}
+
+// Throw an error and exit
+inline void throwError(const std::string &error) {
+  spdlog::error("Error: {}", error);
+  exit(1);
+}
+
+// Check a step's result code 
 void checkStep(const std::string stepName, const int resultCode);
 }; // namespace Logger

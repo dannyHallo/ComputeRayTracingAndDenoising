@@ -1,5 +1,9 @@
 #include "Logger.h"
 
+// this is required to define format functions that are used by spdlog
+#define FMT_HEADER_ONLY
+#include "spdlog/fmt/bundled/format.h"
+
 #include "spdlog/spdlog.h" // spdlog/include/spdlog/details/windows_include.h defines APIENTRY!
 
 #include <iostream>
@@ -183,13 +187,11 @@ const std::unordered_map<int, std::string> resultCodeNamePair = {
     {VK_RESULT_MAX_ENUM,
      "Reserved for internal use by the Vulkan specification"}};
 
-void Logger::throwWarning(const std::string content) { spdlog::warn(content); }
-
-void Logger::throwError(const std::string content) {
-  spdlog::error(content);
-  assert(false && content.c_str());
-  exit(0);
-}
+// void Logger::throwError(const std::string content) {
+//   spdlog::error(content);
+//   assert(false && content.c_str());
+//   exit(0);
+// }
 
 void Logger::checkStep(const std::string stepName, const int resultCode) {
   if (resultCode == VK_SUCCESS) return;

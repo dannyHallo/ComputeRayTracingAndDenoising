@@ -105,7 +105,7 @@ void SwapchainCreator::create(VkSwapchainKHR &swapchain,
       imageCount > swapchainSupport.capabilities.maxImageCount) {
     imageCount = swapchainSupport.capabilities.maxImageCount;
   }
-  Logger::print("number of swapchain images", imageCount);
+  Logger::print("number of swapchain images: {}", imageCount);
 
   VkSwapchainCreateInfoKHR swapchainCreateInfo{
       VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
