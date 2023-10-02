@@ -2,17 +2,19 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-const float pi      = 3.1415926535897932385;
 const float epsilon = 1e-8;
 
-// const float weightsATrous3x3[3] = float[](.17, .66, .17);
-const float weightsATrous5x5[5] = float[](.0625, .25, .375, .25, .0625);
+// standard 3x3 filtering kernel from q2rtx
+const float waveletFac      = 0.5;
+const float kernel3x3[2][2] = {{1.0, waveletFac},
+                               {waveletFac, waveletFac *waveletFac}};
 
 const vec3 rgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
 
 // bigger phi indicates bigger tolerence to apply blur
 layout(binding = 0) uniform UniformBufferObject {
   bool bypassBluring;
+  uint currentSample;
   int i;
   int iCap; // ranged from 0 - 5
   bool showVariance;
@@ -20,10 +22,9 @@ layout(binding = 0) uniform UniformBufferObject {
   float phiLuminance;
   float phiDepth;
   float phiNormal;
-  float centralKernelWeight;
-  bool useThreeByThreeKernel;
   bool ignoreLuminanceAtFirstIteration;
   bool changingLuminancePhi;
+  bool useJittering;
 }
 ubo;
 
@@ -35,30 +36,35 @@ layout(binding = 5, r32f) readonly uniform image2D varianceTex;
 layout(binding = 6, rgba8) writeonly uniform image2D accumTex;
 layout(binding = 7, rgba8) writeonly uniform image2D aTrousOutputTex;
 
+// #include "include/random.glsl"
+#include "include/plasticRandom.glsl"
+
 ivec2 uv;
 vec2 gradientAtUV;
 vec3 normalAtUV;
 float luminanceAtUV, depthAtUV, varianceAtUV;
 
-void blurKernel(int indexX, int indexY, int kernalHalfSize,
-                inout float weightSum, inout vec4 sumOfWeightedValues) {
-  int x = int((indexX - kernalHalfSize) * pow(2, ubo.i));
-  int y = int((indexY - kernalHalfSize) * pow(2, ubo.i));
+ivec2 jittering(int stepSize) {
+  vec2 ldsNoise = ldsNoise2d(ubo.currentSample * 19937 + ubo.i + uv.x,
+                             ubo.currentSample * 19937 + ubo.i + uv.y);
+  ldsNoise -= 0.5;
+  ldsNoise *= 0.5;
+  ivec2 jitter = ivec2(ldsNoise * stepSize);
+  return jitter;
+}
 
-  float customizedWeightsForATrous3x3[3] =
-      float[]((1 - ubo.centralKernelWeight) * 0.5, ubo.centralKernelWeight,
-              (1 - ubo.centralKernelWeight) * 0.5);
-
-  float weightK = 0;
-  if (ubo.useThreeByThreeKernel) {
-    weightK = customizedWeightsForATrous3x3[indexX] *
-              customizedWeightsForATrous3x3[indexY];
-  } else {
-    weightK = weightsATrous5x5[indexX] * weightsATrous5x5[indexY];
+void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
+                inout vec4 sumOfWeightedValues) {
+  int stepSize   = 1 << ubo.i;
+  ivec2 offsetXY = dispatchXY * stepSize;
+  if (ubo.useJittering && dispatchXY != ivec2(0)) {
+    offsetXY += jittering(stepSize);
   }
 
+  float weightK = kernel3x3[abs(dispatchXY.x)][abs(dispatchXY.y)];
+
   float luminanceAtSample =
-      dot(rgbToLuminanceMat, imageLoad(aTrousInputTex, uv + ivec2(x, y)).xyz);
+      dot(rgbToLuminanceMat, imageLoad(aTrousInputTex, uv + offsetXY).xyz);
 
   float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
 
@@ -78,18 +84,19 @@ void blurKernel(int indexX, int indexY, int kernalHalfSize,
     weightC = 1.0;
   }
 
-  vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
+  vec3 normalAtSample = imageLoad(normalTex, uv + offsetXY).xyz;
   float weightN = max(0., pow(dot(normalAtSample, normalAtUV), ubo.phiNormal));
 
-  float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float differenceInDepth =
-      abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(x, y)));
+  float depthAtSample     = imageLoad(depthTex, uv + offsetXY).x;
+  float differenceInDepth = abs((depthAtUV - depthAtSample));
+  // float differenceInDepth =
+  //     abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(offsetXY)));
   float weightZ = exp(-differenceInDepth / ubo.phiDepth);
 
-  float weight = weightK * weightN * weightC * weightZ;
+  float weight = weightK * weightC * weightN * weightZ;
 
   weightSum += weight;
-  sumOfWeightedValues += weight * imageLoad(aTrousInputTex, uv + ivec2(x, y));
+  sumOfWeightedValues += weight * imageLoad(aTrousInputTex, uv + offsetXY);
 }
 
 void main() {
@@ -110,14 +117,14 @@ void main() {
   gradientAtUV  = imageLoad(gradientTex, uv).xy;
   varianceAtUV  = imageLoad(varianceTex, uv).x; // TODO: gaussian is needed here
 
-  int kernelSize     = ubo.useThreeByThreeKernel ? 3 : 5;
-  int kernalHalfSize = (kernelSize - 1) / 2;
+  const int kernelSize     = 3;
+  const int kernalHalfSize = 1;
 
   float weightSum          = 0;
   vec4 sumOfWeightedValues = vec4(0);
-  for (int indexX = 0; indexX < kernelSize; indexX++) {
-    for (int indexY = 0; indexY < kernelSize; indexY++) {
-      blurKernel(indexX, indexY, kernalHalfSize, weightSum,
+  for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
+    for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
+      blurKernel(ivec2(indexX, indexY), kernalHalfSize, weightSum,
                  sumOfWeightedValues);
     }
   }

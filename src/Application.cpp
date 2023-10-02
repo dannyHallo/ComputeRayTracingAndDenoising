@@ -440,20 +440,18 @@ void Application::updateScene(uint32_t currentImage) {
 
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {
-        !mUseATrous,
-        j,
-        mICap,
-        mShowVariance,
-        mUseVarianceGuidedFiltering,
-        mPhiLuminance,
-        mPhiDepth,
-        mPhiNormal,
-        mCentralKernelWeight,
-        mUseThreeByThreeKernel,
-        mIgnoreLuminanceAtFirstIteration,
-        mChangingLuminancePhi,
-    };
+    BlurFilterUniformBufferObject bfUbo = {!mUseATrous,
+                                           currentSample,
+                                           j,
+                                           mICap,
+                                           mShowVariance,
+                                           mUseVarianceGuidedFiltering,
+                                           mPhiLuminance,
+                                           mPhiDepth,
+                                           mPhiNormal,
+                                           mIgnoreLuminanceAtFirstIteration,
+                                           mChangingLuminancePhi,
+                                           mUseJittering};
     mBlurFilterBufferBundles[j]->getBuffer(currentImage)->fillData(&bfUbo);
   }
 
@@ -533,15 +531,15 @@ void Application::createRenderCommandBuffers() {
 
     for (int j = 0; j < kATrousSize; j++) {
       // update ubo for the sampleDistance
-      BlurFilterUniformBufferObject bfUbo = {!mUseATrous, j};
-      {
-        auto &allocation =
-            mBlurFilterBufferBundles[j]->getBuffer(i)->getAllocation();
-        void *data;
-        vmaMapMemory(mAppContext->getAllocator(), allocation, &data);
-        memcpy(data, &bfUbo, sizeof(bfUbo));
-        vmaUnmapMemory(mAppContext->getAllocator(), allocation);
-      }
+      // BlurFilterUniformBufferObject bfUbo = {!mUseATrous, currentSam};
+      // {
+      //   auto &allocation =
+      //       mBlurFilterBufferBundles[j]->getBuffer(i)->getAllocation();
+      //   void *data;
+      //   vmaMapMemory(mAppContext->getAllocator(), allocation, &data);
+      //   memcpy(data, &bfUbo, sizeof(bfUbo));
+      //   vmaUnmapMemory(mAppContext->getAllocator(), allocation);
+      // }
 
       // dispatch filter shader
       mATrousModels[j]->computeCommand(
@@ -986,12 +984,10 @@ void Application::prepareGui() {
     ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 200.0F);
-    ImGui::SliderFloat("Central Kernel Weight", &mCentralKernelWeight, 0.0F,
-                       1.0F);
-    ImGui::Checkbox("Use 3x3 A-Trous", &mUseThreeByThreeKernel);
     ImGui::Checkbox("Ignore Luminance For First Iteration",
                     &mIgnoreLuminanceAtFirstIteration);
     ImGui::Checkbox("Changing luminance phi", &mChangingLuminancePhi);
+    ImGui::Checkbox("Use jitter", &mUseJittering);
     ImGui::EndMenu();
   }
   ImGui::EndMainMenuBar();

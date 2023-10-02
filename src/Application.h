@@ -18,7 +18,6 @@
 #include "utils/Logger.h"
 #include "utils/RootDir.h"
 
-
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 
@@ -61,6 +60,7 @@ class Application {
 
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
+    uint32_t currentSample;
     int i;
     int iCap;
     int showVariance;
@@ -68,10 +68,9 @@ class Application {
     float phiLuminance;
     float phiDepth;
     float phiNormal;
-    float centralKernelWeight;
-    int useThreeByThreeKernel;
     int ignoreLuminanceAtFirstIteration;
     int changingLuminancePhi;
+    int useJittering;
   };
 
   float mFps = 0;
@@ -99,13 +98,12 @@ class Application {
   int mICap                             = 5;
   bool mShowVariance                    = false;
   bool mUseVarianceGuidedFiltering      = true;
-  float mPhiLuminance                   = 0.5f;
+  float mPhiLuminance                   = 0.35f;
   float mPhiDepth                       = 0.2f;
   float mPhiNormal                      = 128.f;
-  float mCentralKernelWeight            = 0.5f;
-  bool mUseThreeByThreeKernel           = true;
   bool mIgnoreLuminanceAtFirstIteration = true;
   bool mChangingLuminancePhi            = true;
+  bool mUseJittering                    = true;
 
   // delta time and last recorded frame time
   float mDeltaTime = 0, mFrameRecordLastTime = 0;

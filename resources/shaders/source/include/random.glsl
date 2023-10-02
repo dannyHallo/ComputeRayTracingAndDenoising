@@ -2,8 +2,10 @@
 
 const float pi = 3.1415926535897932385;
 
+// uint index = ubo.currentSample + gl_GlobalInvocationID.x +
+//              imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
 uint index = ubo.currentSample + gl_GlobalInvocationID.x +
-             imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
+             9999 * gl_GlobalInvocationID.y + 1;
 
 uint rngState = index * ubo.currentSample + 1;
 
