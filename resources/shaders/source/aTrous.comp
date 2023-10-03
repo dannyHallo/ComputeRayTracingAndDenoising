@@ -115,7 +115,7 @@ void main() {
   normalAtUV    = imageLoad(normalTex, uv).xyz;
   depthAtUV     = imageLoad(depthTex, uv).x;
   gradientAtUV  = imageLoad(gradientTex, uv).xy;
-  varianceAtUV  = imageLoad(varianceTex, uv).x; // TODO: gaussian is needed here
+  varianceAtUV  = imageLoad(varianceTex, uv).x; // TODO: gaussian might be needed here
 
   const int kernelSize     = 3;
   const int kernalHalfSize = 1;

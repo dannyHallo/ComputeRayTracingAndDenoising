@@ -411,7 +411,8 @@ void Application::updateScene(uint32_t currentImage) {
       currentTime,
       currentSample,
       static_cast<uint32_t>(mRtScene->triangles.size()),
-      static_cast<uint32_t>(mRtScene->lights.size())};
+      static_cast<uint32_t>(mRtScene->lights.size()),
+      mMovingLightSource};
 
   mRtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
 
@@ -959,6 +960,9 @@ void Application::prepareGui() {
 
   ImGui::BeginMainMenuBar();
   if (ImGui::BeginMenu("Config")) {
+    ImGui::SeparatorText("Scene");
+    ImGui::Checkbox("Moving Light Source", &mMovingLightSource);
+
     ImGui::SeparatorText("Temporal Blend");
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporalBlend);
     ImGui::Checkbox("Use normal test", &mUseNormalTest);

@@ -37,6 +37,7 @@ class Application {
     uint32_t currentSample;
     uint32_t numTriangles;
     uint32_t numLights;
+    int movingLightSource;
   };
 
   struct TemporalFilterUniformBufferObject {
@@ -76,7 +77,8 @@ class Application {
   float mFps = 0;
 
   // whether to use temporal and blur filtering
-  bool mUseATrous = true;
+  bool mUseATrous         = true;
+  bool mMovingLightSource = false;
 
   // temporal filter
   bool mUseTemporalBlend = true;

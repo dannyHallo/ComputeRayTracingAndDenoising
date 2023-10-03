@@ -16,6 +16,7 @@ layout(binding = 0) uniform UniformBufferObject {
   uint currentSample;
   uint numTriangles;
   uint numLights;
+  bool movingLightSource;
 }
 ubo;
 
@@ -70,7 +71,9 @@ struct hitRecord {
 };
 
 triangle moveLightTri(triangle tri) {
-  float xOffset = sin(ubo.time * 10) * 0;
+  if (!ubo.movingLightSource) return tri;
+  
+  float xOffset = sin(ubo.time * 10) * 0.2;
   tri.v0.x += xOffset;
   tri.v1.x += xOffset;
   tri.v2.x += xOffset;
