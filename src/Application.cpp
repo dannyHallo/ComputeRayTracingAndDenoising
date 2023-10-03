@@ -447,6 +447,7 @@ void Application::updateScene(uint32_t currentImage) {
                                            mICap,
                                            mShowVariance,
                                            mUseVarianceGuidedFiltering,
+                                           mUseGradientInDepth,
                                            mPhiLuminance,
                                            mPhiDepth,
                                            mPhiNormal,
@@ -985,6 +986,7 @@ void Application::prepareGui() {
     ImGui::SliderInt("A-Trous times", &mICap, 0, 5);
     ImGui::Checkbox("Use variance guided filtering",
                     &mUseVarianceGuidedFiltering);
+    ImGui::Checkbox("Use gradient in depth", &mUseGradientInDepth);
     ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 200.0F);

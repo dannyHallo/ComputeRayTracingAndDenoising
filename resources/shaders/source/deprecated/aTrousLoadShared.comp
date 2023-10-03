@@ -1,6 +1,16 @@
+// this is deprecated because the a-trous algorithm is sparse, and iterations
+// over 1 cannot take any advantage of using shared memory!
+// however, this file is kept for future reference
 #version 450
 
-layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+#define GROUP_SIZE 15
+#define FILTER_RADIUS 1
+#define GROUP_SIZE_2 (GROUP_SIZE * GROUP_SIZE)
+#define SHARED_SIZE (GROUP_SIZE + 2 * FILTER_RADIUS)
+#define SHARED_SIZE_2 (SHARED_SIZE * SHARED_SIZE)
+
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE,
+       local_size_z = 1) in;
 
 const float epsilon = 1e-8;
 
@@ -19,7 +29,6 @@ layout(binding = 0) uniform UniformBufferObject {
   int iCap; // ranged from 0 - 5
   bool showVariance;
   bool useVarianceGuidedFiltering;
-  bool useGradientInDepth;
   float phiLuminance;
   float phiDepth;
   float phiNormal;
@@ -37,9 +46,16 @@ layout(binding = 5, r32f) readonly uniform image2D varianceTex;
 layout(binding = 6, rgba8) writeonly uniform image2D accumTex;
 layout(binding = 7, rgba8) writeonly uniform image2D aTrousOutputTex;
 
+// #include "include/random.glsl"
 #include "include/plasticRandom.glsl"
 
 ivec2 uv;
+
+shared vec2 gradients[SHARED_SIZE][SHARED_SIZE];
+shared vec3 normals[SHARED_SIZE][SHARED_SIZE];
+shared vec3 colors[SHARED_SIZE][SHARED_SIZE];
+shared float depths[SHARED_SIZE][SHARED_SIZE];
+shared float variances[SHARED_SIZE][SHARED_SIZE];
 
 vec2 gradientAtUV;
 vec3 normalAtUV;
@@ -47,6 +63,36 @@ vec3 colorAtUV;
 float depthAtUV;
 float varianceAtUV;
 float luminanceAtUV;
+
+void preload() {
+  if (ubo.i != -1) {
+    return;
+  }
+  // the group base denotes the first pixel pos that needs to lookup, the group
+  // base val is the same for all threads in the work group
+  ivec2 groupBase = ivec2(gl_WorkGroupID.xy) * GROUP_SIZE - FILTER_RADIUS;
+
+  // there are several points that are needed to be loaded twice, (17 * 17 - 15
+  // * 15), preloading it to the current group's shared memory saves loading
+  for (uint linearIndex = gl_LocalInvocationIndex; linearIndex < SHARED_SIZE_2;
+       linearIndex += GROUP_SIZE_2) {
+    // convert linear index to 2d index TODO: check if this is correct
+    ivec2 index2d = ivec2(linearIndex % SHARED_SIZE, linearIndex / SHARED_SIZE);
+    // float t = (float(linearIndex) + 0.5) / float(SHARED_SIZE);
+    // int xx = int(floor(fract(t) * float(SHARED_SIZE)));
+    // int yy = int(floor(t));
+    // ivec2 index2d = ivec2(xx, yy);
+
+    // ipos denotes the position to read from the texture in current thread
+    ivec2 ipos = groupBase + index2d;
+
+    gradients[index2d.x][index2d.y] = imageLoad(gradientTex, ipos).xy;
+    normals[index2d.x][index2d.y]   = imageLoad(normalTex, ipos).xyz;
+    colors[index2d.x][index2d.y]    = imageLoad(aTrousInputTex, ipos).xyz;
+    depths[index2d.x][index2d.y]    = imageLoad(depthTex, ipos).x;
+    variances[index2d.x][index2d.y] = imageLoad(varianceTex, ipos).x;
+  }
+}
 
 ivec2 jittering(int stepSize) {
   vec2 ldsNoise = ldsNoise2d(ubo.currentSample * 19937 + ubo.i + uv.x,
@@ -57,24 +103,38 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-void getSharedData(ivec2 offsetXY, out vec2 gradientAtUV, out vec3 normalAtUV,
+void getSharedData(ivec2 offset, out vec2 gradientAtUV, out vec3 normalAtUV,
                    out vec3 colorAtUV, out float depthAtUV,
                    out float varianceAtUV) {
-  ivec2 ipos   = uv + offsetXY;
-  gradientAtUV = imageLoad(gradientTex, ipos).xy;
-  normalAtUV   = imageLoad(normalTex, ipos).xyz;
-  colorAtUV    = imageLoad(aTrousInputTex, ipos).xyz;
-  depthAtUV    = imageLoad(depthTex, ipos).x;
-  varianceAtUV = imageLoad(varianceTex, ipos).x;
+  // load using the normal way
+  if (ubo.i != -1) {
+    int stepSize   = 1 << ubo.i;
+    ivec2 offsetXY = offset * stepSize;
+    if (ubo.useJittering && offset != ivec2(0)) {
+      offsetXY += jittering(stepSize);
+    }
+
+    ivec2 ipos   = uv + offsetXY;
+    gradientAtUV = imageLoad(gradientTex, ipos).xy;
+    normalAtUV   = imageLoad(normalTex, ipos).xyz;
+    colorAtUV    = imageLoad(aTrousInputTex, ipos).xyz;
+    depthAtUV    = imageLoad(depthTex, ipos).x;
+    varianceAtUV = imageLoad(varianceTex, ipos).x;
+    return;
+  }
+
+  ivec2 addr = ivec2(gl_LocalInvocationID) + FILTER_RADIUS + offset;
+
+  gradientAtUV = gradients[addr.x][addr.y];
+  normalAtUV   = normals[addr.x][addr.y];
+  colorAtUV    = colors[addr.x][addr.y];
+  depthAtUV    = depths[addr.x][addr.y];
+  varianceAtUV = variances[addr.x][addr.y];
 }
 
 void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
                 inout vec4 sumOfWeightedValues) {
-  int stepSize   = 1 << ubo.i;
-  ivec2 offsetXY = dispatchXY * stepSize;
-  if (ubo.useJittering && dispatchXY != ivec2(0)) {
-    offsetXY += jittering(stepSize);
-  }
+  int stepSize = 1 << ubo.i;
 
   float weightK = kernel3x3[abs(dispatchXY.x)][abs(dispatchXY.y)];
 
@@ -83,7 +143,7 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
   vec3 colorAtSample;
   float depthAtSample;
   float varianceAtSample;
-  getSharedData(offsetXY, gradientAtSample, normalAtSample, colorAtSample,
+  getSharedData(dispatchXY, gradientAtSample, normalAtSample, colorAtSample,
                 depthAtSample, varianceAtSample);
 
   float luminanceAtSample = dot(colorAtSample, rgbToLuminanceMat);
@@ -106,15 +166,10 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
 
   float weightN = max(0., pow(dot(normalAtUV, normalAtSample), ubo.phiNormal));
 
-  float differenceInDepth = 0;
-  // using gradient here can better blend samples within a single screen space
-  // tilted mesh
-  if (ubo.useGradientInDepth) {
-    differenceInDepth =
-        abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(offsetXY)));
-  } else {
-    differenceInDepth = abs(depthAtUV - depthAtSample);
-  }
+  float differenceInDepth = abs((depthAtUV, depthAtSample));
+
+  // float differenceInDepth =
+  //     abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(offsetXY)));
   float weightZ = exp(-differenceInDepth / ubo.phiDepth);
 
   float weight = weightK * weightC * weightN * weightZ;
@@ -125,6 +180,9 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
 }
 
 void main() {
+  preload();
+  barrier();
+
   uv = ivec2(gl_GlobalInvocationID.xy);
 
   getSharedData(ivec2(0), gradientAtUV, normalAtUV, colorAtUV, depthAtUV,

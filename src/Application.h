@@ -66,6 +66,7 @@ class Application {
     int iCap;
     int showVariance;
     int useVarianceGuidedFiltering;
+    int useGradientInDepth;
     float phiLuminance;
     float phiDepth;
     float phiNormal;
@@ -100,7 +101,8 @@ class Application {
   int mICap                             = 5;
   bool mShowVariance                    = false;
   bool mUseVarianceGuidedFiltering      = true;
-  float mPhiLuminance                   = 0.35f;
+  bool mUseGradientInDepth              = true;
+  float mPhiLuminance                   = 0.3f;
   float mPhiDepth                       = 0.2f;
   float mPhiNormal                      = 128.f;
   bool mIgnoreLuminanceAtFirstIteration = true;
