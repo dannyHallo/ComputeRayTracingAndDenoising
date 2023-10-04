@@ -813,12 +813,8 @@ void Application::initGui() {
       (kPathToResourceFolder + "/fonts/OverpassMono-Medium.ttf").c_str(),
       22.0f);
 
-  // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard
-  // Controls io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable
-  // Gamepad Controls
+  io.ConfigFlags |= ImGuiWindowFlags_NoNavInputs;
 
-  // Setup Dear ImGui style
-  // ImGui::StyleColorsDark();
   ImGui::StyleColorsClassic();
 
   // Setup Platform/Renderer bindings
@@ -961,9 +957,7 @@ void Application::drawFrame() {
 }
 
 void Application::prepareGui() {
-
   ImGui_ImplVulkan_NewFrame();
-
   // handle the user inputs, the screen resize
   ImGui_ImplGlfw_NewFrame();
 
