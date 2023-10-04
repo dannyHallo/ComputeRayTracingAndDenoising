@@ -503,17 +503,18 @@ void Application::createRenderCommandBuffers() {
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
 
     mRtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                              mTargetImage->getWidth() / 32,
-                              mTargetImage->getHeight() / 32, 1);
+                              ceil(mTargetImage->getWidth() / 32.F),
+                              ceil(mTargetImage->getHeight() / 32.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
                          nullptr, 0, nullptr);
 
-    mGradientModel->computeCommand(
-        currentCommandBuffer, static_cast<uint32_t>(i),
-        mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
+    mGradientModel->computeCommand(currentCommandBuffer,
+                                   static_cast<uint32_t>(i),
+                                   ceil(mTargetImage->getWidth() / 32.F),
+                                   ceil(mTargetImage->getHeight() / 32.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -522,16 +523,18 @@ void Application::createRenderCommandBuffers() {
 
     mTemporalFilterModel->computeCommand(
         currentCommandBuffer, static_cast<uint32_t>(i),
-        mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
+        ceil(mTargetImage->getWidth() / 32.F),
+        ceil(mTargetImage->getHeight() / 32.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
                          nullptr, 0, nullptr);
 
-    mVarianceModel->computeCommand(
-        currentCommandBuffer, static_cast<uint32_t>(i),
-        mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
+    mVarianceModel->computeCommand(currentCommandBuffer,
+                                   static_cast<uint32_t>(i),
+                                   ceil(mTargetImage->getWidth() / 32.F),
+                                   ceil(mTargetImage->getHeight() / 32.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -555,7 +558,8 @@ void Application::createRenderCommandBuffers() {
       // dispatch filter shader
       mATrousModels[j]->computeCommand(
           currentCommandBuffer, static_cast<uint32_t>(i),
-          mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
+          ceil(mTargetImage->getWidth() / 32.F),
+          ceil(mTargetImage->getHeight() / 32.F), 1);
       vkCmdPipelineBarrier(currentCommandBuffer,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr,
@@ -571,7 +575,8 @@ void Application::createRenderCommandBuffers() {
 
     mPostProcessingModel->computeCommand(
         currentCommandBuffer, static_cast<uint32_t>(i),
-        mTargetImage->getWidth() / 32, mTargetImage->getHeight() / 32, 1);
+        ceil(mTargetImage->getWidth() / 32.F),
+        ceil(mTargetImage->getHeight() / 32.F), 1);
 
     mTargetForwardingPairs[i]->forwardCopying(currentCommandBuffer);
 

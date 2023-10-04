@@ -46,5 +46,9 @@ vec2 calculateGradient() {
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+    return;
+  }
+
   imageStore(gradientTex, uv, vec4(calculateGradient(), 0, 0));
 }

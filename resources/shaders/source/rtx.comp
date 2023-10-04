@@ -165,7 +165,7 @@ hitRecord traceRayToBvh(ray r) {
   float t_min = 0.001;
   float t_max = 10000;
 
-  float closest_so_far = t_max;
+  float closestSoFar = t_max;
 
   // Since shader doesn't have a stack structure, implementing it with an array
   // and a counter.
@@ -191,11 +191,10 @@ hitRecord traceRayToBvh(ray r) {
     // is -1 (invalid)
     int ti = bvh[currentNode].objectIndex;
     if (ti != -1) {
-      hitRecord triHitRec = hitTriangle(ti, r, t_min, closest_so_far);
+      hitRecord triHitRec = hitTriangle(ti, r, t_min, closestSoFar);
       if (triHitRec.hit) {
-        rec.hit        = true;
-        closest_so_far = triHitRec.t;
-        rec            = triHitRec;
+        rec          = triHitRec;
+        closestSoFar = triHitRec.t;
       }
     } else {
       nodeStack[stackIndex++] = bvh[currentNode].leftNodeIndex;
@@ -370,6 +369,9 @@ vec3 fireflyRejectionClamp(vec3 radiance) {
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+    return;
+  }
 
   ray camRay = rayGen(ubo.camPos, ubo.camFront, ubo.camUp, ubo.camRight);
 

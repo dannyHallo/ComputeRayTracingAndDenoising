@@ -131,6 +131,9 @@ float calculateVariance() {
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+    return;
+  }
 
   if (ubo.bypassVarianceEstimation) { // TODO: remove this
     return;

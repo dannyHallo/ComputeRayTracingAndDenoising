@@ -24,7 +24,11 @@ vec4 linearToSrgb(vec4 linearRGB) {
 }
 
 void main() {
-  ivec2 uv       = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+    return;
+  }
+
   vec4 colorAtUV = imageLoad(aTrousTex2, uv);
 
   colorAtUV = linearToSrgb(colorAtUV);

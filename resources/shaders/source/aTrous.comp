@@ -67,7 +67,14 @@ ivec2 jittering(int stepSize) {
 void getSharedData(ivec2 offsetXY, out vec2 gradientAtUV, out vec3 normalAtUV,
                    out vec3 colorAtUV, out float depthAtUV,
                    out float varianceAtUV) {
-  ivec2 ipos   = uv + offsetXY;
+  ivec2 ipos = uv + offsetXY;
+  if (ipos.x < 0 || ipos.y < 0 || ipos.x >= globalUbo.swapchainWidth ||
+      ipos.y >= globalUbo.swapchainHeight) {
+    ipos = clamp(
+        ipos, ivec2(0),
+        ivec2(globalUbo.swapchainWidth - 1, globalUbo.swapchainHeight - 1));
+  }
+
   gradientAtUV = imageLoad(gradientTex, ipos).xy;
   normalAtUV   = imageLoad(normalTex, ipos).xyz;
   colorAtUV    = imageLoad(aTrousInputTex, ipos).xyz;
@@ -84,55 +91,63 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
   }
 
   float weightK = kernel3x3[abs(dispatchXY.x)][abs(dispatchXY.y)];
-
-  vec2 gradientAtSample;
-  vec3 normalAtSample;
-  vec3 colorAtSample;
-  float depthAtSample;
-  float varianceAtSample;
-  getSharedData(offsetXY, gradientAtSample, normalAtSample, colorAtSample,
-                depthAtSample, varianceAtSample);
-
-  float luminanceAtSample = dot(colorAtSample, rgbToLuminanceMat);
-
-  float phiC = ubo.phiLuminance;
-  if (ubo.changingLuminancePhi) {
-    phiC = pow(2, -ubo.i) * ubo.phiLuminance;
-  }
-  float weightC = 0;
-  float colDiff = abs(luminanceAtSample - luminanceAtUV);
-  if (ubo.useVarianceGuidedFiltering) {
-    phiC *= 100.;
-    weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUV), epsilon));
+  if (dispatchXY == ivec2(0)) {
+    float weight = weightK;
+    weight       = clamp(weight, 0, 1);
+    weightSum += weight;
+    sumOfWeightedValues += weight * vec4(colorAtUV, 1);
   } else {
-    weightC = exp(-colDiff / phiC);
+    float weightC, weightN, weightZ;
+
+    vec2 gradientAtSample;
+    vec3 normalAtSample;
+    vec3 colorAtSample;
+    float depthAtSample;
+    float varianceAtSample;
+    getSharedData(offsetXY, gradientAtSample, normalAtSample, colorAtSample,
+                  depthAtSample, varianceAtSample);
+
+    float luminanceAtSample = dot(colorAtSample, rgbToLuminanceMat);
+    float phiC              = ubo.phiLuminance;
+    if (ubo.changingLuminancePhi) {
+      phiC = pow(2, -ubo.i) * ubo.phiLuminance;
+    }
+    weightC       = 0;
+    float colDiff = abs(luminanceAtSample - luminanceAtUV);
+    if (ubo.useVarianceGuidedFiltering) {
+      phiC *= 100.;
+      weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUV), epsilon));
+    } else {
+      weightC = exp(-colDiff / phiC);
+    }
+    if (ubo.ignoreLuminanceAtFirstIteration && ubo.i == 0) {
+      weightC = 1.0;
+    }
+
+    weightN = max(0., pow(dot(normalAtUV, normalAtSample), ubo.phiNormal));
+
+    float differenceInDepth = 0;
+    // using gradient here can better blend samples within a single screen space
+    // tilted mesh
+    if (ubo.useGradientInDepth) {
+      differenceInDepth =
+          abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(offsetXY)));
+    } else {
+      differenceInDepth = abs(depthAtUV - depthAtSample);
+    }
+    weightZ = exp(-differenceInDepth / ubo.phiDepth);
+
+    float weight = weightK * weightC * weightN * weightZ;
+    weightSum += weight;
+    sumOfWeightedValues += weight * vec4(colorAtSample, 1);
   }
-  if (ubo.ignoreLuminanceAtFirstIteration && ubo.i == 0) {
-    weightC = 1.0;
-  }
-
-  float weightN = max(0., pow(dot(normalAtUV, normalAtSample), ubo.phiNormal));
-
-  float differenceInDepth = 0;
-  // using gradient here can better blend samples within a single screen space
-  // tilted mesh
-  if (ubo.useGradientInDepth) {
-    differenceInDepth =
-        abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(offsetXY)));
-  } else {
-    differenceInDepth = abs(depthAtUV - depthAtSample);
-  }
-  float weightZ = exp(-differenceInDepth / ubo.phiDepth);
-
-  float weight = weightK * weightC * weightN * weightZ;
-
-  weightSum += weight;
-
-  sumOfWeightedValues += weight * vec4(colorAtSample, 1);
 }
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+    return;
+  }
 
   getSharedData(ivec2(0), gradientAtUV, normalAtUV, colorAtUV, depthAtUV,
                 varianceAtUV);

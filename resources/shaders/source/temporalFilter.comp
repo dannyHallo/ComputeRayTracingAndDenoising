@@ -86,7 +86,11 @@ bool isConsistent() {
 }
 
 void main() {
-  uv          = ivec2(gl_GlobalInvocationID.xy);
+  uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+    return;
+  }
+
   pixPos      = imageLoad(posTex, uv);
   float alpha = ubo.blendingAlpha;
 
