@@ -11,10 +11,17 @@ const float kernel3x3[2][2] = {{1.0, waveletFac},
 
 const vec3 rgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
 
-// bigger phi indicates bigger tolerence to apply blur
-layout(binding = 0) uniform UniformBufferObject {
-  bool bypassBluring;
+layout(binding = 0) uniform GlobalUniformBufferObject {
+  uint swapchainWidth;
+  uint swapchainHeight;
   uint currentSample;
+  float time;
+}
+globalUbo;
+
+// bigger phi indicates bigger tolerence to apply blur
+layout(binding = 1) uniform UniformBufferObject {
+  bool bypassBluring;
   int i;
   int iCap; // ranged from 0 - 5
   bool showVariance;
@@ -29,13 +36,13 @@ layout(binding = 0) uniform UniformBufferObject {
 }
 ubo;
 
-layout(binding = 1, rgba8) readonly uniform image2D aTrousInputTex;
-layout(binding = 2, rgba8) readonly uniform image2D normalTex;
-layout(binding = 3, r32f) readonly uniform image2D depthTex;
-layout(binding = 4, rg32f) readonly uniform image2D gradientTex;
-layout(binding = 5, r32f) readonly uniform image2D varianceTex;
-layout(binding = 6, rgba8) writeonly uniform image2D accumTex;
-layout(binding = 7, rgba8) writeonly uniform image2D aTrousOutputTex;
+layout(binding = 2, rgba8) readonly uniform image2D aTrousInputTex;
+layout(binding = 3, rgba8) readonly uniform image2D normalTex;
+layout(binding = 4, r32f) readonly uniform image2D depthTex;
+layout(binding = 5, rg32f) readonly uniform image2D gradientTex;
+layout(binding = 6, r32f) readonly uniform image2D varianceTex;
+layout(binding = 7, rgba8) writeonly uniform image2D accumTex;
+layout(binding = 8, rgba8) writeonly uniform image2D aTrousOutputTex;
 
 #include "include/plasticRandom.glsl"
 
@@ -49,8 +56,8 @@ float varianceAtUV;
 float luminanceAtUV;
 
 ivec2 jittering(int stepSize) {
-  vec2 ldsNoise = ldsNoise2d(ubo.currentSample * 19937 + ubo.i + uv.x,
-                             ubo.currentSample * 19937 + ubo.i + uv.y);
+  vec2 ldsNoise = ldsNoise2d(globalUbo.currentSample * 19937 + ubo.i + uv.x,
+                             globalUbo.currentSample * 19937 + ubo.i + uv.y);
   ldsNoise -= 0.5;
   ldsNoise *= 0.5;
   ivec2 jitter = ivec2(ldsNoise * stepSize);

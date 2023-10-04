@@ -103,6 +103,10 @@ void Application::createBufferBundles() {
   // uniform buffers are faster to fill compared to storage buffers, but they
   // are restricted in their size Buffer bundle is an array of buffers, one per
   // each swapchain image/descriptor set.
+  mGlobalBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(GlobalUniformBufferObject),
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
   mRtxBufferBundle = std::make_unique<BufferBundle>(
       swapchainSize, sizeof(RtxUniformBufferObject),
       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -309,6 +313,7 @@ void Application::createImagesAndForwardingPairs() {
 void Application::createComputeModels() {
   auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder +
                                                   "/shaders/generated/rtx.spv");
+  rtxMat->addUniformBufferBundle(mGlobalBufferBundle.get());
   rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
   // input
   rtxMat->addStorageImage(mPositionImage.get());
@@ -326,6 +331,7 @@ void Application::createComputeModels() {
 
   auto gradientMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/gradient.spv");
+  gradientMat->addUniformBufferBundle(mGlobalBufferBundle.get());
   // input
   gradientMat->addStorageImage(mDepthImage.get());
   // output
@@ -334,6 +340,7 @@ void Application::createComputeModels() {
 
   auto temporalFilterMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/temporalFilter.spv");
+  temporalFilterMat->addUniformBufferBundle(mGlobalBufferBundle.get());
   temporalFilterMat->addUniformBufferBundle(mTemperalFilterBufferBundle.get());
   // input
   temporalFilterMat->addStorageImage(mPositionImage.get());
@@ -356,6 +363,7 @@ void Application::createComputeModels() {
 
   auto varianceMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/variance.spv");
+  varianceMat->addUniformBufferBundle(mGlobalBufferBundle.get());
   varianceMat->addUniformBufferBundle(mVarianceBufferBundle.get());
   // input
   varianceMat->addStorageImage(mATrousInputImage.get());
@@ -370,6 +378,7 @@ void Application::createComputeModels() {
   for (int i = 0; i < kATrousSize; i++) {
     auto aTrousMat = std::make_unique<ComputeMaterial>(
         kPathToResourceFolder + "/shaders/generated/aTrous.spv");
+    aTrousMat->addUniformBufferBundle(mGlobalBufferBundle.get());
     aTrousMat->addUniformBufferBundle(mBlurFilterBufferBundles[i].get());
     // input
     aTrousMat->addStorageImage(mATrousInputImage.get());
@@ -387,6 +396,7 @@ void Application::createComputeModels() {
   auto postProcessingMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/postProcessing.spv");
   {
+    postProcessingMat->addUniformBufferBundle(mGlobalBufferBundle.get());
     // input
     postProcessingMat->addStorageImage(mATrousOutputImage.get());
     // output
@@ -396,11 +406,16 @@ void Application::createComputeModels() {
       std::make_unique<ComputeModel>(std::move(postProcessingMat));
 }
 
-void Application::updateScene(uint32_t currentImage) {
+void Application::updateScene(uint32_t currentImageIndex) {
   static uint32_t currentSample = 0;
   static glm::mat4 lastMvpe{1.0F};
 
   auto currentTime = static_cast<float>(glfwGetTime());
+
+  GlobalUniformBufferObject globalUbo = {
+      mAppContext->getSwapchainExtentWidth(),
+      mAppContext->getSwapchainExtentHeight(), currentSample, currentTime};
+  mGlobalBufferBundle->getBuffer(currentImageIndex)->fillData(&globalUbo);
 
   RtxUniformBufferObject rtxUbo = {
       mCamera->getPosition(),
@@ -408,24 +423,19 @@ void Application::updateScene(uint32_t currentImage) {
       mCamera->getUp(),
       mCamera->getRight(),
       mCamera->getVFov(),
-      currentTime,
-      currentSample,
       static_cast<uint32_t>(mRtScene->triangles.size()),
       static_cast<uint32_t>(mRtScene->lights.size()),
-      mMovingLightSource};
+      mMovingLightSource,
+      mUseLdsNoise,
+      mOutputType};
 
-  mRtxBufferBundle->getBuffer(currentImage)->fillData(&rtxUbo);
+  mRtxBufferBundle->getBuffer(currentImageIndex)->fillData(&rtxUbo);
 
-  TemporalFilterUniformBufferObject tfUbo = {
-      !mUseTemporalBlend,
-      mUseNormalTest,
-      mNormalThreshold,
-      mBlendingAlpha,
-      lastMvpe,
-      mAppContext->getSwapchainExtentWidth(),
-      mAppContext->getSwapchainExtentHeight()};
+  TemporalFilterUniformBufferObject tfUbo = {!mUseTemporalBlend, mUseNormalTest,
+                                             mNormalThreshold, mBlendingAlpha,
+                                             lastMvpe};
   {
-    mTemperalFilterBufferBundle->getBuffer(currentImage)->fillData(&tfUbo);
+    mTemperalFilterBufferBundle->getBuffer(currentImageIndex)->fillData(&tfUbo);
 
     lastMvpe =
         mCamera->getProjectionMatrix(
@@ -437,12 +447,11 @@ void Application::updateScene(uint32_t currentImage) {
   VarianceUniformBufferObject varianceUbo = {
       !mUseVarianceEstimation, mSkipStoppingFunctions, mUseTemporalVariance,
       mVarianceKernelSize,     mVariancePhiGaussian,   mVariancePhiDepth};
-  mVarianceBufferBundle->getBuffer(currentImage)->fillData(&varianceUbo);
+  mVarianceBufferBundle->getBuffer(currentImageIndex)->fillData(&varianceUbo);
 
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
     BlurFilterUniformBufferObject bfUbo = {!mUseATrous,
-                                           currentSample,
                                            j,
                                            mICap,
                                            mShowVariance,
@@ -454,7 +463,7 @@ void Application::updateScene(uint32_t currentImage) {
                                            mIgnoreLuminanceAtFirstIteration,
                                            mChangingLuminancePhi,
                                            mUseJittering};
-    mBlurFilterBufferBundles[j]->getBuffer(currentImage)->fillData(&bfUbo);
+    mBlurFilterBufferBundles[j]->getBuffer(currentImageIndex)->fillData(&bfUbo);
   }
 
   currentSample++;
@@ -952,6 +961,7 @@ void Application::drawFrame() {
 }
 
 void Application::prepareGui() {
+
   ImGui_ImplVulkan_NewFrame();
 
   // handle the user inputs, the screen resize
@@ -963,6 +973,29 @@ void Application::prepareGui() {
   if (ImGui::BeginMenu("Config")) {
     ImGui::SeparatorText("Scene");
     ImGui::Checkbox("Moving Light Source", &mMovingLightSource);
+    ImGui::Checkbox("Use LDS Noise", &mUseLdsNoise);
+
+    const char *items[] = {"Combined", "Direct Only", "Indirect Only"};
+    static const char *currentSelectedItem = items[0];
+    if (ImGui::BeginCombo("Output Type",
+                          currentSelectedItem)) { // The second parameter is the
+                                                  // label previewed
+                                                  // before opening the combo.
+      for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
+        // You can store your selection however you want, outside or inside your
+        // objects
+        bool is_selected = (currentSelectedItem == items[n]);
+        if (ImGui::Selectable(items[n], is_selected)) {
+          currentSelectedItem = items[n];
+          mOutputType         = n;
+        }
+
+        // Set the initial focus when opening the combo (scrolling + for
+        // keyboard navigation support in the upcoming navigation branch)
+        if (is_selected) ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
 
     ImGui::SeparatorText("Temporal Blend");
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporalBlend);

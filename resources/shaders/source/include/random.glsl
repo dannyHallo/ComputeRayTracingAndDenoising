@@ -1,13 +1,13 @@
 #include "plasticRandom.glsl"
 
+// currently, every file that includes this file should have globalUbo in their
+// layout
 const float pi = 3.1415926535897932385;
 
-// uint index = ubo.currentSample + gl_GlobalInvocationID.x +
-//              imageSize(rawTex).x * gl_GlobalInvocationID.y + 1;
-uint index = ubo.currentSample + gl_GlobalInvocationID.x +
+uint index = globalUbo.currentSample + gl_GlobalInvocationID.x +
              9999 * gl_GlobalInvocationID.y + 1;
 
-uint rngState = index * ubo.currentSample + 1;
+uint rngState = index * globalUbo.currentSample + 1;
 
 // ---- Random
 // A single iteration of Bob Jenkins' One-At-A-Time hashing algorithm.
@@ -58,10 +58,10 @@ vec2 random_uv() {
   uint randOffsetInPixel =
       hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
   vec2 rand =
-      ldsNoise2d(gl_GlobalInvocationID.x + uint(ubo.currentSample) * 19937u +
-                     randOffsetInPixel,
-                 gl_GlobalInvocationID.y + uint(ubo.currentSample) * 3719u +
-                     randOffsetInPixel);
+      ldsNoise2d(gl_GlobalInvocationID.x +
+                     uint(globalUbo.currentSample) * 19937u + randOffsetInPixel,
+                 gl_GlobalInvocationID.y +
+                     uint(globalUbo.currentSample) * 3719u + randOffsetInPixel);
   return rand;
 }
 

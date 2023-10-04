@@ -27,17 +27,27 @@ class Application {
   // A three- or four-component vector, with components of size N, has a base
   // alignment of 4 N.
   // https://fvcaputo.github.io/2019/02/06/memory-alignment.html
+
+  struct GlobalUniformBufferObject {
+    uint32_t swapchainWidth;
+    uint32_t swapchainHeight;
+    uint32_t currentSample;
+    float time;
+  };
+
   struct RtxUniformBufferObject {
     alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camPosition;
     alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
     alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
     alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camRight;
     float vfov;
-    float time;
-    uint32_t currentSample;
+    // float time;
+    // uint32_t currentSample;
     uint32_t numTriangles;
     uint32_t numLights;
     int movingLightSource;
+    int useLdsNoise;
+    uint32_t outputType;
   };
 
   struct TemporalFilterUniformBufferObject {
@@ -46,8 +56,7 @@ class Application {
     float normalThrehold;
     float blendingAlpha;
     alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
-    uint swapchainWidth; // TODO: remove this
-    uint swapchainHeight;
+    // uint swapchainWidth;     uint swapchainHeight;
   };
 
   struct VarianceUniformBufferObject {
@@ -61,7 +70,7 @@ class Application {
 
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
-    uint32_t currentSample;
+    // uint32_t currentSample;
     int i;
     int iCap;
     int showVariance;
@@ -80,6 +89,8 @@ class Application {
   // whether to use temporal and blur filtering
   bool mUseATrous         = true;
   bool mMovingLightSource = false;
+  bool mUseLdsNoise       = true;
+  uint32_t mOutputType    = 0;
 
   // temporal filter
   bool mUseTemporalBlend = true;
@@ -130,6 +141,7 @@ class Application {
   std::unique_ptr<ComputeModel> mPostProcessingModel;
 
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
+  std::unique_ptr<BufferBundle> mGlobalBufferBundle;
   std::unique_ptr<BufferBundle> mRtxBufferBundle;
   std::unique_ptr<BufferBundle> mTemperalFilterBufferBundle;
   std::unique_ptr<BufferBundle> mVarianceBufferBundle;
