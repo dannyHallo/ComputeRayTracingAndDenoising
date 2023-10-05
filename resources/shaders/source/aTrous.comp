@@ -7,7 +7,6 @@ layout(binding = 1) uniform UniformBufferObject {
   bool bypassBluring;
   int i;
   int iCap; // ranged from 0 - 5
-  bool showVariance;
   bool useVarianceGuidedFiltering;
   bool useGradientInDepth;
   float phiLuminance;
@@ -38,12 +37,12 @@ const float kernel3x3[2][2] = {{1.0, waveletFac},
 
 ivec2 uv;
 
-vec2 gradientAtUV;
-vec3 normalAtUV;
-vec3 colorAtUV;
-float depthAtUV;
-float varianceAtUV;
-float luminanceAtUV;
+vec2 gradientAtUv;
+vec3 normalAtUv;
+vec3 colorAtUv;
+float depthAtUv;
+float varianceAtUv;
+float luminanceAtUv;
 
 ivec2 jittering(int stepSize) {
   vec2 ldsNoise = ldsNoise2d(globalUbo.currentSample * 19937 + ubo.i + uv.x,
@@ -54,9 +53,8 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-void getSharedData(ivec2 offsetXY, out vec2 gradientAtUV, out vec3 normalAtUV,
-                   out vec3 colorAtUV, out float depthAtUV,
-                   out float varianceAtUV) {
+void loadData(ivec2 offsetXY, out vec2 gradientAtUv, out vec3 normalAtUv,
+              out vec3 colorAtUv, out float depthAtUv, out float varianceAtUv) {
   ivec2 ipos = uv + offsetXY;
   if (ipos.x < 0 || ipos.y < 0 || ipos.x >= globalUbo.swapchainWidth ||
       ipos.y >= globalUbo.swapchainHeight) {
@@ -65,11 +63,11 @@ void getSharedData(ivec2 offsetXY, out vec2 gradientAtUV, out vec3 normalAtUV,
         ivec2(globalUbo.swapchainWidth - 1, globalUbo.swapchainHeight - 1));
   }
 
-  gradientAtUV = imageLoad(gradientTex, ipos).xy;
-  normalAtUV   = imageLoad(normalTex, ipos).xyz;
-  colorAtUV    = imageLoad(aTrousInputTex, ipos).xyz;
-  depthAtUV    = imageLoad(depthTex, ipos).x;
-  varianceAtUV = imageLoad(varianceTex, ipos).x;
+  gradientAtUv = imageLoad(gradientTex, ipos).xy;
+  normalAtUv   = imageLoad(normalTex, ipos).xyz;
+  colorAtUv    = imageLoad(aTrousInputTex, ipos).xyz;
+  depthAtUv    = imageLoad(depthTex, ipos).x;
+  varianceAtUv = imageLoad(varianceTex, ipos).x;
 }
 
 void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
@@ -85,7 +83,7 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
     float weight = weightK;
     weight       = clamp(weight, 0, 1);
     weightSum += weight;
-    sumOfWeightedValues += weight * vec4(colorAtUV, 1);
+    sumOfWeightedValues += weight * vec4(colorAtUv, 1);
   } else {
     float weightC, weightN, weightZ;
 
@@ -94,19 +92,19 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
     vec3 colorAtSample;
     float depthAtSample;
     float varianceAtSample;
-    getSharedData(offsetXY, gradientAtSample, normalAtSample, colorAtSample,
-                  depthAtSample, varianceAtSample);
+    loadData(offsetXY, gradientAtSample, normalAtSample, colorAtSample,
+             depthAtSample, varianceAtSample);
 
-    float luminanceAtSample = dot(colorAtSample, rgbToLuminanceMat);
+    float luminanceAtSample = dot(rgbToLuminanceMat, colorAtSample);
     float phiC              = ubo.phiLuminance;
     if (ubo.changingLuminancePhi) {
       phiC = pow(2, -ubo.i) * ubo.phiLuminance;
     }
     weightC       = 0;
-    float colDiff = abs(luminanceAtSample - luminanceAtUV);
+    float colDiff = abs(luminanceAtSample - luminanceAtUv);
     if (ubo.useVarianceGuidedFiltering) {
       phiC *= 100.;
-      weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUV), epsilon));
+      weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), epsilon));
     } else {
       weightC = exp(-colDiff / phiC);
     }
@@ -114,16 +112,16 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
       weightC = 1.0;
     }
 
-    weightN = max(0., pow(dot(normalAtUV, normalAtSample), ubo.phiNormal));
+    weightN = max(0., pow(dot(normalAtUv, normalAtSample), ubo.phiNormal));
 
     float differenceInDepth = 0;
     // using gradient here can better blend samples within a single screen space
     // tilted mesh
     if (ubo.useGradientInDepth) {
       differenceInDepth =
-          abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(offsetXY)));
+          abs((depthAtUv - depthAtSample) - dot(gradientAtUv, vec2(offsetXY)));
     } else {
-      differenceInDepth = abs(depthAtUV - depthAtSample);
+      differenceInDepth = abs(depthAtUv - depthAtSample);
     }
     weightZ = exp(-differenceInDepth / ubo.phiDepth);
 
@@ -139,16 +137,16 @@ void main() {
     return;
   }
 
-  getSharedData(ivec2(0), gradientAtUV, normalAtUV, colorAtUV, depthAtUV,
-                varianceAtUV);
+  loadData(ivec2(0), gradientAtUv, normalAtUv, colorAtUv, depthAtUv,
+           varianceAtUv);
 
-  luminanceAtUV = dot(colorAtUV, rgbToLuminanceMat);
+  luminanceAtUv = dot(rgbToLuminanceMat, colorAtUv);
 
   if (ubo.bypassBluring || ubo.i >= ubo.iCap) {
     if (ubo.i == 0) {
-      imageStore(accumTex, uv, vec4(colorAtUV, 1));
+      imageStore(accumTex, uv, vec4(colorAtUv, 1));
     }
-    imageStore(aTrousOutputTex, uv, vec4(colorAtUV, 1));
+    imageStore(aTrousOutputTex, uv, vec4(colorAtUv, 1));
     return;
   }
 
@@ -166,15 +164,11 @@ void main() {
 
   vec4 weightedColor = sumOfWeightedValues / weightSum;
 
-  float varianceAtUV = min(varianceAtUV * 10, 1);
-
   if (ubo.i == 0) {
     imageStore(accumTex, uv, weightedColor);
   }
-
-  if (!ubo.showVariance) {
-    imageStore(aTrousOutputTex, uv, weightedColor);
-  } else {
-    imageStore(aTrousOutputTex, uv, vec4(varianceAtUV, 0, 0, 1));
-  }
+  // TODO: this still has problem
+  // varianceAtUv  = min(varianceAtUv * 10, 1);
+  // weightedColor = vec4(varianceAtUv, 0, 0, 1);
+  imageStore(aTrousOutputTex, uv, weightedColor);
 }

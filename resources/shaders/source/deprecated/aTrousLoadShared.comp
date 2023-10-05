@@ -1,226 +1,231 @@
-// this is deprecated because the a-trous algorithm is sparse, and iterations
-// over 1 cannot take any advantage of using shared memory!
-// however, this file is kept for future reference
-#version 450
+// // this is deprecated because the a-trous algorithm is sparse, and iterations
+// // over 1 cannot take any advantage of using shared memory!
+// // however, this file is kept for future reference
+// #version 450
 
-#define GROUP_SIZE 15
-#define FILTER_RADIUS 1
-#define GROUP_SIZE_2 (GROUP_SIZE * GROUP_SIZE)
-#define SHARED_SIZE (GROUP_SIZE + 2 * FILTER_RADIUS)
-#define SHARED_SIZE_2 (SHARED_SIZE * SHARED_SIZE)
+// #define GROUP_SIZE 15
+// #define FILTER_RADIUS 1
+// #define GROUP_SIZE_2 (GROUP_SIZE * GROUP_SIZE)
+// #define SHARED_SIZE (GROUP_SIZE + 2 * FILTER_RADIUS)
+// #define SHARED_SIZE_2 (SHARED_SIZE * SHARED_SIZE)
 
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE,
-       local_size_z = 1) in;
+// layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE,
+//        local_size_z = 1) in;
 
-const float epsilon = 1e-8;
+// const float epsilon = 1e-8;
 
-// standard 3x3 filtering kernel from q2rtx
-const float waveletFac      = 0.5;
-const float kernel3x3[2][2] = {{1.0, waveletFac},
-                               {waveletFac, waveletFac *waveletFac}};
+// // standard 3x3 filtering kernel from q2rtx
+// const float waveletFac      = 0.5;
+// const float kernel3x3[2][2] = {{1.0, waveletFac},
+//                                {waveletFac, waveletFac *waveletFac}};
 
-const vec3 rgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
+// const vec3 rgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
 
-// bigger phi indicates bigger tolerence to apply blur
-layout(binding = 0) uniform UniformBufferObject {
-  bool bypassBluring;
-  uint currentSample;
-  int i;
-  int iCap; // ranged from 0 - 5
-  bool showVariance;
-  bool useVarianceGuidedFiltering;
-  float phiLuminance;
-  float phiDepth;
-  float phiNormal;
-  bool ignoreLuminanceAtFirstIteration;
-  bool changingLuminancePhi;
-  bool useJittering;
-}
-ubo;
+// // bigger phi indicates bigger tolerence to apply blur
+// layout(binding = 0) uniform UniformBufferObject {
+//   bool bypassBluring;
+//   uint currentSample;
+//   int i;
+//   int iCap; // ranged from 0 - 5
+//   bool showVariance;
+//   bool useVarianceGuidedFiltering;
+//   float phiLuminance;
+//   float phiDepth;
+//   float phiNormal;
+//   bool ignoreLuminanceAtFirstIteration;
+//   bool changingLuminancePhi;
+//   bool useJittering;
+// }
+// ubo;
 
-layout(binding = 1, rgba8) readonly uniform image2D aTrousInputTex;
-layout(binding = 2, rgba8) readonly uniform image2D normalTex;
-layout(binding = 3, r32f) readonly uniform image2D depthTex;
-layout(binding = 4, rg32f) readonly uniform image2D gradientTex;
-layout(binding = 5, r32f) readonly uniform image2D varianceTex;
-layout(binding = 6, rgba8) writeonly uniform image2D accumTex;
-layout(binding = 7, rgba8) writeonly uniform image2D aTrousOutputTex;
+// layout(binding = 1, rgba8) readonly uniform image2D aTrousInputTex;
+// layout(binding = 2, rgba8) readonly uniform image2D normalTex;
+// layout(binding = 3, r32f) readonly uniform image2D depthTex;
+// layout(binding = 4, rg32f) readonly uniform image2D gradientTex;
+// layout(binding = 5, r32f) readonly uniform image2D varianceTex;
+// layout(binding = 6, rgba8) writeonly uniform image2D accumTex;
+// layout(binding = 7, rgba8) writeonly uniform image2D aTrousOutputTex;
 
-// #include "include/random.glsl"
-#include "include/plasticRandom.glsl"
+// // #include "include/random.glsl"
+// #include "include/plasticRandom.glsl"
 
-ivec2 uv;
+// ivec2 uv;
 
-shared vec2 gradients[SHARED_SIZE][SHARED_SIZE];
-shared vec3 normals[SHARED_SIZE][SHARED_SIZE];
-shared vec3 colors[SHARED_SIZE][SHARED_SIZE];
-shared float depths[SHARED_SIZE][SHARED_SIZE];
-shared float variances[SHARED_SIZE][SHARED_SIZE];
+// shared vec2 gradients[SHARED_SIZE][SHARED_SIZE];
+// shared vec3 normals[SHARED_SIZE][SHARED_SIZE];
+// shared vec3 colors[SHARED_SIZE][SHARED_SIZE];
+// shared float depths[SHARED_SIZE][SHARED_SIZE];
+// shared float variances[SHARED_SIZE][SHARED_SIZE];
 
-vec2 gradientAtUV;
-vec3 normalAtUV;
-vec3 colorAtUV;
-float depthAtUV;
-float varianceAtUV;
-float luminanceAtUV;
+// vec2 gradientAtUv;
+// vec3 normalAtUv;
+// vec3 colorAtUv;
+// float depthAtUv;
+// float varianceAtUv;
+// float luminanceAtUv;
 
-void preload() {
-  if (ubo.i != -1) {
-    return;
-  }
-  // the group base denotes the first pixel pos that needs to lookup, the group
-  // base val is the same for all threads in the work group
-  ivec2 groupBase = ivec2(gl_WorkGroupID.xy) * GROUP_SIZE - FILTER_RADIUS;
+// void preload() {
+//   if (ubo.i != -1) {
+//     return;
+//   }
+//   // the group base denotes the first pixel pos that needs to lookup, the
+//   group
+//   // base val is the same for all threads in the work group
+//   ivec2 groupBase = ivec2(gl_WorkGroupID.xy) * GROUP_SIZE - FILTER_RADIUS;
 
-  // there are several points that are needed to be loaded twice, (17 * 17 - 15
-  // * 15), preloading it to the current group's shared memory saves loading
-  for (uint linearIndex = gl_LocalInvocationIndex; linearIndex < SHARED_SIZE_2;
-       linearIndex += GROUP_SIZE_2) {
-    // convert linear index to 2d index TODO: check if this is correct
-    ivec2 index2d = ivec2(linearIndex % SHARED_SIZE, linearIndex / SHARED_SIZE);
-    // float t = (float(linearIndex) + 0.5) / float(SHARED_SIZE);
-    // int xx = int(floor(fract(t) * float(SHARED_SIZE)));
-    // int yy = int(floor(t));
-    // ivec2 index2d = ivec2(xx, yy);
+//   // there are several points that are needed to be loaded twice, (17 * 17 -
+//   15
+//   // * 15), preloading it to the current group's shared memory saves loading
+//   for (uint linearIndex = gl_LocalInvocationIndex; linearIndex <
+//   SHARED_SIZE_2;
+//        linearIndex += GROUP_SIZE_2) {
+//     // convert linear index to 2d index TODO: check if this is correct
+//     ivec2 index2d = ivec2(linearIndex % SHARED_SIZE, linearIndex /
+//     SHARED_SIZE);
+//     // float t = (float(linearIndex) + 0.5) / float(SHARED_SIZE);
+//     // int xx = int(floor(fract(t) * float(SHARED_SIZE)));
+//     // int yy = int(floor(t));
+//     // ivec2 index2d = ivec2(xx, yy);
 
-    // ipos denotes the position to read from the texture in current thread
-    ivec2 ipos = groupBase + index2d;
+//     // ipos denotes the position to read from the texture in current thread
+//     ivec2 ipos = groupBase + index2d;
 
-    gradients[index2d.x][index2d.y] = imageLoad(gradientTex, ipos).xy;
-    normals[index2d.x][index2d.y]   = imageLoad(normalTex, ipos).xyz;
-    colors[index2d.x][index2d.y]    = imageLoad(aTrousInputTex, ipos).xyz;
-    depths[index2d.x][index2d.y]    = imageLoad(depthTex, ipos).x;
-    variances[index2d.x][index2d.y] = imageLoad(varianceTex, ipos).x;
-  }
-}
+//     gradients[index2d.x][index2d.y] = imageLoad(gradientTex, ipos).xy;
+//     normals[index2d.x][index2d.y]   = imageLoad(normalTex, ipos).xyz;
+//     colors[index2d.x][index2d.y]    = imageLoad(aTrousInputTex, ipos).xyz;
+//     depths[index2d.x][index2d.y]    = imageLoad(depthTex, ipos).x;
+//     variances[index2d.x][index2d.y] = imageLoad(varianceTex, ipos).x;
+//   }
+// }
 
-ivec2 jittering(int stepSize) {
-  vec2 ldsNoise = ldsNoise2d(ubo.currentSample * 19937 + ubo.i + uv.x,
-                             ubo.currentSample * 19937 + ubo.i + uv.y);
-  ldsNoise -= 0.5;
-  ldsNoise *= 0.5;
-  ivec2 jitter = ivec2(ldsNoise * stepSize);
-  return jitter;
-}
+// ivec2 jittering(int stepSize) {
+//   vec2 ldsNoise = ldsNoise2d(ubo.currentSample * 19937 + ubo.i + uv.x,
+//                              ubo.currentSample * 19937 + ubo.i + uv.y);
+//   ldsNoise -= 0.5;
+//   ldsNoise *= 0.5;
+//   ivec2 jitter = ivec2(ldsNoise * stepSize);
+//   return jitter;
+// }
 
-void getSharedData(ivec2 offset, out vec2 gradientAtUV, out vec3 normalAtUV,
-                   out vec3 colorAtUV, out float depthAtUV,
-                   out float varianceAtUV) {
-  // load using the normal way
-  if (ubo.i != -1) {
-    int stepSize   = 1 << ubo.i;
-    ivec2 offsetXY = offset * stepSize;
-    if (ubo.useJittering && offset != ivec2(0)) {
-      offsetXY += jittering(stepSize);
-    }
+// void getSharedData(ivec2 offset, out vec2 gradientAtUv, out vec3 normalAtUv,
+//                    out vec3 colorAtUv, out float depthAtUv,
+//                    out float varianceAtUv) {
+//   // load using the normal way
+//   if (ubo.i != -1) {
+//     int stepSize   = 1 << ubo.i;
+//     ivec2 offsetXY = offset * stepSize;
+//     if (ubo.useJittering && offset != ivec2(0)) {
+//       offsetXY += jittering(stepSize);
+//     }
 
-    ivec2 ipos   = uv + offsetXY;
-    gradientAtUV = imageLoad(gradientTex, ipos).xy;
-    normalAtUV   = imageLoad(normalTex, ipos).xyz;
-    colorAtUV    = imageLoad(aTrousInputTex, ipos).xyz;
-    depthAtUV    = imageLoad(depthTex, ipos).x;
-    varianceAtUV = imageLoad(varianceTex, ipos).x;
-    return;
-  }
+//     ivec2 ipos   = uv + offsetXY;
+//     gradientAtUv = imageLoad(gradientTex, ipos).xy;
+//     normalAtUv   = imageLoad(normalTex, ipos).xyz;
+//     colorAtUv    = imageLoad(aTrousInputTex, ipos).xyz;
+//     depthAtUv    = imageLoad(depthTex, ipos).x;
+//     varianceAtUv = imageLoad(varianceTex, ipos).x;
+//     return;
+//   }
 
-  ivec2 addr = ivec2(gl_LocalInvocationID) + FILTER_RADIUS + offset;
+//   ivec2 addr = ivec2(gl_LocalInvocationID) + FILTER_RADIUS + offset;
 
-  gradientAtUV = gradients[addr.x][addr.y];
-  normalAtUV   = normals[addr.x][addr.y];
-  colorAtUV    = colors[addr.x][addr.y];
-  depthAtUV    = depths[addr.x][addr.y];
-  varianceAtUV = variances[addr.x][addr.y];
-}
+//   gradientAtUv = gradients[addr.x][addr.y];
+//   normalAtUv   = normals[addr.x][addr.y];
+//   colorAtUv    = colors[addr.x][addr.y];
+//   depthAtUv    = depths[addr.x][addr.y];
+//   varianceAtUv = variances[addr.x][addr.y];
+// }
 
-void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
-                inout vec4 sumOfWeightedValues) {
-  int stepSize = 1 << ubo.i;
+// void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
+//                 inout vec4 sumOfWeightedValues) {
+//   int stepSize = 1 << ubo.i;
 
-  float weightK = kernel3x3[abs(dispatchXY.x)][abs(dispatchXY.y)];
+//   float weightK = kernel3x3[abs(dispatchXY.x)][abs(dispatchXY.y)];
 
-  vec2 gradientAtSample;
-  vec3 normalAtSample;
-  vec3 colorAtSample;
-  float depthAtSample;
-  float varianceAtSample;
-  getSharedData(dispatchXY, gradientAtSample, normalAtSample, colorAtSample,
-                depthAtSample, varianceAtSample);
+//   vec2 gradientAtSample;
+//   vec3 normalAtSample;
+//   vec3 colorAtSample;
+//   float depthAtSample;
+//   float varianceAtSample;
+//   getSharedData(dispatchXY, gradientAtSample, normalAtSample, colorAtSample,
+//                 depthAtSample, varianceAtSample);
 
-  float luminanceAtSample = dot(colorAtSample, rgbToLuminanceMat);
+//   float luminanceAtSample = dot(rgbToLuminanceMat, colorAtSample);
 
-  float phiC = ubo.phiLuminance;
-  if (ubo.changingLuminancePhi) {
-    phiC = pow(2, -ubo.i) * ubo.phiLuminance;
-  }
-  float weightC = 0;
-  float colDiff = abs(luminanceAtSample - luminanceAtUV);
-  if (ubo.useVarianceGuidedFiltering) {
-    phiC *= 100.;
-    weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUV), epsilon));
-  } else {
-    weightC = exp(-colDiff / phiC);
-  }
-  if (ubo.ignoreLuminanceAtFirstIteration && ubo.i == 0) {
-    weightC = 1.0;
-  }
+//   float phiC = ubo.phiLuminance;
+//   if (ubo.changingLuminancePhi) {
+//     phiC = pow(2, -ubo.i) * ubo.phiLuminance;
+//   }
+//   float weightC = 0;
+//   float colDiff = abs(luminanceAtSample - luminanceAtUv);
+//   if (ubo.useVarianceGuidedFiltering) {
+//     phiC *= 100.;
+//     weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), epsilon));
+//   } else {
+//     weightC = exp(-colDiff / phiC);
+//   }
+//   if (ubo.ignoreLuminanceAtFirstIteration && ubo.i == 0) {
+//     weightC = 1.0;
+//   }
 
-  float weightN = max(0., pow(dot(normalAtUV, normalAtSample), ubo.phiNormal));
+//   float weightN = max(0., pow(dot(normalAtUv, normalAtSample),
+//   ubo.phiNormal));
 
-  float differenceInDepth = abs((depthAtUV, depthAtSample));
+//   float differenceInDepth = abs((depthAtUv, depthAtSample));
 
-  // float differenceInDepth =
-  //     abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(offsetXY)));
-  float weightZ = exp(-differenceInDepth / ubo.phiDepth);
+//   // float differenceInDepth =
+//   //     abs((depthAtUv - depthAtSample) - dot(gradientAtUv,
+//   vec2(offsetXY))); float weightZ = exp(-differenceInDepth / ubo.phiDepth);
 
-  float weight = weightK * weightC * weightN * weightZ;
+//   float weight = weightK * weightC * weightN * weightZ;
 
-  weightSum += weight;
+//   weightSum += weight;
 
-  sumOfWeightedValues += weight * vec4(colorAtSample, 1);
-}
+//   sumOfWeightedValues += weight * vec4(colorAtSample, 1);
+// }
 
-void main() {
-  preload();
-  barrier();
+// void main() {
+//   preload();
+//   barrier();
 
-  uv = ivec2(gl_GlobalInvocationID.xy);
+//   uv = ivec2(gl_GlobalInvocationID.xy);
 
-  getSharedData(ivec2(0), gradientAtUV, normalAtUV, colorAtUV, depthAtUV,
-                varianceAtUV);
+//   getSharedData(ivec2(0), gradientAtUv, normalAtUv, colorAtUv, depthAtUv,
+//                 varianceAtUv);
 
-  luminanceAtUV = dot(colorAtUV, rgbToLuminanceMat);
+//   luminanceAtUv = dot(rgbToLuminanceMat, colorAtUv);
 
-  if (ubo.bypassBluring || ubo.i >= ubo.iCap) {
-    if (ubo.i == 0) {
-      imageStore(accumTex, uv, vec4(colorAtUV, 1));
-    }
-    imageStore(aTrousOutputTex, uv, vec4(colorAtUV, 1));
-    return;
-  }
+//   if (ubo.bypassBluring || ubo.i >= ubo.iCap) {
+//     if (ubo.i == 0) {
+//       imageStore(accumTex, uv, vec4(colorAtUv, 1));
+//     }
+//     imageStore(aTrousOutputTex, uv, vec4(colorAtUv, 1));
+//     return;
+//   }
 
-  const int kernelSize     = 3;
-  const int kernalHalfSize = 1;
+//   const int kernelSize     = 3;
+//   const int kernalHalfSize = 1;
 
-  float weightSum          = 0;
-  vec4 sumOfWeightedValues = vec4(0);
-  for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
-    for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
-      blurKernel(ivec2(indexX, indexY), kernalHalfSize, weightSum,
-                 sumOfWeightedValues);
-    }
-  }
+//   float weightSum          = 0;
+//   vec4 sumOfWeightedValues = vec4(0);
+//   for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
+//     for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
+//       blurKernel(ivec2(indexX, indexY), kernalHalfSize, weightSum,
+//                  sumOfWeightedValues);
+//     }
+//   }
 
-  vec4 weightedColor = sumOfWeightedValues / weightSum;
+//   vec4 weightedColor = sumOfWeightedValues / weightSum;
 
-  float varianceAtUV = min(varianceAtUV * 10, 1);
+//   float varianceAtUv = min(varianceAtUv * 10, 1);
 
-  if (ubo.i == 0) {
-    imageStore(accumTex, uv, weightedColor);
-  }
+//   if (ubo.i == 0) {
+//     imageStore(accumTex, uv, weightedColor);
+//   }
 
-  if (!ubo.showVariance) {
-    imageStore(aTrousOutputTex, uv, weightedColor);
-  } else {
-    imageStore(aTrousOutputTex, uv, vec4(varianceAtUV, 0, 0, 1));
-  }
-}
+//   if (!ubo.showVariance) {
+//     imageStore(aTrousOutputTex, uv, weightedColor);
+//   } else {
+//     imageStore(aTrousOutputTex, uv, vec4(varianceAtUv, 0, 0, 1));
+//   }
+// }

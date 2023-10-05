@@ -40,6 +40,12 @@ class Application {
     float time;
   };
 
+  struct GradientProjectionUniformBufferObject {
+    int bypassGradientProjection;
+    alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
+  };
+  bool mUseGradientProjection = true;
+
   struct RtxUniformBufferObject {
     uint32_t numTriangles;
     uint32_t numLights;
@@ -47,6 +53,9 @@ class Application {
     int useLdsNoise;
     uint32_t outputType;
   };
+  bool mMovingLightSource = false;
+  bool mUseLdsNoise       = true;
+  uint32_t mOutputType    = 0;
 
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
@@ -55,6 +64,12 @@ class Application {
     float blendingAlpha;
     alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
   };
+  bool mUseTemporalBlend = true;
+  bool mUseDepthTest     = false;
+  float mDepthThreshold  = 0.07;
+  bool mUseNormalTest    = true;
+  float mNormalThreshold = 0.99;
+  float mBlendingAlpha   = 0.15;
 
   struct VarianceUniformBufferObject {
     int bypassVarianceEstimation;
@@ -64,12 +79,17 @@ class Application {
     float phiGaussian;
     float phiDepth;
   };
+  bool mUseVarianceEstimation = true;
+  bool mSkipStoppingFunctions = false;
+  bool mUseTemporalVariance   = true;
+  int mVarianceKernelSize     = 4;
+  float mVariancePhiGaussian  = 1.f;
+  float mVariancePhiDepth     = 0.2f;
 
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
     int i;
     int iCap;
-    int showVariance;
     int useVarianceGuidedFiltering;
     int useGradientInDepth;
     float phiLuminance;
@@ -79,34 +99,8 @@ class Application {
     int changingLuminancePhi;
     int useJittering;
   };
-
-  float mFps = 0;
-
-  // whether to use temporal and blur filtering
-  bool mUseATrous         = true;
-  bool mMovingLightSource = false;
-  bool mUseLdsNoise       = true;
-  uint32_t mOutputType    = 0;
-
-  // temporal filter
-  bool mUseTemporalBlend = true;
-  bool mUseDepthTest     = false;
-  float mDepthThreshold  = 0.07;
-  bool mUseNormalTest    = true;
-  float mNormalThreshold = 0.99;
-  float mBlendingAlpha   = 0.15;
-
-  // variance estimation
-  bool mUseVarianceEstimation = true;
-  bool mSkipStoppingFunctions = false;
-  bool mUseTemporalVariance   = true;
-  int mVarianceKernelSize     = 4;
-  float mVariancePhiGaussian  = 1.f;
-  float mVariancePhiDepth     = 0.2f;
-
-  // atrous twicking
+  bool mUseATrous                       = true;
   int mICap                             = 5;
-  bool mShowVariance                    = false;
   bool mUseVarianceGuidedFiltering      = true;
   bool mUseGradientInDepth              = true;
   float mPhiLuminance                   = 0.3f;
@@ -115,6 +109,15 @@ class Application {
   bool mIgnoreLuminanceAtFirstIteration = true;
   bool mChangingLuminancePhi            = true;
   bool mUseJittering                    = true;
+
+  struct PostProcessingUniformBufferObject {
+    uint32_t displayType;
+  };
+  uint32_t mDisplayType = 0;
+
+  float mFps = 0;
+
+  // atrous twicking
 
   // delta time and last recorded frame time
   float mDeltaTime = 0, mFrameRecordLastTime = 0;
@@ -128,7 +131,7 @@ class Application {
   // scene for ray tracing
   std::unique_ptr<GpuModel::Scene> mRtScene;
 
-  // compute models for ray tracing, temporal filtering, and blur filtering
+  std::unique_ptr<ComputeModel> mGradientProjectionModel;
   std::unique_ptr<ComputeModel> mRtxModel;
   std::unique_ptr<ComputeModel> mGradientModel;
   std::unique_ptr<ComputeModel> mTemporalFilterModel;
@@ -138,10 +141,12 @@ class Application {
 
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
   std::unique_ptr<BufferBundle> mGlobalBufferBundle;
+  std::unique_ptr<BufferBundle> mGradientProjectionBufferBundle;
   std::unique_ptr<BufferBundle> mRtxBufferBundle;
   std::unique_ptr<BufferBundle> mTemperalFilterBufferBundle;
   std::unique_ptr<BufferBundle> mVarianceBufferBundle;
   std::vector<std::unique_ptr<BufferBundle>> mBlurFilterBufferBundles;
+  std::unique_ptr<BufferBundle> mPostProcessingBufferBundle;
 
   std::unique_ptr<BufferBundle> mTriangleBufferBundle;
   std::unique_ptr<BufferBundle> mMaterialBufferBundle;
@@ -174,6 +179,8 @@ class Application {
   std::unique_ptr<Image> mLastFrameAccumImage;
 
   std::unique_ptr<Image> mVarianceImage;
+
+  std::unique_ptr<Image> mPerStratumImage;
 
   std::unique_ptr<Image> mDepthImage;
   std::unique_ptr<Image> mDepthImagePrev;

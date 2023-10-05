@@ -2,10 +2,19 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout(binding = 1, rgba8) uniform image2D aTrousTex2;
-layout(binding = 2, rgba8) uniform image2D targetTex;
+layout(binding = 1) uniform UniformBufferObject { uint displayType; }
+ubo;
+
+layout(binding = 2, rgba8) readonly uniform image2D aTrousTex2;
+layout(binding = 3, r32f) readonly uniform image2D varianceTex;
+layout(binding = 4, rgba32f) readonly uniform image2D stratumTex;
+layout(binding = 5, rgba8) writeonly uniform image2D targetTex;
 
 #include "include/globalUbo.glsl"
+
+#define DISPLAY_TYPE_NORMAL 0
+#define DISPLAY_TYPE_VARIANCE 1
+#define DISPLAY_TYPE_STRATUM 2
 
 // Converts a color from linear light gamma to sRGB gamma
 // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
@@ -23,8 +32,25 @@ void main() {
     return;
   }
 
-  vec4 colorAtUV = imageLoad(aTrousTex2, uv);
-
-  colorAtUV = linearToSrgb(colorAtUV);
-  imageStore(targetTex, uv, vec4(colorAtUV.zyx, 1));
+  vec4 writingCol = vec4(0, 0, 0, 1);
+  switch (ubo.displayType) {
+  case DISPLAY_TYPE_NORMAL: {
+    writingCol = linearToSrgb(imageLoad(aTrousTex2, uv));
+    break;
+  }
+  case DISPLAY_TYPE_VARIANCE: {
+    float varianceAtUv = imageLoad(varianceTex, uv).r;
+    varianceAtUv       = min(varianceAtUv * 100, 1);
+    writingCol         = vec4(varianceAtUv, 0, 0, 1);
+    break;
+  }
+  case DISPLAY_TYPE_STRATUM: {
+    vec4 stratumAtUv = imageLoad(stratumTex, uv);
+    stratumAtUv      = linearToSrgb(stratumAtUv);
+    writingCol       = vec4(0, 1, 0, 1);
+    break;
+  }
+  }
+  // inverting the color space (rgb to bgr)
+  imageStore(targetTex, uv, vec4(writingCol.zyx, 1));
 }

@@ -24,9 +24,9 @@ layout(binding = 7, rgba32f) uniform image2D varianceHistTex;
 #include "include/globalUbo.glsl"
 
 ivec2 uv;
-vec2 gradientAtUV;
-vec3 normalAtUV;
-float luminanceAtUV, depthAtUV, varianceAtUV;
+vec2 gradientAtUv;
+vec3 normalAtUv;
+float luminanceAtUv, depthAtUv, varianceAtUv;
 
 ivec2 texSize = imageSize(depthTex);
 
@@ -68,8 +68,8 @@ int varianceKernelHalfSize = (varianceKernelSize - 1) / 2;
 // calculate variance using the variance kernel, or temporally
 float calculateVariance() {
   vec2 luminancePairCalc = vec2(0);
-  vec2 luminancePairAtUV = getLuminancePair(ivec2(0, 0));
-  if (luminancePairAtUV.x < 0) {
+  vec2 luminancePairAtUv = getLuminancePair(ivec2(0, 0));
+  if (luminancePairAtUv.x < 0) {
     return 0;
   }
   float weightSumCalc = 0;
@@ -79,7 +79,7 @@ float calculateVariance() {
   float varianceHistSampleCount = varianceHist.z;
   if (ubo.useTemporalVariance && varianceHistSampleCount > 4) {
     weightSumCalc     = varianceHistSampleCount + 1;
-    luminancePairCalc = luminancePairHist + luminancePairAtUV;
+    luminancePairCalc = luminancePairHist + luminancePairAtUv;
   } else {
     for (int indexY = 0; indexY < varianceKernelSize; indexY++) {
       for (int indexX = 0; indexX < varianceKernelSize; indexX++) {
@@ -93,11 +93,11 @@ float calculateVariance() {
           float weightK = exp(-(x * x + y * y) * ubo.phiGaussian);
 
           vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
-          float weightN = max(0., pow(dot(normalAtSample, normalAtUV), 128.));
+          float weightN = max(0., pow(dot(normalAtSample, normalAtUv), 128.));
 
           float depthAtSample = readDepth(ivec2(x, y));
           float differenceInDepth =
-              abs((depthAtUV - depthAtSample) - dot(gradientAtUV, vec2(x, y)));
+              abs((depthAtUv - depthAtSample) - dot(gradientAtUv, vec2(x, y)));
           float weightZ = exp(-differenceInDepth / ubo.phiDepth);
 
           weight = weightK * weightN * weightZ;
@@ -115,7 +115,7 @@ float calculateVariance() {
   }
 
   imageStore(varianceHistTex, uv,
-             vec4(luminancePairHist + luminancePairAtUV,
+             vec4(luminancePairHist + luminancePairAtUv,
                   varianceHistSampleCount + 1, 0));
 
   weightSumCalc  = max(weightSumCalc, 1e-8);
@@ -135,10 +135,10 @@ void main() {
     return;
   }
 
-  normalAtUV   = imageLoad(normalTex, uv).xyz;
-  depthAtUV    = readDepth(ivec2(0, 0));
-  gradientAtUV = imageLoad(gradientTex, uv).xy;
-  varianceAtUV = calculateVariance();
+  normalAtUv   = imageLoad(normalTex, uv).xyz;
+  depthAtUv    = readDepth(ivec2(0, 0));
+  gradientAtUv = imageLoad(gradientTex, uv).xy;
+  varianceAtUv = calculateVariance();
 
-  imageStore(varianceTex, uv, vec4(varianceAtUV, 0, 0, 0));
+  imageStore(varianceTex, uv, vec4(varianceAtUv, 0, 0, 0));
 }

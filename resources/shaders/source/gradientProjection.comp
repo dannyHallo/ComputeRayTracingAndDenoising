@@ -3,9 +3,10 @@
 // this compute shader is dispatched before this frame's path tracing
 #define GROUP_SIZE_STRATUM 8
 #define STRATUM_SIZE 3
+#define GROUP_SIZE_STRATUM_2 (GROUP_SIZE_STRATUM * GROUP_SIZE_STRATUM)
 #define DISPATCH_SIZE (GROUP_SIZE_STRATUM * STRATUM_SIZE)
 
-layout(local_size_x = GROUP_SIZE_STRATUM, local_size_y = GROUP_SIZE_STRATUM,
+layout(local_size_x = DISPATCH_SIZE, local_size_y = DISPATCH_SIZE,
        local_size_z = 1) in;
 
 #include "include/definitions.glsl"
@@ -19,23 +20,82 @@ layout(binding = 1) uniform UniformBufferObject {
 }
 ubo;
 
-layout(binding = 2, rgba32f) readonly uniform image2D lastPosTex;
-layout(binding = 3, rgba32f) uniform image2D lastRawColorTex;
+layout(binding = 2, rgba32f) readonly uniform image2D lastRawColorTex;
+layout(binding = 3, rgba32f) readonly uniform image2D lastPosTex;
+// the following texture is in 1/3 resolution, recording the active position in
+// the stratum, and its luminance
+layout(binding = 4, rgba32f) writeonly uniform image2D perStratumTex;
+// the following textures are meant to be sparse, and are looked up by rtx stage
+// layout(binding = 5, rgba32f) writeonly uniform image2D keepingNormalTex;
+// layout(binding = 6, rgba32f) writeonly uniform image2D keepingColorTex;
+// layout(binding = 7, r32ui) writeonly uniform uimage2D keepingSeedTex;
 
-shared vec3 reprojectedPixels[STRATUM_SIZE][STRATUM_SIZE];
+shared float luminance[DISPATCH_SIZE][DISPATCH_SIZE];
 
-ivec2 forwardProjection() {
-  ivec2 uv            = ivec2(gl_GlobalInvocationID.xy);
-  vec4 worldPos       = imageLoad(lastPosTex, uv);
+void getBrightestInStratum(ivec2 stratumId, out ivec2 brightestGlobalPos,
+                           out float brightestLuminance) {
+  brightestLuminance   = 0;
+  brightestGlobalPos   = ivec2(0);
+  ivec2 brightestPixel = ivec2(0);
+  for (int i = 0; i < STRATUM_SIZE; i++) {
+    for (int j = 0; j < STRATUM_SIZE; j++) {
+      ivec2 globalPos =
+          ivec2(stratumId.x * STRATUM_SIZE + i, stratumId.y * STRATUM_SIZE + j);
+      float luminanceAtPixel = luminance[i][j];
+      if (luminanceAtPixel > brightestLuminance) {
+        brightestLuminance = luminanceAtPixel;
+        brightestPixel     = globalPos;
+      }
+    }
+  }
+}
+
+void getLuminance() {
+  ivec2 uv             = ivec2(gl_GlobalInvocationID.xy);
+  const vec3 colorAtUv = imageLoad(lastRawColorTex, uv).rgb;
+  float luminanceAtUv  = dot(rgbToLuminanceMat, colorAtUv);
+  luminance[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = luminanceAtUv;
+}
+
+void forwardProjection(ivec2 globalPosToProject, float luminanceToProject) {
+  vec4 worldPos       = imageLoad(lastPosTex, globalPosToProject);
   vec4 screenBoxCoord = ubo.thisMvpe * worldPos;
   // points are bounded in [-1, 1] in x, y, z after the following
   screenBoxCoord /= screenBoxCoord.w;
   // points are bounded in [0, 1] in x, y, meanwhile z, w are thrown away
-  screenBoxCoord = (screenBoxCoord + vec4(1)) / 2;
+  screenBoxCoord = (screenBoxCoord + vec4(1)) / 2.0;
   // to vulkan uv coord, starts from top left corner, range is [0, 1]
   vec2 uvCoord = vec2(screenBoxCoord.x, 1 - screenBoxCoord.y);
-  ivec2 pp     = ivec2(uvCoord.x * globalUbo.swapchainWidth,
-                       uvCoord.y * globalUbo.swapchainHeight);
+  // notice that the reprojected position is NOT integer
+  vec2 pp = vec2(uvCoord.x * globalUbo.swapchainWidth,
+                 uvCoord.y * globalUbo.swapchainHeight);
+
+  ivec2 stratumId = ivec2(globalPosToProject / STRATUM_SIZE);
+  imageStore(perStratumTex, stratumId, vec4(pp, luminanceToProject, 0));
 }
 
-void main() { uv = gl_GlobalInvocationID.xy; }
+void main() {
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
+    return;
+
+  if (ubo.bypassGradientProjection) return;
+
+  getLuminance();
+  barrier();
+
+  // kick most of the threads
+  if (gl_LocalInvocationIndex >= GROUP_SIZE_STRATUM_2) return;
+
+  ivec2 stratumId = ivec2(gl_GlobalInvocationID.xy / STRATUM_SIZE);
+
+  ivec2 brightestInStratumPos, brightestGlobalPos;
+  float brightestLuminance;
+  getBrightestInStratum(stratumId, brightestGlobalPos, brightestLuminance);
+
+  // TODO: gpu atimics can be used here to ensure only one stratum has the first
+  // reprojected sample, but this is meaning less for now?
+  if (brightestLuminance > 0) {
+    forwardProjection(brightestGlobalPos, brightestLuminance);
+  }
+}

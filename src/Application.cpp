@@ -107,6 +107,10 @@ void Application::createBufferBundles() {
       swapchainSize, sizeof(GlobalUniformBufferObject),
       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
+  mGradientProjectionBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(GradientProjectionUniformBufferObject),
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
   mRtxBufferBundle = std::make_unique<BufferBundle>(
       swapchainSize, sizeof(RtxUniformBufferObject),
       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -125,6 +129,10 @@ void Application::createBufferBundles() {
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
     mBlurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle));
   }
+
+  mPostProcessingBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(PostProcessingUniformBufferObject),
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
   mTriangleBufferBundle = std::make_unique<BufferBundle>(
       swapchainSize, sizeof(GpuModel::Triangle) * mRtScene->triangles.size(),
@@ -195,13 +203,11 @@ void Application::createImagesAndForwardingPairs() {
       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
-  // introducing G-Buffers
   mPositionImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mDepthImage = std::make_unique<Image>(
@@ -306,11 +312,32 @@ void Application::createImagesAndForwardingPairs() {
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
       VMA_MEMORY_USAGE_GPU_ONLY);
+
+  uint32_t perStratumImageWidth  = ceil(static_cast<float>(imageWidth) / 3.0F);
+  uint32_t perStratumImageHeight = ceil(static_cast<float>(imageHeight) / 3.0F);
+  mPerStratumImage               = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), perStratumImageWidth,
+      perStratumImageHeight, VK_SAMPLE_COUNT_1_BIT,
+      VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VMA_MEMORY_USAGE_GPU_ONLY);
 }
 
-// TODO: this step might need to be rebinded after all the resources are
-// recreated
 void Application::createComputeModels() {
+  auto mGradientProjectionMat = std::make_unique<ComputeMaterial>(
+      kPathToResourceFolder + "/shaders/generated/gradientProjection.spv");
+  mGradientProjectionMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+  mGradientProjectionMat->addUniformBufferBundle(
+      mGradientProjectionBufferBundle.get());
+  // input
+  mGradientProjectionMat->addStorageImage(mRawImage.get());
+  mGradientProjectionMat->addStorageImage(mPositionImage.get());
+  // output
+  mGradientProjectionMat->addStorageImage(mPerStratumImage.get());
+  mGradientProjectionModel =
+      std::make_unique<ComputeModel>(std::move(mGradientProjectionMat));
+
   auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder +
                                                   "/shaders/generated/rtx.spv");
   rtxMat->addUniformBufferBundle(mGlobalBufferBundle.get());
@@ -330,7 +357,7 @@ void Application::createComputeModels() {
   mRtxModel = std::make_unique<ComputeModel>(std::move(rtxMat));
 
   auto gradientMat = std::make_unique<ComputeMaterial>(
-      kPathToResourceFolder + "/shaders/generated/gradient.spv");
+      kPathToResourceFolder + "/shaders/generated/screenSpaceGradient.spv");
   gradientMat->addUniformBufferBundle(mGlobalBufferBundle.get());
   // input
   gradientMat->addStorageImage(mDepthImage.get());
@@ -397,8 +424,12 @@ void Application::createComputeModels() {
       kPathToResourceFolder + "/shaders/generated/postProcessing.spv");
   {
     postProcessingMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+    postProcessingMat->addUniformBufferBundle(
+        mPostProcessingBufferBundle.get());
     // input
     postProcessingMat->addStorageImage(mATrousOutputImage.get());
+    postProcessingMat->addStorageImage(mVarianceImage.get());
+    postProcessingMat->addStorageImage(mPerStratumImage.get());
     // output
     postProcessingMat->addStorageImage(mTargetImage.get());
   }
@@ -422,7 +453,18 @@ void Application::updateScene(uint32_t currentImageIndex) {
       mCamera->getVFov(),
       currentSample,
       currentTime};
+
   mGlobalBufferBundle->getBuffer(currentImageIndex)->fillData(&globalUbo);
+
+  auto thisMvpe =
+      mCamera->getProjectionMatrix(
+          static_cast<float>(mAppContext->getSwapchainExtentWidth()) /
+          static_cast<float>(mAppContext->getSwapchainExtentHeight())) *
+      mCamera->getViewMatrix();
+  GradientProjectionUniformBufferObject gpUbo = {!mUseGradientProjection,
+                                                 thisMvpe};
+  mGradientProjectionBufferBundle->getBuffer(currentImageIndex)
+      ->fillData(&gpUbo);
 
   RtxUniformBufferObject rtxUbo = {
 
@@ -435,15 +477,8 @@ void Application::updateScene(uint32_t currentImageIndex) {
   TemporalFilterUniformBufferObject tfUbo = {!mUseTemporalBlend, mUseNormalTest,
                                              mNormalThreshold, mBlendingAlpha,
                                              lastMvpe};
-  {
-    mTemperalFilterBufferBundle->getBuffer(currentImageIndex)->fillData(&tfUbo);
-
-    lastMvpe =
-        mCamera->getProjectionMatrix(
-            static_cast<float>(mAppContext->getSwapchainExtentWidth()) /
-            static_cast<float>(mAppContext->getSwapchainExtentHeight())) *
-        mCamera->getViewMatrix();
-  }
+  mTemperalFilterBufferBundle->getBuffer(currentImageIndex)->fillData(&tfUbo);
+  lastMvpe = thisMvpe;
 
   VarianceUniformBufferObject varianceUbo = {
       !mUseVarianceEstimation, mSkipStoppingFunctions, mUseTemporalVariance,
@@ -455,7 +490,6 @@ void Application::updateScene(uint32_t currentImageIndex) {
     BlurFilterUniformBufferObject bfUbo = {!mUseATrous,
                                            j,
                                            mICap,
-                                           mShowVariance,
                                            mUseVarianceGuidedFiltering,
                                            mUseGradientInDepth,
                                            mPhiLuminance,
@@ -466,6 +500,10 @@ void Application::updateScene(uint32_t currentImageIndex) {
                                            mUseJittering};
     mBlurFilterBufferBundles[j]->getBuffer(currentImageIndex)->fillData(&bfUbo);
   }
+
+  PostProcessingUniformBufferObject postProcessingUbo = {mDisplayType};
+  mPostProcessingBufferBundle->getBuffer(currentImageIndex)
+      ->fillData(&postProcessingUbo);
 
   currentSample++;
 }
@@ -502,6 +540,16 @@ void Application::createRenderCommandBuffers() {
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
     vkCmdClearColorImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+
+    mGradientProjectionModel->computeCommand(
+        currentCommandBuffer, static_cast<uint32_t>(i),
+        ceil(mTargetImage->getWidth() / 24.F),
+        ceil(mTargetImage->getHeight() / 24.F), 1);
+
+    vkCmdPipelineBarrier(currentCommandBuffer,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0,
+                         nullptr, 0, nullptr);
 
     mRtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
                               ceil(mTargetImage->getWidth() / 32.F),
@@ -545,17 +593,6 @@ void Application::createRenderCommandBuffers() {
     /////////////////////////////////////////////
 
     for (int j = 0; j < kATrousSize; j++) {
-      // update ubo for the sampleDistance
-      // BlurFilterUniformBufferObject bfUbo = {!mUseATrous, currentSam};
-      // {
-      //   auto &allocation =
-      //       mBlurFilterBufferBundles[j]->getBuffer(i)->getAllocation();
-      //   void *data;
-      //   vmaMapMemory(mAppContext->getAllocator(), allocation, &data);
-      //   memcpy(data, &bfUbo, sizeof(bfUbo));
-      //   vmaUnmapMemory(mAppContext->getAllocator(), allocation);
-      // }
-
       // dispatch filter shader
       mATrousModels[j]->computeCommand(
           currentCommandBuffer, static_cast<uint32_t>(i),
@@ -606,6 +643,8 @@ void Application::cleanupImagesAndForwardingPairs() {
   mLastFrameAccumImage.reset();
 
   mVarianceImage.reset();
+
+  mPerStratumImage.reset();
 
   mDepthImage.reset();
   mDepthImagePrev.reset();
@@ -962,6 +1001,27 @@ void Application::drawFrame() {
   currentFrame = (currentFrame + 1) % kMaxFramesInFlight;
 }
 
+namespace {
+template <std::size_t N>
+void comboSelector(const char *comboLabel, const char *(&items)[N],
+                   uint32_t &selectedIdx) {
+  const char *currentSelectedItem = items[selectedIdx];
+  if (ImGui::BeginCombo(comboLabel, currentSelectedItem)) {
+    for (int n = 0; n < N; n++) {
+      bool isSelected = (currentSelectedItem == items[n]);
+      if (ImGui::Selectable(items[n], isSelected)) {
+        currentSelectedItem = items[n];
+        selectedIdx         = n;
+      }
+      if (isSelected) {
+        ImGui::SetItemDefaultFocus();
+      }
+    }
+    ImGui::EndCombo();
+  }
+}
+} // namespace
+
 void Application::prepareGui() {
   ImGui_ImplVulkan_NewFrame();
   // handle the user inputs, the screen resize
@@ -974,28 +1034,8 @@ void Application::prepareGui() {
     ImGui::SeparatorText("Scene");
     ImGui::Checkbox("Moving Light Source", &mMovingLightSource);
     ImGui::Checkbox("Use LDS Noise", &mUseLdsNoise);
-
-    const char *items[] = {"Combined", "Direct Only", "Indirect Only"};
-    static const char *currentSelectedItem = items[0];
-    if (ImGui::BeginCombo("Output Type",
-                          currentSelectedItem)) { // The second parameter is the
-                                                  // label previewed
-                                                  // before opening the combo.
-      for (int n = 0; n < IM_ARRAYSIZE(items); n++) {
-        // You can store your selection however you want, outside or inside your
-        // objects
-        bool is_selected = (currentSelectedItem == items[n]);
-        if (ImGui::Selectable(items[n], is_selected)) {
-          currentSelectedItem = items[n];
-          mOutputType         = n;
-        }
-
-        // Set the initial focus when opening the combo (scrolling + for
-        // keyboard navigation support in the upcoming navigation branch)
-        if (is_selected) ImGui::SetItemDefaultFocus();
-      }
-      ImGui::EndCombo();
-    }
+    const char *outputItems[] = {"Combined", "Direct Only", "Indirect Only"};
+    comboSelector("Output Type", outputItems, mOutputType);
 
     ImGui::SeparatorText("Temporal Blend");
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporalBlend);
@@ -1007,7 +1047,6 @@ void Application::prepareGui() {
     ImGui::Checkbox("Variance Calculation", &mUseVarianceEstimation);
     ImGui::Checkbox("Skip Stopping Functions", &mSkipStoppingFunctions);
     ImGui::Checkbox("Use Temporal Variance", &mUseTemporalVariance);
-
     ImGui::SliderInt("Variance Kernel Size", &mVarianceKernelSize, 1, 15);
     ImGui::SliderFloat("Variance Phi Gaussian", &mVariancePhiGaussian, 0.0F,
                        1.0F);
@@ -1015,7 +1054,6 @@ void Application::prepareGui() {
 
     ImGui::SeparatorText("A-Trous");
     ImGui::Checkbox("A-Trous", &mUseATrous);
-    ImGui::Checkbox("Show variance", &mShowVariance);
     ImGui::SliderInt("A-Trous times", &mICap, 0, 5);
     ImGui::Checkbox("Use variance guided filtering",
                     &mUseVarianceGuidedFiltering);
@@ -1027,6 +1065,11 @@ void Application::prepareGui() {
                     &mIgnoreLuminanceAtFirstIteration);
     ImGui::Checkbox("Changing luminance phi", &mChangingLuminancePhi);
     ImGui::Checkbox("Use jitter", &mUseJittering);
+
+    ImGui::SeparatorText("Post Processing");
+    const char *displayItems[] = {"Color", "Variance", "Stratum"};
+    comboSelector("Display Type", displayItems, mDisplayType);
+
     ImGui::EndMenu();
   }
   ImGui::EndMainMenuBar();

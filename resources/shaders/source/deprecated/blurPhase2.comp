@@ -24,10 +24,10 @@ layout(binding = 5, rgba32f) uniform image2D posTex;
 layout(binding = 6, rgba8) uniform image2D aTrousTex2;
 
 ivec2 uv;
-vec2 gradientAtUV;
-vec3 positionAtUV, normalAtUV;
-vec4 colorAtUV;
-float luminanceAtUV, depthAtUV;
+vec2 gradientAtUv;
+vec3 positionAtUv, normalAtUv;
+vec4 colorAtUv;
+float luminanceAtUv, depthAtUv;
 
 void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights,
                 inout vec4 sumOfWeightedValues) {
@@ -43,7 +43,7 @@ void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights,
 
   float luminanceAtSample =
       rgbToLuminance(imageLoad(aTrousTex1, uv + ivec2(x, y)));
-  float differenceInColorVec = abs(luminanceAtSample - luminanceAtUV);
+  float differenceInColorVec = abs(luminanceAtSample - luminanceAtUv);
   float phiC                 = ubo.phiLuminance;
   float weightC              = exp(-differenceInColorVec / phiC);
   if (ubo.changingLuminancePhi) {
@@ -55,12 +55,12 @@ void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights,
 
   // introduce the cosine term to describe normal edge stopping function
   vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
-  float weightN       = max(0., pow(dot(normalAtSample, normalAtUV), 128.));
+  float weightN       = max(0., pow(dot(normalAtSample, normalAtUv), 128.));
 
   // ---- method SVGF
   float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
-  float weightFac     = abs(depthAtUV - depthAtSample) /
-                    (abs(dot(gradientAtUV, vec2(x, y))) + epsilon);
+  float weightFac     = abs(depthAtUv - depthAtSample) /
+                    (abs(dot(gradientAtUv, vec2(x, y))) + epsilon);
   weightFac     = min(weightFac, 1);
   float weightZ = exp(-weightFac);
   // ---- end of SVGF
@@ -75,22 +75,22 @@ void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights,
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
 
-  colorAtUV = imageLoad(blurHTex, uv);
+  colorAtUv = imageLoad(blurHTex, uv);
   if (ubo.bypassBluring || !ubo.separateKernel) {
-    imageStore(aTrousTex2, uv, colorAtUV);
+    imageStore(aTrousTex2, uv, colorAtUv);
     return;
   }
 
-  luminanceAtUV = rgbToLuminance(colorAtUV);
-  positionAtUV  = imageLoad(posTex, uv).xyz;
-  normalAtUV    = imageLoad(normalTex, uv).xyz;
-  depthAtUV     = imageLoad(depthTex, uv).x;
+  luminanceAtUv = rgbToLuminance(colorAtUv);
+  positionAtUv  = imageLoad(posTex, uv).xyz;
+  normalAtUv    = imageLoad(normalTex, uv).xyz;
+  depthAtUv     = imageLoad(depthTex, uv).x;
 
   float dep4     = imageLoad(depthTex, uv + ivec2(0, 0)).x;
   float dep5     = imageLoad(depthTex, uv + ivec2(1, 0)).x;
   float dep7     = imageLoad(depthTex, uv + ivec2(0, 1)).x;
-  gradientAtUV.x = dep5 - dep4;
-  gradientAtUV.y = dep7 - dep4;
+  gradientAtUv.x = dep5 - dep4;
+  gradientAtUv.y = dep7 - dep4;
 
   float sumOfWeights       = 0;
   vec4 sumOfWeightedValues = vec4(0);
