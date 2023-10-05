@@ -1,120 +1,30 @@
-// #version 450
+// // #version 450
 
-// layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+// // layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-// layout(binding = 0) uniform GlobalUniformBufferObject {
-//   uint swapchainWidth;
-//   uint swapchainHeight;
-//   uint currentSample;
-//   float time;
-// }
-// globalUbo;
+// #include "include/globalUbo.glsl"
 
-// layout(binding = 1) uniform UniformBufferObject {
-//   bool bypassGradientProjection;
-//   mat4 lastMvpe;
-// }
-// ubo;
+// // layout(binding = 1) uniform UniformBufferObject {
+// //   bool bypassGradientProjection;
+// //   mat4 lastMvpe;
+// // }
+// // ubo;
 
-// layout(binding = 2, rgba32f) readonly uniform image2D posTex;
-// layout(binding = 3, rgba32f) readonly uniform image2D rawTex;
-// layout(binding = 4, r32f) readonly uniform image2D thisFrameDepthTex;
-// layout(binding = 5, r32f) readonly uniform image2D lastFrameDepthTex;
-// layout(binding = 6, rgba32f) readonly uniform image2D thisFrameNormalTex;
-// layout(binding = 7, rgba32f) readonly uniform image2D lastFrameNormalTex;
-// layout(binding = 8, rg32f) readonly uniform image2D thisFrameGradientTex;
-// layout(binding = 9, rg32f) readonly uniform image2D lastFrameGradientTex;
-// layout(binding = 10, r32ui) readonly uniform uimage2D thisFrameMeshHashTex;
-// layout(binding = 11, r32ui) readonly uniform uimage2D lastFrameMeshHashTex;
-// layout(binding = 12, rgba8) readonly uniform image2D lastFrameAccumTex;
-// layout(binding = 13, rgba8) readonly uniform image2D lastFrameVarianceHistTex;
-// layout(binding = 14, rgba8) writeonly uniform image2D thisFrameAccumTex;
-// layout(binding = 15, rgba8) writeonly uniform image2D thisFrameVarianceHistTex;
+// // layout(binding = 2, rgba32f) readonly uniform image2D posTex;
+// // layout(binding = 3, rgba32f) readonly uniform image2D rawTex;
+// // layout(binding = 4, r32f) readonly uniform image2D thisFrameDepthTex;
+// // layout(binding = 5, r32f) readonly uniform image2D lastFrameDepthTex;
+// // layout(binding = 6, rgba32f) readonly uniform image2D thisFrameNormalTex;
+// // layout(binding = 7, rgba32f) readonly uniform image2D lastFrameNormalTex;
+// // layout(binding = 8, rg32f) readonly uniform image2D thisFrameGradientTex;
+// // layout(binding = 9, rg32f) readonly uniform image2D lastFrameGradientTex;
+// // layout(binding = 10, r32ui) readonly uniform uimage2D thisFrameMeshHashTex;
+// // layout(binding = 11, r32ui) readonly uniform uimage2D lastFrameMeshHashTex;
+// // layout(binding = 12, rgba8) readonly uniform image2D lastFrameAccumTex;
+// // layout(binding = 13, rgba8) readonly uniform image2D
+// // lastFrameVarianceHistTex; layout(binding = 14, rgba8) writeonly uniform
+// // image2D thisFrameAccumTex; layout(binding = 15, rgba8) writeonly uniform
+// // image2D thisFrameVarianceHistTex;
 
-// // when alpha is too low, the image is over-smoothed -> loss of detail
-// // when alpha is too high, the image is unstable     -> jitter of noise
-
-// ivec2 uv, uv2;
-// vec4 pixPos;
-
-// ivec2 backwardProjection() {
-//   vec4 screenBoxCoord = ubo.lastMvpe * pixPos;
-//   // points are bounded in [-1, 1] in x, y, z after the following
-//   screenBoxCoord /= screenBoxCoord.w;
-//   // points are bounded in [0, 1] in x, y, meanwhile z, w are thrown away
-//   screenBoxCoord = (screenBoxCoord + vec4(1)) / 2;
-//   // to vulkan uv coord, starts from top left corner, range is [0, 1]
-//   vec2 uvCoord = vec2(screenBoxCoord.x, 1 - screenBoxCoord.y);
-//   return ivec2(uvCoord.x * globalUbo.swapchainWidth,
-//                uvCoord.y * globalUbo.swapchainHeight);
-// }
-
-// vec4 getAccumColor() {
-//   ivec2 texSize = imageSize(lastFrameAccumTex);
-//   // if read pos is out of image bounds, return -1
-//   if (any(lessThan(uv2, ivec2(0))) || any(greaterThanEqual(uv2, texSize))) {
-//     return vec4(0, 0, 0, 0);
-//   }
-
-//   return imageLoad(lastFrameAccumTex, uv2);
-// }
-
-// bool isConsistent() {
-//   vec3 thisFrameNormal  = imageLoad(thisFrameNormalTex, uv).xyz;
-//   vec3 lastFrameNormal  = imageLoad(lastFrameNormalTex, uv2).xyz;
-//   bool normalConsistent = true;
-//   if (ubo.useNormalTest) {
-//     if (dot(thisFrameNormal, lastFrameNormal) == 0) {
-//       if (thisFrameNormal + lastFrameNormal != vec3(0)) {
-//         normalConsistent = false;
-//       } else {
-//         normalConsistent = true;
-//       }
-//     } else {
-//       float normalFac  = pow(dot(thisFrameNormal, lastFrameNormal), 128.);
-//       normalConsistent = normalFac > ubo.normalTestThreshold;
-//     }
-//   }
-
-//   bool meshIdConsistent = imageLoad(thisFrameMeshHashTex, uv) ==
-//                           imageLoad(lastFrameMeshHashTex, uv2);
-
-//   return normalConsistent && meshIdConsistent;
-// }
-
-// void main() {
-//   uv = ivec2(gl_GlobalInvocationID.xy);
-//   if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
-//     return;
-//   }
-
-//   pixPos      = imageLoad(posTex, uv);
-//   float alpha = ubo.blendingAlpha;
-
-//   vec4 thisTimeTracingResult = imageLoad(rawTex, uv);
-
-//   // invalid pos culling
-//   // if (pixPos.a == -1) {
-//   //   return;
-//   // }
-
-//   if (ubo.bypassTemporalFiltering) {
-//     alpha = 1;
-//   }
-
-//   uv2 = backwardProjection();
-
-//   vec4 lastFrameAccumResult = getAccumColor();
-
-//   if (!isConsistent()) {
-//     imageStore(thisFrameAccumTex, uv, thisTimeTracingResult);
-//     imageStore(thisFrameVarianceHistTex, uv, vec4(0, 0, 0, 0));
-//     return;
-//   }
-
-//   vec4 colToWrite;
-//   vec4 accumVarianceHist = imageLoad(lastFrameVarianceHistTex, uv2);
-//   colToWrite = mix(lastFrameAccumResult, thisTimeTracingResult, alpha);
-//   imageStore(thisFrameAccumTex, uv, colToWrite);
-//   imageStore(thisFrameVarianceHistTex, uv, accumVarianceHist);
-// }
+// vec2 uv;
+// void main() { uv = gl_GlobalInvocationID.xy; }

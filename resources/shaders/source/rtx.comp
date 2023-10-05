@@ -2,17 +2,54 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-// Include definitions for ubo, triangle, material, etc.
-#include "include/definitions.glsl"
+struct material {
+  uint materialType;
+  vec3 albedo;
+};
+
+struct triangle {
+  vec3 v0;
+  vec3 v1;
+  vec3 v2;
+  uint materialIndex;
+  uint meshHash;
+};
+
+struct light {
+  uint triangleIndex;
+  float area;
+};
+
+struct sphere {
+  vec4 s;
+  uint materialIndex;
+};
+
+struct bvhNode {
+  vec3 min;
+  vec3 max;
+  int leftNodeIndex;
+  int rightNodeIndex;
+  int objectIndex;
+};
+
+struct onb {
+  vec3 u;
+  vec3 v;
+  vec3 w;
+};
+
+#define LIGHT_MATERIAL 0
+#define LAMBERTIAN_MATERIAL 1
+#define METAL_MATERIAL 2
+#define GLASS_MATERIAL 3
+
+const float deg2Rad = 0.0174532925;
 
 #include "include/globalUbo.glsl"
 
 // the uniform buffer that contains ray trace description infos
 layout(binding = 1) uniform UniformBufferObject {
-  vec3 camPos;
-  vec3 camFront;
-  vec3 camUp;
-  vec3 camRight;
   uint numTriangles;
   uint numLights;
   bool movingLightSource;
@@ -333,25 +370,33 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
   colReturn *= materials[dhRec.materialIndex].albedo;
 }
 
-vec2 inPixelPosition() { return vec2(.5, .5); }
+vec3 getPixelInScreenPosByDispatch(vec2 dispatchID) {
+  const vec3 origin = globalUbo.camPos;
+  const vec3 front  = globalUbo.camFront;
+  const vec3 up     = globalUbo.camUp;
+  const vec3 right  = globalUbo.camRight;
 
-ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right) {
-  float theta           = globalUbo.vfov * deg2Rad;
-  float h               = tan(theta / 2);
-  float viewport_height = 2.0 * h;
-  float viewport_width  = float(globalUbo.swapchainWidth) /
-                         float(globalUbo.swapchainHeight) * viewport_height;
+  const float theta           = globalUbo.vfov * deg2Rad;
+  const float h               = tan(theta / 2);
+  const float viewport_height = 2.0 * h;
+  const float viewport_width  = float(globalUbo.swapchainWidth) /
+                               float(globalUbo.swapchainHeight) *
+                               viewport_height;
 
   vec3 rayPropDir      = viewport_width * right - viewport_height * up;
   vec3 top_left_corner = front - rayPropDir / 2;
 
-  vec2 uv = (gl_GlobalInvocationID.xy + inPixelPosition()) /
+  vec2 uv = (gl_GlobalInvocationID.xy + vec2(0.5)) /
             vec2(globalUbo.swapchainWidth, globalUbo.swapchainHeight);
 
-  vec3 rayDir = normalize(top_left_corner + viewport_width * right * uv.x -
-                          viewport_height * up * uv.y);
-  ray r       = {origin, rayDir};
-  return r;
+  return top_left_corner + viewport_width * right * uv.x -
+         viewport_height * up * uv.y;
+}
+
+ray rayGen() {
+  vec3 rayDir =
+      normalize(getPixelInScreenPosByDispatch(gl_GlobalInvocationID.xy));
+  return ray(globalUbo.camPos, rayDir);
 }
 
 // component vise min()
@@ -366,7 +411,7 @@ void main() {
     return;
   }
 
-  ray camRay = rayGen(ubo.camPos, ubo.camFront, ubo.camUp, ubo.camRight);
+  ray camRay = rayGen();
 
   vec3 hitColor;
   vec4 hitWorldPos;

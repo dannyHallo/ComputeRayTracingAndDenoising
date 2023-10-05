@@ -413,21 +413,22 @@ void Application::updateScene(uint32_t currentImageIndex) {
   auto currentTime = static_cast<float>(glfwGetTime());
 
   GlobalUniformBufferObject globalUbo = {
-      mAppContext->getSwapchainExtentWidth(),
-      mAppContext->getSwapchainExtentHeight(), mCamera->getVFov(),
-      currentSample, currentTime};
-  mGlobalBufferBundle->getBuffer(currentImageIndex)->fillData(&globalUbo);
-
-  RtxUniformBufferObject rtxUbo = {
       mCamera->getPosition(),
       mCamera->getFront(),
       mCamera->getUp(),
       mCamera->getRight(),
+      mAppContext->getSwapchainExtentWidth(),
+      mAppContext->getSwapchainExtentHeight(),
+      mCamera->getVFov(),
+      currentSample,
+      currentTime};
+  mGlobalBufferBundle->getBuffer(currentImageIndex)->fillData(&globalUbo);
+
+  RtxUniformBufferObject rtxUbo = {
+
       static_cast<uint32_t>(mRtScene->triangles.size()),
-      static_cast<uint32_t>(mRtScene->lights.size()),
-      mMovingLightSource,
-      mUseLdsNoise,
-      mOutputType};
+      static_cast<uint32_t>(mRtScene->lights.size()), mMovingLightSource,
+      mUseLdsNoise, mOutputType};
 
   mRtxBufferBundle->getBuffer(currentImageIndex)->fillData(&rtxUbo);
 

@@ -29,6 +29,10 @@ class Application {
   // https://fvcaputo.github.io/2019/02/06/memory-alignment.html
 
   struct GlobalUniformBufferObject {
+    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camPosition;
+    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
+    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
+    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camRight;
     uint32_t swapchainWidth;
     uint32_t swapchainHeight;
     float vfov;
@@ -37,10 +41,6 @@ class Application {
   };
 
   struct RtxUniformBufferObject {
-    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camPosition;
-    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
-    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
-    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camRight;
     uint32_t numTriangles;
     uint32_t numLights;
     int movingLightSource;

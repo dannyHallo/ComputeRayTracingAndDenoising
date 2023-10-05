@@ -2,6 +2,8 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
+const float deg2Rad = 0.0174532925;
+
 #include "include/globalUbo.glsl"
 
 layout(binding = 1) uniform UniformBufferObject {
@@ -31,11 +33,13 @@ layout(binding = 15, rgba8) writeonly uniform image2D thisFrameVarianceHistTex;
 // when alpha is too low, the image is over-smoothed -> loss of detail
 // when alpha is too high, the image is unstable     -> jitter of noise
 
-ivec2 uv, uv2;
-vec4 pixPos;
+ivec2 uv, pUv;
 
 ivec2 backwardProjection() {
-  vec4 screenBoxCoord = ubo.lastMvpe * pixPos;
+  vec4 worldPos;
+  worldPos = imageLoad(posTex, uv);
+
+  vec4 screenBoxCoord = ubo.lastMvpe * worldPos;
   // points are bounded in [-1, 1] in x, y, z after the following
   screenBoxCoord /= screenBoxCoord.w;
   // points are bounded in [0, 1] in x, y, meanwhile z, w are thrown away
@@ -49,16 +53,16 @@ ivec2 backwardProjection() {
 vec4 getAccumColor() {
   ivec2 texSize = imageSize(lastFrameAccumTex);
   // if read pos is out of image bounds, return -1
-  if (any(lessThan(uv2, ivec2(0))) || any(greaterThanEqual(uv2, texSize))) {
+  if (any(lessThan(pUv, ivec2(0))) || any(greaterThanEqual(pUv, texSize))) {
     return vec4(0, 0, 0, 0);
   }
 
-  return imageLoad(lastFrameAccumTex, uv2);
+  return imageLoad(lastFrameAccumTex, pUv);
 }
 
 bool isConsistent() {
   vec3 thisFrameNormal  = imageLoad(thisFrameNormalTex, uv).xyz;
-  vec3 lastFrameNormal  = imageLoad(lastFrameNormalTex, uv2).xyz;
+  vec3 lastFrameNormal  = imageLoad(lastFrameNormalTex, pUv).xyz;
   bool normalConsistent = true;
   if (ubo.useNormalTest) {
     if (dot(thisFrameNormal, lastFrameNormal) == 0) {
@@ -74,7 +78,7 @@ bool isConsistent() {
   }
 
   bool meshIdConsistent = imageLoad(thisFrameMeshHashTex, uv) ==
-                          imageLoad(lastFrameMeshHashTex, uv2);
+                          imageLoad(lastFrameMeshHashTex, pUv);
 
   return normalConsistent && meshIdConsistent;
 }
@@ -85,7 +89,7 @@ void main() {
     return;
   }
 
-  pixPos      = imageLoad(posTex, uv);
+  // pixPos      = ;
   float alpha = ubo.blendingAlpha;
 
   vec4 thisTimeTracingResult = imageLoad(rawTex, uv);
@@ -99,7 +103,7 @@ void main() {
     alpha = 1;
   }
 
-  uv2 = backwardProjection();
+  pUv = backwardProjection();
 
   vec4 lastFrameAccumResult = getAccumColor();
 
@@ -110,7 +114,7 @@ void main() {
   }
 
   vec4 colToWrite;
-  vec4 accumVarianceHist = imageLoad(lastFrameVarianceHistTex, uv2);
+  vec4 accumVarianceHist = imageLoad(lastFrameVarianceHistTex, pUv);
   colToWrite = mix(lastFrameAccumResult, thisTimeTracingResult, alpha);
   imageStore(thisFrameAccumTex, uv, colToWrite);
   imageStore(thisFrameVarianceHistTex, uv, accumVarianceHist);
