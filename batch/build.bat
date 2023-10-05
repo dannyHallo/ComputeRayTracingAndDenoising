@@ -13,10 +13,12 @@ if %1==debug (
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
 
 set GLSLC_PATH=%GLSLC%
-set SHADERS=rtx gradient temporalFilter variance aTrous postProcessing 
+set SHADERS=gradientProjection rtx screenSpaceGradient temporalFilter variance aTrous postProcessing 
 
 echo Compiling shaders...
-if not exist "resources/shaders/generated" mkdir "resources/shaders/generated"
+@REM wiping out the generated shaders
+rd /s /q "resources/shaders/generated"
+mkdir "resources/shaders/generated"
 for %%s in (%SHADERS%) do (
    echo Compiling resources/shaders/source/%%s.comp to resources/shaders/generated/%%s.spv
     "%GLSLC_PATH%" resources/shaders/source/%%s.comp -o resources/shaders/generated/%%s.spv
@@ -40,7 +42,10 @@ if %errorlevel% neq 0 (
 echo:
 @echo copy resources
 mkdir "build/windows/x64/%BUILD_TYPE%/resources"
+@REM wiping out the destination resources
+rd /s /q "build/windows/x64/%BUILD_TYPE%/resources"
 xcopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /s /i /y
+@REM wiping out the source shaders
 rd /s /q "build/windows/x64/%BUILD_TYPE%/resources/shaders/source"
 
 echo:
