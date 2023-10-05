@@ -11,13 +11,7 @@ const float kernel3x3[2][2] = {{1.0, waveletFac},
 
 const vec3 rgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
 
-layout(binding = 0) uniform GlobalUniformBufferObject {
-  uint swapchainWidth;
-  uint swapchainHeight;
-  uint currentSample;
-  float time;
-}
-globalUbo;
+#include "include/globalUbo.glsl"
 
 // bigger phi indicates bigger tolerence to apply blur
 layout(binding = 1) uniform UniformBufferObject {

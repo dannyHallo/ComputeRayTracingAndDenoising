@@ -414,7 +414,8 @@ void Application::updateScene(uint32_t currentImageIndex) {
 
   GlobalUniformBufferObject globalUbo = {
       mAppContext->getSwapchainExtentWidth(),
-      mAppContext->getSwapchainExtentHeight(), currentSample, currentTime};
+      mAppContext->getSwapchainExtentHeight(), mCamera->getVFov(),
+      currentSample, currentTime};
   mGlobalBufferBundle->getBuffer(currentImageIndex)->fillData(&globalUbo);
 
   RtxUniformBufferObject rtxUbo = {
@@ -422,7 +423,6 @@ void Application::updateScene(uint32_t currentImageIndex) {
       mCamera->getFront(),
       mCamera->getUp(),
       mCamera->getRight(),
-      mCamera->getVFov(),
       static_cast<uint32_t>(mRtScene->triangles.size()),
       static_cast<uint32_t>(mRtScene->lights.size()),
       mMovingLightSource,

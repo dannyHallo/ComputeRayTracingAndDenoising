@@ -5,13 +5,7 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 // Include definitions for ubo, triangle, material, etc.
 #include "include/definitions.glsl"
 
-layout(binding = 0) uniform GlobalUniformBufferObject {
-  uint swapchainWidth;
-  uint swapchainHeight;
-  uint currentSample;
-  float time;
-}
-globalUbo;
+#include "include/globalUbo.glsl"
 
 // the uniform buffer that contains ray trace description infos
 layout(binding = 1) uniform UniformBufferObject {
@@ -19,7 +13,6 @@ layout(binding = 1) uniform UniformBufferObject {
   vec3 camFront;
   vec3 camUp;
   vec3 camRight;
-  float vfov;
   uint numTriangles;
   uint numLights;
   bool movingLightSource;
@@ -343,17 +336,17 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
 vec2 inPixelPosition() { return vec2(.5, .5); }
 
 ray rayGen(vec3 origin, vec3 front, vec3 up, vec3 right) {
-  vec2 imageSize = vec2(imageSize(rawTex));
-
-  float theta           = ubo.vfov * deg2Rad;
+  float theta           = globalUbo.vfov * deg2Rad;
   float h               = tan(theta / 2);
   float viewport_height = 2.0 * h;
-  float viewport_width  = imageSize.x / imageSize.y * viewport_height;
+  float viewport_width  = float(globalUbo.swapchainWidth) /
+                         float(globalUbo.swapchainHeight) * viewport_height;
 
   vec3 rayPropDir      = viewport_width * right - viewport_height * up;
   vec3 top_left_corner = front - rayPropDir / 2;
 
-  vec2 uv = (gl_GlobalInvocationID.xy + inPixelPosition()) / imageSize.xy;
+  vec2 uv = (gl_GlobalInvocationID.xy + inPixelPosition()) /
+            vec2(globalUbo.swapchainWidth, globalUbo.swapchainHeight);
 
   vec3 rayDir = normalize(top_left_corner + viewport_width * right * uv.x -
                           viewport_height * up * uv.y);

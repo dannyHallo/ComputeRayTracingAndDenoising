@@ -2,13 +2,7 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout(binding = 0) uniform GlobalUniformBufferObject {
-  uint swapchainWidth;
-  uint swapchainHeight;
-  uint currentSample;
-  float time;
-}
-globalUbo;
+#include "include/globalUbo.glsl"
 
 layout(binding = 1, r32f) readonly uniform image2D depthTex;
 layout(binding = 2, rg32f) writeonly uniform image2D gradientTex;

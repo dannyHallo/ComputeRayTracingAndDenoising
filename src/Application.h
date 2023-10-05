@@ -31,6 +31,7 @@ class Application {
   struct GlobalUniformBufferObject {
     uint32_t swapchainWidth;
     uint32_t swapchainHeight;
+    float vfov;
     uint32_t currentSample;
     float time;
   };
@@ -40,9 +41,6 @@ class Application {
     alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
     alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
     alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camRight;
-    float vfov;
-    // float time;
-    // uint32_t currentSample;
     uint32_t numTriangles;
     uint32_t numLights;
     int movingLightSource;
@@ -56,7 +54,6 @@ class Application {
     float normalThrehold;
     float blendingAlpha;
     alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
-    // uint swapchainWidth;     uint swapchainHeight;
   };
 
   struct VarianceUniformBufferObject {
@@ -70,7 +67,6 @@ class Application {
 
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
-    // uint32_t currentSample;
     int i;
     int iCap;
     int showVariance;
