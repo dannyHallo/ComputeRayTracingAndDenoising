@@ -41,6 +41,7 @@ echo:
 @echo copy resources
 mkdir "build/windows/x64/%BUILD_TYPE%/resources"
 xcopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /s /i /y
+rd /s /q "build/windows/x64/%BUILD_TYPE%/resources/shaders/source"
 
 echo:
 echo run
