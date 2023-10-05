@@ -2,10 +2,10 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-#include "include/globalUbo.glsl"
-
 layout(binding = 1, rgba8) uniform image2D aTrousTex2;
 layout(binding = 2, rgba8) uniform image2D targetTex;
+
+#include "include/globalUbo.glsl"
 
 // Converts a color from linear light gamma to sRGB gamma
 // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl

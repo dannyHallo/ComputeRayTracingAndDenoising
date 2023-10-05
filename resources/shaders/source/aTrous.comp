@@ -2,17 +2,6 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-const float epsilon = 1e-8;
-
-// standard 3x3 filtering kernel from q2rtx
-const float waveletFac      = 0.5;
-const float kernel3x3[2][2] = {{1.0, waveletFac},
-                               {waveletFac, waveletFac *waveletFac}};
-
-const vec3 rgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
-
-#include "include/globalUbo.glsl"
-
 // bigger phi indicates bigger tolerence to apply blur
 layout(binding = 1) uniform UniformBufferObject {
   bool bypassBluring;
@@ -38,7 +27,14 @@ layout(binding = 6, r32f) readonly uniform image2D varianceTex;
 layout(binding = 7, rgba8) writeonly uniform image2D accumTex;
 layout(binding = 8, rgba8) writeonly uniform image2D aTrousOutputTex;
 
+#include "include/definitions.glsl"
+#include "include/globalUbo.glsl"
 #include "include/plasticRandom.glsl"
+
+// standard 3x3 filtering kernel from q2rtx
+const float waveletFac      = 0.5;
+const float kernel3x3[2][2] = {{1.0, waveletFac},
+                               {waveletFac, waveletFac *waveletFac}};
 
 ivec2 uv;
 

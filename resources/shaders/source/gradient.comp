@@ -2,10 +2,10 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-#include "include/globalUbo.glsl"
-
 layout(binding = 1, r32f) readonly uniform image2D depthTex;
 layout(binding = 2, rg32f) writeonly uniform image2D gradientTex;
+
+#include "include/globalUbo.glsl"
 
 ivec2 uv;
 ivec2 texSize = imageSize(depthTex);

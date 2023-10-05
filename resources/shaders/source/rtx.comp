@@ -39,15 +39,6 @@ struct onb {
   vec3 w;
 };
 
-#define LIGHT_MATERIAL 0
-#define LAMBERTIAN_MATERIAL 1
-#define METAL_MATERIAL 2
-#define GLASS_MATERIAL 3
-
-const float deg2Rad = 0.0174532925;
-
-#include "include/globalUbo.glsl"
-
 // the uniform buffer that contains ray trace description infos
 layout(binding = 1) uniform UniformBufferObject {
   uint numTriangles;
@@ -87,6 +78,14 @@ layout(std430, binding = 9) readonly buffer AabbBufferObject { bvhNode[] bvh; };
 layout(std430, binding = 10) readonly buffer LightsBufferObject {
   light[] lights;
 };
+
+#include "include/definitions.glsl"
+#include "include/globalUbo.glsl"
+
+#define LIGHT_MATERIAL 0
+#define LAMBERTIAN_MATERIAL 1
+#define METAL_MATERIAL 2
+#define GLASS_MATERIAL 3
 
 #define OUTPUT_TYPE_COMBINED 0
 #define OUTPUT_TYPE_DIRECT_ONLY 1

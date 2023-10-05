@@ -2,10 +2,6 @@
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-const float deg2Rad = 0.0174532925;
-
-#include "include/globalUbo.glsl"
-
 layout(binding = 1) uniform UniformBufferObject {
   bool bypassTemporalFiltering;
   bool useNormalTest;
@@ -30,15 +26,16 @@ layout(binding = 13, rgba8) readonly uniform image2D lastFrameVarianceHistTex;
 layout(binding = 14, rgba8) writeonly uniform image2D thisFrameAccumTex;
 layout(binding = 15, rgba8) writeonly uniform image2D thisFrameVarianceHistTex;
 
+#include "include/definitions.glsl"
+#include "include/globalUbo.glsl"
+
 // when alpha is too low, the image is over-smoothed -> loss of detail
 // when alpha is too high, the image is unstable     -> jitter of noise
 
 ivec2 uv, pUv;
 
 ivec2 backwardProjection() {
-  vec4 worldPos;
-  worldPos = imageLoad(posTex, uv);
-
+  vec4 worldPos       = imageLoad(posTex, uv);
   vec4 screenBoxCoord = ubo.lastMvpe * worldPos;
   // points are bounded in [-1, 1] in x, y, z after the following
   screenBoxCoord /= screenBoxCoord.w;
