@@ -32,19 +32,21 @@ layout(binding = 4, rgba32f) writeonly uniform image2D perStratumTex;
 
 shared float luminance[DISPATCH_SIZE][DISPATCH_SIZE];
 
-void getBrightestInStratum(ivec2 stratumId, out ivec2 brightestGlobalPos,
+void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
+                           out ivec2 brightestGlobalPos,
                            out float brightestLuminance) {
-  brightestLuminance   = 0;
-  brightestGlobalPos   = ivec2(0);
-  ivec2 brightestPixel = ivec2(0);
+  brightestLuminance = 0;
+  brightestGlobalPos = ivec2(0);
   for (int i = 0; i < STRATUM_SIZE; i++) {
     for (int j = 0; j < STRATUM_SIZE; j++) {
-      ivec2 globalPos =
-          ivec2(stratumId.x * STRATUM_SIZE + i, stratumId.y * STRATUM_SIZE + j);
-      float luminanceAtPixel = luminance[i][j];
+      ivec2 localStratumBase = localStratumId * STRATUM_SIZE;
+      float luminanceAtPixel =
+          luminance[localStratumBase.x + i][localStratumBase.y + j];
       if (luminanceAtPixel > brightestLuminance) {
+        ivec2 globalPos    = ivec2(stratumId.x * STRATUM_SIZE + i,
+                                   stratumId.y * STRATUM_SIZE + j);
+        brightestGlobalPos = globalPos;
         brightestLuminance = luminanceAtPixel;
-        brightestPixel     = globalPos;
       }
     }
   }
@@ -58,7 +60,10 @@ void getLuminance() {
 }
 
 void forwardProjection(ivec2 globalPosToProject, float luminanceToProject) {
-  vec4 worldPos       = imageLoad(lastPosTex, globalPosToProject);
+  vec4 worldPos = imageLoad(lastPosTex, globalPosToProject);
+  // invalid position culling
+  if (worldPos.w == -1) return;
+
   vec4 screenBoxCoord = ubo.thisMvpe * worldPos;
   // points are bounded in [-1, 1] in x, y, z after the following
   screenBoxCoord /= screenBoxCoord.w;
@@ -70,7 +75,21 @@ void forwardProjection(ivec2 globalPosToProject, float luminanceToProject) {
   vec2 pp = vec2(uvCoord.x * globalUbo.swapchainWidth,
                  uvCoord.y * globalUbo.swapchainHeight);
 
-  ivec2 stratumId = ivec2(globalPosToProject / STRATUM_SIZE);
+  ivec2 stratumId = ivec2(pp / float(STRATUM_SIZE));
+
+  // ivec2 lowerGroupStratumBound = ivec2(gl_WorkGroupID.xy * GROUP_SIZE_STRATUM);
+  // ivec2 upperGroupStratumBound =
+  //     lowerGroupStratumBound + ivec2(GROUP_SIZE_STRATUM);
+
+  // // if in current stratum bound, write blue, otherwise write red
+  // if (stratumId.x >= lowerGroupStratumBound.x &&
+  //     stratumId.x < upperGroupStratumBound.x &&
+  //     stratumId.y >= lowerGroupStratumBound.y &&
+  //     stratumId.y < upperGroupStratumBound.y)
+  //   imageStore(perStratumTex, stratumId, vec4(0, 0, 1, 0));
+  // else
+  //   imageStore(perStratumTex, stratumId, vec4(1, 0, 0, 0));
+    
   imageStore(perStratumTex, stratumId, vec4(pp, luminanceToProject, 0));
 }
 
@@ -87,14 +106,22 @@ void main() {
   // kick most of the threads
   if (gl_LocalInvocationIndex >= GROUP_SIZE_STRATUM_2) return;
 
-  ivec2 stratumId = ivec2(gl_GlobalInvocationID.xy / STRATUM_SIZE);
+  ivec2 localStratumId = ivec2(gl_LocalInvocationIndex % GROUP_SIZE_STRATUM,
+                               gl_LocalInvocationIndex / GROUP_SIZE_STRATUM);
+  ivec2 stratumId =
+      ivec2(gl_WorkGroupID.xy * GROUP_SIZE_STRATUM) + localStratumId;
 
-  ivec2 brightestInStratumPos, brightestGlobalPos;
+  // TODO: reset the image ELSEWHERE!
+  // imageStore(perStratumTex, stratumId, vec4(0));
+
+  ivec2 brightestGlobalPos;
   float brightestLuminance;
-  getBrightestInStratum(stratumId, brightestGlobalPos, brightestLuminance);
+  getBrightestInStratum(localStratumId, stratumId, brightestGlobalPos,
+                        brightestLuminance);
 
-  // TODO: gpu atimics can be used here to ensure only one stratum has the first
-  // reprojected sample, but this is meaning less for now?
+  // // TODO: gpu atimics can be used here to ensure only one stratum has the
+  // first
+  // // reprojected sample, but this is meaning less for now?
   if (brightestLuminance > 0) {
     forwardProjection(brightestGlobalPos, brightestLuminance);
   }

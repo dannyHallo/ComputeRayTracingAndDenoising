@@ -45,9 +45,9 @@ void main() {
     break;
   }
   case DISPLAY_TYPE_STRATUM: {
-    vec4 stratumAtUv = imageLoad(stratumTex, uv);
-    stratumAtUv      = linearToSrgb(stratumAtUv);
-    writingCol       = vec4(0, 1, 0, 1);
+    ivec2 lookUpUpscaled = ivec2(vec2(uv) / 3.0);
+    vec4 stratumAtUv     = imageLoad(stratumTex, lookUpUpscaled);
+    writingCol           = vec4(stratumAtUv.xy / 3.0, stratumAtUv.z, 1);
     break;
   }
   }

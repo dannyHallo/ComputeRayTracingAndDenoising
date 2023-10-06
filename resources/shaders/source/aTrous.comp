@@ -167,8 +167,6 @@ void main() {
   if (ubo.i == 0) {
     imageStore(accumTex, uv, weightedColor);
   }
-  // TODO: this still has problem
-  // varianceAtUv  = min(varianceAtUv * 10, 1);
-  // weightedColor = vec4(varianceAtUv, 0, 0, 1);
+
   imageStore(aTrousOutputTex, uv, weightedColor);
 }

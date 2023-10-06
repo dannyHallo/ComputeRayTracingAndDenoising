@@ -540,6 +540,8 @@ void Application::createRenderCommandBuffers() {
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
     vkCmdClearColorImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer, mPerStratumImage->getVkImage(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
 
     mGradientProjectionModel->computeCommand(
         currentCommandBuffer, static_cast<uint32_t>(i),
