@@ -77,19 +77,6 @@ void forwardProjection(ivec2 globalPosToProject, float luminanceToProject) {
 
   ivec2 stratumId = ivec2(pp / float(STRATUM_SIZE));
 
-  // ivec2 lowerGroupStratumBound = ivec2(gl_WorkGroupID.xy * GROUP_SIZE_STRATUM);
-  // ivec2 upperGroupStratumBound =
-  //     lowerGroupStratumBound + ivec2(GROUP_SIZE_STRATUM);
-
-  // // if in current stratum bound, write blue, otherwise write red
-  // if (stratumId.x >= lowerGroupStratumBound.x &&
-  //     stratumId.x < upperGroupStratumBound.x &&
-  //     stratumId.y >= lowerGroupStratumBound.y &&
-  //     stratumId.y < upperGroupStratumBound.y)
-  //   imageStore(perStratumTex, stratumId, vec4(0, 0, 1, 0));
-  // else
-  //   imageStore(perStratumTex, stratumId, vec4(1, 0, 0, 0));
-    
   imageStore(perStratumTex, stratumId, vec4(pp, luminanceToProject, 0));
 }
 
@@ -111,17 +98,13 @@ void main() {
   ivec2 stratumId =
       ivec2(gl_WorkGroupID.xy * GROUP_SIZE_STRATUM) + localStratumId;
 
-  // TODO: reset the image ELSEWHERE!
-  // imageStore(perStratumTex, stratumId, vec4(0));
-
   ivec2 brightestGlobalPos;
   float brightestLuminance;
   getBrightestInStratum(localStratumId, stratumId, brightestGlobalPos,
                         brightestLuminance);
 
-  // // TODO: gpu atimics can be used here to ensure only one stratum has the
-  // first
-  // // reprojected sample, but this is meaning less for now?
+  // gpu atimics can be used here to ensure only one stratum has the first
+  // reprojected sample
   if (brightestLuminance > 0) {
     forwardProjection(brightestGlobalPos, brightestLuminance);
   }
