@@ -49,33 +49,37 @@ layout(binding = 1) uniform UniformBufferObject {
 }
 ubo;
 
+// forward projected visibility buffer (sparse, full res)
+layout(binding = 2, rgba32f) uniform image2D visibilityTex;
 // G-Buffer: the image that stores individual position of each ray hit
-layout(binding = 2, rgba32f) uniform image2D posTex;
+layout(binding = 3, rgba32f) writeonly uniform image2D posTex;
 // G-Buffer: the image that stores individual normal of each ray hit
-layout(binding = 3, rgba32f) uniform image2D normalTex;
+layout(binding = 4, rgba32f) writeonly uniform image2D normalTex;
 // G-Buffer: the image that stores individual depth of each ray hit
-layout(binding = 4, r32f) uniform image2D depthTex;
+layout(binding = 5, r32f) writeonly uniform image2D depthTex;
 // G-Buffer: the image that stores individual mesh hash of each ray hit, each
 // triangle has a unique mesh hash
-layout(binding = 5, r32ui) uniform uimage2D meshHashTex1;
+layout(binding = 6, r32ui) writeonly uniform uimage2D meshHashTex1;
 // Result: the image that stores ray traced color
-layout(binding = 6, rgba32f) uniform image2D rawTex;
+layout(binding = 7, rgba32f) writeonly uniform image2D rawTex;
 
 // the buffer that contains all triangles (read only)
-layout(std430, binding = 7) readonly buffer TriangleBufferObject {
+layout(std430, binding = 8) readonly buffer TriangleBufferObject {
   triangle[] triangles;
 };
 
 // the buffer that contains all materials (read only)
-layout(std430, binding = 8) readonly buffer MaterialBufferObject {
+layout(std430, binding = 9) readonly buffer MaterialBufferObject {
   material[] materials;
 };
 
 // the buffer that contains all bvh nodes (read only)
-layout(std430, binding = 9) readonly buffer AabbBufferObject { bvhNode[] bvh; };
+layout(std430, binding = 10) readonly buffer AabbBufferObject {
+  bvhNode[] bvh;
+};
 
 // the buffer that contains all lights (read only)
-layout(std430, binding = 10) readonly buffer LightsBufferObject {
+layout(std430, binding = 11) readonly buffer LightsBufferObject {
   light[] lights;
 };
 
@@ -369,7 +373,7 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
   colReturn *= materials[dhRec.materialIndex].albedo;
 }
 
-vec3 getPixelInScreenPosByDispatch(vec2 dispatchID) {
+vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
   const vec3 origin = globalUbo.camPos;
   const vec3 front  = globalUbo.camFront;
   const vec3 up     = globalUbo.camUp;
@@ -385,16 +389,15 @@ vec3 getPixelInScreenPosByDispatch(vec2 dispatchID) {
   vec3 rayPropDir      = viewport_width * right - viewport_height * up;
   vec3 top_left_corner = front - rayPropDir / 2;
 
-  vec2 uv = (gl_GlobalInvocationID.xy + vec2(0.5)) /
+  vec2 uv = (gl_GlobalInvocationID.xy + subpixOffset) /
             vec2(globalUbo.swapchainWidth, globalUbo.swapchainHeight);
 
   return top_left_corner + viewport_width * right * uv.x -
          viewport_height * up * uv.y;
 }
 
-ray rayGen() {
-  vec3 rayDir =
-      normalize(getPixelInScreenPosByDispatch(gl_GlobalInvocationID.xy));
+ray rayGen(vec2 subpixOffset) {
+  vec3 rayDir = normalize(getPixelInScreenPosByDispatch(subpixOffset));
   return ray(globalUbo.camPos, rayDir);
 }
 
@@ -404,13 +407,21 @@ vec3 fireflyRejectionClamp(vec3 radiance) {
   return min(radiance, maxRadiance);
 }
 
+vec2 getSubsubpixOffset() {
+  ivec2 uv        = ivec2(gl_GlobalInvocationID.xy);
+  vec4 visibility = imageLoad(visibilityTex, uv);
+  // if no forward projected visibility, return 0.5
+  if (visibility.w != 1) return vec2(0.5);
+  // TODO: add depth test here
+  return visibility.xy - vec2(uv);
+}
+
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
     return;
-  }
 
-  ray camRay = rayGen();
+  ray camRay = rayGen(getSubsubpixOffset());
 
   vec3 hitColor;
   vec4 hitWorldPos;

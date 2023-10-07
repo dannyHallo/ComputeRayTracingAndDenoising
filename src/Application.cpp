@@ -363,17 +363,19 @@ void Application::createComputeModels() {
   rtxMat->addUniformBufferBundle(mGlobalBufferBundle.get());
   rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
   // input
+  rtxMat->addStorageImage(mVisibilityImage.get());
+  // output
   rtxMat->addStorageImage(mPositionImage.get());
   rtxMat->addStorageImage(mNormalImage.get());
   rtxMat->addStorageImage(mDepthImage.get());
   rtxMat->addStorageImage(mMeshHashImage.get());
-  // output
   rtxMat->addStorageImage(mRawImage.get());
   // buffers
   rtxMat->addStorageBufferBundle(mTriangleBufferBundle.get());
   rtxMat->addStorageBufferBundle(mMaterialBufferBundle.get());
   rtxMat->addStorageBufferBundle(mBvhBufferBundle.get());
   rtxMat->addStorageBufferBundle(mLightsBufferBundle.get());
+
   mRtxModel = std::make_unique<ComputeModel>(std::move(rtxMat));
 
   auto gradientMat = std::make_unique<ComputeMaterial>(
@@ -1033,10 +1035,11 @@ namespace {
 template <std::size_t N>
 void comboSelector(const char *comboLabel, const char *(&items)[N],
                    uint32_t &selectedIdx) {
+  assert(selectedIdx < N && "selectedIdx is out of range");
   const char *currentSelectedItem = items[selectedIdx];
   if (ImGui::BeginCombo(comboLabel, currentSelectedItem)) {
     for (int n = 0; n < N; n++) {
-      bool isSelected = (currentSelectedItem == items[n]);
+      bool isSelected = n == selectedIdx;
       if (ImGui::Selectable(items[n], isSelected)) {
         currentSelectedItem = items[n];
         selectedIdx         = n;
@@ -1095,7 +1098,8 @@ void Application::prepareGui() {
     ImGui::Checkbox("Use jitter", &mUseJittering);
 
     ImGui::SeparatorText("Post Processing");
-    const char *displayItems[] = {"Color", "Variance", "Stratum", "Visibility"};
+    const char *displayItems[] = {"Color", "Variance", "Stratum", "Visibility",
+                                  "Custom"};
     comboSelector("Display Type", displayItems, mDisplayType);
 
     ImGui::EndMenu();

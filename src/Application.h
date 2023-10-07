@@ -113,7 +113,7 @@ class Application {
   struct PostProcessingUniformBufferObject {
     uint32_t displayType;
   };
-  uint32_t mDisplayType = 3;
+  uint32_t mDisplayType = 4;
 
   float mFps = 0;
 

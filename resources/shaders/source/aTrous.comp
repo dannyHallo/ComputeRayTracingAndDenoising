@@ -133,9 +133,8 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
     return;
-  }
 
   loadData(ivec2(0), gradientAtUv, normalAtUv, colorAtUv, depthAtUv,
            varianceAtUv);

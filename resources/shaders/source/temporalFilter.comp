@@ -82,23 +82,14 @@ bool isConsistent() {
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
     return;
-  }
 
-  // pixPos      = ;
   float alpha = ubo.blendingAlpha;
 
   vec4 thisTimeTracingResult = imageLoad(rawTex, uv);
 
-  // invalid pos culling
-  // if (pixPos.a == -1) {
-  //   return;
-  // }
-
-  if (ubo.bypassTemporalFiltering) {
-    alpha = 1;
-  }
+  if (ubo.bypassTemporalFiltering) alpha = 1;
 
   pUv = backwardProjection();
 

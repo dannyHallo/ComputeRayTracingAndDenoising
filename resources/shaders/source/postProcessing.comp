@@ -17,6 +17,7 @@ layout(binding = 6, rgba8) writeonly uniform image2D targetTex;
 #define DISPLAY_TYPE_VARIANCE 1
 #define DISPLAY_TYPE_STRATUM 2
 #define DISPLAY_TYPE_VISIBILITY 3
+#define DISPLAY_TYPE_CUSTOM 4
 
 // Converts a color from linear light gamma to sRGB gamma
 // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
@@ -30,30 +31,34 @@ vec4 linearToSrgb(vec4 linearRGB) {
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
     return;
-  }
 
-  vec4 writingCol = vec4(0, 0, 0, 1);
+  vec3 writingCol = vec3(0);
   switch (ubo.displayType) {
   case DISPLAY_TYPE_NORMAL: {
-    writingCol = linearToSrgb(imageLoad(aTrousTex2, uv));
+    writingCol = linearToSrgb(imageLoad(aTrousTex2, uv)).xyz;
     break;
   }
   case DISPLAY_TYPE_VARIANCE: {
     float varianceAtUv = imageLoad(varianceTex, uv).r;
     varianceAtUv       = min(varianceAtUv * 100, 1);
-    writingCol         = vec4(varianceAtUv, 0, 0, 1);
+    writingCol         = vec3(varianceAtUv, 0, 0);
     break;
   }
   case DISPLAY_TYPE_STRATUM: {
     ivec2 lookUpUpscaled = ivec2(vec2(uv) / 3.0);
     vec4 stratumAtUv     = imageLoad(stratumTex, lookUpUpscaled);
-    writingCol           = vec4(stratumAtUv.xy / 3.0, stratumAtUv.z, 1);
+    writingCol           = vec3(stratumAtUv.xy / 3.0, stratumAtUv.z);
     break;
   }
   case DISPLAY_TYPE_VISIBILITY: {
-    writingCol = imageLoad(visibilityTex, uv);
+    writingCol = imageLoad(visibilityTex, uv).xyz;
+    break;
+  }
+  case DISPLAY_TYPE_CUSTOM: {
+    vec3 c     = imageLoad(aTrousTex2, uv).xyz;
+    writingCol = c == vec3(1, 0, 1) ? vec3(1) : vec3(0);
     break;
   }
   }
