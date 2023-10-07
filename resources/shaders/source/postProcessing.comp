@@ -8,13 +8,15 @@ ubo;
 layout(binding = 2, rgba8) readonly uniform image2D aTrousTex2;
 layout(binding = 3, r32f) readonly uniform image2D varianceTex;
 layout(binding = 4, rgba32f) readonly uniform image2D stratumTex;
-layout(binding = 5, rgba8) writeonly uniform image2D targetTex;
+layout(binding = 5, rgba32f) readonly uniform image2D visibilityTex;
+layout(binding = 6, rgba8) writeonly uniform image2D targetTex;
 
 #include "include/globalUbo.glsl"
 
 #define DISPLAY_TYPE_NORMAL 0
 #define DISPLAY_TYPE_VARIANCE 1
 #define DISPLAY_TYPE_STRATUM 2
+#define DISPLAY_TYPE_VISIBILITY 3
 
 // Converts a color from linear light gamma to sRGB gamma
 // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
@@ -48,6 +50,10 @@ void main() {
     ivec2 lookUpUpscaled = ivec2(vec2(uv) / 3.0);
     vec4 stratumAtUv     = imageLoad(stratumTex, lookUpUpscaled);
     writingCol           = vec4(stratumAtUv.xy / 3.0, stratumAtUv.z, 1);
+    break;
+  }
+  case DISPLAY_TYPE_VISIBILITY: {
+    writingCol = imageLoad(visibilityTex, uv);
     break;
   }
   }

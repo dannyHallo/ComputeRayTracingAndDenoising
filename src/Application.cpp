@@ -450,6 +450,7 @@ void Application::createComputeModels() {
     postProcessingMat->addStorageImage(mATrousOutputImage.get());
     postProcessingMat->addStorageImage(mVarianceImage.get());
     postProcessingMat->addStorageImage(mPerStratumImage.get());
+    postProcessingMat->addStorageImage(mVisibilityImage.get());
     // output
     postProcessingMat->addStorageImage(mTargetImage.get());
   }
@@ -1094,7 +1095,7 @@ void Application::prepareGui() {
     ImGui::Checkbox("Use jitter", &mUseJittering);
 
     ImGui::SeparatorText("Post Processing");
-    const char *displayItems[] = {"Color", "Variance", "Stratum"};
+    const char *displayItems[] = {"Color", "Variance", "Stratum", "Visibility"};
     comboSelector("Display Type", displayItems, mDisplayType);
 
     ImGui::EndMenu();
