@@ -320,8 +320,23 @@ void Application::createImagesAndForwardingPairs() {
       mAppContext->getGraphicsQueue(), perStratumImageWidth,
       perStratumImageHeight, VK_SAMPLE_COUNT_1_BIT,
       VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-      VMA_MEMORY_USAGE_GPU_ONLY);
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+  mPerStratumLockingImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), perStratumImageWidth,
+      perStratumImageHeight, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_UINT,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+  mVisibilityImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }
 
 void Application::createComputeModels() {
@@ -335,6 +350,10 @@ void Application::createComputeModels() {
   mGradientProjectionMat->addStorageImage(mPositionImage.get());
   // output
   mGradientProjectionMat->addStorageImage(mPerStratumImage.get());
+  // atomic readwrite
+  mGradientProjectionMat->addStorageImage(mPerStratumLockingImage.get());
+  // output, too
+  mGradientProjectionMat->addStorageImage(mVisibilityImage.get());
   mGradientProjectionModel =
       std::make_unique<ComputeModel>(std::move(mGradientProjectionMat));
 
@@ -541,6 +560,11 @@ void Application::createRenderCommandBuffers() {
     vkCmdClearColorImage(currentCommandBuffer, mATrousOutputImage->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
     vkCmdClearColorImage(currentCommandBuffer, mPerStratumImage->getVkImage(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer,
+                         mPerStratumLockingImage->getVkImage(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer, mVisibilityImage->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
 
     mGradientProjectionModel->computeCommand(

@@ -181,6 +181,8 @@ class Application {
   std::unique_ptr<Image> mVarianceImage;
 
   std::unique_ptr<Image> mPerStratumImage;
+  std::unique_ptr<Image> mPerStratumLockingImage;
+  std::unique_ptr<Image> mVisibilityImage;
 
   std::unique_ptr<Image> mDepthImage;
   std::unique_ptr<Image> mDepthImagePrev;
