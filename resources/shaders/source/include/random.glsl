@@ -54,21 +54,15 @@ float random() {
 // Returns a random real in [min,max).
 float random(float min, float max) { return min + (max - min) * random(); }
 
-vec2 random_uv() {
-  uint randOffsetInPixel =
-      hash(gl_GlobalInvocationID.x * 2560 + gl_GlobalInvocationID.y);
-  vec2 rand =
-      ldsNoise2d(gl_GlobalInvocationID.x +
-                     uint(globalUbo.currentSample) * 19937u + randOffsetInPixel,
-                 gl_GlobalInvocationID.y +
-                     uint(globalUbo.currentSample) * 3719u + randOffsetInPixel);
+vec2 random_uv(uvec2 seed) {
+  vec2 rand = ldsNoise2d(seed.x, seed.y);
   return rand;
 }
 
 // ---- Low discrepancy noise
-vec3 random_in_unit_sphere() {
+vec3 random_in_unit_sphere(uvec2 seed) {
   // Rx random
-  vec2 randomUV = random_uv();
+  vec2 randomUV = random_uv(seed);
 
   float phi   = acos(1 - 2 * randomUV.x);
   float theta = 2 * pi * randomUV.y;
@@ -80,8 +74,8 @@ vec3 random_in_unit_sphere() {
   return vec3(x, y, z);
 }
 
-vec3 random_in_hemisphere(vec3 normal) {
-  vec3 in_unit_sphere = random_in_unit_sphere();
+vec3 random_in_hemisphere(vec3 normal, uvec2 seed) {
+  vec3 in_unit_sphere = random_in_unit_sphere(seed);
   if (dot(in_unit_sphere, normal) > 0.0)
     return in_unit_sphere;
   else

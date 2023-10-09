@@ -237,14 +237,12 @@ hitRecord traceRayToBvh(ray r) {
   return rec;
 }
 
-void getRamdomSampleOnLight(out vec3 randomSamplingPointOnLight,
+void getRamdomSampleOnLight(uvec2 seed, out vec3 randomSamplingPointOnLight,
                             out vec3 lightNormal, out float lightArea) {
-  vec2 randomUV = random_uv();
+
+  vec2 randomUV = random_uv(seed);
   float x       = randomUV.x;
   float y       = randomUV.y;
-
-  // x = random();
-  // y = random();
 
   int i = 0;
   if (x + y > 1) {
@@ -266,7 +264,7 @@ void getRamdomSampleOnLight(out vec3 randomSamplingPointOnLight,
   randomSamplingPointOnLight = samplingLightTri.v0 + e1 * x + e2 * y;
 }
 
-vec3 pathTracingRayColorIndirect(ray r) {
+vec3 pathTracingRayColorIndirect(ray r, uvec2 seed) {
   // ihRec = indirect hit record
   // ihsRec = indirect hit shadow ray record
 
@@ -283,7 +281,8 @@ vec3 pathTracingRayColorIndirect(ray r) {
   vec3 randomSamplingPointOnLight;
   vec3 lightNormal;
   float lightArea;
-  getRamdomSampleOnLight(randomSamplingPointOnLight, lightNormal, lightArea);
+  getRamdomSampleOnLight(seed, randomSamplingPointOnLight, lightNormal,
+                         lightArea);
 
   vec3 o2l      = randomSamplingPointOnLight - ihRec.p;
   float distSqr = dot(o2l, o2l);
@@ -302,7 +301,7 @@ vec3 pathTracingRayColorIndirect(ray r) {
   return materials[ihRec.materialIndex].albedo * colReturn;
 }
 
-void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
+void pathTracing(ray r, uvec2 seed, out vec3 colReturn, out vec4 hitWorldPos,
                  out vec4 hitNormal, out float hitDepth, out uint meshHash) {
 
   // dhRec = directhit record
@@ -333,7 +332,8 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
   vec3 randomSamplingPointOnLight;
   vec3 lightNormal;
   float lightArea;
-  getRamdomSampleOnLight(randomSamplingPointOnLight, lightNormal, lightArea);
+  getRamdomSampleOnLight(seed, randomSamplingPointOnLight, lightNormal,
+                         lightArea);
 
   vec3 o2l      = randomSamplingPointOnLight - dhRec.p;
   float distSqr = dot(o2l, o2l);
@@ -360,14 +360,16 @@ void pathTracing(ray r, out vec3 colReturn, out vec4 hitWorldPos,
   vec3 secondaryRayDir;
   if (materials[dhRec.materialIndex].materialType == METAL_MATERIAL) {
     secondaryRayDir = reflect(r.dir, dhRec.normal);
-    colReturn += pathTracingRayColorIndirect(
-                     ray(dhRec.p + dhRec.normal * 0.0001, secondaryRayDir)) *
-                 dot(secondaryRayDir, dhRec.normal);
+    colReturn +=
+        pathTracingRayColorIndirect(
+            ray(dhRec.p + dhRec.normal * 0.0001, secondaryRayDir), seed) *
+        dot(secondaryRayDir, dhRec.normal);
   } else {
-    secondaryRayDir = random_in_hemisphere(dhRec.normal);
-    colReturn += pathTracingRayColorIndirect(
-                     ray(dhRec.p + dhRec.normal * 0.0001, secondaryRayDir)) *
-                 dot(secondaryRayDir, dhRec.normal) * 2 * pi;
+    secondaryRayDir = random_in_hemisphere(dhRec.normal, seed);
+    colReturn +=
+        pathTracingRayColorIndirect(
+            ray(dhRec.p + dhRec.normal * 0.0001, secondaryRayDir), seed) *
+        dot(secondaryRayDir, dhRec.normal) * 2 * pi;
   }
 
   colReturn *= materials[dhRec.materialIndex].albedo;
@@ -412,7 +414,7 @@ vec2 getSubsubpixOffset() {
   vec4 visibility = imageLoad(visibilityTex, uv);
   // if no forward projected visibility, return 0.5
   if (visibility.w != 1) return vec2(0.5);
-  // TODO: add depth test here
+  // TODO: apply depth test here
   return visibility.xy - vec2(uv);
 }
 
@@ -423,12 +425,17 @@ void main() {
 
   ray camRay = rayGen(getSubsubpixOffset());
 
+  uvec2 seed =
+      uvec2(gl_GlobalInvocationID.x + uint(globalUbo.currentSample) * 19937u,
+            gl_GlobalInvocationID.y + uint(globalUbo.currentSample) * 3719u);
+
   vec3 hitColor;
   vec4 hitWorldPos;
   vec4 hitNormal;
   float hitDepth;
   uint meshHash;
-  pathTracing(camRay, hitColor, hitWorldPos, hitNormal, hitDepth, meshHash);
+  pathTracing(camRay, seed, hitColor, hitWorldPos, hitNormal, hitDepth,
+              meshHash);
 
   imageStore(rawTex, uv, vec4(fireflyRejectionClamp(hitColor), 1));
   imageStore(posTex, uv, hitWorldPos);  // w: -1 (invalid) or 1 (valid)
