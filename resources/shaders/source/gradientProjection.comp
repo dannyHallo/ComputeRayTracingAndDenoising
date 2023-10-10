@@ -20,25 +20,28 @@ layout(binding = 1) uniform UniformBufferObject {
 }
 ubo;
 
+// full res, dense, recording last time rtx result
 layout(binding = 2, rgba32f) readonly uniform image2D lastRawColorTex;
 layout(binding = 3, rgba32f) readonly uniform image2D lastPosTex;
-// the tex is in 1/3 resolution, recording the active position in
+layout(binding = 4, rgba32ui) readonly uniform uimage2D lastSeedTex;
+// 1/3 res, recording the active position in
 // the stratum, and its luminance
-layout(binding = 4, rgba32f) writeonly uniform image2D perStratumTex;
-// TODO: avoid accumulating the stratum pixel if the previous frame has already
-// the tex is in 1/3 resolution, it is automatically reset to all zero before
+layout(binding = 5, rgba32f) writeonly uniform image2D perStratumTex;
+// 1/3 res, it is automatically reset to all zero before
 // every dispatch, it's aim is to ensure the write is atomic
-layout(binding = 5, r32ui) uniform uimage2D perStratumLockingTex;
-// the tex is in full resolution, but sparse (at most 1 sample per stratum),
+layout(binding = 6, r32ui) uniform uimage2D perStratumLockingTex;
+// full res, but sparse (at most 1 sample per stratum),
 // stored with forward-projected accurate screen space sampling position,
 // associated with its luminance
-layout(binding = 6, rgba32f) writeonly uniform image2D visibilityTex;
+layout(binding = 7, rgba32f) writeonly uniform image2D visibilityTex;
+layout(binding = 8, rgba32ui) writeonly uniform uimage2D seedVisibilityTex;
 
 shared float luminance[DISPATCH_SIZE][DISPATCH_SIZE];
 
 void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
                            out ivec2 brightestGlobalPos,
-                           out float brightestLuminance) {
+                           out float brightestLuminance,
+                           out uvec2 brightestSeed) {
   brightestLuminance = 0;
   brightestGlobalPos = ivec2(0);
   for (int i = 0; i < STRATUM_SIZE; i++) {
@@ -54,16 +57,25 @@ void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
       }
     }
   }
+  // if the brightest pixel in the stratum has been used more than once, discard
+  // this stratum
+  if (imageLoad(lastSeedTex, brightestGlobalPos).w > 1) {
+    brightestGlobalPos = ivec2(0);
+    brightestLuminance = 0;
+    brightestSeed      = uvec2(0);
+    return;
+  }
+  brightestSeed = imageLoad(lastSeedTex, brightestGlobalPos).xy;
 }
 
-void getLuminance() {
+void preload() {
   ivec2 uv             = ivec2(gl_GlobalInvocationID.xy);
   const vec3 colorAtUv = imageLoad(lastRawColorTex, uv).rgb;
   float luminanceAtUv  = dot(rgbToLuminanceMat, colorAtUv);
   luminance[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = luminanceAtUv;
 }
 
-void forwardProjection(ivec2 globalPosToProject, float lum) {
+void forwardProjection(ivec2 globalPosToProject, float lum, uvec2 seed) {
   vec4 worldPos = imageLoad(lastPosTex, globalPosToProject);
   // invalid position culling
   if (worldPos.w == -1) return;
@@ -85,11 +97,13 @@ void forwardProjection(ivec2 globalPosToProject, float lum) {
   // nothing will happen, otherwire, set it to occupeid state atomically
   uint hasSampleOnThisStratum =
       imageAtomicCompSwap(perStratumLockingTex, stratumId, 0, 1);
-
   if (hasSampleOnThisStratum == 1) return;
+
   imageStore(perStratumTex, stratumId, vec4(pp, lum, 0));
   // xy: uv in floating point, z: luminance w: valid sample
   imageStore(visibilityTex, ivec2(pp), vec4(pp, lum, 1));
+  // xy: seed in uvec2, z: 0, w: valid sample
+  imageStore(seedVisibilityTex, ivec2(pp), uvec4(seed, 0, 1));
 }
 
 void main() {
@@ -99,7 +113,11 @@ void main() {
 
   if (ubo.bypassGradientProjection) return;
 
-  getLuminance();
+  // loads color and calculates luminance from last frame, a single thread loads
+  // one pixel, after writing to shared memory, it's faster for stratum threads
+  // to use
+  preload();
+  // wait for all threads to finish loading in work group
   barrier();
 
   // kick most of the threads
@@ -112,10 +130,11 @@ void main() {
 
   ivec2 brightestGlobalPos;
   float brightestLuminance;
+  uvec2 brightestSeed;
   getBrightestInStratum(localStratumId, stratumId, brightestGlobalPos,
-                        brightestLuminance);
+                        brightestLuminance, brightestSeed);
 
   if (brightestLuminance > 0) {
-    forwardProjection(brightestGlobalPos, brightestLuminance);
+    forwardProjection(brightestGlobalPos, brightestLuminance, brightestSeed);
   }
 }

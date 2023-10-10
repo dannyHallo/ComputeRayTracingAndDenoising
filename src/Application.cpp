@@ -182,6 +182,34 @@ void Application::createImagesAndForwardingPairs() {
       VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
       VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mVisibilityImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+  mSeedImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_UINT,
+      VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+  mSeedVisibilityImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_UINT,
+      VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+  mTemporalGradientImage = std::make_unique<Image>(
+      mAppContext->getDevice(), mAppContext->getCommandPool(),
+      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
   mATrousInputImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
@@ -330,14 +358,6 @@ void Application::createImagesAndForwardingPairs() {
       VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
-  mVisibilityImage = std::make_unique<Image>(
-      mAppContext->getDevice(), mAppContext->getCommandPool(),
-      mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
-      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_TILING_OPTIMAL,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }
 
 void Application::createComputeModels() {
@@ -349,12 +369,14 @@ void Application::createComputeModels() {
   // input
   mGradientProjectionMat->addStorageImage(mRawImage.get());
   mGradientProjectionMat->addStorageImage(mPositionImage.get());
+  mGradientProjectionMat->addStorageImage(mSeedImage.get());
   // output
   mGradientProjectionMat->addStorageImage(mPerStratumImage.get());
   // atomic readwrite
   mGradientProjectionMat->addStorageImage(mPerStratumLockingImage.get());
   // output, too
   mGradientProjectionMat->addStorageImage(mVisibilityImage.get());
+  mGradientProjectionMat->addStorageImage(mSeedVisibilityImage.get());
   mGradientProjectionModel =
       std::make_unique<ComputeModel>(std::move(mGradientProjectionMat));
 
@@ -364,12 +386,16 @@ void Application::createComputeModels() {
   rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
   // input
   rtxMat->addStorageImage(mVisibilityImage.get());
+  // reprojected seed
+  rtxMat->addStorageImage(mSeedVisibilityImage.get());
   // output
   rtxMat->addStorageImage(mPositionImage.get());
   rtxMat->addStorageImage(mNormalImage.get());
   rtxMat->addStorageImage(mDepthImage.get());
   rtxMat->addStorageImage(mMeshHashImage.get());
   rtxMat->addStorageImage(mRawImage.get());
+  rtxMat->addStorageImage(mSeedImage.get());
+  rtxMat->addStorageImage(mTemporalGradientImage.get());
   // buffers
   rtxMat->addStorageBufferBundle(mTriangleBufferBundle.get());
   rtxMat->addStorageBufferBundle(mMaterialBufferBundle.get());
@@ -453,6 +479,7 @@ void Application::createComputeModels() {
     postProcessingMat->addStorageImage(mVarianceImage.get());
     postProcessingMat->addStorageImage(mPerStratumImage.get());
     postProcessingMat->addStorageImage(mVisibilityImage.get());
+    postProcessingMat->addStorageImage(mTemporalGradientImage.get());
     // output
     postProcessingMat->addStorageImage(mTargetImage.get());
   }
@@ -569,6 +596,12 @@ void Application::createRenderCommandBuffers() {
                          mPerStratumLockingImage->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
     vkCmdClearColorImage(currentCommandBuffer, mVisibilityImage->getVkImage(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer,
+                         mSeedVisibilityImage->getVkImage(),
+                         VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
+    vkCmdClearColorImage(currentCommandBuffer,
+                         mTemporalGradientImage->getVkImage(),
                          VK_IMAGE_LAYOUT_GENERAL, &clearColor, 1, &clearRange);
 
     mGradientProjectionModel->computeCommand(

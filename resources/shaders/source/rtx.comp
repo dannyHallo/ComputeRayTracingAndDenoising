@@ -51,35 +51,41 @@ ubo;
 
 // forward projected visibility buffer (sparse, full res)
 layout(binding = 2, rgba32f) uniform image2D visibilityTex;
+layout(binding = 3, rgba32ui) uniform uimage2D seedVisibilityTex;
+
 // G-Buffer: the image that stores individual position of each ray hit
-layout(binding = 3, rgba32f) writeonly uniform image2D posTex;
+layout(binding = 4, rgba32f) writeonly uniform image2D posTex;
 // G-Buffer: the image that stores individual normal of each ray hit
-layout(binding = 4, rgba32f) writeonly uniform image2D normalTex;
+layout(binding = 5, rgba32f) writeonly uniform image2D normalTex;
 // G-Buffer: the image that stores individual depth of each ray hit
-layout(binding = 5, r32f) writeonly uniform image2D depthTex;
+layout(binding = 6, r32f) writeonly uniform image2D depthTex;
 // G-Buffer: the image that stores individual mesh hash of each ray hit, each
 // triangle has a unique mesh hash
-layout(binding = 6, r32ui) writeonly uniform uimage2D meshHashTex1;
+layout(binding = 7, r32ui) writeonly uniform uimage2D meshHashTex1;
 // Result: the image that stores ray traced color
-layout(binding = 7, rgba32f) writeonly uniform image2D rawTex;
+layout(binding = 8, rgba32f) writeonly uniform image2D rawTex;
+// Seed texture
+layout(binding = 9, rgba32ui) writeonly uniform uimage2D seedTex;
+// Temporal gradient
+layout(binding = 10, rgba32f) writeonly uniform image2D temporalGradientTex;
 
 // the buffer that contains all triangles (read only)
-layout(std430, binding = 8) readonly buffer TriangleBufferObject {
+layout(std430, binding = 11) readonly buffer TriangleBufferObject {
   triangle[] triangles;
 };
 
 // the buffer that contains all materials (read only)
-layout(std430, binding = 9) readonly buffer MaterialBufferObject {
+layout(std430, binding = 12) readonly buffer MaterialBufferObject {
   material[] materials;
 };
 
 // the buffer that contains all bvh nodes (read only)
-layout(std430, binding = 10) readonly buffer AabbBufferObject {
+layout(std430, binding = 13) readonly buffer AabbBufferObject {
   bvhNode[] bvh;
 };
 
 // the buffer that contains all lights (read only)
-layout(std430, binding = 11) readonly buffer LightsBufferObject {
+layout(std430, binding = 14) readonly buffer LightsBufferObject {
   light[] lights;
 };
 
@@ -418,6 +424,30 @@ vec2 getSubsubpixOffset() {
   return visibility.xy - vec2(uv);
 }
 
+uvec4 getSeed() {
+  ivec2 uv   = ivec2(gl_GlobalInvocationID.xy);
+  uvec4 seed = imageLoad(seedVisibilityTex, uv);
+  // generate a new seed if no forward projected visibility
+  if (seed.w == 0)
+    return uvec4(
+        gl_GlobalInvocationID.x + uint(globalUbo.currentSample) * 19937u,
+        gl_GlobalInvocationID.y + uint(globalUbo.currentSample) * 3719u, 0, 0);
+  // self increment of seed using count
+  seed.w += 1;
+  return seed;
+}
+
+void calculateTemporalGradient(float thisTimeLuminance) {
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+
+  vec4 visibility         = imageLoad(visibilityTex, uv);
+  float previousLuminance = visibility.z;
+  float temporalGradient  = abs(thisTimeLuminance - previousLuminance);
+
+  if (visibility.w != 1) return;
+  imageStore(temporalGradientTex, uv, vec4(temporalGradient, 0, 0, 0));
+}
+
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
@@ -425,21 +455,25 @@ void main() {
 
   ray camRay = rayGen(getSubsubpixOffset());
 
-  uvec2 seed =
-      uvec2(gl_GlobalInvocationID.x + uint(globalUbo.currentSample) * 19937u,
-            gl_GlobalInvocationID.y + uint(globalUbo.currentSample) * 3719u);
+  uvec4 seed = getSeed();
 
   vec3 hitColor;
   vec4 hitWorldPos;
   vec4 hitNormal;
   float hitDepth;
   uint meshHash;
-  pathTracing(camRay, seed, hitColor, hitWorldPos, hitNormal, hitDepth,
+  pathTracing(camRay, seed.xy, hitColor, hitWorldPos, hitNormal, hitDepth,
               meshHash);
 
-  imageStore(rawTex, uv, vec4(fireflyRejectionClamp(hitColor), 1));
+  vec4 thisTimeRawColor   = vec4(fireflyRejectionClamp(hitColor), 1);
+  float thisTimeLuminance = dot(rgbToLuminanceMat, thisTimeRawColor.rgb);
+
+  imageStore(rawTex, uv, thisTimeRawColor);
   imageStore(posTex, uv, hitWorldPos);  // w: -1 (invalid) or 1 (valid)
   imageStore(normalTex, uv, hitNormal); // w: -1 (invalid) or 0 (valid)
   imageStore(depthTex, uv, vec4(hitDepth, 0, 0, 0));      // -1 (invalid)
   imageStore(meshHashTex1, uv, ivec4(meshHash, 0, 0, 0)); // -1 (invalid)
+  imageStore(seedTex, uv, seed);
+
+  calculateTemporalGradient(thisTimeLuminance);
 }
