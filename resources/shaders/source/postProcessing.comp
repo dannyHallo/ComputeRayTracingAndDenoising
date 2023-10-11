@@ -7,19 +7,21 @@ ubo;
 
 layout(binding = 2, rgba8) readonly uniform image2D aTrousTex2;
 layout(binding = 3, r32f) readonly uniform image2D varianceTex;
-layout(binding = 4, rgba32f) readonly uniform image2D stratumTex;
-layout(binding = 5, rgba32f) readonly uniform image2D visibilityTex;
-layout(binding = 6, rgba32f) readonly uniform image2D temporalGradientTex;
-layout(binding = 7, rgba8) writeonly uniform image2D targetTex;
+layout(binding = 4, rgba32f) readonly uniform image2D rawTex;
+layout(binding = 5, rgba32f) readonly uniform image2D stratumTex;
+layout(binding = 6, rgba32f) readonly uniform image2D visibilityTex;
+layout(binding = 7, rgba32f) readonly uniform image2D temporalGradientTex;
+layout(binding = 8, rgba8) writeonly uniform image2D targetTex;
 
 #include "include/globalUbo.glsl"
 
 #define DISPLAY_TYPE_NORMAL 0
 #define DISPLAY_TYPE_VARIANCE 1
-#define DISPLAY_TYPE_STRATUM 2
-#define DISPLAY_TYPE_VISIBILITY 3
-#define DISPLAY_TYPE_TEMPORAL_GRADIENT 4
-#define DISPLAY_TYPE_CUSTOM 5
+#define DISPLAY_TYPE_RAW 2
+#define DISPLAY_TYPE_STRATUM 3
+#define DISPLAY_TYPE_VISIBILITY 4
+#define DISPLAY_TYPE_TEMPORAL_GRADIENT 5
+#define DISPLAY_TYPE_CUSTOM 6
 
 // Converts a color from linear light gamma to sRGB gamma
 // https://gamedev.stackexchange.com/questions/92015/optimized-linear-to-srgb-glsl
@@ -48,6 +50,10 @@ void main() {
     writingCol         = vec3(varianceAtUv, 0, 0);
     break;
   }
+  case DISPLAY_TYPE_RAW: {
+    writingCol = imageLoad(rawTex, uv).xyz;
+    break;
+  }
   case DISPLAY_TYPE_STRATUM: {
     ivec2 lookUpUpscaled = ivec2(vec2(uv) / 3.0);
     vec4 stratumAtUv     = imageLoad(stratumTex, lookUpUpscaled);
@@ -59,8 +65,7 @@ void main() {
     break;
   }
   case DISPLAY_TYPE_TEMPORAL_GRADIENT: {
-    float val  = imageLoad(temporalGradientTex, uv).x;
-    writingCol = vec3(val, val, val);
+    writingCol = imageLoad(temporalGradientTex, uv).xyz;
     break;
   }
   case DISPLAY_TYPE_CUSTOM: {

@@ -125,7 +125,7 @@ struct hitRecord {
 triangle moveLightTri(triangle tri) {
   if (!ubo.movingLightSource) return tri;
 
-  float xOffset = sin(globalUbo.time * 10) * 0.2;
+  float xOffset = sin(globalUbo.time * 4) * 0.2;
   tri.v0.x += xOffset;
   tri.v1.x += xOffset;
   tri.v2.x += xOffset;
@@ -442,10 +442,15 @@ void calculateTemporalGradient(float thisTimeLuminance) {
 
   vec4 visibility         = imageLoad(visibilityTex, uv);
   float previousLuminance = visibility.z;
-  float temporalGradient  = abs(thisTimeLuminance - previousLuminance);
+  float temporalGradient  = thisTimeLuminance - previousLuminance;
 
   if (visibility.w != 1) return;
-  imageStore(temporalGradientTex, uv, vec4(temporalGradient, 0, 0, 0));
+
+  if (temporalGradient < 0) {
+    imageStore(temporalGradientTex, uv, vec4(-temporalGradient, 0, 0, 0));
+  } else {
+    imageStore(temporalGradientTex, uv, vec4(0, temporalGradient, 0, 0));
+  }
 }
 
 void main() {

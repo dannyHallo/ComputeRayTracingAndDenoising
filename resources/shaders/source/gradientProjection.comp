@@ -9,9 +9,6 @@
 layout(local_size_x = DISPATCH_SIZE, local_size_y = DISPATCH_SIZE,
        local_size_z = 1) in;
 
-#include "include/definitions.glsl"
-#include "include/globalUbo.glsl"
-
 layout(binding = 1) uniform UniformBufferObject {
   bool bypassGradientProjection;
   // we use the last position buffer and this mvpe for forward prejection
@@ -36,6 +33,10 @@ layout(binding = 6, r32ui) uniform uimage2D perStratumLockingTex;
 layout(binding = 7, rgba32f) writeonly uniform image2D visibilityTex;
 layout(binding = 8, rgba32ui) writeonly uniform uimage2D seedVisibilityTex;
 
+#include "include/definitions.glsl"
+#include "include/globalUbo.glsl"
+#include "include/random.glsl"
+
 shared float luminance[DISPATCH_SIZE][DISPATCH_SIZE];
 
 void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
@@ -44,22 +45,38 @@ void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
                            out uvec2 brightestSeed) {
   brightestLuminance = 0;
   brightestGlobalPos = ivec2(0);
-  for (int i = 0; i < STRATUM_SIZE; i++) {
-    for (int j = 0; j < STRATUM_SIZE; j++) {
-      ivec2 localStratumBase = localStratumId * STRATUM_SIZE;
-      float luminanceAtPixel =
-          luminance[localStratumBase.x + i][localStratumBase.y + j];
-      if (luminanceAtPixel > brightestLuminance) {
-        ivec2 globalPos    = ivec2(stratumId.x * STRATUM_SIZE + i,
-                                   stratumId.y * STRATUM_SIZE + j);
-        brightestGlobalPos = globalPos;
-        brightestLuminance = luminanceAtPixel;
-      }
-    }
-  }
-  // if the brightest pixel in the stratum has been used more than once, discard
-  // this stratum
-  if (imageLoad(lastSeedTex, brightestGlobalPos).w > 1) {
+  // for (int i = 0; i < STRATUM_SIZE; i++) {
+  //   for (int j = 0; j < STRATUM_SIZE; j++) {
+  //     ivec2 localStratumBase = localStratumId * STRATUM_SIZE;
+  //     float luminanceAtPixel =
+  //         luminance[localStratumBase.x + i][localStratumBase.y + j];
+  //     if (luminanceAtPixel > brightestLuminance) {
+  //       ivec2 globalPos    = ivec2(stratumId.x * STRATUM_SIZE + i,
+  //                                  stratumId.y * STRATUM_SIZE + j);
+  //       brightestGlobalPos = globalPos;
+  //       brightestLuminance = luminanceAtPixel;
+  //     }
+  //   }
+  // }
+
+  uvec2 seed =
+      uvec2(gl_GlobalInvocationID.x + uint(globalUbo.currentSample) * 19937u,
+            gl_GlobalInvocationID.y + uint(globalUbo.currentSample) * 3719u);
+  vec2 randUv = random_uv(seed);
+
+  int i                  = int(randUv.x * STRATUM_SIZE);
+  int j                  = int(randUv.y * STRATUM_SIZE);
+  ivec2 localStratumBase = localStratumId * STRATUM_SIZE;
+  float luminanceAtPixel =
+      luminance[localStratumBase.x + i][localStratumBase.y + j];
+  ivec2 globalPos =
+      ivec2(stratumId.x * STRATUM_SIZE + i, stratumId.y * STRATUM_SIZE + j);
+  brightestGlobalPos = globalPos;
+  brightestLuminance = luminanceAtPixel;
+
+  // if the seed has been used more than x times,
+  // discard this stratum
+  if (imageLoad(lastSeedTex, brightestGlobalPos).w > 2) {
     brightestGlobalPos = ivec2(0);
     brightestLuminance = 0;
     brightestSeed      = uvec2(0);
@@ -93,8 +110,8 @@ void forwardProjection(ivec2 globalPosToProject, float lum, uvec2 seed) {
 
   ivec2 stratumId = ivec2(pp / float(STRATUM_SIZE));
 
-  // look up to the corresponding stratum data, if it is already occupied, then
-  // nothing will happen, otherwire, set it to occupeid state atomically
+  // look up to the corresponding stratum data, if it is already occupied,
+  // then nothing will happen, otherwire, set it to occupeid state atomically
   uint hasSampleOnThisStratum =
       imageAtomicCompSwap(perStratumLockingTex, stratumId, 0, 1);
   if (hasSampleOnThisStratum == 1) return;
@@ -113,9 +130,9 @@ void main() {
 
   if (ubo.bypassGradientProjection) return;
 
-  // loads color and calculates luminance from last frame, a single thread loads
-  // one pixel, after writing to shared memory, it's faster for stratum threads
-  // to use
+  // loads color and calculates luminance from last frame, a single thread
+  // loads one pixel, after writing to shared memory, it's faster for stratum
+  // threads to use
   preload();
   // wait for all threads to finish loading in work group
   barrier();

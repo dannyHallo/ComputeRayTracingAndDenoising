@@ -53,7 +53,7 @@ class Application {
     int useLdsNoise;
     uint32_t outputType;
   };
-  bool mMovingLightSource = false;
+  bool mMovingLightSource = true;
   bool mUseLdsNoise       = true;
   uint32_t mOutputType    = 0;
 
@@ -113,7 +113,7 @@ class Application {
   struct PostProcessingUniformBufferObject {
     uint32_t displayType;
   };
-  uint32_t mDisplayType = 4;
+  uint32_t mDisplayType = 2;
 
   float mFps = 0;
 

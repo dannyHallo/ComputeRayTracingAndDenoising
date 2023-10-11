@@ -207,7 +207,8 @@ void Application::createImagesAndForwardingPairs() {
   mTemporalGradientImage = std::make_unique<Image>(
       mAppContext->getDevice(), mAppContext->getCommandPool(),
       mAppContext->getGraphicsQueue(), imageWidth, imageHeight,
-      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+      VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_TILING_OPTIMAL,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
@@ -477,6 +478,7 @@ void Application::createComputeModels() {
     // input
     postProcessingMat->addStorageImage(mATrousOutputImage.get());
     postProcessingMat->addStorageImage(mVarianceImage.get());
+    postProcessingMat->addStorageImage(mRawImage.get());
     postProcessingMat->addStorageImage(mPerStratumImage.get());
     postProcessingMat->addStorageImage(mVisibilityImage.get());
     postProcessingMat->addStorageImage(mTemporalGradientImage.get());
@@ -1131,8 +1133,8 @@ void Application::prepareGui() {
     ImGui::Checkbox("Use jitter", &mUseJittering);
 
     ImGui::SeparatorText("Post Processing");
-    const char *displayItems[] = {"Color", "Variance", "Stratum", "Visibility",
-                                  "Custom"};
+    const char *displayItems[] = {"Color",      "Variance", "RawCol", "Stratum",
+                                  "Visibility", "Gradient", "Custom"};
     comboSelector("Display Type", displayItems, mDisplayType);
 
     ImGui::EndMenu();
