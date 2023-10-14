@@ -6,10 +6,9 @@
 // https://stackoverflow.com/questions/32231777/how-to-avoid-rounding-off-of-large-float-or-double-values
 
 // shaders:
+// this solution avoids float rounding errors
 // https://www.shadertoy.com/view/4dtBWH
 // https://www.shadertoy.com/view/NdBSWm
-
-const float invExp = 1 / exp2(24.);
 
 vec2 ldsNoise2d(uint x, uint y) {
   uint n     = x + y * 57u;
@@ -27,19 +26,23 @@ vec2 ldsNoise2d(uint x, uint y) {
   return noise;
 }
 
-const alpha1 = 0.7548776662466927;
-const alpha2 = 0.5698402909980532;
+// const float alpha1 = 0.7548776662466927;
+// const float alpha2 = 0.5698402909980532;
+const float invExp    = 1 / exp2(24.);
+const int alpha1Large = 12664746;
+const int alpha2Large = 9560334;
+
+vec2 ldsNoise(uint n) {
+  return fract(vec2(alpha1Large * n, alpha2Large * n) * invExp);
+}
 
 vec2 ldsNoiseR2(uint x, uint y, uint sampleNum) {
-    uint resolution = 1u << 10u; // E.g. assume a 1024x1024 texture
-    uint pixelIndex = y * resolution + x;
-    uint globalSampleNum = pixelIndex + sampleNum;
+  // Calculate the total number of pixels
+  uint totalPixels = globalUbo.swapchainWidth * globalUbo.swapchainHeight;
 
-    // Convert to float for computation
-    float globalSampleNumFloat = float(globalSampleNum);
+  // Calculate a unique index for the current pixel and sample number
+  uint pixelIndex      = y * globalUbo.swapchainWidth + x;
+  uint globalSampleNum = totalPixels * sampleNum + pixelIndex;
 
-    return vec2(
-        fract(globalSampleNumFloat * alpha1),
-        fract(globalSampleNumFloat * alpha2)
-    );
+  return ldsNoise(globalSampleNum);
 }

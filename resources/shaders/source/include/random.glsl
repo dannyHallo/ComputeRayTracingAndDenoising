@@ -54,13 +54,14 @@ float random() {
 // Returns a random real in [min,max).
 float random(float min, float max) { return min + (max - min) * random(); }
 
-vec2 randomUv(uvec2 seed) {
-  vec2 rand = ldsNoise2d(seed.x, seed.y);
+vec2 randomUv(uvec3 seed) {
+  // vec2 rand = ldsNoise2d(seed.x, seed.y);
+  vec2 rand = ldsNoiseR2(seed.x, seed.y, seed.z);
   return rand;
 }
 
 // ---- Low discrepancy noise
-vec3 randomInUnitSphere(uvec2 seed, bool useLdsNoise) {
+vec3 randomInUnitSphere(uvec3 seed, bool useLdsNoise) {
   vec2 rand;
   if (useLdsNoise) {
     rand = randomUv(seed);
@@ -80,7 +81,7 @@ vec3 randomInUnitSphere(uvec2 seed, bool useLdsNoise) {
 }
 
 // its pdf is 1 / (2 * pi)
-vec3 randomInHemisphere(vec3 normal, uvec2 seed, bool useLdsNoise) {
+vec3 randomInHemisphere(vec3 normal, uvec3 seed, bool useLdsNoise) {
   vec3 inUnitSphere = randomInUnitSphere(seed, useLdsNoise);
   if (dot(inUnitSphere, normal) > 0.0)
     return inUnitSphere;
@@ -89,9 +90,8 @@ vec3 randomInHemisphere(vec3 normal, uvec2 seed, bool useLdsNoise) {
 }
 
 // its pdf is 1 / pi
-vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec2 seed,
+vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed,
                                          bool useLdsNoise) {
-  // vec2 rand = randomUv(seed);
   vec2 rand;
   if (useLdsNoise) {
     rand = randomUv(seed);

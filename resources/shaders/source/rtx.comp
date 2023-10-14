@@ -232,7 +232,7 @@ HitRecord traceRayToBvh(Ray r) {
   return rec;
 }
 
-void getRamdomSampleOnLight(uvec2 seed, out vec3 randomSamplingPointOnLight,
+void getRamdomSampleOnLight(uvec3 seed, out vec3 randomSamplingPointOnLight,
                             out vec3 lightNormal, out float lightArea) {
   vec2 rand;
   if (ubo.useLdsNoise) {
@@ -265,7 +265,7 @@ void getRamdomSampleOnLight(uvec2 seed, out vec3 randomSamplingPointOnLight,
   randomSamplingPointOnLight = samplingLightTri.v0 + e1 * x + e2 * y;
 }
 
-vec3 pathTracing2(Ray r, uvec2 seed) {
+vec3 pathTracing2(Ray r, uvec3 seed) {
   HitRecord rec = traceRayToBvh(r);
   if (!rec.hit) return vec3(0);
   vec3 hitPos    = rec.p;
@@ -305,7 +305,7 @@ float getLambertianBrdf() {
   return kReflectance * kInvPi;
 }
 
-HitRecord pathTracing(Ray r, uvec2 seed) {
+HitRecord pathTracing(Ray r, uvec3 seed) {
   HitRecord rec = traceRayToBvh(r);
   if (!rec.hit) return rec;
   vec3 hitPos    = rec.p;
@@ -417,9 +417,8 @@ uvec4 getSeed() {
   uvec4 seed = imageLoad(seedVisibilityTex, uv);
   // generate a new seed if no forward projected visibility
   if (seed.w == 0)
-    return uvec4(
-        gl_GlobalInvocationID.x + uint(globalUbo.currentSample) * 19937u,
-        gl_GlobalInvocationID.y + uint(globalUbo.currentSample) * 3719u, 0, 0);
+    return uvec4(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y,
+                 globalUbo.currentSample, 0);
   // self increment of seed using count
   seed.w += 1;
   return seed;
@@ -455,7 +454,7 @@ void main() {
   vec4 hitNormal   = vec4(0, 0, 0, -1);
   float hitDepth   = -1;
   uint meshHash    = 0;
-  HitRecord rec    = pathTracing(camRay, seed.xy);
+  HitRecord rec    = pathTracing(camRay, seed.xyz);
   if (rec.hit) {
     hitColor    = rec.color;
     hitWorldPos = vec4(rec.p, 1);
