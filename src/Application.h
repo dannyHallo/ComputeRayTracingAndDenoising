@@ -51,11 +51,13 @@ class Application {
     uint32_t numLights;
     int movingLightSource;
     int useLdsNoise;
+    int useWeightedCosineFunction;
     uint32_t outputType;
   };
-  bool mMovingLightSource = true;
-  bool mUseLdsNoise       = true;
-  uint32_t mOutputType    = 0;
+  bool mMovingLightSource         = true;
+  bool mUseLdsNoise               = true;
+  bool mUseWeightedCosineFunction = true;
+  uint32_t mOutputType            = 0;
 
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;

@@ -521,8 +521,11 @@ void Application::updateScene(uint32_t currentImageIndex) {
   RtxUniformBufferObject rtxUbo = {
 
       static_cast<uint32_t>(mRtScene->triangles.size()),
-      static_cast<uint32_t>(mRtScene->lights.size()), mMovingLightSource,
-      mUseLdsNoise, mOutputType};
+      static_cast<uint32_t>(mRtScene->lights.size()),
+      mMovingLightSource,
+      mUseLdsNoise,
+      mUseWeightedCosineFunction,
+      mOutputType};
 
   mRtxBufferBundle->getBuffer(currentImageIndex)->fillData(&rtxUbo);
 
@@ -1100,6 +1103,7 @@ void Application::prepareGui() {
     ImGui::SeparatorText("Scene");
     ImGui::Checkbox("Moving Light Source", &mMovingLightSource);
     ImGui::Checkbox("Use LDS Noise", &mUseLdsNoise);
+    ImGui::Checkbox("Use weighted cosine", &mUseWeightedCosineFunction);
     const char *outputItems[] = {"Combined", "Direct Only", "Indirect Only"};
     comboSelector("Output Type", outputItems, mOutputType);
 

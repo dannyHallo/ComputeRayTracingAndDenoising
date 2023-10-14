@@ -8,7 +8,7 @@ struct material {
   vec3 albedo;
 };
 
-struct triangle {
+struct Triangle {
   vec3 v0;
   vec3 v1;
   vec3 v2;
@@ -16,28 +16,17 @@ struct triangle {
   uint meshHash;
 };
 
-struct light {
+struct Light {
   uint triangleIndex;
   float area;
 };
 
-struct sphere {
-  vec4 s;
-  uint materialIndex;
-};
-
-struct bvhNode {
+struct BvhNode {
   vec3 min;
   vec3 max;
   int leftNodeIndex;
   int rightNodeIndex;
   int objectIndex;
-};
-
-struct onb {
-  vec3 u;
-  vec3 v;
-  vec3 w;
 };
 
 // the uniform buffer that contains ray trace description infos
@@ -46,6 +35,7 @@ layout(binding = 1) uniform UniformBufferObject {
   uint numLights;
   bool movingLightSource;
   bool useLdsNoise;
+  bool useWeightedCosine;
   uint outputType;
 }
 ubo;
@@ -72,7 +62,7 @@ layout(binding = 10, rgba32f) writeonly uniform image2D temporalGradientTex;
 
 // the buffer that contains all triangles (read only)
 layout(std430, binding = 11) readonly buffer TriangleBufferObject {
-  triangle[] triangles;
+  Triangle[] triangles;
 };
 
 // the buffer that contains all materials (read only)
@@ -82,16 +72,17 @@ layout(std430, binding = 12) readonly buffer MaterialBufferObject {
 
 // the buffer that contains all bvh nodes (read only)
 layout(std430, binding = 13) readonly buffer AabbBufferObject {
-  bvhNode[] bvh;
+  BvhNode[] bvh;
 };
 
 // the buffer that contains all lights (read only)
 layout(std430, binding = 14) readonly buffer LightsBufferObject {
-  light[] lights;
+  Light[] lights;
 };
 
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl"
+#include "include/random.glsl"
 
 #define LIGHT_MATERIAL 0
 #define LAMBERTIAN_MATERIAL 1
@@ -102,19 +93,16 @@ layout(std430, binding = 14) readonly buffer LightsBufferObject {
 #define OUTPUT_TYPE_DIRECT_ONLY 1
 #define OUTPUT_TYPE_INDIRECT_ONLY 2
 
-#include "include/random.glsl"
-
-struct ray {
+struct Ray {
   vec3 origin;
   vec3 dir;
 };
 
-vec3 ray_at(ray r, float t) { return r.origin + t * r.dir; }
-
-struct hitRecord {
+struct HitRecord {
   bool hit;
   vec3 p;
   vec3 normal;
+  vec3 color;
   uint materialIndex;
   float t;
   uint meshHash;
@@ -123,7 +111,7 @@ struct hitRecord {
   int backFaceInt;
 };
 
-triangle moveLightTri(triangle tri) {
+Triangle moveLightTri(Triangle tri) {
   if (!ubo.movingLightSource) return tri;
 
   float xOffset = sin(globalUbo.time * 4) * 0.2;
@@ -133,7 +121,7 @@ triangle moveLightTri(triangle tri) {
   return tri;
 }
 
-bool triIntersect(vec3 origin, vec3 dir, triangle tri, out vec3 normal,
+bool triIntersect(vec3 origin, vec3 dir, Triangle tri, out vec3 normal,
                   out vec2 uv, out float tNear) {
   vec3 e1 = tri.v1 - tri.v0;
   vec3 e2 = tri.v2 - tri.v0;
@@ -157,11 +145,11 @@ bool triIntersect(vec3 origin, vec3 dir, triangle tri, out vec3 normal,
 }
 
 // wrapper function
-hitRecord hitTriangle(int triangleIndex, ray r, float tMin, float tMax) {
-  hitRecord rec;
+HitRecord hitTriangle(int triangleIndex, Ray r, float tMin, float tMax) {
+  HitRecord rec;
   rec.hit = false;
 
-  triangle tri = triangles[triangleIndex];
+  Triangle tri = triangles[triangleIndex];
 
   vec3 normal;
   vec2 uv;
@@ -186,7 +174,7 @@ hitRecord hitTriangle(int triangleIndex, ray r, float tMin, float tMax) {
 }
 
 // no intersection means vec.x > vec.y (really tNear > tFar)
-bool intersectAABB(ray r, vec3 boxMin, vec3 boxMax) {
+bool intersectAABB(Ray r, vec3 boxMin, vec3 boxMax) {
   vec3 tMin   = (boxMin - r.origin) / r.dir;
   vec3 tMax   = (boxMax - r.origin) / r.dir;
   vec3 t1     = min(tMin, tMax);
@@ -198,8 +186,8 @@ bool intersectAABB(ray r, vec3 boxMin, vec3 boxMax) {
 
 // works only for triangles
 #define MAX_STACK_DEPTH 16
-hitRecord traceRayToBvh(ray r) {
-  hitRecord rec;
+HitRecord traceRayToBvh(Ray r) {
+  HitRecord rec;
   rec.hit = false;
 
   float t_min = 0.001;
@@ -231,7 +219,7 @@ hitRecord traceRayToBvh(ray r) {
     // is -1 (invalid)
     int ti = bvh[currentNode].objectIndex;
     if (ti != -1) {
-      hitRecord triHitRec = hitTriangle(ti, r, t_min, closestSoFar);
+      HitRecord triHitRec = hitTriangle(ti, r, t_min, closestSoFar);
       if (triHitRec.hit) {
         rec          = triHitRec;
         closestSoFar = triHitRec.t;
@@ -246,10 +234,15 @@ hitRecord traceRayToBvh(ray r) {
 
 void getRamdomSampleOnLight(uvec2 seed, out vec3 randomSamplingPointOnLight,
                             out vec3 lightNormal, out float lightArea) {
-
-  vec2 randomUV = randomUv(seed);
-  float x       = randomUV.x;
-  float y       = randomUV.y;
+  vec2 rand;
+  if (ubo.useLdsNoise) {
+    rand = randomUv(seed);
+  } else {
+    rand.x = random();
+    rand.y = random();
+  }
+  float x = rand.x;
+  float y = rand.y;
 
   int i = 0;
   if (x + y > 1) {
@@ -259,9 +252,10 @@ void getRamdomSampleOnLight(uvec2 seed, out vec3 randomSamplingPointOnLight,
   }
 
   uint lightId = lights[i].triangleIndex;
-  lightArea    = lights[i].area * 2;
+  // we have two lighting tris (identical)
+  lightArea = lights[i].area * 2;
 
-  triangle samplingLightTri = moveLightTri(triangles[lightId]);
+  Triangle samplingLightTri = moveLightTri(triangles[lightId]);
 
   vec3 e1 = samplingLightTri.v1 - samplingLightTri.v0;
   vec3 e2 = samplingLightTri.v2 - samplingLightTri.v0;
@@ -271,41 +265,39 @@ void getRamdomSampleOnLight(uvec2 seed, out vec3 randomSamplingPointOnLight,
   randomSamplingPointOnLight = samplingLightTri.v0 + e1 * x + e2 * y;
 }
 
-vec3 pathTracingRayColorIndirect(ray r, uvec2 seed) {
-  // ihRec = indirect hit record
-  // ihsRec = indirect hit shadow ray record
+vec3 pathTracing2(Ray r, uvec2 seed) {
+  HitRecord rec = traceRayToBvh(r);
+  if (!rec.hit) return vec3(0);
+  vec3 hitPos    = rec.p;
+  vec3 hitNormal = rec.normal;
 
-  vec3 colReturn = vec3(0.0, 0.0, 0.0);
-
-  hitRecord ihRec = traceRayToBvh(r);
-  if (!ihRec.hit) return vec3(0);
-
-  if (materials[ihRec.materialIndex].materialType == LIGHT_MATERIAL) {
-    return materials[ihRec.materialIndex].albedo;
+  if (materials[rec.materialIndex].materialType == LIGHT_MATERIAL) {
+    return materials[rec.materialIndex].albedo;
   }
 
   // direct lighting
-  vec3 randomSamplingPointOnLight;
-  vec3 lightNormal;
   float lightArea;
+  vec3 randomSamplingPointOnLight, lightNormal;
   getRamdomSampleOnLight(seed, randomSamplingPointOnLight, lightNormal,
                          lightArea);
-
-  vec3 o2l      = randomSamplingPointOnLight - ihRec.p;
+  vec3 o2l      = randomSamplingPointOnLight - rec.p;
   float distSqr = dot(o2l, o2l);
   float dist    = sqrt(distSqr);
-
   o2l /= dist;
-  hitRecord ihsRec = traceRayToBvh(ray(ihRec.p + ihRec.normal * 0.0001, o2l));
-  if (ihsRec.hit) {
-    if (materials[ihsRec.materialIndex].materialType == LIGHT_MATERIAL) {
-      colReturn += materials[ihsRec.materialIndex].albedo *
-                   dot(o2l, ihRec.normal) * abs(dot(o2l, lightNormal)) /
-                   distSqr * lightArea / kPi;
-    }
+
+  Ray shadowRay       = Ray(rec.p + rec.normal * kEpsilon, o2l);
+  HitRecord shadowRec = traceRayToBvh(Ray(rec.p + rec.normal * 0.0001, o2l));
+  vec3 directColor    = vec3(0);
+
+  if (shadowRec.hit &&
+      materials[shadowRec.materialIndex].materialType == LIGHT_MATERIAL) {
+    vec3 brdf   = kInvPi * materials[rec.materialIndex].albedo;
+    float pdf   = distSqr / (lightArea * abs(dot(o2l, lightNormal)));
+    directColor = materials[shadowRec.materialIndex].albedo * brdf *
+                  dot(o2l, hitNormal) / pdf;
   }
 
-  return materials[ihRec.materialIndex].albedo * colReturn;
+  return directColor;
 }
 
 float getLambertianBrdf() {
@@ -313,70 +305,66 @@ float getLambertianBrdf() {
   return kReflectance * kInvPi;
 }
 
-void pathTracing(ray r, uvec2 seed, out vec3 colReturn, out vec4 hitWorldPos,
-                 out vec4 hitNormal, out float hitDepth, out uint meshHash) {
-
-  // dhRec = directhit record
-  // dhsRec = directhit shadow ray record
-
-  colReturn   = vec3(0, 0, 0);
-  hitWorldPos = vec4(0, 0, 0, -1);
-  hitNormal   = vec4(0, 0, 0, -1);
-  hitDepth    = -1;
-  meshHash    = 0;
-
-  // direct ray not hit bvh, leave the color default
-  hitRecord dhRec = traceRayToBvh(r);
-  if (!dhRec.hit) return;
-
-  hitWorldPos = vec4(dhRec.p, 1);
-  hitNormal   = vec4(dhRec.normal, 0);
-  hitDepth    = dhRec.t;
-  meshHash    = dhRec.meshHash;
+HitRecord pathTracing(Ray r, uvec2 seed) {
+  HitRecord rec = traceRayToBvh(r);
+  if (!rec.hit) return rec;
+  vec3 hitPos    = rec.p;
+  vec3 hitNormal = rec.normal;
 
   // hit light directly
-  if (materials[dhRec.materialIndex].materialType == LIGHT_MATERIAL) {
-    colReturn = materials[dhRec.materialIndex].albedo;
-    return;
+  uint matIdx = rec.materialIndex;
+  if (materials[matIdx].materialType == LIGHT_MATERIAL) {
+    rec.color = materials[matIdx].albedo;
+    return rec;
   }
 
   // direct lighting
-  vec3 randomSamplingPointOnLight;
-  vec3 lightNormal;
   float lightArea;
+  vec3 randomSamplingPointOnLight, lightNormal;
   getRamdomSampleOnLight(seed, randomSamplingPointOnLight, lightNormal,
                          lightArea);
 
-  vec3 o2l      = randomSamplingPointOnLight - dhRec.p;
+  vec3 o2l      = randomSamplingPointOnLight - rec.p;
   float distSqr = dot(o2l, o2l);
   float dist    = sqrt(distSqr);
   o2l /= dist;
 
-  hitRecord dhsRec = traceRayToBvh(ray(dhRec.p + dhRec.normal * 0.0001, o2l));
-  if (dhsRec.hit) {
-    if (materials[dhsRec.materialIndex].materialType == LIGHT_MATERIAL) {
-      if (ubo.outputType != OUTPUT_TYPE_INDIRECT_ONLY) {
-        colReturn += materials[dhsRec.materialIndex].albedo *
-                     dot(o2l, dhRec.normal) * abs(dot(o2l, lightNormal)) *
-                     lightArea / distSqr;
-      }
+  Ray shadowRay       = Ray(hitPos + hitNormal * kEpsilon, o2l);
+  HitRecord shadowRec = traceRayToBvh(shadowRay);
+  vec3 directColor    = vec3(0);
+  if (shadowRec.hit &&
+      materials[shadowRec.materialIndex].materialType == LIGHT_MATERIAL) {
+    if (ubo.outputType != OUTPUT_TYPE_INDIRECT_ONLY) {
+      vec3 brdf   = kInvPi * materials[rec.materialIndex].albedo;
+      float pdf   = distSqr / (lightArea * abs(dot(o2l, lightNormal)));
+      directColor = materials[shadowRec.materialIndex].albedo * brdf *
+                    dot(o2l, hitNormal) / pdf;
     }
   }
 
-  // if (ubo.outputType == OUTPUT_TYPE_DIRECT_ONLY) {
-  //   colReturn *= materials[dhRec.materialIndex].albedo;
-  //   return;
-  // }
+  // indirect lighting
+  vec3 indirectRayDir;
+  float pdf;
+  if (ubo.useWeightedCosine) {
+    indirectRayDir =
+        randomCosineWeightedHemispherePoint(hitNormal, seed, ubo.useLdsNoise);
+    pdf = dot(indirectRayDir, rec.normal) / kPi;
+  } else {
+    indirectRayDir = randomInHemisphere(hitNormal, seed);
+    pdf            = 1 / (2 * kPi);
+  }
 
-  // indirect lighting, no metal support currently
-  vec3 secondaryRayDir;
-  secondaryRayDir = randomCosineWeightedHemispherePoint(dhRec.normal, seed);
-  colReturn +=
-      pathTracingRayColorIndirect(
-          ray(dhRec.p + dhRec.normal * 0.0001, secondaryRayDir), seed) *
-      dot(secondaryRayDir, dhRec.normal) * 2 * kPi;
+  Ray indirectRay = Ray(hitPos + hitNormal * kEpsilon, indirectRayDir);
 
-  colReturn *= materials[dhRec.materialIndex].albedo * getLambertianBrdf();
+  vec3 brdf          = kInvPi * materials[rec.materialIndex].albedo;
+  vec3 indirectColor = pathTracing2(indirectRay, seed) * brdf *
+                       dot(indirectRayDir, rec.normal) / pdf;
+  // vec3 indirectColor =
+  //     pathTracing2(indirectRay, seed) * materials[rec.materialIndex].albedo;
+
+  rec.color = directColor + indirectColor;
+
+  return rec;
 }
 
 vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
@@ -402,9 +390,9 @@ vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
          viewport_height * up * uv.y;
 }
 
-ray rayGen(vec2 subpixOffset) {
+Ray rayGen(vec2 subpixOffset) {
   vec3 rayDir = normalize(getPixelInScreenPosByDispatch(subpixOffset));
-  return ray(globalUbo.camPos, rayDir);
+  return Ray(globalUbo.camPos, rayDir);
 }
 
 // component vise min()
@@ -456,17 +444,23 @@ void main() {
   if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
     return;
 
-  ray camRay = rayGen(getSubsubpixOffset());
+  Ray camRay = rayGen(getSubsubpixOffset());
 
   uvec4 seed = getSeed();
 
-  vec3 hitColor;
-  vec4 hitWorldPos;
-  vec4 hitNormal;
-  float hitDepth;
-  uint meshHash;
-  pathTracing(camRay, seed.xy, hitColor, hitWorldPos, hitNormal, hitDepth,
-              meshHash);
+  vec3 hitColor    = vec3(0, 0, 0);
+  vec4 hitWorldPos = vec4(0, 0, 0, -1);
+  vec4 hitNormal   = vec4(0, 0, 0, -1);
+  float hitDepth   = -1;
+  uint meshHash    = 0;
+  HitRecord rec    = pathTracing(camRay, seed.xy);
+  if (rec.hit) {
+    hitColor    = rec.color;
+    hitWorldPos = vec4(rec.p, 1);
+    hitNormal   = vec4(rec.normal, 0);
+    hitDepth    = rec.t;
+    meshHash    = rec.meshHash;
+  }
 
   vec4 thisTimeRawColor   = vec4(fireflyRejectionClamp(hitColor), 1);
   float thisTimeLuminance = dot(kRgbToLuminanceMat, thisTimeRawColor.rgb);

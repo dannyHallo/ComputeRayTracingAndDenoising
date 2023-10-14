@@ -84,8 +84,16 @@ vec3 randomInHemisphere(vec3 normal, uvec2 seed) {
 }
 
 // its pdf is 1 / pi
-vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec2 seed) {
-  vec2 rand = randomUv(seed);
+vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec2 seed,
+                                         bool useLdsNoise) {
+  // vec2 rand = randomUv(seed);
+  vec2 rand;
+  if (useLdsNoise) {
+    rand = randomUv(seed);
+  } else {
+    rand.x = random();
+    rand.y = random();
+  }
 
   float theta = 2.0 * pi * rand.x;
   float phi   = acos(sqrt(1.0 - rand.y));
