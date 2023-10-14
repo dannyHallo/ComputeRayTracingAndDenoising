@@ -62,7 +62,7 @@ void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
   uvec2 seed =
       uvec2(gl_GlobalInvocationID.x + uint(globalUbo.currentSample) * 19937u,
             gl_GlobalInvocationID.y + uint(globalUbo.currentSample) * 3719u);
-  vec2 randUv = random_uv(seed);
+  vec2 randUv = randomUv(seed);
 
   int i                  = int(randUv.x * STRATUM_SIZE);
   int j                  = int(randUv.y * STRATUM_SIZE);
@@ -88,7 +88,7 @@ void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
 void preload() {
   ivec2 uv             = ivec2(gl_GlobalInvocationID.xy);
   const vec3 colorAtUv = imageLoad(lastRawColorTex, uv).rgb;
-  float luminanceAtUv  = dot(rgbToLuminanceMat, colorAtUv);
+  float luminanceAtUv  = dot(kRgbToLuminanceMat, colorAtUv);
   luminance[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = luminanceAtUv;
 }
 

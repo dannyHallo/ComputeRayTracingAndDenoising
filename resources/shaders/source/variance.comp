@@ -57,7 +57,7 @@ vec2 getLuminancePair(ivec2 offset) {
   }
 
   vec3 color = imageLoad(textureForVarianceCalc, p).xyz;
-  float l1   = dot(rgbToLuminanceMat, color);
+  float l1   = dot(kRgbToLuminanceMat, color);
   float l2   = l1 * l1;
   return vec2(l1, l2);
 }

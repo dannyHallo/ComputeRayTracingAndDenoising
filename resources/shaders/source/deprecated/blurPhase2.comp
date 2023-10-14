@@ -60,7 +60,7 @@ void blurKernel(int indexY, int kernalHalfSize, inout float sumOfWeights,
   // ---- method SVGF
   float depthAtSample = imageLoad(depthTex, uv + ivec2(x, y)).x;
   float weightFac     = abs(depthAtUv - depthAtSample) /
-                    (abs(dot(gradientAtUv, vec2(x, y))) + epsilon);
+                    (abs(dot(gradientAtUv, vec2(x, y))) + kEpsilon);
   weightFac     = min(weightFac, 1);
   float weightZ = exp(-weightFac);
   // ---- end of SVGF

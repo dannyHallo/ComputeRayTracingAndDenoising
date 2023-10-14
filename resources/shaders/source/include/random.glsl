@@ -54,18 +54,18 @@ float random() {
 // Returns a random real in [min,max).
 float random(float min, float max) { return min + (max - min) * random(); }
 
-vec2 random_uv(uvec2 seed) {
+vec2 randomUv(uvec2 seed) {
   vec2 rand = ldsNoise2d(seed.x, seed.y);
   return rand;
 }
 
 // ---- Low discrepancy noise
-vec3 random_in_unit_sphere(uvec2 seed) {
+vec3 randomInUnitSphere(uvec2 seed) {
   // Rx random
-  vec2 randomUV = random_uv(seed);
+  vec2 rand = randomUv(seed);
 
-  float phi   = acos(1 - 2 * randomUV.x);
-  float theta = 2 * pi * randomUV.y;
+  float phi   = acos(1 - 2 * rand.x);
+  float theta = 2 * pi * rand.y;
 
   float x = sin(phi) * cos(theta);
   float y = sin(phi) * sin(theta);
@@ -74,22 +74,38 @@ vec3 random_in_unit_sphere(uvec2 seed) {
   return vec3(x, y, z);
 }
 
-vec3 random_in_hemisphere(vec3 normal, uvec2 seed) {
-  vec3 in_unit_sphere = random_in_unit_sphere(seed);
-  if (dot(in_unit_sphere, normal) > 0.0)
-    return in_unit_sphere;
+// its pdf is 1 / (2 * pi)
+vec3 randomInHemisphere(vec3 normal, uvec2 seed) {
+  vec3 inUnitSphere = randomInUnitSphere(seed);
+  if (dot(inUnitSphere, normal) > 0.0)
+    return inUnitSphere;
   else
-    return -in_unit_sphere;
+    return -inUnitSphere;
 }
 
-vec3 random_cosine_direction() {
-  float r1 = random();
-  float r2 = random();
-  float z  = sqrt(1 - r2);
+// its pdf is 1 / pi
+vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec2 seed) {
+  vec2 rand = randomUv(seed);
 
-  float phi = 2 * pi * r1;
-  float x   = cos(phi) * sqrt(r2);
-  float y   = sin(phi) * sqrt(r2);
+  float theta = 2.0 * pi * rand.x;
+  float phi   = acos(sqrt(1.0 - rand.y));
 
-  return vec3(x, y, z);
+  vec3 dir;
+  dir.x = sin(phi) * cos(theta);
+  dir.y = sin(phi) * sin(theta);
+  dir.z = cos(phi);
+
+  // Create an orthonormal basis to transform the direction
+  vec3 tangent, bitangent;
+  if (abs(normal.x) > abs(normal.y))
+    tangent = normalize(cross(vec3(0.0, 1.0, 0.0), normal));
+  else
+    tangent = normalize(cross(vec3(1.0, 0.0, 0.0), normal));
+  bitangent = cross(normal, tangent);
+
+  // Transform the direction from the hemisphere's local coordinates to world
+  // coordinates
+  vec3 samp = dir.x * tangent + dir.y * bitangent + dir.z * normal;
+
+  return samp;
 }

@@ -12,14 +12,14 @@
 // layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE,
 //        local_size_z = 1) in;
 
-// const float epsilon = 1e-8;
+// const float kEpsilon = 1e-8;
 
 // // standard 3x3 filtering kernel from q2rtx
 // const float waveletFac      = 0.5;
 // const float kernel3x3[2][2] = {{1.0, waveletFac},
 //                                {waveletFac, waveletFac *waveletFac}};
 
-// const vec3 rgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
+// const vec3 kRgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
 
 // // bigger phi indicates bigger tolerence to apply blur
 // layout(binding = 0) uniform UniformBufferObject {
@@ -150,7 +150,7 @@
 //   getSharedData(dispatchXY, gradientAtSample, normalAtSample, colorAtSample,
 //                 depthAtSample, varianceAtSample);
 
-//   float luminanceAtSample = dot(rgbToLuminanceMat, colorAtSample);
+//   float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
 
 //   float phiC = ubo.phiLuminance;
 //   if (ubo.changingLuminancePhi) {
@@ -160,7 +160,7 @@
 //   float colDiff = abs(luminanceAtSample - luminanceAtUv);
 //   if (ubo.useVarianceGuidedFiltering) {
 //     phiC *= 100.;
-//     weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), epsilon));
+//     weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), kEpsilon));
 //   } else {
 //     weightC = exp(-colDiff / phiC);
 //   }
@@ -193,7 +193,7 @@
 //   getSharedData(ivec2(0), gradientAtUv, normalAtUv, colorAtUv, depthAtUv,
 //                 varianceAtUv);
 
-//   luminanceAtUv = dot(rgbToLuminanceMat, colorAtUv);
+//   luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
 
 //   if (ubo.bypassBluring || ubo.i >= ubo.iCap) {
 //     if (ubo.i == 0) {

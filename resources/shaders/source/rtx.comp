@@ -246,7 +246,7 @@ hitRecord traceRayToBvh(ray r) {
 void getRamdomSampleOnLight(uvec2 seed, out vec3 randomSamplingPointOnLight,
                             out vec3 lightNormal, out float lightArea) {
 
-  vec2 randomUV = random_uv(seed);
+  vec2 randomUV = randomUv(seed);
   float x       = randomUV.x;
   float y       = randomUV.y;
 
@@ -258,7 +258,7 @@ void getRamdomSampleOnLight(uvec2 seed, out vec3 randomSamplingPointOnLight,
   }
 
   uint lightId = lights[i].triangleIndex;
-  lightArea    = lights[i].area;
+  lightArea    = lights[i].area * 2;
 
   triangle samplingLightTri = moveLightTri(triangles[lightId]);
 
@@ -300,11 +300,16 @@ vec3 pathTracingRayColorIndirect(ray r, uvec2 seed) {
     if (materials[ihsRec.materialIndex].materialType == LIGHT_MATERIAL) {
       colReturn += materials[ihsRec.materialIndex].albedo *
                    dot(o2l, ihRec.normal) * abs(dot(o2l, lightNormal)) /
-                   distSqr * lightArea;
+                   distSqr * lightArea / kPi;
     }
   }
 
   return materials[ihRec.materialIndex].albedo * colReturn;
+}
+
+float getLambertianBrdf() {
+  const float kReflectance = 1.0;
+  return kReflectance * kInvPi;
 }
 
 void pathTracing(ray r, uvec2 seed, out vec3 colReturn, out vec4 hitWorldPos,
@@ -351,34 +356,26 @@ void pathTracing(ray r, uvec2 seed, out vec3 colReturn, out vec4 hitWorldPos,
     if (materials[dhsRec.materialIndex].materialType == LIGHT_MATERIAL) {
       if (ubo.outputType != OUTPUT_TYPE_INDIRECT_ONLY) {
         colReturn += materials[dhsRec.materialIndex].albedo *
-                     dot(o2l, dhRec.normal) * abs(dot(o2l, lightNormal)) /
-                     distSqr * lightArea;
+                     dot(o2l, dhRec.normal) * abs(dot(o2l, lightNormal)) *
+                     lightArea / distSqr;
       }
     }
   }
 
-  if (ubo.outputType == OUTPUT_TYPE_DIRECT_ONLY) {
-    colReturn *= materials[dhRec.materialIndex].albedo;
-    return;
-  }
+  // if (ubo.outputType == OUTPUT_TYPE_DIRECT_ONLY) {
+  //   colReturn *= materials[dhRec.materialIndex].albedo;
+  //   return;
+  // }
 
-  // indirect lighting
+  // indirect lighting, no metal support currently
   vec3 secondaryRayDir;
-  if (materials[dhRec.materialIndex].materialType == METAL_MATERIAL) {
-    secondaryRayDir = reflect(r.dir, dhRec.normal);
-    colReturn +=
-        pathTracingRayColorIndirect(
-            ray(dhRec.p + dhRec.normal * 0.0001, secondaryRayDir), seed) *
-        dot(secondaryRayDir, dhRec.normal);
-  } else {
-    secondaryRayDir = random_in_hemisphere(dhRec.normal, seed);
-    colReturn +=
-        pathTracingRayColorIndirect(
-            ray(dhRec.p + dhRec.normal * 0.0001, secondaryRayDir), seed) *
-        dot(secondaryRayDir, dhRec.normal) * 2 * pi;
-  }
+  secondaryRayDir = randomCosineWeightedHemispherePoint(dhRec.normal, seed);
+  colReturn +=
+      pathTracingRayColorIndirect(
+          ray(dhRec.p + dhRec.normal * 0.0001, secondaryRayDir), seed) *
+      dot(secondaryRayDir, dhRec.normal) * 2 * kPi;
 
-  colReturn *= materials[dhRec.materialIndex].albedo;
+  colReturn *= materials[dhRec.materialIndex].albedo * getLambertianBrdf();
 }
 
 vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
@@ -387,7 +384,7 @@ vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
   const vec3 up     = globalUbo.camUp;
   const vec3 right  = globalUbo.camRight;
 
-  const float theta           = globalUbo.vfov * deg2Rad;
+  const float theta           = globalUbo.vfov * kDeg2Rad;
   const float h               = tan(theta / 2);
   const float viewport_height = 2.0 * h;
   const float viewport_width  = float(globalUbo.swapchainWidth) /
@@ -471,7 +468,7 @@ void main() {
               meshHash);
 
   vec4 thisTimeRawColor   = vec4(fireflyRejectionClamp(hitColor), 1);
-  float thisTimeLuminance = dot(rgbToLuminanceMat, thisTimeRawColor.rgb);
+  float thisTimeLuminance = dot(kRgbToLuminanceMat, thisTimeRawColor.rgb);
 
   imageStore(rawTex, uv, thisTimeRawColor);
   imageStore(posTex, uv, hitWorldPos);  // w: -1 (invalid) or 1 (valid)

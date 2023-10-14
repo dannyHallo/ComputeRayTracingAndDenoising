@@ -95,7 +95,7 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
     loadData(offsetXY, gradientAtSample, normalAtSample, colorAtSample,
              depthAtSample, varianceAtSample);
 
-    float luminanceAtSample = dot(rgbToLuminanceMat, colorAtSample);
+    float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
     float phiC              = ubo.phiLuminance;
     if (ubo.changingLuminancePhi) {
       phiC = pow(2, -ubo.i) * ubo.phiLuminance;
@@ -104,7 +104,7 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
     float colDiff = abs(luminanceAtSample - luminanceAtUv);
     if (ubo.useVarianceGuidedFiltering) {
       phiC *= 100.;
-      weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), epsilon));
+      weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), kEpsilon));
     } else {
       weightC = exp(-colDiff / phiC);
     }
@@ -139,7 +139,7 @@ void main() {
   loadData(ivec2(0), gradientAtUv, normalAtUv, colorAtUv, depthAtUv,
            varianceAtUv);
 
-  luminanceAtUv = dot(rgbToLuminanceMat, colorAtUv);
+  luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
 
   if (ubo.bypassBluring || ubo.i >= ubo.iCap) {
     if (ubo.i == 0) {
