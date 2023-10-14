@@ -345,12 +345,14 @@ HitRecord pathTracing(Ray r, uvec2 seed) {
   // indirect lighting
   vec3 indirectRayDir;
   float pdf;
+
+  // cosine weighted sampling effectively increases sampling efficiency
   if (ubo.useWeightedCosine) {
     indirectRayDir =
         randomCosineWeightedHemispherePoint(hitNormal, seed, ubo.useLdsNoise);
     pdf = dot(indirectRayDir, rec.normal) / kPi;
   } else {
-    indirectRayDir = randomInHemisphere(hitNormal, seed);
+    indirectRayDir = randomInHemisphere(hitNormal, seed, ubo.useLdsNoise);
     pdf            = 1 / (2 * kPi);
   }
 
