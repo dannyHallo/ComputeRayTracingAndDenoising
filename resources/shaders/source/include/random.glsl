@@ -87,20 +87,23 @@ const float invExp    = 1 / exp2(24.);
 const int alpha1Large = 12664746;
 const int alpha2Large = 9560334;
 
-vec2 ldsNoise(uint n) {
-  return fract(vec2(alpha1Large * n, alpha2Large * n) * invExp);
+vec2 ldsNoise(vec2 initialOffset, uint n) {
+  vec2 originalFract = fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
+  return fract(originalFract + initialOffset);
 }
 
 vec2 ldsNoiseR2(uvec3 seed) {
-  // Calculate the total number of pixels
-  uint totalPixels = globalUbo.swapchainWidth * globalUbo.swapchainHeight;
+  // uint pixelPosIndex = seed.x + globalUbo.swapchainWidth * seed.y + 10999 *
+  // seed.z; uint hash1         = hash(pixelPosIndex); uint hash2         =
+  // hash(hash1);
 
-  // Calculate a unique index for the current pixel and sample number
-  uint pixelIndex = seed.y * globalUbo.swapchainWidth + seed.x;
+  uint index         = seed.x + globalUbo.swapchainWidth * seed.y + 1;
+  uint hash1         = index * globalUbo.currentSample + 1;
+  uint hash2         = hash(hash1);
+  vec2 initialOffset = vec2(random(hash1), random(hash2));
 
-  uint globalSampleNum = totalPixels * seed.z + pixelIndex;
-
-  return ldsNoise(globalSampleNum);
+  // return ldsNoise(initialOffset, 0);
+  return initialOffset;
 }
 
 // Returns a random real in [min,max).

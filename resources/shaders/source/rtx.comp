@@ -235,9 +235,9 @@ HitRecord traceRayToBvh(Ray r) {
 void getRamdomSampleOnLight(uvec3 seed, out vec3 randomSamplingPointOnLight,
                             out vec3 lightNormal, out float lightArea) {
   vec2 rand = randomUv(seed, ubo.useLdsNoise);
-  
-  float x   = rand.x;
-  float y   = rand.y;
+
+  float x = rand.x;
+  float y = rand.y;
 
   int i = 0;
   if (x + y > 1) {
@@ -353,14 +353,18 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
 
   Ray indirectRay = Ray(hitPos + hitNormal * kEpsilon, indirectRayDir);
 
-  vec3 brdf          = kInvPi * materials[rec.materialIndex].albedo;
-  vec3 indirectColor = pathTracing2(indirectRay, seed) * brdf *
-                       dot(indirectRayDir, rec.normal) / pdf;
-  // vec3 indirectColor =
-  //     pathTracing2(indirectRay, seed) * materials[rec.materialIndex].albedo;
+  vec3 brdf = kInvPi * materials[rec.materialIndex].albedo;
+
+  vec3 indirectColor = vec3(0);
+  if (ubo.outputType != OUTPUT_TYPE_DIRECT_ONLY) {
+    indirectColor = pathTracing2(indirectRay, seed) * brdf *
+                    dot(indirectRayDir, rec.normal) / pdf;
+    // vec3 indirectColor =
+    //     pathTracing2(indirectRay, seed) *
+    //     materials[rec.materialIndex].albedo;
+  }
 
   rec.color = directColor + indirectColor;
-
   return rec;
 }
 
