@@ -234,15 +234,10 @@ HitRecord traceRayToBvh(Ray r) {
 
 void getRamdomSampleOnLight(uvec3 seed, out vec3 randomSamplingPointOnLight,
                             out vec3 lightNormal, out float lightArea) {
-  vec2 rand;
-  if (ubo.useLdsNoise) {
-    rand = randomUv(seed);
-  } else {
-    rand.x = random();
-    rand.y = random();
-  }
-  float x = rand.x;
-  float y = rand.y;
+  vec2 rand = randomUv(seed, ubo.useLdsNoise);
+  
+  float x   = rand.x;
+  float y   = rand.y;
 
   int i = 0;
   if (x + y > 1) {

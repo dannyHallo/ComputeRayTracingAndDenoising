@@ -1,15 +1,9 @@
-#include "plasticRandom.glsl"
-
 // currently, every file that includes this file should have globalUbo in their
 // layout
 const float pi = 3.1415926535897932385;
 
-uint index = globalUbo.currentSample + gl_GlobalInvocationID.x +
-             9999 * gl_GlobalInvocationID.y + 1;
+uint rngState = 0;
 
-uint rngState = index * globalUbo.currentSample + 1;
-
-// ---- Random
 // A single iteration of Bob Jenkins' One-At-A-Time hashing algorithm.
 uint hash(uint x) {
   x += (x << 10u);
@@ -46,29 +40,87 @@ float random(vec2 v) { return floatConstruct(hash(floatBitsToUint(v))); }
 float random(vec3 v) { return floatConstruct(hash(floatBitsToUint(v))); }
 float random(vec4 v) { return floatConstruct(hash(floatBitsToUint(v))); }
 
-float random() {
-  rngState = hash(rngState);
+// structure of uvec3 seed:
+// (gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, globalUbo.currentSample)
+
+float random(uvec3 seed) {
+  if (rngState == 0) {
+    uint index = seed.x + globalUbo.swapchainWidth * seed.y + 1;
+    rngState   = index * globalUbo.currentSample + 1;
+  } else {
+    rngState = hash(rngState);
+  }
   return random(rngState);
 }
 
-// Returns a random real in [min,max).
-float random(float min, float max) { return min + (max - min) * random(); }
+// guides to low descripancy sequence:
+// http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences
+// https://psychopath.io/post/2014_06_28_low_discrepancy_sequences
 
-vec2 randomUv(uvec3 seed) {
+// rounding off issues:
+// https://stackoverflow.com/questions/32231777/how-to-avoid-rounding-off-of-large-float-or-double-values
+
+// shaders:
+// this solution avoids float rounding errors
+// https://www.shadertoy.com/view/4dtBWH
+// https://www.shadertoy.com/view/NdBSWm
+
+vec2 ldsNoise2d(uint x, uint y) {
+  uint n     = x + y * 57u;
+  n          = (n << 13u) ^ n;
+  uint a     = 2750769u;
+  uint b     = 60493u;
+  uint h     = 16u;
+  uint m     = 4294967291u;
+  uint k     = n * a;
+  uint l     = n * b;
+  uint p     = k + l;
+  p          = (p >> h) ^ p;
+  p          = (p >> h) ^ p;
+  vec2 noise = vec2(float(p % m) / float(m), float((p * a) % m) / float(m));
+  return noise;
+}
+
+// const float alpha1 = 0.7548776662466927;
+// const float alpha2 = 0.5698402909980532;
+const float invExp    = 1 / exp2(24.);
+const int alpha1Large = 12664746;
+const int alpha2Large = 9560334;
+
+vec2 ldsNoise(uint n) {
+  return fract(vec2(alpha1Large * n, alpha2Large * n) * invExp);
+}
+
+vec2 ldsNoiseR2(uvec3 seed) {
+  // Calculate the total number of pixels
+  uint totalPixels = globalUbo.swapchainWidth * globalUbo.swapchainHeight;
+
+  // Calculate a unique index for the current pixel and sample number
+  uint pixelIndex = seed.y * globalUbo.swapchainWidth + seed.x;
+
+  uint globalSampleNum = totalPixels * seed.z + pixelIndex;
+
+  return ldsNoise(globalSampleNum);
+}
+
+// Returns a random real in [min,max).
+// float random(float min, float max) { return min + (max - min) * random(); }
+
+vec2 randomUv(uvec3 seed, bool useLdsNoise) {
   // vec2 rand = ldsNoise2d(seed.x, seed.y);
-  vec2 rand = ldsNoiseR2(seed.x, seed.y, seed.z);
+  vec2 rand;
+  if (useLdsNoise) {
+    rand = ldsNoiseR2(seed);
+  } else {
+    rand.x = random(seed);
+    rand.y = random(seed);
+  }
   return rand;
 }
 
 // ---- Low discrepancy noise
 vec3 randomInUnitSphere(uvec3 seed, bool useLdsNoise) {
-  vec2 rand;
-  if (useLdsNoise) {
-    rand = randomUv(seed);
-  } else {
-    rand.x = random();
-    rand.y = random();
-  }
+  vec2 rand = randomUv(seed, useLdsNoise);
 
   float phi   = acos(1 - 2 * rand.x);
   float theta = 2 * pi * rand.y;
@@ -92,13 +144,7 @@ vec3 randomInHemisphere(vec3 normal, uvec3 seed, bool useLdsNoise) {
 // its pdf is 1 / pi
 vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed,
                                          bool useLdsNoise) {
-  vec2 rand;
-  if (useLdsNoise) {
-    rand = randomUv(seed);
-  } else {
-    rand.x = random();
-    rand.y = random();
-  }
+  vec2 rand = randomUv(seed, useLdsNoise);
 
   float theta = 2.0 * pi * rand.x;
   float phi   = acos(sqrt(1.0 - rand.y));

@@ -29,7 +29,7 @@ layout(binding = 8, rgba8) writeonly uniform image2D aTrousOutputTex;
 
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl"
-#include "include/plasticRandom.glsl"
+#include "include/random.glsl"
 
 // standard 3x3 filtering kernel from q2rtx
 const float waveletFac      = 0.5;
