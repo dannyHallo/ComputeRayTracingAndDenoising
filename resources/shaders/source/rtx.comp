@@ -234,7 +234,8 @@ HitRecord traceRayToBvh(Ray r) {
 
 void getRamdomSampleOnLight(uvec3 seed, out vec3 randomSamplingPointOnLight,
                             out vec3 lightNormal, out float lightArea) {
-  vec2 rand = randomUv(seed, ubo.useLdsNoise);
+  vec2 rand =
+      randomUv(seed, BaseDisturbance(29484792), ubo.useLdsNoise);
 
   float x = rand.x;
   float y = rand.y;
@@ -343,11 +344,11 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
 
   // cosine weighted sampling effectively increases sampling efficiency
   if (ubo.useWeightedCosine) {
-    indirectRayDir =
-        randomCosineWeightedHemispherePoint(hitNormal, seed, ubo.useLdsNoise);
+    indirectRayDir = randomCosineWeightedHemispherePoint(
+        hitNormal, seed, BaseDisturbance(38485012), ubo.useLdsNoise);
     pdf = dot(indirectRayDir, rec.normal) / kPi;
   } else {
-    indirectRayDir = randomInHemisphere(hitNormal, seed, ubo.useLdsNoise);
+    indirectRayDir = randomInHemisphere(hitNormal, seed, BaseDisturbance(84827491), ubo.useLdsNoise);
     pdf            = 1 / (2 * kPi);
   }
 

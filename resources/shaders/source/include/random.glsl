@@ -1,23 +1,18 @@
-// currently, every file that includes this file should have globalUbo in their
-// layout
 const float pi = 3.1415926535897932385;
 
-uint rngState = 0;
+struct BaseDisturbance {
+  uint d;
+};
 
-// A single iteration of Bob Jenkins' One-At-A-Time hashing algorithm.
+// https://nullprogram.com/blog/2018/07/31/
 uint hash(uint x) {
-  x += (x << 10u);
-  x ^= (x >> 6u);
-  x += (x << 3u);
-  x ^= (x >> 11u);
-  x += (x << 15u);
+  x ^= x >> 16;
+  x *= 0x7feb352dU;
+  x ^= x >> 15;
+  x *= 0x846ca68bU;
+  x ^= x >> 16;
   return x;
 }
-
-// Compound versions of the hashing algorithm I whipped together.
-uint hash(uvec2 v) { return hash(v.x ^ hash(v.y)); }
-uint hash(uvec3 v) { return hash(v.x ^ hash(v.y) ^ hash(v.z)); }
-uint hash(uvec4 v) { return hash(v.x ^ hash(v.y) ^ hash(v.z) ^ hash(v.w)); }
 
 // Construct a float with half-open range [0:1] using low 23 bits.
 // All zeroes yields 0.0, all ones yields the next smallest representable value
@@ -35,14 +30,10 @@ float floatConstruct(uint m) {
 
 // Pseudo-random value in half-open range [0:1].
 float random(uint x) { return floatConstruct(hash(x)); }
-float random(float x) { return floatConstruct(hash(floatBitsToUint(x))); }
-float random(vec2 v) { return floatConstruct(hash(floatBitsToUint(v))); }
-float random(vec3 v) { return floatConstruct(hash(floatBitsToUint(v))); }
-float random(vec4 v) { return floatConstruct(hash(floatBitsToUint(v))); }
 
-// structure of uvec3 seed:
-// (gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, globalUbo.currentSample)
+// uvec3 seed = (gl_GlobalInvocationID.xy, globalUbo.currentSample)
 
+uint rngState = 0;
 float random(uvec3 seed) {
   if (rngState == 0) {
     uint index = seed.x + globalUbo.swapchainWidth * seed.y + 1;
@@ -87,33 +78,24 @@ const float invExp    = 1 / exp2(24.);
 const int alpha1Large = 12664746;
 const int alpha2Large = 9560334;
 
-vec2 ldsNoise(vec2 initialOffset, uint n) {
-  vec2 originalFract = fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
-  return fract(originalFract + initialOffset);
+vec2 ldsNoiseCore(uint n) {
+  return fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
 }
 
-vec2 ldsNoiseR2(uvec3 seed) {
-  // uint pixelPosIndex = seed.x + globalUbo.swapchainWidth * seed.y + 10999 *
-  // seed.z; uint hash1         = hash(pixelPosIndex); uint hash2         =
-  // hash(hash1);
-
-  uint index         = seed.x + globalUbo.swapchainWidth * seed.y + 1;
-  uint hash1         = index * globalUbo.currentSample + 1;
-  uint hash2         = hash(hash1);
-  vec2 initialOffset = vec2(random(hash1), random(hash2));
-
-  // return ldsNoise(initialOffset, 0);
-  return initialOffset;
+vec2 ldsNoise(uvec3 seed, BaseDisturbance baseDisturbance) {
+  uint n =
+      hash(seed.x + globalUbo.swapchainWidth * seed.y + baseDisturbance.d) +
+      seed.z;
+  return ldsNoiseCore(n);
 }
 
 // Returns a random real in [min,max).
 // float random(float min, float max) { return min + (max - min) * random(); }
 
-vec2 randomUv(uvec3 seed, bool useLdsNoise) {
-  // vec2 rand = ldsNoise2d(seed.x, seed.y);
+vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
   vec2 rand;
   if (useLdsNoise) {
-    rand = ldsNoiseR2(seed);
+    rand = ldsNoise(seed, baseDisturbance);
   } else {
     rand.x = random(seed);
     rand.y = random(seed);
@@ -121,9 +103,9 @@ vec2 randomUv(uvec3 seed, bool useLdsNoise) {
   return rand;
 }
 
-// ---- Low discrepancy noise
-vec3 randomInUnitSphere(uvec3 seed, bool useLdsNoise) {
-  vec2 rand = randomUv(seed, useLdsNoise);
+vec3 randomInUnitSphere(uvec3 seed, BaseDisturbance baseDisturbance,
+                        bool useLdsNoise) {
+  vec2 rand = randomUv(seed, baseDisturbance, useLdsNoise);
 
   float phi   = acos(1 - 2 * rand.x);
   float theta = 2 * pi * rand.y;
@@ -135,19 +117,19 @@ vec3 randomInUnitSphere(uvec3 seed, bool useLdsNoise) {
   return vec3(x, y, z);
 }
 
-// its pdf is 1 / (2 * pi)
-vec3 randomInHemisphere(vec3 normal, uvec3 seed, bool useLdsNoise) {
-  vec3 inUnitSphere = randomInUnitSphere(seed, useLdsNoise);
+vec3 randomInHemisphere(vec3 normal, uvec3 seed,
+                        BaseDisturbance baseDisturbance, bool useLdsNoise) {
+  vec3 inUnitSphere = randomInUnitSphere(seed, baseDisturbance, useLdsNoise);
   if (dot(inUnitSphere, normal) > 0.0)
     return inUnitSphere;
   else
     return -inUnitSphere;
 }
 
-// its pdf is 1 / pi
 vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed,
+                                         BaseDisturbance baseDisturbance,
                                          bool useLdsNoise) {
-  vec2 rand = randomUv(seed, useLdsNoise);
+  vec2 rand = randomUv(seed, baseDisturbance, useLdsNoise);
 
   float theta = 2.0 * pi * rand.x;
   float phi   = acos(sqrt(1.0 - rand.y));

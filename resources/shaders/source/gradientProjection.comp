@@ -62,7 +62,7 @@ void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
 
   uvec3 seed  = uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y,
                       globalUbo.currentSample);
-  vec2 randUv = randomUv(seed, false);
+  vec2 randUv = randomUv(seed, BaseDisturbance(34789375), false);
 
   int i                  = int(randUv.x * STRATUM_SIZE);
   int j                  = int(randUv.y * STRATUM_SIZE);
