@@ -7,6 +7,7 @@
 
 // loads the compute shader, creates descriptor set
 void ComputeMaterial::init() {
+  Logger::print("Initing compute material {}", mComputeShaderPath.c_str());
   initDescriptorSetLayout();
   initComputePipeline(mComputeShaderPath);
   initDescriptorPool();

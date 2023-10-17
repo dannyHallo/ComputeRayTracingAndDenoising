@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include "large-buffer-storage/LargeBufferStorage.hpp"
 #include "render-context/RenderSystem.h"
 #include "scene/ComputeMaterial.h"
 #include "window/Window.h"
@@ -153,6 +154,21 @@ void Application::createBufferBundles() {
       swapchainSize, sizeof(GpuModel::Light) * mRtScene->lights.size(),
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
       mRtScene->lights.data());
+
+  mSobalBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(int) * kSobalBufferSize,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+      sobol_256spp_256d);
+
+  mScramblingTileBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(int) * kScramblingTileSize,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+      scramblingTile);
+
+  mRankingTileBufferBundle = std::make_unique<BufferBundle>(
+      swapchainSize, sizeof(int) * kRankingTileSize,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
+      rankingTile);
 }
 
 void Application::createImagesAndForwardingPairs() {
@@ -364,107 +380,132 @@ void Application::createImagesAndForwardingPairs() {
 void Application::createComputeModels() {
   auto mGradientProjectionMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/gradientProjection.spv");
-  mGradientProjectionMat->addUniformBufferBundle(mGlobalBufferBundle.get());
-  mGradientProjectionMat->addUniformBufferBundle(
-      mGradientProjectionBufferBundle.get());
-  // input
-  mGradientProjectionMat->addStorageImage(mRawImage.get());
-  mGradientProjectionMat->addStorageImage(mPositionImage.get());
-  mGradientProjectionMat->addStorageImage(mSeedImage.get());
-  // output
-  mGradientProjectionMat->addStorageImage(mPerStratumImage.get());
-  // atomic readwrite
-  mGradientProjectionMat->addStorageImage(mPerStratumLockingImage.get());
-  // output, too
-  mGradientProjectionMat->addStorageImage(mVisibilityImage.get());
-  mGradientProjectionMat->addStorageImage(mSeedVisibilityImage.get());
+  {
+    mGradientProjectionMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+    mGradientProjectionMat->addUniformBufferBundle(
+        mGradientProjectionBufferBundle.get());
+    // input
+    mGradientProjectionMat->addStorageImage(mRawImage.get());
+    mGradientProjectionMat->addStorageImage(mPositionImage.get());
+    mGradientProjectionMat->addStorageImage(mSeedImage.get());
+    // output
+    mGradientProjectionMat->addStorageImage(mPerStratumImage.get());
+    // atomic readwrite
+    mGradientProjectionMat->addStorageImage(mPerStratumLockingImage.get());
+    // output, too
+    mGradientProjectionMat->addStorageImage(mVisibilityImage.get());
+    mGradientProjectionMat->addStorageImage(mSeedVisibilityImage.get());
+    // buffers
+    mGradientProjectionMat->addStorageBufferBundle(mSobalBufferBundle.get());
+    mGradientProjectionMat->addStorageBufferBundle(
+        mScramblingTileBufferBundle.get());
+    mGradientProjectionMat->addStorageBufferBundle(
+        mRankingTileBufferBundle.get());
+  }
   mGradientProjectionModel =
       std::make_unique<ComputeModel>(std::move(mGradientProjectionMat));
 
   auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder +
                                                   "/shaders/generated/rtx.spv");
-  rtxMat->addUniformBufferBundle(mGlobalBufferBundle.get());
-  rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
-  // input
-  rtxMat->addStorageImage(mVisibilityImage.get());
-  // reprojected seed
-  rtxMat->addStorageImage(mSeedVisibilityImage.get());
-  // output
-  rtxMat->addStorageImage(mPositionImage.get());
-  rtxMat->addStorageImage(mNormalImage.get());
-  rtxMat->addStorageImage(mDepthImage.get());
-  rtxMat->addStorageImage(mMeshHashImage.get());
-  rtxMat->addStorageImage(mRawImage.get());
-  rtxMat->addStorageImage(mSeedImage.get());
-  rtxMat->addStorageImage(mTemporalGradientImage.get());
-  // buffers
-  rtxMat->addStorageBufferBundle(mTriangleBufferBundle.get());
-  rtxMat->addStorageBufferBundle(mMaterialBufferBundle.get());
-  rtxMat->addStorageBufferBundle(mBvhBufferBundle.get());
-  rtxMat->addStorageBufferBundle(mLightsBufferBundle.get());
-
+  {
+    rtxMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+    rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
+    // input
+    rtxMat->addStorageImage(mVisibilityImage.get());
+    // reprojected seed
+    rtxMat->addStorageImage(mSeedVisibilityImage.get());
+    // output
+    rtxMat->addStorageImage(mPositionImage.get());
+    rtxMat->addStorageImage(mNormalImage.get());
+    rtxMat->addStorageImage(mDepthImage.get());
+    rtxMat->addStorageImage(mMeshHashImage.get());
+    rtxMat->addStorageImage(mRawImage.get());
+    rtxMat->addStorageImage(mSeedImage.get());
+    rtxMat->addStorageImage(mTemporalGradientImage.get());
+    // buffers
+    rtxMat->addStorageBufferBundle(mTriangleBufferBundle.get());
+    rtxMat->addStorageBufferBundle(mMaterialBufferBundle.get());
+    rtxMat->addStorageBufferBundle(mBvhBufferBundle.get());
+    rtxMat->addStorageBufferBundle(mLightsBufferBundle.get());
+    rtxMat->addStorageBufferBundle(mSobalBufferBundle.get());
+    rtxMat->addStorageBufferBundle(mScramblingTileBufferBundle.get());
+    rtxMat->addStorageBufferBundle(mRankingTileBufferBundle.get());
+  }
   mRtxModel = std::make_unique<ComputeModel>(std::move(rtxMat));
 
   auto gradientMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/screenSpaceGradient.spv");
-  gradientMat->addUniformBufferBundle(mGlobalBufferBundle.get());
-  // input
-  gradientMat->addStorageImage(mDepthImage.get());
-  // output
-  gradientMat->addStorageImage(mGradientImage.get());
+  {
+    gradientMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+    // input
+    gradientMat->addStorageImage(mDepthImage.get());
+    // output
+    gradientMat->addStorageImage(mGradientImage.get());
+  }
   mGradientModel = std::make_unique<ComputeModel>(std::move(gradientMat));
 
   auto temporalFilterMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/temporalFilter.spv");
-  temporalFilterMat->addUniformBufferBundle(mGlobalBufferBundle.get());
-  temporalFilterMat->addUniformBufferBundle(mTemperalFilterBufferBundle.get());
-  // input
-  temporalFilterMat->addStorageImage(mPositionImage.get());
-  temporalFilterMat->addStorageImage(mRawImage.get());
-  temporalFilterMat->addStorageImage(mDepthImage.get());
-  temporalFilterMat->addStorageImage(mDepthImagePrev.get());
-  temporalFilterMat->addStorageImage(mNormalImage.get());
-  temporalFilterMat->addStorageImage(mNormalImagePrev.get());
-  temporalFilterMat->addStorageImage(mGradientImage.get());
-  temporalFilterMat->addStorageImage(mGradientImagePrev.get());
-  temporalFilterMat->addStorageImage(mMeshHashImage.get());
-  temporalFilterMat->addStorageImage(mMeshHashImagePrev.get());
-  temporalFilterMat->addStorageImage(mLastFrameAccumImage.get());
-  temporalFilterMat->addStorageImage(mVarianceHistImagePrev.get());
-  // output
-  temporalFilterMat->addStorageImage(mATrousInputImage.get());
-  temporalFilterMat->addStorageImage(mVarianceHistImage.get());
+  {
+    temporalFilterMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+    temporalFilterMat->addUniformBufferBundle(
+        mTemperalFilterBufferBundle.get());
+    // input
+    temporalFilterMat->addStorageImage(mPositionImage.get());
+    temporalFilterMat->addStorageImage(mRawImage.get());
+    temporalFilterMat->addStorageImage(mDepthImage.get());
+    temporalFilterMat->addStorageImage(mDepthImagePrev.get());
+    temporalFilterMat->addStorageImage(mNormalImage.get());
+    temporalFilterMat->addStorageImage(mNormalImagePrev.get());
+    temporalFilterMat->addStorageImage(mGradientImage.get());
+    temporalFilterMat->addStorageImage(mGradientImagePrev.get());
+    temporalFilterMat->addStorageImage(mMeshHashImage.get());
+    temporalFilterMat->addStorageImage(mMeshHashImagePrev.get());
+    temporalFilterMat->addStorageImage(mLastFrameAccumImage.get());
+    temporalFilterMat->addStorageImage(mVarianceHistImagePrev.get());
+    // output
+    temporalFilterMat->addStorageImage(mATrousInputImage.get());
+    temporalFilterMat->addStorageImage(mVarianceHistImage.get());
+  }
   mTemporalFilterModel =
       std::make_unique<ComputeModel>(std::move(temporalFilterMat));
 
   auto varianceMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/variance.spv");
-  varianceMat->addUniformBufferBundle(mGlobalBufferBundle.get());
-  varianceMat->addUniformBufferBundle(mVarianceBufferBundle.get());
-  // input
-  varianceMat->addStorageImage(mATrousInputImage.get());
-  varianceMat->addStorageImage(mNormalImage.get());
-  varianceMat->addStorageImage(mDepthImage.get());
-  // output
-  varianceMat->addStorageImage(mGradientImage.get());
-  varianceMat->addStorageImage(mVarianceImage.get());
-  varianceMat->addStorageImage(mVarianceHistImage.get());
+  {
+    varianceMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+    varianceMat->addUniformBufferBundle(mVarianceBufferBundle.get());
+    // input
+    varianceMat->addStorageImage(mATrousInputImage.get());
+    varianceMat->addStorageImage(mNormalImage.get());
+    varianceMat->addStorageImage(mDepthImage.get());
+    // output
+    varianceMat->addStorageImage(mGradientImage.get());
+    varianceMat->addStorageImage(mVarianceImage.get());
+    varianceMat->addStorageImage(mVarianceHistImage.get());
+  }
   mVarianceModel = std::make_unique<ComputeModel>(std::move(varianceMat));
 
   for (int i = 0; i < kATrousSize; i++) {
     auto aTrousMat = std::make_unique<ComputeMaterial>(
         kPathToResourceFolder + "/shaders/generated/aTrous.spv");
-    aTrousMat->addUniformBufferBundle(mGlobalBufferBundle.get());
-    aTrousMat->addUniformBufferBundle(mBlurFilterBufferBundles[i].get());
-    // input
-    aTrousMat->addStorageImage(mATrousInputImage.get());
-    aTrousMat->addStorageImage(mNormalImage.get());
-    aTrousMat->addStorageImage(mDepthImage.get());
-    aTrousMat->addStorageImage(mGradientImage.get());
-    aTrousMat->addStorageImage(mVarianceImage.get());
-    // output
-    aTrousMat->addStorageImage(mLastFrameAccumImage.get());
-    aTrousMat->addStorageImage(mATrousOutputImage.get());
+    {
+      aTrousMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+      aTrousMat->addUniformBufferBundle(mBlurFilterBufferBundles[i].get());
+      // input
+      aTrousMat->addStorageImage(mATrousInputImage.get());
+      aTrousMat->addStorageImage(mNormalImage.get());
+      aTrousMat->addStorageImage(mDepthImage.get());
+      aTrousMat->addStorageImage(mGradientImage.get());
+      aTrousMat->addStorageImage(mVarianceImage.get());
+      // output
+      aTrousMat->addStorageImage(mLastFrameAccumImage.get());
+      aTrousMat->addStorageImage(mATrousOutputImage.get());
+      // buffers
+      aTrousMat->addStorageBufferBundle(mSobalBufferBundle.get());
+      aTrousMat->addStorageBufferBundle(mScramblingTileBufferBundle.get());
+      aTrousMat->addStorageBufferBundle(mRankingTileBufferBundle.get());
+    }
     mATrousModels.emplace_back(
         std::make_unique<ComputeModel>(std::move(aTrousMat)));
   }

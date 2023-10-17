@@ -59,8 +59,9 @@ struct BvhNode {
 // Model of light used for importance sampling.
 struct Light {
   // Index in the array of triangles.
-  alignas(4) uint triangleIndex;
+  uint triangleIndex;
   // Area of the triangle;
   alignas(4) float area;
 };
+
 } // namespace GpuModel

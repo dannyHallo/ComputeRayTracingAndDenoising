@@ -1,9 +1,39 @@
 const float pi = 3.1415926535897932385;
 
+
+
+float samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp(
+    int pixel_i, int pixel_j, int sampleIndex, int sampleDimension) {
+  // wrap arguments
+  pixel_i         = pixel_i & 127;
+  pixel_j         = pixel_j & 127;
+  sampleIndex     = sampleIndex & 255;
+  sampleDimension = sampleDimension & 255;
+
+  // xor index based on optimized ranking
+  int rankedSampleIndex =
+      sampleIndex ^
+      rankingTile[sampleDimension + (pixel_i + pixel_j * 128) * 8];
+
+  // fetch value in sequence
+  int value = sobol_256spp_256d[sampleDimension + rankedSampleIndex * 256];
+
+  // If the dimension is optimized, xor sequence value based on optimized
+  // scrambling
+  value = value ^
+          scramblingTile[(sampleDimension % 8) + (pixel_i + pixel_j * 128) * 8];
+
+  // convert to float and return
+  float v = (0.5f + value) / 256.0f;
+  return v;
+}
+
+// simply for easier searching in the editor
 struct BaseDisturbance {
   uint d;
 };
 
+// this hashing function is probably to be the best one of its kind
 // https://nullprogram.com/blog/2018/07/31/
 uint hash(uint x) {
   x ^= x >> 16;
@@ -97,8 +127,14 @@ vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
   if (useLdsNoise) {
     rand = ldsNoise(seed, baseDisturbance);
   } else {
-    rand.x = random(seed);
-    rand.y = random(seed);
+    // rand.x = random(seed);
+    // rand.y = random(seed);
+    rand.x =
+        samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp(
+            int(seed.x), int(seed.y), int(seed.z), int(baseDisturbance.d * 2));
+    rand.y =
+        samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp(
+            int(seed.x), int(seed.y), int(seed.z), int(baseDisturbance.d * 2 + 1));
   }
   return rand;
 }

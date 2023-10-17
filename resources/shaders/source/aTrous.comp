@@ -26,6 +26,18 @@ layout(binding = 5, rg32f) readonly uniform image2D gradientTex;
 layout(binding = 6, r32f) readonly uniform image2D varianceTex;
 layout(binding = 7, rgba8) writeonly uniform image2D accumTex;
 layout(binding = 8, rgba8) writeonly uniform image2D aTrousOutputTex;
+// the buffer that contains all triangles (read only)
+layout(std430, binding = 9) readonly buffer SobolBufferObject {
+  int[] sobol_256spp_256d;
+};
+
+layout(std430, binding = 10) readonly buffer ScramblingBufferObject {
+  int[] scramblingTile;
+};
+
+layout(std430, binding = 11) readonly buffer RankingBufferObject {
+  int[] rankingTile;
+};
 
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl"

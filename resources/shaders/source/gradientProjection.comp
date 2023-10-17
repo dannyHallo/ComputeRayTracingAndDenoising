@@ -34,6 +34,19 @@ layout(binding = 6, r32ui) uniform uimage2D perStratumLockingTex;
 layout(binding = 7, rgba32f) writeonly uniform image2D visibilityTex;
 layout(binding = 8, rgba32ui) writeonly uniform uimage2D seedVisibilityTex;
 
+// the buffer that contains all triangles (read only)
+layout(std430, binding = 9) readonly buffer SobolBufferObject {
+  int[] sobol_256spp_256d;
+};
+
+layout(std430, binding = 10) readonly buffer ScramblingBufferObject {
+  int[] scramblingTile;
+};
+
+layout(std430, binding = 11) readonly buffer RankingBufferObject {
+  int[] rankingTile;
+};
+
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl"
 #include "include/random.glsl"
@@ -62,7 +75,7 @@ void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
 
   uvec3 seed  = uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y,
                       globalUbo.currentSample);
-  vec2 randUv = randomUv(seed, BaseDisturbance(34789375), false);
+  vec2 randUv = randomUv(seed, BaseDisturbance(0), false);
 
   int i                  = int(randUv.x * STRATUM_SIZE);
   int j                  = int(randUv.y * STRATUM_SIZE);

@@ -80,6 +80,19 @@ layout(std430, binding = 14) readonly buffer LightsBufferObject {
   Light[] lights;
 };
 
+// the buffer that contains all triangles (read only)
+layout(std430, binding = 15) readonly buffer SobolBufferObject {
+  int[] sobol_256spp_256d;
+};
+
+layout(std430, binding = 16) readonly buffer ScramblingBufferObject {
+  int[] scramblingTile;
+};
+
+layout(std430, binding = 17) readonly buffer RankingBufferObject {
+  int[] rankingTile;
+};
+
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl"
 #include "include/random.glsl"
@@ -234,8 +247,7 @@ HitRecord traceRayToBvh(Ray r) {
 
 void getRamdomSampleOnLight(uvec3 seed, out vec3 randomSamplingPointOnLight,
                             out vec3 lightNormal, out float lightArea) {
-  vec2 rand =
-      randomUv(seed, BaseDisturbance(29484792), ubo.useLdsNoise);
+  vec2 rand = randomUv(seed, BaseDisturbance(1), ubo.useLdsNoise);
 
   float x = rand.x;
   float y = rand.y;
@@ -345,10 +357,11 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
   // cosine weighted sampling effectively increases sampling efficiency
   if (ubo.useWeightedCosine) {
     indirectRayDir = randomCosineWeightedHemispherePoint(
-        hitNormal, seed, BaseDisturbance(38485012), ubo.useLdsNoise);
+        hitNormal, seed, BaseDisturbance(2), ubo.useLdsNoise);
     pdf = dot(indirectRayDir, rec.normal) / kPi;
   } else {
-    indirectRayDir = randomInHemisphere(hitNormal, seed, BaseDisturbance(84827491), ubo.useLdsNoise);
+    indirectRayDir = randomInHemisphere(hitNormal, seed, BaseDisturbance(3),
+                                        ubo.useLdsNoise);
     pdf            = 1 / (2 * kPi);
   }
 
