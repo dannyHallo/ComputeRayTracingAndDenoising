@@ -7,14 +7,8 @@
 #define VOLK_IMPLEMENTATION
 #include "app-context/VulkanApplicationContext.h"
 
-#include "utils/Logger.h"
-
-#include "memory/Image.h"
-
-#include "context-creators/DeviceCreator.h"
-#include "context-creators/InstanceCreator.h"
-#include "context-creators/SurfaceCreator.h"
-#include "context-creators/SwapchainCreator.h"
+#include "memory/Image.hpp"
+#include "utils/Logger.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -43,21 +37,22 @@ void VulkanApplicationContext::init(GLFWwindow *window) {
   appInfo.pEngineName        = "No Engine";
   appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
   appInfo.apiVersion         = VK_API_VERSION_1_2;
-  InstanceCreator::create(mVkInstance, mDebugMessager, appInfo,
-                          validationLayers);
+  ContextCreator::createInstance(mVkInstance, mDebugMessager, appInfo,
+                                 validationLayers);
 
-  SurfaceCreator::create(mVkInstance, mSurface, mGlWindow);
+  ContextCreator::createSurface(mVkInstance, mSurface, mGlWindow);
 
   // selects physical device, creates logical device from that, decides queues,
   // loads device-related functions too
-  DeviceCreator::create(mPhysicalDevice, mDevice, mQueueFamilyIndices,
-                        mGraphicsQueue, mPresentQueue, mComputeQueue,
-                        mTransferQueue, mVkInstance, mSurface,
-                        requiredDeviceExtensions);
+  ContextCreator::createDevice(mPhysicalDevice, mDevice, mQueueFamilyIndices,
+                               mGraphicsQueue, mPresentQueue, mComputeQueue,
+                               mTransferQueue, mVkInstance, mSurface,
+                               requiredDeviceExtensions);
 
-  SwapchainCreator::create(mSwapchain, mSwapchainImages, mSwapchainImageViews,
-                           mSwapchainImageFormat, mSwapchainExtent, mSurface,
-                           mDevice, mPhysicalDevice, mQueueFamilyIndices);
+  ContextCreator::createSwapchain(mSwapchain, mSwapchainImages,
+                                  mSwapchainImageViews, mSwapchainImageFormat,
+                                  mSwapchainExtent, mSurface, mDevice,
+                                  mPhysicalDevice, mQueueFamilyIndices);
 
   createAllocator();
   createCommandPool();
@@ -77,9 +72,10 @@ void VulkanApplicationContext::cleanupSwapchainDimensionRelatedResources() {
 }
 
 void VulkanApplicationContext::createSwapchainDimensionRelatedResources() {
-  SwapchainCreator::create(mSwapchain, mSwapchainImages, mSwapchainImageViews,
-                           mSwapchainImageFormat, mSwapchainExtent, mSurface,
-                           mDevice, mPhysicalDevice, mQueueFamilyIndices);
+  ContextCreator::createSwapchain(mSwapchain, mSwapchainImages,
+                                  mSwapchainImageViews, mSwapchainImageFormat,
+                                  mSwapchainExtent, mSurface, mDevice,
+                                  mPhysicalDevice, mQueueFamilyIndices);
 }
 
 VulkanApplicationContext::~VulkanApplicationContext() {

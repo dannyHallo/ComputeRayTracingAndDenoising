@@ -1,8 +1,8 @@
 #pragma once
 
-#include "utils/Vulkan.h"
+#include "utils/Vulkan.hpp"
 
-#include "ComputeMaterial.h"
+#include "ComputeMaterial.hpp"
 
 #include <memory>
 

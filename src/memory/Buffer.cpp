@@ -1,5 +1,5 @@
-#include "Buffer.h"
-#include "utils/Logger.h"
+#include "Buffer.hpp"
+#include "utils/Logger.hpp"
 
 Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage,
                VmaMemoryUsage memoryUsage, const void *data)

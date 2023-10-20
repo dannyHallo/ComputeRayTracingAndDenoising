@@ -1,4 +1,4 @@
-#include "Logger.h"
+#include "Logger.hpp"
 
 // this is required to define format functions that are used by spdlog
 #define FMT_HEADER_ONLY

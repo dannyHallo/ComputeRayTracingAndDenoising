@@ -1,8 +1,8 @@
 #pragma once
 
-#include "memory/Buffer.h"
-#include "memory/Image.h"
-#include "utils/Vulkan.h"
+#include "memory/Buffer.hpp"
+#include "memory/Image.hpp"
+#include "utils/Vulkan.hpp"
 
 #include <memory>
 #include <vector>

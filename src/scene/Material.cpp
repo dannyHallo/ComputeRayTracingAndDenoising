@@ -1,6 +1,6 @@
-#include "Material.h"
-#include "utils/Logger.h"
-#include "utils/Readfile.h"
+#include "Material.hpp"
+#include "utils/Logger.hpp"
+#include "utils/Readfile.hpp"
 
 #include <memory>
 #include <vector>

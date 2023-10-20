@@ -1,14 +1,14 @@
-#include "SwapchainCreator.h"
+#include "SwapchainCreator.hpp"
 
-#include "memory/Image.h"
-#include "utils/Logger.h"
+#include "memory/Image.hpp"
+#include "utils/Logger.hpp"
 
 namespace {
 // query for physical device's swapchain sepport details
-SwapchainSupportDetails querySwapchainSupport(VkSurfaceKHR surface,
-                                              VkPhysicalDevice physicalDevice) {
+ContextCreator::SwapchainSupportDetails
+_querySwapchainSupport(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice) {
   // get swapchain support details using surface and device info
-  SwapchainSupportDetails details;
+  ContextCreator::SwapchainSupportDetails details;
 
   // get capabilities
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface,
@@ -39,7 +39,7 @@ SwapchainSupportDetails querySwapchainSupport(VkSurfaceKHR surface,
 }
 
 // find the most suitable swapchain surface format
-VkSurfaceFormatKHR chooseSwapSurfaceFormat(
+VkSurfaceFormatKHR _chooseSwapSurfaceFormat(
     const std::vector<VkSurfaceFormatKHR> &availableFormats) {
   for (const auto &availableFormat : availableFormats) {
     // format: VK_FORMAT_B8G8R8A8_SRGB
@@ -55,7 +55,7 @@ VkSurfaceFormatKHR chooseSwapSurfaceFormat(
 }
 
 // choose the present mode of the swapchain
-VkPresentModeKHR chooseSwapPresentMode(
+VkPresentModeKHR _chooseSwapPresentMode(
     const std::vector<VkPresentModeKHR> &availablePresentModes) {
   // our preferance: Mailbox present mode
   for (const auto &availablePresentMode : availablePresentModes) {
@@ -69,7 +69,7 @@ VkPresentModeKHR chooseSwapPresentMode(
 }
 
 // return the current extent, or create another one
-VkExtent2D getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
+VkExtent2D _getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
   assert(capabilities.currentExtent.width !=
              std::numeric_limits<uint32_t>::max() &&
          "currentExtent.width should be valid!");
@@ -80,23 +80,21 @@ VkExtent2D getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
 }
 } // namespace
 
-void SwapchainCreator::create(VkSwapchainKHR &swapchain,
-                              std::vector<VkImage> &swapchainImages,
-                              std::vector<VkImageView> &swapchainImageViews,
-                              VkFormat &swapchainImageFormat,
-                              VkExtent2D &swapchainExtent,
-                              const VkSurfaceKHR &surface,
-                              const VkDevice &device,
-                              const VkPhysicalDevice &physicalDevice,
-                              const QueueFamilyIndices &queueFamilyIndices) {
+void ContextCreator::createSwapchain(
+    VkSwapchainKHR &swapchain, std::vector<VkImage> &swapchainImages,
+    std::vector<VkImageView> &swapchainImageViews,
+    VkFormat &swapchainImageFormat, VkExtent2D &swapchainExtent,
+    const VkSurfaceKHR &surface, const VkDevice &device,
+    const VkPhysicalDevice &physicalDevice,
+    const QueueFamilyIndices &queueFamilyIndices) {
   SwapchainSupportDetails swapchainSupport =
-      querySwapchainSupport(surface, physicalDevice);
+      _querySwapchainSupport(surface, physicalDevice);
   VkSurfaceFormatKHR surfaceFormat =
-      chooseSwapSurfaceFormat(swapchainSupport.formats);
+      _chooseSwapSurfaceFormat(swapchainSupport.formats);
   swapchainImageFormat = surfaceFormat.format;
   VkPresentModeKHR presentMode =
-      chooseSwapPresentMode(swapchainSupport.presentModes);
-  swapchainExtent = getSwapExtent(swapchainSupport.capabilities);
+      _chooseSwapPresentMode(swapchainSupport.presentModes);
+  swapchainExtent = _getSwapExtent(swapchainSupport.capabilities);
 
   // recommanded: min + 1
   uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;

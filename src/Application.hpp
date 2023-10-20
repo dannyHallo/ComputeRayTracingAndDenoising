@@ -10,12 +10,12 @@
 
 #include "app-context/VulkanApplicationContext.h"
 
-#include "ray-tracing/RtScene.h"
-#include "scene/ComputeModel.h"
-#include "scene/Mesh.h"
-#include "utils/Camera.h"
-#include "utils/Glm.h"
-#include "utils/Logger.h"
+#include "ray-tracing/RtScene.hpp"
+#include "scene/ComputeModel.hpp"
+#include "scene/Mesh.hpp"
+#include "utils/Camera.hpp"
+#include "utils/Glm.hpp"
+#include "utils/Logger.hpp"
 #include "utils/RootDir.h"
 
 #include "imgui/backends/imgui_impl_glfw.h"

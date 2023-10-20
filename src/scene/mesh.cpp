@@ -1,8 +1,8 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 
-#include "Mesh.h"
+#include "Mesh.hpp"
 
-#include "utils/Logger.h"
+#include "utils/Logger.hpp"
 
 #include <array>
 #include <iostream>

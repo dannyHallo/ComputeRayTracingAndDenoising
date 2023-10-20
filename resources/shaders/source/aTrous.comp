@@ -58,12 +58,12 @@ float varianceAtUv;
 float luminanceAtUv;
 
 ivec2 jittering(int stepSize) {
-  vec2 ldsNoise = ldsNoise2d(globalUbo.currentSample * 19937 + ubo.i + uv.x,
-                             globalUbo.currentSample * 19937 + ubo.i + uv.y);
-  ldsNoise -= 0.5;
-  ldsNoise *= 0.5;
-  ivec2 jitter = ivec2(ldsNoise * stepSize);
-  return jitter;
+  uvec3 seed       = uvec3(gl_GlobalInvocationID.xy, globalUbo.currentSample);
+  vec2 randomNoise = vec2(random(seed), random(seed));
+  randomNoise -= 0.5;
+  randomNoise *= 0.5;
+  ivec2 jitter = ivec2(randomNoise * stepSize);
+  return jitter;  
 }
 
 void loadData(ivec2 offsetXY, out vec2 gradientAtUv, out vec3 normalAtUv,

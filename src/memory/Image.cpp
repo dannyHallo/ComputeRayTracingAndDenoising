@@ -1,10 +1,10 @@
-#include "Image.h"
+#include "Image.hpp"
 
 #include "app-context/VulkanApplicationContext.h"
 
-#include "Buffer.h"
-#include "render-context/RenderSystem.h"
-#include "utils/Logger.h"
+#include "Buffer.hpp"
+#include "render-context/RenderSystem.hpp"
+#include "utils/Logger.hpp"
 #include "vulkan/vulkan_core.h"
 
 #include <cmath>

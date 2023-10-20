@@ -1,7 +1,7 @@
 #pragma once
 
-#include "utils/Glm.h"
-#include "utils/Vulkan.h"
+#include "utils/Glm.hpp"
+#include "utils/Vulkan.hpp"
 
 #include <array>
 #include <string>

@@ -1,11 +1,10 @@
 #pragma once
 
-#include "Bvh.h"
-#include "GpuModels.h"
-#include "scene/Mesh.h"
-#include "utils/Glm.h"
+#include "Bvh.hpp"
+#include "GpuModels.hpp"
+#include "scene/Mesh.hpp"
+#include "utils/Glm.hpp"
 #include "utils/RootDir.h"
-
 
 #include <functional> // for std::hash
 #include <iostream>

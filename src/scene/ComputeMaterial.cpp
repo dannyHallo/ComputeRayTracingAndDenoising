@@ -1,6 +1,6 @@
-#include "ComputeMaterial.h"
-#include "utils/Logger.h"
-#include "utils/Readfile.h"
+#include "ComputeMaterial.hpp"
+#include "utils/Logger.hpp"
+#include "utils/Readfile.hpp"
 
 #include <memory>
 #include <vector>

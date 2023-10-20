@@ -1,19 +1,19 @@
-#include "DeviceCreator.h"
+#include "DeviceCreator.hpp"
 
-#include "Common.h"
-#include "utils/Logger.h"
+#include "Common.hpp"
+#include "utils/Logger.hpp"
 
 #include <set>
 
 namespace {
-bool queueIndicesAreFilled(const QueueFamilyIndices &indices) {
+bool _queueIndicesAreFilled(const ContextCreator::QueueFamilyIndices &indices) {
   return indices.computeFamily != -1 && indices.transferFamily != -1 &&
          indices.graphicsFamily != -1 && indices.presentFamily != -1;
 }
 
-bool findQueueFamilies(QueueFamilyIndices &indices,
-                       const VkPhysicalDevice &physicalDevice,
-                       const VkSurfaceKHR &surface) {
+bool _findQueueFamilies(ContextCreator::QueueFamilyIndices &indices,
+                        const VkPhysicalDevice &physicalDevice,
+                        const VkSurfaceKHR &surface) {
   uint32_t queueFamilyCount = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount,
                                            nullptr);
@@ -48,14 +48,14 @@ bool findQueueFamilies(QueueFamilyIndices &indices,
       }
     }
 
-    if (queueIndicesAreFilled(indices)) {
+    if (_queueIndicesAreFilled(indices)) {
       return true;
     }
   }
   return false;
 }
 
-VkSampleCountFlagBits getDeviceMaxUsableSampleCount(VkPhysicalDevice device) {
+VkSampleCountFlagBits _getDeviceMaxUsableSampleCount(VkPhysicalDevice device) {
   VkPhysicalDeviceProperties physicalDeviceProperties;
   vkGetPhysicalDeviceProperties(device, &physicalDeviceProperties);
 
@@ -84,7 +84,7 @@ VkSampleCountFlagBits getDeviceMaxUsableSampleCount(VkPhysicalDevice device) {
   return VK_SAMPLE_COUNT_1_BIT;
 }
 
-bool checkDeviceExtensionSupport(
+bool _checkDeviceExtensionSupport(
     const VkPhysicalDevice &physicalDevice,
     const std::vector<const char *> &requiredDeviceExtensions) {
   uint32_t extensionCount = 0;
@@ -133,10 +133,10 @@ bool checkDeviceExtensionSupport(
 // this function is also called in swapchain creation step
 // so check if this overhead can be eliminated
 // query for physical device's swapchain sepport details
-SwapchainSupportDetails querySwapchainSupport(VkSurfaceKHR surface,
-                                              VkPhysicalDevice physicalDevice) {
+ContextCreator::SwapchainSupportDetails
+querySwapchainSupport(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice) {
   // get swapchain support details using surface and device info
-  SwapchainSupportDetails details;
+  ContextCreator::SwapchainSupportDetails details;
 
   // get capabilities
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface,
@@ -170,14 +170,14 @@ void checkDeviceSuitable(
     const VkSurfaceKHR &surface, const VkPhysicalDevice &physicalDevice,
     const std::vector<const char *> &requiredDeviceExtensions) {
   // Check if the queue family is valid
-  QueueFamilyIndices indices{};
-  bool indicesAreFilled = findQueueFamilies(indices, physicalDevice, surface);
+  ContextCreator::QueueFamilyIndices indices{};
+  bool indicesAreFilled = _findQueueFamilies(indices, physicalDevice, surface);
   // Check extension support
   bool extensionSupported =
-      checkDeviceExtensionSupport(physicalDevice, requiredDeviceExtensions);
+      _checkDeviceExtensionSupport(physicalDevice, requiredDeviceExtensions);
   bool swapChainAdequate = false;
   if (extensionSupported) {
-    SwapchainSupportDetails swapChainSupport =
+    ContextCreator::SwapchainSupportDetails swapChainSupport =
         querySwapchainSupport(surface, physicalDevice);
     swapChainAdequate = !swapChainSupport.formats.empty() &&
                         !swapChainSupport.presentModes.empty();
@@ -242,7 +242,7 @@ selectBestDevice(const std::vector<VkPhysicalDevice> &physicalDevices,
 
     // MSAA
     VkSampleCountFlagBits msaaSamples =
-        getDeviceMaxUsableSampleCount(physicalDevice);
+        _getDeviceMaxUsableSampleCount(physicalDevice);
 
     std::cout << "Device " << deviceId << "    "
               << static_cast<const char *>(deviceProperty.deviceName)
@@ -285,7 +285,7 @@ selectBestDevice(const std::vector<VkPhysicalDevice> &physicalDevices,
 } // namespace
 
 // pick the most suitable physical device, and create logical device from it
-void DeviceCreator::create(
+void ContextCreator::createDevice(
     VkPhysicalDevice &physicalDevice, VkDevice &device,
     QueueFamilyIndices &indices, VkQueue &graphicsQueue, VkQueue &presentQueue,
     VkQueue &computeQueue, VkQueue &transferQueue, const VkInstance &instance,
@@ -310,7 +310,7 @@ void DeviceCreator::create(
 
   // create logical device from the physical device we've picked
   {
-    findQueueFamilies(indices, physicalDevice, surface);
+    _findQueueFamilies(indices, physicalDevice, surface);
 
     std::set<uint32_t> queueFamilyIndicesSet = {
         indices.graphicsFamily, indices.presentFamily, indices.computeFamily,

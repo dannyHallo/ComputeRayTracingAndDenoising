@@ -2,7 +2,7 @@
 
 #include "glm/glm.hpp"
 #include "spdlog/spdlog.h"
-#include "utils/Vulkan.h"
+#include "utils/Vulkan.hpp"
 
 #include <iostream>
 #include <string>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/Glm.h"
+#include "utils/Glm.hpp"
 #include <algorithm>
 #include <stack>
 #include <stdlib.h> /* srand, rand */

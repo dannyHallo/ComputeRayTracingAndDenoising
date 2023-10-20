@@ -1,5 +1,5 @@
-#include "Window.h"
-#include "utils/Logger.h"
+#include "Window.hpp"
+#include "utils/Logger.hpp"
 
 namespace {
 void frameBufferResizeCallback(GLFWwindow *window, int width, int height) {

@@ -1,4 +1,4 @@
-#include "RtScene.h"
+#include "RtScene.hpp"
 
 glm::vec3 multiplyAccordingly(glm::vec3 v1, glm::vec3 v2) {
   glm::vec3 vOut{};

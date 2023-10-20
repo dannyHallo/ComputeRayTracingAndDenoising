@@ -1,9 +1,9 @@
 #pragma once
 
-#include "memory/Buffer.h"
-#include "memory/Image.h"
-#include "scene/Material.h"
-#include "utils/Vulkan.h"
+#include "memory/Buffer.hpp"
+#include "memory/Image.hpp"
+#include "scene/Material.hpp"
+#include "utils/Vulkan.hpp"
 
 #include <string>
 

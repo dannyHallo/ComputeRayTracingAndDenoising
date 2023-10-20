@@ -1,6 +1,6 @@
-#include "InstanceCreator.h"
+#include "InstanceCreator.hpp"
 
-#include "utils/Logger.h"
+#include "utils/Logger.hpp"
 
 #include <set>
 
@@ -8,10 +8,10 @@ namespace {
 // we can change the color of the debug messages from this callback function!
 // in this case, we change the debug messages to red
 VKAPI_ATTR VkBool32 VKAPI_CALL
-debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
-              VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
-              const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-              void * /*pUserData*/) {
+_debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
+               VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
+               const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+               void * /*pUserData*/) {
 
   // we may change display color according to its importance level
   // if (messageSeverity >=
@@ -21,7 +21,7 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
   return VK_FALSE;
 }
 
-VkDebugUtilsMessengerCreateInfoEXT getDebugMessagerCreateInfo() {
+VkDebugUtilsMessengerCreateInfoEXT _getDebugMessagerCreateInfo() {
   VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 
   // Avoid some of the debug details by leaving some of the flags
@@ -41,14 +41,14 @@ VkDebugUtilsMessengerCreateInfoEXT getDebugMessagerCreateInfo() {
   debugCreateInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                                 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-  debugCreateInfo.pfnUserCallback = debugCallback;
+  debugCreateInfo.pfnUserCallback = _debugCallback;
   return debugCreateInfo;
 }
 
 // setup runtime debug messager
-void setupDebugMessager(VkInstance instance,
-                        VkDebugUtilsMessengerEXT &debugMessager) {
-  auto createInfo = getDebugMessagerCreateInfo();
+void _setupDebugMessager(VkInstance instance,
+                         VkDebugUtilsMessengerEXT &debugMessager) {
+  auto createInfo = _getDebugMessagerCreateInfo();
 
   assert(vkCreateDebugUtilsMessengerEXT != VK_NULL_HANDLE &&
          "vkCreateDebugUtilsMessengerEXT is a null function, call "
@@ -60,7 +60,7 @@ void setupDebugMessager(VkInstance instance,
 
 // returns instance required extension names (i.e glfw, validation layers), they
 // are device-irrational extensions
-std::vector<const char *> getRequiredInstanceExtensions() {
+std::vector<const char *> _getRequiredInstanceExtensions() {
   // Get glfw required extensions
   uint32_t glfwExtensionCount = 0;
   const char **glfwExtensions = nullptr;
@@ -81,7 +81,7 @@ std::vector<const char *> getRequiredInstanceExtensions() {
   return extensions;
 }
 
-bool checkInstanceLayerSupport(const std::vector<const char *> &layers) {
+bool _checkInstanceLayerSupport(const std::vector<const char *> &layers) {
   uint32_t layerCount = 0;
   vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
   std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -121,10 +121,10 @@ bool checkInstanceLayerSupport(const std::vector<const char *> &layers) {
 
 } // namespace
 
-void InstanceCreator::create(VkInstance &instance,
-                             VkDebugUtilsMessengerEXT &debugMessager,
-                             const VkApplicationInfo &appInfo,
-                             const std::vector<const char *> &layers) {
+void ContextCreator::createInstance(VkInstance &instance,
+                                    VkDebugUtilsMessengerEXT &debugMessager,
+                                    const VkApplicationInfo &appInfo,
+                                    const std::vector<const char *> &layers) {
   VkInstanceCreateInfo createInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
 
   createInfo.pApplicationInfo = &appInfo;
@@ -144,7 +144,7 @@ void InstanceCreator::create(VkInstance &instance,
   Logger::print("\n");
 
   // get glfw (+ debug) extensions
-  auto instanceRequiredExtensions = getRequiredInstanceExtensions();
+  auto instanceRequiredExtensions = _getRequiredInstanceExtensions();
   createInfo.enabledExtensionCount =
       static_cast<uint32_t>(instanceRequiredExtensions.size());
   createInfo.ppEnabledExtensionNames = instanceRequiredExtensions.data();
@@ -159,13 +159,13 @@ void InstanceCreator::create(VkInstance &instance,
 #ifndef NVALIDATIONLAYERS
   // Setup debug messager info during vkCreateInstance and vkDestroyInstance
 
-  if (!checkInstanceLayerSupport(layers)) {
+  if (!_checkInstanceLayerSupport(layers)) {
     Logger::throwError("Validation layers requested, but not available!");
   }
 
   createInfo.enabledLayerCount   = static_cast<uint32_t>(layers.size());
   createInfo.ppEnabledLayerNames = layers.data();
-  auto debugMessagerCreateInfo   = getDebugMessagerCreateInfo();
+  auto debugMessagerCreateInfo   = _getDebugMessagerCreateInfo();
   createInfo.pNext               = &debugMessagerCreateInfo;
 #else
   createInfo.enabledLayerCount = 0;
@@ -180,6 +180,6 @@ void InstanceCreator::create(VkInstance &instance,
   volkLoadInstance(instance);
 
 #ifndef NVALIDATIONLAYERS
-  setupDebugMessager(instance, debugMessager);
+  _setupDebugMessager(instance, debugMessager);
 #endif // NDEBUG
 }

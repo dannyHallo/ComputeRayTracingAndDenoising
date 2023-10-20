@@ -6,7 +6,7 @@
 
 // this should be defined first for the definition of VK_VERSION_1_0, which is
 // used in glfw3.h
-#include "context-creators/Common.h"
+#include "context-creators/ContextCreators.hpp"
 
 // glfw3 will define APIENTRY if it is not defined yet
 #include "GLFW/glfw3.h"
@@ -25,9 +25,9 @@
 // also, this class should be configed out of class
 class VulkanApplicationContext {
   // stores the indices of the each queue family, they might not overlap
-  QueueFamilyIndices mQueueFamilyIndices;
+  ContextCreator::QueueFamilyIndices mQueueFamilyIndices;
 
-  SwapchainSupportDetails mSwapchainSupportDetails;
+  ContextCreator::SwapchainSupportDetails mSwapchainSupportDetails;
 
   GLFWwindow *mGlWindow = nullptr;
 
@@ -128,7 +128,8 @@ public:
     return mTransferQueue;
   }
 
-  [[nodiscard]] const QueueFamilyIndices &getQueueFamilyIndices() const {
+  [[nodiscard]] const ContextCreator::QueueFamilyIndices &
+  getQueueFamilyIndices() const {
     return mQueueFamilyIndices;
   }
 
@@ -148,10 +149,11 @@ private:
   // find the indices of the queue families, return whether the indices are
   // fully filled
   bool findQueueFamilies(VkPhysicalDevice physicalDevice,
-                         QueueFamilyIndices &indices);
-  static bool queueIndicesAreFilled(const QueueFamilyIndices &indices);
+                         ContextCreator::QueueFamilyIndices &indices);
+  static bool
+  queueIndicesAreFilled(const ContextCreator::QueueFamilyIndices &indices);
 
-  static SwapchainSupportDetails
+  static ContextCreator::SwapchainSupportDetails
   querySwapchainSupport(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice);
   VkPhysicalDevice
   selectBestDevice(std::vector<VkPhysicalDevice> physicalDevices);

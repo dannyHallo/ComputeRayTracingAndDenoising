@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "utils/Vulkan.h"
+#include "utils/Vulkan.hpp"
 
 namespace RenderSystem {
 VkCommandBuffer beginSingleTimeCommands(VkDevice device,

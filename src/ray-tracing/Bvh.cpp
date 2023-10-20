@@ -1,4 +1,4 @@
-#include "Bvh.h"
+#include "Bvh.hpp"
 
 namespace Bvh {
 

@@ -1,7 +1,7 @@
 #include <memory>
 #include <vector>
 
-#include "RenderSystem.h"
+#include "RenderSystem.hpp"
 
 VkCommandBuffer
 RenderSystem::beginSingleTimeCommands(VkDevice device,

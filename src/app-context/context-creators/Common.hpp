@@ -1,10 +1,11 @@
 #pragma once
 
-#include "utils/Vulkan.h"
+#include "utils/Vulkan.hpp"
 
 #include <cstdint>
 #include <vector>
 
+namespace ContextCreator {
 // stores the indices of the each queue family, they might not overlap
 struct QueueFamilyIndices {
   uint32_t graphicsFamily = -1;
@@ -22,3 +23,4 @@ struct SwapchainSupportDetails {
   std::vector<VkSurfaceFormatKHR> formats;
   std::vector<VkPresentModeKHR> presentModes;
 };
+} // namespace ContextCreator

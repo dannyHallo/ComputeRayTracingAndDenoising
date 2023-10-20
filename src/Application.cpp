@@ -1,9 +1,9 @@
-#include "Application.h"
+#include "Application.hpp"
 
 #include "large-buffer-storage/LargeBufferStorage.hpp"
-#include "render-context/RenderSystem.h"
-#include "scene/ComputeMaterial.h"
-#include "window/Window.h"
+#include "render-context/RenderSystem.hpp"
+#include "scene/ComputeMaterial.hpp"
+#include "window/Window.hpp"
 
 static const int kATrousSize        = 5;
 static const int kMaxFramesInFlight = 2;

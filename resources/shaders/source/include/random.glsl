@@ -1,7 +1,7 @@
 const float pi = 3.1415926535897932385;
 
-
-
+// A Low-Discrepancy Sampler that Distributes Monte Carlo Errors as a Blue Noise
+// in Screen Space https://hal.science/hal-02150657
 float samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp(
     int pixel_i, int pixel_j, int sampleIndex, int sampleDimension) {
   // wrap arguments
@@ -61,8 +61,6 @@ float floatConstruct(uint m) {
 // Pseudo-random value in half-open range [0:1].
 float random(uint x) { return floatConstruct(hash(x)); }
 
-// uvec3 seed = (gl_GlobalInvocationID.xy, globalUbo.currentSample)
-
 uint rngState = 0;
 float random(uvec3 seed) {
   if (rngState == 0) {
@@ -86,55 +84,32 @@ float random(uvec3 seed) {
 // https://www.shadertoy.com/view/4dtBWH
 // https://www.shadertoy.com/view/NdBSWm
 
-vec2 ldsNoise2d(uint x, uint y) {
-  uint n     = x + y * 57u;
-  n          = (n << 13u) ^ n;
-  uint a     = 2750769u;
-  uint b     = 60493u;
-  uint h     = 16u;
-  uint m     = 4294967291u;
-  uint k     = n * a;
-  uint l     = n * b;
-  uint p     = k + l;
-  p          = (p >> h) ^ p;
-  p          = (p >> h) ^ p;
-  vec2 noise = vec2(float(p % m) / float(m), float((p * a) % m) / float(m));
-  return noise;
-}
-
-// const float alpha1 = 0.7548776662466927;
-// const float alpha2 = 0.5698402909980532;
 const float invExp    = 1 / exp2(24.);
 const int alpha1Large = 12664746;
 const int alpha2Large = 9560334;
-
-vec2 ldsNoiseCore(uint n) {
-  return fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
-}
-
 vec2 ldsNoise(uvec3 seed, BaseDisturbance baseDisturbance) {
   uint n =
       hash(seed.x + globalUbo.swapchainWidth * seed.y + baseDisturbance.d) +
       seed.z;
-  return ldsNoiseCore(n);
+  return fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
 }
 
 // Returns a random real in [min,max).
 // float random(float min, float max) { return min + (max - min) * random(); }
-
 vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
   vec2 rand;
   if (useLdsNoise) {
-    rand = ldsNoise(seed, baseDisturbance);
-  } else {
-    // rand.x = random(seed);
-    // rand.y = random(seed);
+    // rand = ldsNoise(seed, baseDisturbance);
     rand.x =
         samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp(
             int(seed.x), int(seed.y), int(seed.z), int(baseDisturbance.d * 2));
     rand.y =
         samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp(
-            int(seed.x), int(seed.y), int(seed.z), int(baseDisturbance.d * 2 + 1));
+            int(seed.x), int(seed.y), int(seed.z),
+            int(baseDisturbance.d * 2 + 1));
+  } else {
+    rand.x = random(seed);
+    rand.y = random(seed);
   }
   return rand;
 }
