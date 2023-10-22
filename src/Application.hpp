@@ -155,10 +155,6 @@ class Application {
   std::unique_ptr<BufferBundle> mBvhBufferBundle;
   std::unique_ptr<BufferBundle> mLightsBufferBundle;
 
-  std::unique_ptr<BufferBundle> mSobalBufferBundle;
-  std::unique_ptr<BufferBundle> mScramblingTileBufferBundle;
-  std::unique_ptr<BufferBundle> mRankingTileBufferBundle;
-
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> mCommandBuffers;
   std::vector<VkCommandBuffer> mGuiCommandBuffers;
@@ -175,7 +171,8 @@ class Application {
   std::vector<VkFence> mFramesInFlightFences;
 
   // spatial-temporal blue noise
-  std::unique_ptr<Image> mBlueNoiseImage;
+  std::unique_ptr<Image> mVec2BlueNoise;
+  std::unique_ptr<Image> mWeightedCosineBlueNoise;
 
   /// the following resources ARE swapchain dim related
   // images for ray tracing and post-processing

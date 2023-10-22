@@ -40,57 +40,48 @@ layout(binding = 1) uniform UniformBufferObject {
 }
 ubo;
 
+layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
+layout(binding = 3,
+       rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
+
 // forward projected visibility buffer (sparse, full res)
-layout(binding = 2, rgba32f) uniform image2D visibilityTex;
-layout(binding = 3, rgba32ui) uniform uimage2D seedVisibilityTex;
+layout(binding = 4, rgba32f) uniform image2D visibilityTex;
+layout(binding = 5, rgba32ui) uniform uimage2D seedVisibilityTex;
 
 // G-Buffer: the image that stores individual position of each ray hit
-layout(binding = 4, rgba32f) writeonly uniform image2D posTex;
+layout(binding = 6, rgba32f) writeonly uniform image2D posTex;
 // G-Buffer: the image that stores individual normal of each ray hit
-layout(binding = 5, rgba32f) writeonly uniform image2D normalTex;
+layout(binding = 7, rgba32f) writeonly uniform image2D normalTex;
 // G-Buffer: the image that stores individual depth of each ray hit
-layout(binding = 6, r32f) writeonly uniform image2D depthTex;
+layout(binding = 8, r32f) writeonly uniform image2D depthTex;
 // G-Buffer: the image that stores individual mesh hash of each ray hit, each
 // triangle has a unique mesh hash
-layout(binding = 7, r32ui) writeonly uniform uimage2D meshHashTex1;
+layout(binding = 9, r32ui) writeonly uniform uimage2D meshHashTex1;
 // Result: the image that stores ray traced color
-layout(binding = 8, rgba32f) writeonly uniform image2D rawTex;
+layout(binding = 10, rgba32f) writeonly uniform image2D rawTex;
 // Seed texture
-layout(binding = 9, rgba32ui) writeonly uniform uimage2D seedTex;
+layout(binding = 11, rgba32ui) writeonly uniform uimage2D seedTex;
 // Temporal gradient
-layout(binding = 10, rgba32f) writeonly uniform image2D temporalGradientTex;
+layout(binding = 12, rgba32f) writeonly uniform image2D temporalGradientTex;
 
 // the buffer that contains all triangles (read only)
-layout(std430, binding = 11) readonly buffer TriangleBufferObject {
+layout(std430, binding = 13) readonly buffer TriangleBufferObject {
   Triangle[] triangles;
 };
 
 // the buffer that contains all materials (read only)
-layout(std430, binding = 12) readonly buffer MaterialBufferObject {
+layout(std430, binding = 14) readonly buffer MaterialBufferObject {
   material[] materials;
 };
 
 // the buffer that contains all bvh nodes (read only)
-layout(std430, binding = 13) readonly buffer AabbBufferObject {
+layout(std430, binding = 15) readonly buffer AabbBufferObject {
   BvhNode[] bvh;
 };
 
 // the buffer that contains all lights (read only)
-layout(std430, binding = 14) readonly buffer LightsBufferObject {
+layout(std430, binding = 16) readonly buffer LightsBufferObject {
   Light[] lights;
-};
-
-// the buffer that contains all triangles (read only)
-layout(std430, binding = 15) readonly buffer SobolBufferObject {
-  int[] sobol_256spp_256d;
-};
-
-layout(std430, binding = 16) readonly buffer ScramblingBufferObject {
-  int[] scramblingTile;
-};
-
-layout(std430, binding = 17) readonly buffer RankingBufferObject {
-  int[] rankingTile;
 };
 
 #include "include/definitions.glsl"
@@ -245,9 +236,10 @@ HitRecord traceRayToBvh(Ray r) {
   return rec;
 }
 
-void getRamdomSampleOnLight(uvec3 seed, out vec3 randomSamplingPointOnLight,
+void getRamdomSampleOnLight(uvec3 seed, BaseDisturbance baseDisturbance,
+                            out vec3 randomSamplingPointOnLight,
                             out vec3 lightNormal, out float lightArea) {
-  vec2 rand = randomUv(seed, BaseDisturbance(1), ubo.useLdsNoise);
+  vec2 rand = randomUv(seed, baseDisturbance, ubo.useLdsNoise);
 
   float x = rand.x;
   float y = rand.y;
@@ -286,8 +278,8 @@ vec3 pathTracing2(Ray r, uvec3 seed) {
   // direct lighting
   float lightArea;
   vec3 randomSamplingPointOnLight, lightNormal;
-  getRamdomSampleOnLight(seed, randomSamplingPointOnLight, lightNormal,
-                         lightArea);
+  getRamdomSampleOnLight(seed, BaseDisturbance(1), randomSamplingPointOnLight,
+                         lightNormal, lightArea);
   vec3 o2l      = randomSamplingPointOnLight - rec.p;
   float distSqr = dot(o2l, o2l);
   float dist    = sqrt(distSqr);
@@ -329,8 +321,8 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
   // direct lighting
   float lightArea;
   vec3 randomSamplingPointOnLight, lightNormal;
-  getRamdomSampleOnLight(seed, randomSamplingPointOnLight, lightNormal,
-                         lightArea);
+  getRamdomSampleOnLight(seed, BaseDisturbance(4), randomSamplingPointOnLight,
+                         lightNormal, lightArea);
 
   vec3 o2l      = randomSamplingPointOnLight - rec.p;
   float distSqr = dot(o2l, o2l);
@@ -373,9 +365,6 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
   if (ubo.outputType != OUTPUT_TYPE_DIRECT_ONLY) {
     indirectColor = pathTracing2(indirectRay, seed) * brdf *
                     dot(indirectRayDir, rec.normal) / pdf;
-    // vec3 indirectColor =
-    //     pathTracing2(indirectRay, seed) *
-    //     materials[rec.materialIndex].albedo;
   }
 
   rec.color = directColor + indirectColor;
@@ -479,16 +468,6 @@ void main() {
   vec4 thisTimeRawColor   = vec4(fireflyRejectionClamp(hitColor), 1);
   float thisTimeLuminance = dot(kRgbToLuminanceMat, thisTimeRawColor.rgb);
 
-  // imageStore(rawTex, uv, thisTimeRawColor);
-  // vec4 randomColor = vec4(
-  //     randomUv(uvec3(seed.xy, 0), BaseDisturbance(0), ubo.useLdsNoise), 1,
-  //     1);
-
-  // vec4 randomColor = vec4(
-  //     randomCosineWeightedHemispherePoint(vec3(0, 0, 1), uvec3(seed.xy, 1),
-  //                                         BaseDisturbance(2),
-  //                                         ubo.useLdsNoise),
-  //     1);
   imageStore(rawTex, uv, vec4(hitColor, 1));
   imageStore(posTex, uv, hitWorldPos);  // w: -1 (invalid) or 1 (valid)
   imageStore(normalTex, uv, hitNormal); // w: -1 (invalid) or 0 (valid)

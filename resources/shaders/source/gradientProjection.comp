@@ -18,34 +18,25 @@ layout(binding = 1) uniform UniformBufferObject {
 }
 ubo;
 
+layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
+layout(binding = 3,
+       rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
+
 // full res, dense, recording last time rtx result
-layout(binding = 2, rgba32f) readonly uniform image2D lastRawColorTex;
-layout(binding = 3, rgba32f) readonly uniform image2D lastPosTex;
-layout(binding = 4, rgba32ui) readonly uniform uimage2D lastSeedTex;
+layout(binding = 4, rgba32f) readonly uniform image2D lastRawColorTex;
+layout(binding = 5, rgba32f) readonly uniform image2D lastPosTex;
+layout(binding = 6, rgba32ui) readonly uniform uimage2D lastSeedTex;
 // 1/3 res, recording the active position in
 // the stratum, and its luminance
-layout(binding = 5, rgba32f) writeonly uniform image2D perStratumTex;
+layout(binding = 7, rgba32f) writeonly uniform image2D perStratumTex;
 // 1/3 res, it is automatically reset to all zero before
 // every dispatch, it's aim is to ensure the write is atomic
-layout(binding = 6, r32ui) uniform uimage2D perStratumLockingTex;
+layout(binding = 8, r32ui) uniform uimage2D perStratumLockingTex;
 // full res, but sparse (at most 1 sample per stratum),
 // stored with forward-projected accurate screen space sampling position,
 // associated with its luminance
-layout(binding = 7, rgba32f) writeonly uniform image2D visibilityTex;
-layout(binding = 8, rgba32ui) writeonly uniform uimage2D seedVisibilityTex;
-
-// the buffer that contains all triangles (read only)
-layout(std430, binding = 9) readonly buffer SobolBufferObject {
-  int[] sobol_256spp_256d;
-};
-
-layout(std430, binding = 10) readonly buffer ScramblingBufferObject {
-  int[] scramblingTile;
-};
-
-layout(std430, binding = 11) readonly buffer RankingBufferObject {
-  int[] rankingTile;
-};
+layout(binding = 9, rgba32f) writeonly uniform image2D visibilityTex;
+layout(binding = 10, rgba32ui) writeonly uniform uimage2D seedVisibilityTex;
 
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl"
@@ -89,7 +80,7 @@ void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
 
   // if the seed has been used more than x times,
   // discard this stratum
-  if (imageLoad(lastSeedTex, brightestGlobalPos).w > 2) {
+  if (imageLoad(lastSeedTex, brightestGlobalPos).w > 1) {
     brightestGlobalPos = ivec2(0);
     brightestLuminance = 0;
     brightestSeed      = uvec2(0);

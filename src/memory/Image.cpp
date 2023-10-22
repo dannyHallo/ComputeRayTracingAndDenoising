@@ -348,7 +348,7 @@ void Image::_transitionImageLayout(VkImageLayout newLayout) {
              newLayout == VK_IMAGE_LAYOUT_GENERAL) {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    sourceStage           = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    sourceStage           = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destinationStage      = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
   } else {
     Logger::throwError("unsupported layout transition!");

@@ -1,33 +1,5 @@
 const float pi = 3.1415926535897932385;
 
-// A Low-Discrepancy Sampler that Distributes Monte Carlo Errors as a Blue Noise
-// in Screen Space https://hal.science/hal-02150657
-float samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp(
-    int pixel_i, int pixel_j, int sampleIndex, int sampleDimension) {
-  // wrap arguments
-  pixel_i         = pixel_i & 127;
-  pixel_j         = pixel_j & 127;
-  sampleIndex     = sampleIndex & 255;
-  sampleDimension = sampleDimension & 255;
-
-  // xor index based on optimized ranking
-  int rankedSampleIndex =
-      sampleIndex ^
-      rankingTile[sampleDimension + (pixel_i + pixel_j * 128) * 8];
-
-  // fetch value in sequence
-  int value = sobol_256spp_256d[sampleDimension + rankedSampleIndex * 256];
-
-  // If the dimension is optimized, xor sequence value based on optimized
-  // scrambling
-  value = value ^
-          scramblingTile[(sampleDimension % 8) + (pixel_i + pixel_j * 128) * 8];
-
-  // convert to float and return
-  float v = (0.5f + value) / 256.0f;
-  return v;
-}
-
 // simply for easier searching in the editor
 struct BaseDisturbance {
   uint d;
@@ -84,9 +56,10 @@ float random(uvec3 seed) {
 // https://www.shadertoy.com/view/4dtBWH
 // https://www.shadertoy.com/view/NdBSWm
 
-const float invExp    = 1 / exp2(24.);
-const int alpha1Large = 12664746;
-const int alpha2Large = 9560334;
+const uvec3 kBlueNoiseSize = uvec3(128, 128, 64);
+const float invExp         = 1 / exp2(24.);
+const int alpha1Large      = 12664746;
+const int alpha2Large      = 9560334;
 vec2 ldsNoise(uvec3 seed, BaseDisturbance baseDisturbance) {
   uint n =
       hash(seed.x + globalUbo.swapchainWidth * seed.y + baseDisturbance.d) +
@@ -94,19 +67,27 @@ vec2 ldsNoise(uvec3 seed, BaseDisturbance baseDisturbance) {
   return fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
 }
 
+vec2 getOffsetFromDisturbance(BaseDisturbance baseDisturbance) {
+  uint n         = baseDisturbance.d + 777123;
+  vec2 ldsOffset = fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
+  return ldsOffset;
+}
+
 // Returns a random real in [min,max).
 // float random(float min, float max) { return min + (max - min) * random(); }
 vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
   vec2 rand;
   if (useLdsNoise) {
-    // rand = ldsNoise(seed, baseDisturbance);
-    rand.x =
-        samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp(
-            int(seed.x), int(seed.y), int(seed.z), int(baseDisturbance.d * 2));
-    rand.y =
-        samplerBlueNoiseErrorDistribution_128x128_OptimizedFor_2d2d2d2d_1spp(
-            int(seed.x), int(seed.y), int(seed.z),
-            int(baseDisturbance.d * 2 + 1));
+    vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(baseDisturbance);
+
+    seed =
+        uvec3(seed.x + offsetBasedOnDisturbance.x * kBlueNoiseSize.x,
+              seed.y + offsetBasedOnDisturbance.y * kBlueNoiseSize.x, seed.z);
+
+    rand = imageLoad(vec2BlueNoise,
+                     ivec3(seed.x % kBlueNoiseSize.x, seed.y % kBlueNoiseSize.y,
+                           seed.z % kBlueNoiseSize.z))
+               .xy;
   } else {
     rand.x = random(seed);
     rand.y = random(seed);
@@ -137,30 +118,39 @@ vec3 randomInHemisphere(vec3 normal, uvec3 seed,
     return -inUnitSphere;
 }
 
+mat3 makeTBN(vec3 N) {
+  vec3 up = abs(N.z) < 0.999 ? vec3(0, 0, 1) : vec3(1, 0, 0);
+  vec3 T  = normalize(cross(up, N));
+  vec3 B  = cross(N, T);
+  return mat3(T, B, N);
+}
+
 vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed,
                                          BaseDisturbance baseDisturbance,
                                          bool useLdsNoise) {
-  vec2 rand = randomUv(seed, baseDisturbance, useLdsNoise);
-
-  float theta = 2.0 * pi * rand.x;
-  float phi   = acos(sqrt(1.0 - rand.y));
-
   vec3 dir;
-  dir.x = sin(phi) * cos(theta);
-  dir.y = sin(phi) * sin(theta);
-  dir.z = cos(phi);
+  if (useLdsNoise) {
+    vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(baseDisturbance);
+    seed =
+        uvec3(seed.x + offsetBasedOnDisturbance.x * kBlueNoiseSize.x,
+              seed.y + offsetBasedOnDisturbance.y * kBlueNoiseSize.x, seed.z);
+    dir = imageLoad(weightedCosineBlueNoise,
+                    ivec3(seed.x % kBlueNoiseSize.x, seed.y % kBlueNoiseSize.y,
+                          seed.z % kBlueNoiseSize.z))
+              .xyz;
+    // change from [0,1] to [-1,1]
+    dir = dir * 2.0 - 1.0;
 
-  // Create an orthonormal basis to transform the direction
-  vec3 tangent, bitangent;
-  if (abs(normal.x) > abs(normal.y))
-    tangent = normalize(cross(vec3(0.0, 1.0, 0.0), normal));
-  else
-    tangent = normalize(cross(vec3(1.0, 0.0, 0.0), normal));
-  bitangent = cross(normal, tangent);
+  } else {
+    vec2 rand = randomUv(seed, baseDisturbance, useLdsNoise);
 
-  // Transform the direction from the hemisphere's local coordinates to world
-  // coordinates
-  vec3 samp = dir.x * tangent + dir.y * bitangent + dir.z * normal;
+    float theta = 2.0 * pi * rand.x;
+    float phi   = acos(sqrt(1.0 - rand.y));
 
-  return samp;
+    dir.x = sin(phi) * cos(theta);
+    dir.y = sin(phi) * sin(theta);
+    dir.z = cos(phi);
+  }
+  mat3 TBN = makeTBN(normal);
+  return TBN * dir;
 }

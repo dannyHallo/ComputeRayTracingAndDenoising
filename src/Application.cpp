@@ -1,6 +1,5 @@
 #include "Application.hpp"
 
-#include "large-buffer-storage/LargeBufferStorage.hpp"
 #include "render-context/RenderSystem.hpp"
 #include "scene/ComputeMaterial.hpp"
 #include "window/Window.hpp"
@@ -154,39 +153,34 @@ void Application::createBufferBundles() {
       swapchainSize, sizeof(GpuModel::Light) * mRtScene->lights.size(),
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
       mRtScene->lights.data());
-
-  mSobalBufferBundle = std::make_unique<BufferBundle>(
-      swapchainSize, sizeof(int) * kSobalBufferSize,
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
-      sobol_256spp_256d);
-
-  mScramblingTileBufferBundle = std::make_unique<BufferBundle>(
-      swapchainSize, sizeof(int) * kScramblingTileSize,
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
-      scramblingTile);
-
-  mRankingTileBufferBundle = std::make_unique<BufferBundle>(
-      swapchainSize, sizeof(int) * kRankingTileSize,
-      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU,
-      rankingTile);
 }
 
 void Application::createImagesAndForwardingPairs() {
 
-  // mBlueNoiseImage = std::make_unique<Image>(
-  //     kPathToResourceFolder + "/textures/stbn/scalar_2d_1d_1d/"
-  //                             "stbn_scalar_2Dx1Dx1D_128x128x64x1_0.png",
-  //     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  std::vector<std::string> filenames{};
-  for (int i = 0; i < 64; i++) {
-    filenames.emplace_back(kPathToResourceFolder +
-                           "/textures/stbn/scalar_2d_1d_1d/"
-                           "stbn_scalar_2Dx1Dx1D_128x128x64x1_" +
-                           std::to_string(i) + ".png");
+  {
+    std::vector<std::string> filenames{};
+    for (int i = 0; i < 64; i++) {
+      filenames.emplace_back(kPathToResourceFolder +
+                             "/textures/stbn/vec2_2d_1d/"
+                             "stbn_vec2_2Dx1D_128x128x64_" +
+                             std::to_string(i) + ".png");
+    }
+    mVec2BlueNoise =
+        std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
+                                               VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   }
-  mBlueNoiseImage = std::make_unique<Image>(
-      filenames, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  {
+    std::vector<std::string> filenames{};
+    for (int i = 0; i < 64; i++) {
+      filenames.emplace_back(kPathToResourceFolder +
+                             "/textures/stbn/unitvec3_cosine_2d_1d/"
+                             "stbn_unitvec3_cosine_2Dx1D_128x128x64_" +
+                             std::to_string(i) + ".png");
+    }
+    mWeightedCosineBlueNoise =
+        std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
+                                               VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  }
 
   auto imageWidth  = mAppContext->getSwapchainExtentWidth();
   auto imageHeight = mAppContext->getSwapchainExtentHeight();
@@ -322,39 +316,39 @@ void Application::createImagesAndForwardingPairs() {
 }
 
 void Application::createComputeModels() {
-  auto mGradientProjectionMat = std::make_unique<ComputeMaterial>(
+  auto gradientProjectionMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/gradientProjection.spv");
   {
-    mGradientProjectionMat->addUniformBufferBundle(mGlobalBufferBundle.get());
-    mGradientProjectionMat->addUniformBufferBundle(
+    gradientProjectionMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+    gradientProjectionMat->addUniformBufferBundle(
         mGradientProjectionBufferBundle.get());
+    // readonly input
+    gradientProjectionMat->addStorageImage(mVec2BlueNoise.get());
+    gradientProjectionMat->addStorageImage(mWeightedCosineBlueNoise.get());
     // input
-    mGradientProjectionMat->addStorageImage(mRawImage.get());
-    mGradientProjectionMat->addStorageImage(mPositionImage.get());
-    mGradientProjectionMat->addStorageImage(mSeedImage.get());
+    gradientProjectionMat->addStorageImage(mRawImage.get());
+    gradientProjectionMat->addStorageImage(mPositionImage.get());
+    gradientProjectionMat->addStorageImage(mSeedImage.get());
     // output
-    mGradientProjectionMat->addStorageImage(mPerStratumImage.get());
+    gradientProjectionMat->addStorageImage(mPerStratumImage.get());
     // atomic readwrite
-    mGradientProjectionMat->addStorageImage(mPerStratumLockingImage.get());
+    gradientProjectionMat->addStorageImage(mPerStratumLockingImage.get());
     // output, too
-    mGradientProjectionMat->addStorageImage(mVisibilityImage.get());
-    mGradientProjectionMat->addStorageImage(mSeedVisibilityImage.get());
-    // buffers
-    mGradientProjectionMat->addStorageBufferBundle(mSobalBufferBundle.get());
-    mGradientProjectionMat->addStorageBufferBundle(
-        mScramblingTileBufferBundle.get());
-    mGradientProjectionMat->addStorageBufferBundle(
-        mRankingTileBufferBundle.get());
+    gradientProjectionMat->addStorageImage(mVisibilityImage.get());
+    gradientProjectionMat->addStorageImage(mSeedVisibilityImage.get());
   }
   mGradientProjectionModel =
-      std::make_unique<ComputeModel>(std::move(mGradientProjectionMat));
+      std::make_unique<ComputeModel>(std::move(gradientProjectionMat));
 
   auto rtxMat = std::make_unique<ComputeMaterial>(kPathToResourceFolder +
                                                   "/shaders/generated/rtx.spv");
   {
     rtxMat->addUniformBufferBundle(mGlobalBufferBundle.get());
     rtxMat->addUniformBufferBundle(mRtxBufferBundle.get());
-    // input
+    // readonly input
+    rtxMat->addStorageImage(mVec2BlueNoise.get());
+    rtxMat->addStorageImage(mWeightedCosineBlueNoise.get());
+    // readwrite input
     rtxMat->addStorageImage(mVisibilityImage.get());
     // reprojected seed
     rtxMat->addStorageImage(mSeedVisibilityImage.get());
@@ -371,9 +365,6 @@ void Application::createComputeModels() {
     rtxMat->addStorageBufferBundle(mMaterialBufferBundle.get());
     rtxMat->addStorageBufferBundle(mBvhBufferBundle.get());
     rtxMat->addStorageBufferBundle(mLightsBufferBundle.get());
-    rtxMat->addStorageBufferBundle(mSobalBufferBundle.get());
-    rtxMat->addStorageBufferBundle(mScramblingTileBufferBundle.get());
-    rtxMat->addStorageBufferBundle(mRankingTileBufferBundle.get());
   }
   mRtxModel = std::make_unique<ComputeModel>(std::move(rtxMat));
 
@@ -436,6 +427,9 @@ void Application::createComputeModels() {
     {
       aTrousMat->addUniformBufferBundle(mGlobalBufferBundle.get());
       aTrousMat->addUniformBufferBundle(mBlurFilterBufferBundles[i].get());
+      // readonly input
+      aTrousMat->addStorageImage(mVec2BlueNoise.get());
+      aTrousMat->addStorageImage(mWeightedCosineBlueNoise.get());
       // input
       aTrousMat->addStorageImage(mATrousInputImage.get());
       aTrousMat->addStorageImage(mNormalImage.get());
@@ -445,10 +439,6 @@ void Application::createComputeModels() {
       // output
       aTrousMat->addStorageImage(mLastFrameAccumImage.get());
       aTrousMat->addStorageImage(mATrousOutputImage.get());
-      // buffers
-      aTrousMat->addStorageBufferBundle(mSobalBufferBundle.get());
-      aTrousMat->addStorageBufferBundle(mScramblingTileBufferBundle.get());
-      aTrousMat->addStorageBufferBundle(mRankingTileBufferBundle.get());
     }
     mATrousModels.emplace_back(
         std::make_unique<ComputeModel>(std::move(aTrousMat)));
@@ -467,7 +457,7 @@ void Application::createComputeModels() {
     postProcessingMat->addStorageImage(mPerStratumImage.get());
     postProcessingMat->addStorageImage(mVisibilityImage.get());
     postProcessingMat->addStorageImage(mTemporalGradientImage.get());
-    postProcessingMat->addStorageImage(mBlueNoiseImage.get());
+    postProcessingMat->addStorageImage(mWeightedCosineBlueNoise.get());
     // output
     postProcessingMat->addStorageImage(mTargetImage.get());
   }
@@ -675,8 +665,10 @@ void Application::createRenderCommandBuffers() {
 }
 
 void Application::cleanupImagesAndForwardingPairs() {
-  mBlueNoiseImage.reset(); // this is not needed, since changing swapchain size
-                           // does not affect this image
+  // this is not needed, since changing swapchain size does not affect this
+  // image
+  mVec2BlueNoise.reset();
+  mWeightedCosineBlueNoise.reset();
 
   mPositionImage.reset();
   mRawImage.reset();
