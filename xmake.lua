@@ -34,9 +34,7 @@ target("main")
         "src",
         "dep",
         "dep/spdlog/include",
-        "dep/glm",
         "dep/imgui",
-        "dep/volk",
         "dep/obj-loader",
         "dep/memory-allocator-hpp"
     )
