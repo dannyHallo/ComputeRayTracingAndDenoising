@@ -159,6 +159,6 @@ void ContextCreator::createSwapchain(
   for (size_t i = 0; i < imageCount; i++) {
     swapchainImageViews[i] =
         Image::createImageView(device, swapchainImages[i], swapchainImageFormat,
-                               VK_IMAGE_ASPECT_COLOR_BIT);
+                               VK_IMAGE_ASPECT_COLOR_BIT, 1);
   }
 }

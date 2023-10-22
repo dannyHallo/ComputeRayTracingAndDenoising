@@ -5,47 +5,249 @@
 #include "Buffer.hpp"
 #include "render-context/RenderSystem.hpp"
 #include "utils/Logger.hpp"
-#include "vulkan/vulkan_core.h"
+#include "utils/Vulkan.hpp"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb-image/stb_image.h"
 
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <unordered_map>
 
-VkImageView Image::createImageView(VkDevice device, const VkImage &image,
-                                   VkFormat format,
-                                   VkImageAspectFlags aspectFlags) {
-  VkImageView imageView{};
+static const VkClearColorValue kClearColor = {{0, 0, 0, 0}};
 
-  VkImageViewCreateInfo viewInfo{};
-  viewInfo.sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  viewInfo.image    = image;
-  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-  viewInfo.format   = format;
-  viewInfo.subresourceRange.aspectMask     = aspectFlags;
-  viewInfo.subresourceRange.baseMipLevel   = 0;
-  viewInfo.subresourceRange.levelCount     = 1;
-  viewInfo.subresourceRange.baseArrayLayer = 0;
-  viewInfo.subresourceRange.layerCount     = 1;
+static const std::unordered_map<VkFormat, int> kVkFormatBytesPerPixelMap{
+    // 8-bit formats
+    {VK_FORMAT_R8_UNORM, 1},
+    {VK_FORMAT_R8G8_UNORM, 2},
+    {VK_FORMAT_R8G8B8_UNORM, 3},
+    {VK_FORMAT_R8G8B8A8_UNORM, 4},
 
-  VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
-  Logger::checkStep("vkCreateImageView", result);
+    // 16-bit formats
+    {VK_FORMAT_R16_UNORM, 2},
+    {VK_FORMAT_R16G16_UNORM, 4},
+    {VK_FORMAT_R16G16B16_UNORM, 6},
+    {VK_FORMAT_R16G16B16A16_UNORM, 8},
 
-  return imageView;
+    // 32-bit formats
+    {VK_FORMAT_R32_SFLOAT, 4},
+    {VK_FORMAT_R32G32_SFLOAT, 8},
+    {VK_FORMAT_R32G32B32_SFLOAT, 12},
+    {VK_FORMAT_R32G32B32A32_SFLOAT, 16},
+};
+
+namespace {
+
+unsigned char *_loadImageFromPath(const std::string &path, int &width,
+                                  int &height, int &channels) {
+  unsigned char *imageData =
+      stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+  if (!imageData) {
+    Logger::throwError("Failed to load texture image: " + path);
+    return nullptr;
+  }
+  return imageData;
 }
 
-VkResult Image::createImage(uint32_t width, uint32_t height,
-                            VkSampleCountFlagBits numSamples, VkFormat format,
-                            VkImageTiling tiling, VkImageUsageFlags usage,
-                            VmaMemoryUsage memoryUsage) {
+void _freeImageData(unsigned char *imageData) { stbi_image_free(imageData); }
+
+} // namespace
+
+Image::Image(uint32_t width, uint32_t height, VkFormat format,
+             VkImageUsageFlags usage, VkImageLayout initialImageLayout,
+             VkSampleCountFlagBits numSamples, VkImageTiling tiling,
+             VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage)
+    : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), mLayerCount(1),
+      mFormat(format), mWidth(width), mHeight(height) {
+  VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
+  if (result != VK_SUCCESS) {
+    Logger::throwError("failed to create image!");
+  }
+
+  if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
+    _transitionImageLayout(initialImageLayout);
+  }
+  mVkImageView =
+      createImageView(VulkanApplicationContext::getInstance()->getDevice(),
+                      mVkImage, format, aspectFlags, mLayerCount);
+}
+
+Image::Image(const std::string &filename, VkImageUsageFlags usage,
+             VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
+             VkImageTiling tiling, VkImageAspectFlags aspectFlags,
+             VmaMemoryUsage memoryUsage)
+    : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), mLayerCount(1),
+      mFormat(VK_FORMAT_R8G8B8A8_UNORM) {
+  // load image from path
+  int width, height, channels;
+  auto *imageData = _loadImageFromPath(filename, width, height, channels);
+  mWidth          = static_cast<uint32_t>(width);
+  mHeight         = static_cast<uint32_t>(height);
+
+  VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
+  Logger::checkStep("create image using path", result);
+
+  // make it pastable
+  if (initialImageLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    _transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  }
+
+  // copy the image data to the image
+  _copyDataToImage(imageData);
+
+  // free the image data
+  _freeImageData(imageData);
+
+  if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
+    _transitionImageLayout(initialImageLayout);
+  }
+
+  mVkImageView =
+      createImageView(VulkanApplicationContext::getInstance()->getDevice(),
+                      mVkImage, mFormat, aspectFlags, mLayerCount);
+}
+
+Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
+             VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
+             VkImageTiling tiling, VkImageAspectFlags aspectFlags,
+             VmaMemoryUsage memoryUsage)
+    : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED),
+      mLayerCount(filenames.size()), mFormat(VK_FORMAT_R8G8B8A8_UNORM) {
+  std::vector<unsigned char *> imageDatas{};
+
+  int width, height, channels;
+  for (auto &filename : filenames) {
+    // load image from path
+    auto *imageData = _loadImageFromPath(filename, width, height, channels);
+    imageDatas.push_back(imageData);
+  }
+  mWidth  = static_cast<uint32_t>(width);
+  mHeight = static_cast<uint32_t>(height);
+
+  VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
+
+  Logger::checkStep("create image using path", result);
+
+  // make it pastable
+  if (initialImageLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    _transitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  }
+
+  // copy the image data to the image
+  for (uint32_t i = 0; i < filenames.size(); ++i) {
+    _copyDataToImage(imageDatas[i], i);
+    _freeImageData(imageDatas[i]);
+  }
+
+  if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
+    _transitionImageLayout(initialImageLayout);
+  }
+
+  mVkImageView =
+      createImageView(VulkanApplicationContext::getInstance()->getDevice(),
+                      mVkImage, mFormat, aspectFlags, mLayerCount);
+}
+
+Image::~Image() {
+  if (mVkImage != VK_NULL_HANDLE) {
+    vkDestroyImageView(VulkanApplicationContext::getInstance()->getDevice(),
+                       mVkImageView, nullptr);
+    vkDestroyImage(VulkanApplicationContext::getInstance()->getDevice(),
+                   mVkImage, nullptr);
+    vmaFreeMemory(VulkanApplicationContext::getInstance()->getAllocator(),
+                  mAllocation);
+  }
+}
+
+void Image::clearImage() {
+  auto &device = VulkanApplicationContext::getInstance()->getDevice();
+  auto &queue  = VulkanApplicationContext::getInstance()->getGraphicsQueue();
+  auto &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
+
+  VkCommandBuffer commandBuffer =
+      RenderSystem::beginSingleTimeCommands(device, commandPool);
+
+  VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  vkCmdClearColorImage(commandBuffer, mVkImage, VK_IMAGE_LAYOUT_GENERAL,
+                       &kClearColor, 1, &clearRange);
+
+  RenderSystem::endSingleTimeCommands(device, commandPool, queue,
+                                      commandBuffer);
+}
+
+void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
+  auto &device = VulkanApplicationContext::getInstance()->getDevice();
+  auto &queue  = VulkanApplicationContext::getInstance()->getGraphicsQueue();
+  auto &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
+  auto &allocator   = VulkanApplicationContext::getInstance()->getAllocator();
+
+  const uint32_t imagePixelCount = mWidth * mHeight;
+  // the channel count is ignored here, because the VkFormat is enough
+  const uint32_t imageDataSize =
+      imagePixelCount * kVkFormatBytesPerPixelMap.at(mFormat);
+
+  // create a staging buffer
+  VkBufferCreateInfo bufferInfo{};
+  bufferInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferInfo.size        = imageDataSize;
+  bufferInfo.usage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  VmaAllocationCreateInfo vmaAllocInfo{};
+  vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+  VkBuffer stagingBuffer;
+  VmaAllocation stagingBufferAllocation;
+  vmaCreateBuffer(allocator, &bufferInfo, &vmaAllocInfo, &stagingBuffer,
+                  &stagingBufferAllocation, nullptr);
+
+  // copy your data to the staging buffer
+  void *mappedData;
+  vmaMapMemory(allocator, stagingBufferAllocation, &mappedData);
+  memcpy(mappedData, imageData, imageDataSize);
+  vmaUnmapMemory(allocator, stagingBufferAllocation);
+
+  // record a command to copy the buffer to the image
+  VkCommandBuffer commandBuffer = RenderSystem::beginSingleTimeCommands(
+      VulkanApplicationContext::getInstance()->getDevice(),
+      VulkanApplicationContext::getInstance()->getCommandPool());
+
+  VkBufferImageCopy region{};
+  region.bufferOffset      = 0;
+  region.bufferRowLength   = 0; // If your data is tightly packed, this can be 0
+  region.bufferImageHeight = 0; // If your data is tightly packed, this can be 0
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel   = 0;
+  // the first layer of the texture array that the data should be copied into
+  region.imageSubresource.baseArrayLayer = layerToCopyTo;
+  region.imageSubresource.layerCount     = 1;
+  region.imageOffset                     = {0, 0, 0};
+  region.imageExtent                     = {mWidth, mHeight, 1};
+
+  vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, mVkImage,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+  RenderSystem::endSingleTimeCommands(device, commandPool, queue,
+                                      commandBuffer);
+
+  // Clean up the staging buffer
+  vmaDestroyBuffer(VulkanApplicationContext::getInstance()->getAllocator(),
+                   stagingBuffer, stagingBufferAllocation);
+}
+
+VkResult Image::_createImage(VkSampleCountFlagBits numSamples,
+                             VkImageTiling tiling, VkImageUsageFlags usage,
+                             VmaMemoryUsage memoryUsage) {
   VkImageCreateInfo imageInfo{};
   imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType     = VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width  = width;
-  imageInfo.extent.height = height;
+  imageInfo.extent.width  = mWidth;
+  imageInfo.extent.height = mHeight;
   imageInfo.extent.depth  = 1;
   imageInfo.mipLevels     = 1;
-  imageInfo.arrayLayers   = 1;
-  imageInfo.format        = format;
+  imageInfo.arrayLayers   = mLayerCount;
+  imageInfo.format        = mFormat;
   imageInfo.tiling        = tiling;
   imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   imageInfo.usage         = usage;
@@ -60,34 +262,29 @@ VkResult Image::createImage(uint32_t width, uint32_t height,
                         nullptr);
 }
 
-Image::Image(VkDevice device, VkCommandPool commandPool, VkQueue queue,
-             uint32_t width, uint32_t height, VkSampleCountFlagBits numSamples,
-             VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-             VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage,
-             VkImageLayout initialImageLayout)
-    : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), mWidth(width),
-      mHeight(height) {
-  VkResult result = createImage(width, height, numSamples, format, tiling,
-                                usage, memoryUsage);
-  if (result != VK_SUCCESS) {
-    Logger::throwError("failed to create image!");
-  }
+VkImageView Image::createImageView(VkDevice device, const VkImage &image,
+                                   VkFormat format,
+                                   VkImageAspectFlags aspectFlags,
+                                   uint32_t layerCount) {
+  VkImageView imageView{};
 
-  if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
-    transitionImageLayout(device, commandPool, queue, initialImageLayout);
-  }
-  mVkImageView = createImageView(device, mVkImage, format, aspectFlags);
-}
+  VkImageViewCreateInfo viewInfo{};
+  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.image = image;
 
-Image::~Image() {
-  if (mVkImage != VK_NULL_HANDLE) {
-    vkDestroyImageView(VulkanApplicationContext::getInstance()->getDevice(),
-                       mVkImageView, nullptr);
-    vkDestroyImage(VulkanApplicationContext::getInstance()->getDevice(),
-                   mVkImage, nullptr);
-    vmaFreeMemory(VulkanApplicationContext::getInstance()->getAllocator(),
-                  mAllocation);
-  }
+  viewInfo.viewType =
+      (layerCount == 1) ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+  viewInfo.format                          = format;
+  viewInfo.subresourceRange.aspectMask     = aspectFlags;
+  viewInfo.subresourceRange.baseMipLevel   = 0;
+  viewInfo.subresourceRange.levelCount     = 1;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount     = layerCount;
+
+  VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
+  Logger::checkStep("vkCreateImageView", result);
+
+  return imageView;
 }
 
 VkDescriptorImageInfo
@@ -98,10 +295,14 @@ Image::getDescriptorInfo(VkImageLayout imageLayout) const {
   return imageInfo;
 }
 
-void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool,
-                                  VkQueue queue, VkImageLayout newLayout) {
+void Image::_transitionImageLayout(VkImageLayout newLayout) {
+  auto &device = VulkanApplicationContext::getInstance()->getDevice();
+  auto &queue  = VulkanApplicationContext::getInstance()->getGraphicsQueue();
+  auto &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
+
   VkCommandBuffer commandBuffer =
       RenderSystem::beginSingleTimeCommands(device, commandPool);
+
   VkImageMemoryBarrier barrier{};
   barrier.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   barrier.oldLayout                   = mCurrentImageLayout;
@@ -113,7 +314,7 @@ void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool,
   barrier.subresourceRange.baseMipLevel   = 0;
   barrier.subresourceRange.levelCount     = 1;
   barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount     = 1;
+  barrier.subresourceRange.layerCount     = mLayerCount;
 
   VkPipelineStageFlags sourceStage      = VK_PIPELINE_STAGE_NONE;
   VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_NONE;
@@ -135,6 +336,18 @@ void Image::transitionImageLayout(VkDevice device, VkCommandPool commandPool,
               newLayout == VK_IMAGE_LAYOUT_GENERAL)) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    sourceStage           = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage      = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+  } else if (mCurrentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+             newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    sourceStage           = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destinationStage      = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+  } else if (mCurrentImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+             newLayout == VK_IMAGE_LAYOUT_GENERAL) {
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     sourceStage           = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destinationStage      = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
   } else {

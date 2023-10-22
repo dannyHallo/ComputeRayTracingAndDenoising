@@ -8,11 +8,12 @@ ubo;
 
 layout(binding = 2, rgba8) readonly uniform image2D aTrousTex2;
 layout(binding = 3, r32f) readonly uniform image2D varianceTex;
-layout(binding = 4, rgba32f) readonly uniform image2D rawTex;
+layout(binding = 4, r32f) readonly uniform image2D rawTex;
 layout(binding = 5, rgba32f) readonly uniform image2D stratumTex;
 layout(binding = 6, rgba32f) readonly uniform image2D visibilityTex;
 layout(binding = 7, rgba32f) readonly uniform image2D temporalGradientTex;
-layout(binding = 8, rgba8) writeonly uniform image2D targetTex;
+layout(binding = 8, rgba8) readonly uniform image2DArray customTexArray;
+layout(binding = 9, rgba8) writeonly uniform image2D targetTex;
 
 #include "include/globalUbo.glsl"
 
@@ -70,9 +71,15 @@ void main() {
     break;
   }
   case DISPLAY_TYPE_CUSTOM: {
-    vec3 c     = imageLoad(rawTex, uv).xyz;
-    writingCol = all(greaterThan(c, vec3(1.2))) ? vec3(1) : vec3(0);
-    break;
+    // tile the image across the screen
+    ivec3 size      = imageSize(customTexArray);
+    uint usingLayer = globalUbo.currentSample % size.z;
+
+    int x            = uv.x % size.x;
+    int y            = uv.y % size.y;
+    ivec3 lookup     = ivec3(x, y, usingLayer);
+    float customAtUv = imageLoad(customTexArray, lookup).x;
+    writingCol       = vec3(customAtUv);
   }
   }
   // inverting the color space (rgb to bgr)

@@ -115,7 +115,7 @@ class Application {
   struct PostProcessingUniformBufferObject {
     uint32_t displayType;
   };
-  uint32_t mDisplayType = 2;
+  uint32_t mDisplayType = 6;
 
   float mFps = 0;
 
@@ -173,6 +173,9 @@ class Application {
   std::vector<VkSemaphore> mImageAvailableSemaphores;
   std::vector<VkSemaphore> mRenderFinishedSemaphores;
   std::vector<VkFence> mFramesInFlightFences;
+
+  // spatial-temporal blue noise
+  std::unique_ptr<Image> mBlueNoiseImage;
 
   /// the following resources ARE swapchain dim related
   // images for ray tracing and post-processing
