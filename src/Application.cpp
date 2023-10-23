@@ -563,14 +563,14 @@ void Application::createRenderCommandBuffers() {
     VkResult result = vkBeginCommandBuffer(currentCommandBuffer, &beginInfo);
     Logger::checkStep("vkBeginCommandBuffer", result);
 
-    mTargetImage->clearImage();
-    mATrousInputImage->clearImage();
-    mATrousOutputImage->clearImage();
-    mPerStratumImage->clearImage();
-    mPerStratumLockingImage->clearImage();
-    mVisibilityImage->clearImage();
-    mSeedVisibilityImage->clearImage();
-    mTemporalGradientImage->clearImage();
+    mTargetImage->clearImage(currentCommandBuffer);
+    mATrousInputImage->clearImage(currentCommandBuffer);
+    mATrousOutputImage->clearImage(currentCommandBuffer);
+    mPerStratumImage->clearImage(currentCommandBuffer);
+    mPerStratumLockingImage->clearImage(currentCommandBuffer);
+    mVisibilityImage->clearImage(currentCommandBuffer);
+    mSeedVisibilityImage->clearImage(currentCommandBuffer);
+    mTemporalGradientImage->clearImage(currentCommandBuffer);
 
     mGradientProjectionModel->computeCommand(
         currentCommandBuffer, static_cast<uint32_t>(i),
@@ -760,15 +760,16 @@ void Application::vkCreateSemaphoresAndFences() {
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
-    if (vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr,
-                          &mImageAvailableSemaphores[i]) != VK_SUCCESS ||
+    VkResult result =
         vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr,
-                          &mRenderFinishedSemaphores[i]) != VK_SUCCESS ||
-        vkCreateFence(mAppContext->getDevice(), &fenceInfo, nullptr,
-                      &mFramesInFlightFences[i]) != VK_SUCCESS) {
-      Logger::throwError(
-          "failed to create synchronization objects for a frame!");
-    }
+                          &mImageAvailableSemaphores[i]);
+    Logger::checkStep("vkCreateSemaphore", result);
+    result = vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo,
+                               nullptr, &mRenderFinishedSemaphores[i]);
+    Logger::checkStep("vkCreateSemaphore", result);
+    result = vkCreateFence(mAppContext->getDevice(), &fenceInfo, nullptr,
+                           &mFramesInFlightFences[i]);
+    Logger::checkStep("vkCreateFence", result);
   }
 }
 

@@ -64,7 +64,7 @@ public:
   [[nodiscard]] uint32_t getWidth() const { return mWidth; }
   [[nodiscard]] uint32_t getHeight() const { return mHeight; }
 
-  void clearImage();
+  void clearImage(VkCommandBuffer commandBuffer);
 
   static VkImageView createImageView(VkDevice device, const VkImage &image,
                                      VkFormat format,

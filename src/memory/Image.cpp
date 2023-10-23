@@ -160,20 +160,10 @@ Image::~Image() {
   }
 }
 
-void Image::clearImage() {
-  auto &device = VulkanApplicationContext::getInstance()->getDevice();
-  auto &queue  = VulkanApplicationContext::getInstance()->getGraphicsQueue();
-  auto &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
-
-  VkCommandBuffer commandBuffer =
-      RenderSystem::beginSingleTimeCommands(device, commandPool);
-
+void Image::clearImage(VkCommandBuffer commandBuffer) {
   VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
   vkCmdClearColorImage(commandBuffer, mVkImage, VK_IMAGE_LAYOUT_GENERAL,
                        &kClearColor, 1, &clearRange);
-
-  RenderSystem::endSingleTimeCommands(device, commandPool, queue,
-                                      commandBuffer);
 }
 
 void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
