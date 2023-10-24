@@ -22,9 +22,9 @@ layout(binding = 8, rg32f) readonly uniform image2D thisFrameGradientTex;
 layout(binding = 9, rg32f) readonly uniform image2D lastFrameGradientTex;
 layout(binding = 10, r32ui) readonly uniform uimage2D thisFrameMeshHashTex;
 layout(binding = 11, r32ui) readonly uniform uimage2D lastFrameMeshHashTex;
-layout(binding = 12, rgba8) readonly uniform image2D lastFrameAccumTex;
+layout(binding = 12, rgba32f) readonly uniform image2D lastFrameAccumTex;
 layout(binding = 13, rgba8) readonly uniform image2D lastFrameVarianceHistTex;
-layout(binding = 14, rgba8) writeonly uniform image2D thisFrameAccumTex;
+layout(binding = 14, rgba32f) writeonly uniform image2D thisFrameAccumTex;
 layout(binding = 15, rgba8) writeonly uniform image2D thisFrameVarianceHistTex;
 
 #include "include/definitions.glsl"

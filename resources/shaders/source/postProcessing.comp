@@ -6,7 +6,7 @@ layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 layout(binding = 1) uniform UniformBufferObject { uint displayType; }
 ubo;
 
-layout(binding = 2, rgba8) readonly uniform image2D aTrousTex2;
+layout(binding = 2, rgba32f) readonly uniform image2D aTrousTex2;
 layout(binding = 3, r32f) readonly uniform image2D varianceTex;
 layout(binding = 4, r32f) readonly uniform image2D rawTex;
 layout(binding = 5, rgba32f) readonly uniform image2D stratumTex;

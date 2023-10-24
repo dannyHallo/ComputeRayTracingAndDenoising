@@ -13,8 +13,8 @@ layout(binding = 1) uniform UniformBufferObject {
 }
 ubo;
 
-layout(binding = 2, rgba8) readonly uniform image2D textureForVarianceCalc;
-layout(binding = 3, rgba8) readonly uniform image2D normalTex;
+layout(binding = 2, rgba32f) readonly uniform image2D textureForVarianceCalc;
+layout(binding = 3, rgba32f) readonly uniform image2D normalTex;
 layout(binding = 4, r32f) readonly uniform image2D depthTex;
 layout(binding = 5, rg32f) readonly uniform image2D gradientTex;
 layout(binding = 6, r32f) writeonly uniform image2D varianceTex;

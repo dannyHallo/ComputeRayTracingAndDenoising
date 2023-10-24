@@ -218,11 +218,11 @@ void Application::createImagesAndForwardingPairs() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   mATrousInputImage = std::make_unique<Image>(
-      imageWidth, imageHeight, VK_FORMAT_R8G8B8A8_UNORM,
+      imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   mATrousOutputImage = std::make_unique<Image>(
-      imageWidth, imageHeight, VK_FORMAT_R8G8B8A8_UNORM,
+      imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
           VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
@@ -298,9 +298,9 @@ void Application::createImagesAndForwardingPairs() {
       std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT);
 
-  mLastFrameAccumImage =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R8G8B8A8_UNORM,
-                              VK_IMAGE_USAGE_STORAGE_BIT);
+  mLastFrameAccumImage = std::make_unique<Image>(imageWidth, imageHeight,
+                                                 VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                 VK_IMAGE_USAGE_STORAGE_BIT);
 
   uint32_t perStratumImageWidth  = ceil(static_cast<float>(imageWidth) / 3.0F);
   uint32_t perStratumImageHeight = ceil(static_cast<float>(imageHeight) / 3.0F);
