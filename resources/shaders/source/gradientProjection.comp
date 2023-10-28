@@ -7,8 +7,7 @@
 #define GROUP_SIZE_STRATUM_2 (GROUP_SIZE_STRATUM * GROUP_SIZE_STRATUM)
 #define DISPATCH_SIZE (GROUP_SIZE_STRATUM * STRATUM_SIZE)
 
-layout(local_size_x = DISPATCH_SIZE, local_size_y = DISPATCH_SIZE,
-       local_size_z = 1) in;
+layout(local_size_x = DISPATCH_SIZE, local_size_y = DISPATCH_SIZE, local_size_z = 1) in;
 
 layout(binding = 1) uniform UniformBufferObject {
   bool bypassGradientProjection;
@@ -19,22 +18,19 @@ layout(binding = 1) uniform UniformBufferObject {
 ubo;
 
 layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
-layout(binding = 3,
-       rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
+layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
 
-// full res, dense, recording last time rtx result
+// full res
 layout(binding = 4, rgba32f) readonly uniform image2D lastRawColorTex;
 layout(binding = 5, rgba32f) readonly uniform image2D lastPosTex;
 layout(binding = 6, rgba32ui) readonly uniform uimage2D lastSeedTex;
-// 1/3 res, recording the active position in
-// the stratum, and its luminance
-layout(binding = 7, rgba32f) writeonly uniform image2D perStratumTex;
-// 1/3 res, it is automatically reset to all zero before
-// every dispatch, it's aim is to ensure the write is atomic
+
+// stratum res
+layout(binding = 7, r32ui) writeonly uniform uimage2D stratumOffsetTex;
+// stratum res, atomic
 layout(binding = 8, r32ui) uniform uimage2D perStratumLockingTex;
-// full res, but sparse (at most 1 sample per stratum),
-// stored with forward-projected accurate screen space sampling position,
-// associated with its luminance
+// stratum res, stored with forward-projected accurate screen space sampling position, associated
+// with its luminance
 layout(binding = 9, rgba32f) writeonly uniform image2D visibilityTex;
 layout(binding = 10, rgba32ui) writeonly uniform uimage2D seedVisibilityTex;
 
@@ -44,56 +40,28 @@ layout(binding = 10, rgba32ui) writeonly uniform uimage2D seedVisibilityTex;
 
 shared float luminance[DISPATCH_SIZE][DISPATCH_SIZE];
 
-void getBrightestInStratum(ivec2 localStratumId, ivec2 stratumId,
-                           out ivec2 brightestGlobalPos,
-                           out float brightestLuminance,
-                           out uvec2 brightestSeed) {
-  brightestLuminance = 0;
-  brightestGlobalPos = ivec2(0);
-  // for (int i = 0; i < STRATUM_SIZE; i++) {
-  //   for (int j = 0; j < STRATUM_SIZE; j++) {
-  //     ivec2 localStratumBase = localStratumId * STRATUM_SIZE;
-  //     float luminanceAtPixel =
-  //         luminance[localStratumBase.x + i][localStratumBase.y + j];
-  //     if (luminanceAtPixel > brightestLuminance) {
-  //       ivec2 globalPos    = ivec2(stratumId.x * STRATUM_SIZE + i,
-  //                                  stratumId.y * STRATUM_SIZE + j);
-  //       brightestGlobalPos = globalPos;
-  //       brightestLuminance = luminanceAtPixel;
-  //     }
-  //   }
-  // }
+void preload() {
+  ivec2 uv            = ivec2(gl_GlobalInvocationID.xy);
+  float luminanceAtUv = dot(kRgbToLuminanceMat, imageLoad(lastRawColorTex, uv).rgb);
+  luminance[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = luminanceAtUv;
+}
 
-  uvec3 seed  = uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y,
-                      globalUbo.currentSample);
-  vec2 randUv = randomUv(seed, BaseDisturbance(0), false);
+void pickInStratum(ivec2 localStratumUv, ivec2 stratumUv, out ivec2 pickedGlobalPos,
+                   out float pickedLum, out uvec2 pickedSeed) {
+  uvec3 seed  = uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, globalUbo.currentSample);
+  vec2 randUv = randomUv(seed, BaseDisturbance(0), false); // TODO: change random function here
 
   int i                  = int(randUv.x * STRATUM_SIZE);
   int j                  = int(randUv.y * STRATUM_SIZE);
-  ivec2 localStratumBase = localStratumId * STRATUM_SIZE;
-  float luminanceAtPixel =
-      luminance[localStratumBase.x + i][localStratumBase.y + j];
-  ivec2 globalPos =
-      ivec2(stratumId.x * STRATUM_SIZE + i, stratumId.y * STRATUM_SIZE + j);
-  brightestGlobalPos = globalPos;
-  brightestLuminance = luminanceAtPixel;
+  ivec2 localStratumBase = localStratumUv * STRATUM_SIZE;
+  pickedLum              = luminance[localStratumBase.x + i][localStratumBase.y + j];
+  pickedGlobalPos        = ivec2(stratumUv.x * STRATUM_SIZE + i, stratumUv.y * STRATUM_SIZE + j);
 
-  // if the seed has been used more than x times,
-  // discard this stratum
-  if (imageLoad(lastSeedTex, brightestGlobalPos).w > 1) {
-    brightestGlobalPos = ivec2(0);
-    brightestLuminance = 0;
-    brightestSeed      = uvec2(0);
-    return;
-  }
-  brightestSeed = imageLoad(lastSeedTex, brightestGlobalPos).xy;
+  pickedSeed = imageLoad(lastSeedTex, pickedGlobalPos).xy;
 }
 
-void preload() {
-  ivec2 uv             = ivec2(gl_GlobalInvocationID.xy);
-  const vec3 colorAtUv = imageLoad(lastRawColorTex, uv).rgb;
-  float luminanceAtUv  = dot(kRgbToLuminanceMat, colorAtUv);
-  luminance[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = luminanceAtUv;
+uint encodeOffsetInStratum(uvec2 offsetInStratum) {
+  return offsetInStratum.x + offsetInStratum.y * STRATUM_SIZE + 1;
 }
 
 void forwardProjection(ivec2 globalPosToProject, float lum, uvec2 seed) {
@@ -109,53 +77,50 @@ void forwardProjection(ivec2 globalPosToProject, float lum, uvec2 seed) {
   // to vulkan uv coord, starts from top left corner, range is [0, 1]
   vec2 uvCoord = vec2(screenBoxCoord.x, 1 - screenBoxCoord.y);
   // notice that the reprojected position is NOT integer
-  vec2 pp = vec2(uvCoord.x * globalUbo.swapchainWidth,
-                 uvCoord.y * globalUbo.swapchainHeight);
+  vec2 pp = vec2(uvCoord.x * globalUbo.swapchainWidth, uvCoord.y * globalUbo.swapchainHeight);
 
-  ivec2 stratumId = ivec2(pp / float(STRATUM_SIZE));
+  ivec2 stratumUv = ivec2(pp / float(STRATUM_SIZE));
 
   // look up to the corresponding stratum data, if it is already occupied,
   // then nothing will happen, otherwire, set it to occupeid state atomically
-  uint hasSampleOnThisStratum =
-      imageAtomicCompSwap(perStratumLockingTex, stratumId, 0, 1);
+  uint hasSampleOnThisStratum = imageAtomicCompSwap(perStratumLockingTex, stratumUv, 0, 1);
   if (hasSampleOnThisStratum == 1) return;
 
-  imageStore(perStratumTex, stratumId, vec4(pp, lum, 0));
+  uvec2 stratumOffset  = uvec2(pp) - stratumUv * STRATUM_SIZE;
+  uint offsetInStratum = encodeOffsetInStratum(stratumOffset);
+  imageStore(stratumOffsetTex, stratumUv, uvec4(offsetInStratum, 0, 0, 0));
+
   // xy: uv in floating point, z: luminance w: valid sample
-  imageStore(visibilityTex, ivec2(pp), vec4(pp, lum, 1));
+  imageStore(visibilityTex, stratumUv, vec4(pp, lum, 1));
   // xy: seed in uvec2, z: 0, w: valid sample
-  imageStore(seedVisibilityTex, ivec2(pp), uvec4(seed, 0, 1));
+  imageStore(seedVisibilityTex, stratumUv, uvec4(seed, 0, 1));
 }
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
-    return;
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) return;
 
   if (ubo.bypassGradientProjection) return;
 
-  // loads color and calculates luminance from last frame, a single thread
-  // loads one pixel, after writing to shared memory, it's faster for stratum
-  // threads to use
-  preload();
-  // wait for all threads to finish loading in work group
-  barrier();
+  preload(); // loads variance to shared memory for faster access
+  barrier(); // wait for all threads to finish loading in work group
 
-  // kick most of the threads
+  // kick 8/9 of the threads
   if (gl_LocalInvocationIndex >= GROUP_SIZE_STRATUM_2) return;
 
-  ivec2 localStratumId = ivec2(gl_LocalInvocationIndex % GROUP_SIZE_STRATUM,
+  // the stratum id in the work group (0, 0) to (7, 7)
+  ivec2 localStratumUv = ivec2(gl_LocalInvocationIndex % GROUP_SIZE_STRATUM,
                                gl_LocalInvocationIndex / GROUP_SIZE_STRATUM);
-  ivec2 stratumId =
-      ivec2(gl_WorkGroupID.xy * GROUP_SIZE_STRATUM) + localStratumId;
 
-  ivec2 brightestGlobalPos;
-  float brightestLuminance;
-  uvec2 brightestSeed;
-  getBrightestInStratum(localStratumId, stratumId, brightestGlobalPos,
-                        brightestLuminance, brightestSeed);
+  // the current stratum id globally
+  ivec2 stratumUv = ivec2(gl_WorkGroupID.xy * GROUP_SIZE_STRATUM) + localStratumUv;
 
-  if (brightestLuminance > 0) {
-    forwardProjection(brightestGlobalPos, brightestLuminance, brightestSeed);
+  ivec2 pickedGlobalPos;
+  float pickedLum;
+  uvec2 pickedSeed;
+  pickInStratum(localStratumUv, stratumUv, pickedGlobalPos, pickedLum, pickedSeed);
+
+  if (pickedLum != 0) {
+    forwardProjection(pickedGlobalPos, pickedLum, pickedSeed);
   }
 }

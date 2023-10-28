@@ -1,0 +1,55 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+#define STRATUM_SIZE 3
+
+// dispatching per stratum, no preload step because of atrous
+layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+// the uniform buffer that contains ray trace description infos
+layout(binding = 1) uniform UniformBufferObject { int i; }
+ubo;
+
+// full res
+layout(binding = 2, rgba32f) readonly uniform image2D posTex;
+layout(binding = 3, rgba32f) readonly uniform image2D normalTex;
+layout(binding = 4, r32f) readonly uniform image2D depthTex;
+layout(binding = 5, rg32f) readonly uniform image2D gradientTex;
+layout(binding = 6, rgba32f) readonly uniform image2D rawColorTex;
+
+// stratum resolution
+// layout: variance, luminance, temporal gradient, null
+layout(binding = 6, rgba32f) uniform image2D pingTex;
+layout(binding = 7, rgba32f) uniform image2D pongTex;
+
+#include "include/definitions.glsl"
+#include "include/globalUbo.glsl"
+
+vec2 getLuminancePair(ivec2 p) {
+  float l1 = dot(kRgbToLuminanceMat, imageLoad(rawColorTex, p).rgb);
+  float l2 = l1 * l1;
+  return vec2(l1, l2);
+}
+
+void main() {
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= ceil(globalUbo.swapchainWidth / 3.0) ||
+      uv.y >= ceil(globalUbo.swapchainHeight / 3.0))
+    return;
+
+  vec4 result = vec4(0.0);
+
+  // in the first iteration, no weighting is needed
+  if (ubo.i == 0) {
+    vec2 lumPair = vec2(0.0);
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        vec2 uv = vec2(gl_GlobalInvocationID.xy) * 3.0 + vec2(i, j);
+        lumPair += getLuminancePair(ivec2(uv));
+      }
+    }
+    
+    float avgLum = lumPair.x / 9.0;
+    float variance = lumPair.y / 9.0 - avgLum * avgLum;
+  }
+}

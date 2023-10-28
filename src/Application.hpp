@@ -186,7 +186,7 @@ class Application {
 
   std::unique_ptr<Image> mVarianceImage;
 
-  std::unique_ptr<Image> mPerStratumImage;
+  std::unique_ptr<Image> mStratumOffsetImage;
   std::unique_ptr<Image> mPerStratumLockingImage;
 
   std::unique_ptr<Image> mVisibilityImage;
@@ -271,8 +271,7 @@ private:
   void initGui();
 
   // record command buffer for GUI
-  void recordGuiCommandBuffer(VkCommandBuffer &commandBuffer,
-                              uint32_t imageIndex);
+  void recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex);
 
   void waitForTheWindowToBeResumed();
 
