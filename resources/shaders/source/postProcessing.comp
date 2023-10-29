@@ -76,7 +76,22 @@ void main() {
   }
   case DISPLAY_TYPE_TEMPORAL_GRADIENT: {
     ivec2 stratumUv = uv / 3;
-    writingCol      = imageLoad(temporalGradientTex, stratumUv).xyz / 4.0;
+
+    vec4 readVal           = imageLoad(temporalGradientTex, stratumUv);
+    float grad             = readVal.z;
+    float normalizationFac = readVal.w;
+
+    if (normalizationFac == 0) {
+      grad = 0;
+    } else {
+      grad = grad / normalizationFac;
+    }
+
+    if (grad < 0) {
+      writingCol = vec3(-grad, 0, 0);
+    } else {
+      writingCol = vec3(0, grad, 0);
+    }
     break;
   }
   case DISPLAY_TYPE_CUSTOM: {
@@ -90,6 +105,7 @@ void main() {
     writingCol   = vec3(imageLoad(customTexArray, lookup).xyz);
   }
   }
-  // inverting the color space (rgb to bgr)
+
+  // swap color channels (rgb to bgr)
   imageStore(targetTex, uv, vec4(writingCol.zyx, 1));
 }

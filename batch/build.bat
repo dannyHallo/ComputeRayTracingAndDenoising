@@ -13,7 +13,7 @@ if %1==debug (
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
 
 set GLSLC_PATH=%GLSLC%
-set SHADERS=gradientProjection rtx screenSpaceGradient temporalFilter variance aTrous postProcessing 
+set SHADERS=gradientProjection rtx screenSpaceGradient stratumFilter temporalFilter variance aTrous postProcessing 
 
 echo Compiling shaders...
 @REM wiping out the generated shaders

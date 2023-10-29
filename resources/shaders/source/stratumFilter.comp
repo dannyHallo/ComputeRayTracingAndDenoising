@@ -11,45 +11,99 @@ layout(binding = 1) uniform UniformBufferObject { int i; }
 ubo;
 
 // full res
-layout(binding = 2, rgba32f) readonly uniform image2D posTex;
-layout(binding = 3, rgba32f) readonly uniform image2D normalTex;
-layout(binding = 4, r32f) readonly uniform image2D depthTex;
-layout(binding = 5, rg32f) readonly uniform image2D gradientTex;
-layout(binding = 6, rgba32f) readonly uniform image2D rawColorTex;
+// layout(binding = 2, rgba32f) readonly uniform image2D posTex;
+// layout(binding = 3, rgba32f) readonly uniform image2D normalTex;
+// layout(binding = 4, r32f) readonly uniform image2D depthTex;
+// layout(binding = 5, rg32f) readonly uniform image2D gradientTex;
+// layout(binding = 6, rgba32f) readonly uniform image2D rawColorTex;
 
-// stratum resolution
-// layout: variance, luminance, temporal gradient, null
-layout(binding = 6, rgba32f) uniform image2D pingTex;
-layout(binding = 7, rgba32f) uniform image2D pongTex;
+// stratum res, [float luminance, float variance, float temporal_gradient, float normalized_factor]
+layout(binding = 2, rgba32f) uniform image2D pingTex;
+layout(binding = 3, rgba32f) uniform image2D pongTex;
 
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl"
 
-vec2 getLuminancePair(ivec2 p) {
-  float l1 = dot(kRgbToLuminanceMat, imageLoad(rawColorTex, p).rgb);
-  float l2 = l1 * l1;
-  return vec2(l1, l2);
+// standard 3x3 filtering kernel from q2rtx
+const float waveletFac      = 0.5;
+const float kernel3x3[2][2] = {{1.0, waveletFac}, {waveletFac, waveletFac *waveletFac}};
+
+vec4 blurPing() {
+  ivec2 uv           = ivec2(gl_GlobalInvocationID.xy);
+  int stepSize       = 1 << ubo.i;
+  float sumOfWeights = 0;
+  vec4 sumOfVals     = vec4(0.0);
+
+  const int r = 1;
+  for (int x = -r; x <= r; x++) {
+    for (int y = -r; y <= r; y++) {
+      ivec2 readingUv = uv + ivec2(x, y) * stepSize;
+      float weight    = kernel3x3[abs(x)][abs(y)];
+      sumOfWeights += weight;
+      sumOfVals += imageLoad(pingTex, readingUv) * weight;
+    }
+  }
+  sumOfVals /= sumOfWeights;
+  return sumOfVals;
+}
+
+vec4 blurPong() {
+  ivec2 uv           = ivec2(gl_GlobalInvocationID.xy);
+  int stepSize       = 1 << ubo.i;
+  float sumOfWeights = 0;
+  vec4 sumOfVals     = vec4(0.0);
+
+  const int r = 1;
+  for (int x = -r; x <= r; x++) {
+    for (int y = -r; y <= r; y++) {
+      ivec2 readingUv = uv + ivec2(x, y) * stepSize;
+      float weight    = kernel3x3[abs(x)][abs(y)];
+      sumOfWeights += weight;
+      sumOfVals += imageLoad(pongTex, readingUv) * weight;
+    }
+  }
+  sumOfVals /= sumOfWeights;
+  return sumOfVals;
 }
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= ceil(globalUbo.swapchainWidth / 3.0) ||
-      uv.y >= ceil(globalUbo.swapchainHeight / 3.0))
+  if (uv.x >= ceil(globalUbo.swapchainWidth / 3.0) || uv.y >= ceil(globalUbo.swapchainHeight / 3.0))
     return;
 
   vec4 result = vec4(0.0);
 
-  // in the first iteration, no weighting is needed
-  if (ubo.i == 0) {
-    vec2 lumPair = vec2(0.0);
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        vec2 uv = vec2(gl_GlobalInvocationID.xy) * 3.0 + vec2(i, j);
-        lumPair += getLuminancePair(ivec2(uv));
-      }
-    }
-    
-    float avgLum = lumPair.x / 9.0;
-    float variance = lumPair.y / 9.0 - avgLum * avgLum;
+  // find variance and luminance from raw color without any filtering, ping -> pong
+  switch (ubo.i) {
+  case (0): {
+    vec4 blurred = blurPing();
+    imageStore(pongTex, uv, blurred);
+    break;
+  }
+  case (1): {
+    vec4 blurred = blurPong();
+    imageStore(pingTex, uv, blurred);
+    break;
+  }
+  // case (2): {
+  //   vec4 blurred = blurPing();
+  //   imageStore(pongTex, uv, blurred);
+  //   break;
+  // }
+  // case (3): {
+  //   vec4 blurred = blurPong();
+  //   imageStore(pingTex, uv, blurred);
+  //   break;
+  // }
+  // case (4): {
+  //   vec4 blurred = blurPing();
+  //   imageStore(pongTex, uv, blurred);
+  //   break;
+  // }
+  // case (5): {
+  //   vec4 blurred = blurPong();
+  //   imageStore(pingTex, uv, blurred);
+  //   break;
+  // }
   }
 }

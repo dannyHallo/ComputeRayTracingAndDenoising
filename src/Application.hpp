@@ -59,6 +59,10 @@ class Application {
   bool mUseWeightedCosineFunction = true;
   uint32_t mOutputType            = 0;
 
+  struct StratumFilterUniformBufferObject {
+    int i;
+  };
+
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
     int useNormalTest;
@@ -115,7 +119,7 @@ class Application {
   struct PostProcessingUniformBufferObject {
     uint32_t displayType;
   };
-  uint32_t mDisplayType = 0;
+  uint32_t mDisplayType = 5;
 
   float mFps = 0;
 
@@ -136,6 +140,7 @@ class Application {
   std::unique_ptr<ComputeModel> mGradientProjectionModel;
   std::unique_ptr<ComputeModel> mRtxModel;
   std::unique_ptr<ComputeModel> mGradientModel;
+  std::vector<std::unique_ptr<ComputeModel>> mStratumFilterModels;
   std::unique_ptr<ComputeModel> mTemporalFilterModel;
   std::unique_ptr<ComputeModel> mVarianceModel;
   std::vector<std::unique_ptr<ComputeModel>> mATrousModels;
@@ -146,6 +151,7 @@ class Application {
   std::unique_ptr<BufferBundle> mGradientProjectionBufferBundle;
   std::unique_ptr<BufferBundle> mRtxBufferBundle;
   std::unique_ptr<BufferBundle> mTemperalFilterBufferBundle;
+  std::vector<std::unique_ptr<BufferBundle>> mStratumFilterBufferBundle;
   std::unique_ptr<BufferBundle> mVarianceBufferBundle;
   std::vector<std::unique_ptr<BufferBundle>> mBlurFilterBufferBundles;
   std::unique_ptr<BufferBundle> mPostProcessingBufferBundle;
@@ -195,7 +201,8 @@ class Application {
   std::unique_ptr<Image> mSeedImage;
   std::unique_ptr<Image> mSeedVisibilityImage;
 
-  std::unique_ptr<Image> mTemporalGradientImage;
+  std::unique_ptr<Image> mTemporalGradientNormalizationImagePing;
+  std::unique_ptr<Image> mTemporalGradientNormalizationImagePong;
 
   std::unique_ptr<Image> mDepthImage;
   std::unique_ptr<Image> mDepthImagePrev;

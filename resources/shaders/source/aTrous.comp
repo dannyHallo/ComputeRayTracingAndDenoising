@@ -20,8 +20,7 @@ layout(binding = 1) uniform UniformBufferObject {
 ubo;
 
 layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
-layout(binding = 3,
-       rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
+layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
 
 layout(binding = 4, rgba32f) readonly uniform image2D aTrousInputTex;
 layout(binding = 5, rgba32f) readonly uniform image2D normalTex;
@@ -37,8 +36,7 @@ layout(binding = 10, rgba32f) writeonly uniform image2D aTrousOutputTex;
 
 // standard 3x3 filtering kernel from q2rtx
 const float waveletFac      = 0.5;
-const float kernel3x3[2][2] = {{1.0, waveletFac},
-                               {waveletFac, waveletFac *waveletFac}};
+const float kernel3x3[2][2] = {{1.0, waveletFac}, {waveletFac, waveletFac *waveletFac}};
 
 ivec2 uv;
 
@@ -58,14 +56,13 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-void loadData(ivec2 offsetXY, out vec2 gradientAtUv, out vec3 normalAtUv,
-              out vec3 colorAtUv, out float depthAtUv, out float varianceAtUv) {
+void loadData(ivec2 offsetXY, out vec2 gradientAtUv, out vec3 normalAtUv, out vec3 colorAtUv,
+              out float depthAtUv, out float varianceAtUv) {
   ivec2 ipos = uv + offsetXY;
   if (ipos.x < 0 || ipos.y < 0 || ipos.x >= globalUbo.swapchainWidth ||
       ipos.y >= globalUbo.swapchainHeight) {
-    ipos = clamp(
-        ipos, ivec2(0),
-        ivec2(globalUbo.swapchainWidth - 1, globalUbo.swapchainHeight - 1));
+    ipos =
+        clamp(ipos, ivec2(0), ivec2(globalUbo.swapchainWidth - 1, globalUbo.swapchainHeight - 1));
   }
 
   gradientAtUv = imageLoad(gradientTex, ipos).xy;
@@ -97,8 +94,8 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
     vec3 colorAtSample;
     float depthAtSample;
     float varianceAtSample;
-    loadData(offsetXY, gradientAtSample, normalAtSample, colorAtSample,
-             depthAtSample, varianceAtSample);
+    loadData(offsetXY, gradientAtSample, normalAtSample, colorAtSample, depthAtSample,
+             varianceAtSample);
 
     float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
     float phiC              = ubo.phiLuminance;
@@ -123,8 +120,7 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
     // using gradient here can better blend samples within a single screen space
     // tilted mesh
     if (ubo.useGradientInDepth) {
-      differenceInDepth =
-          abs((depthAtUv - depthAtSample) - dot(gradientAtUv, vec2(offsetXY)));
+      differenceInDepth = abs((depthAtUv - depthAtSample) - dot(gradientAtUv, vec2(offsetXY)));
     } else {
       differenceInDepth = abs(depthAtUv - depthAtSample);
     }
@@ -138,11 +134,9 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
-    return;
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) return;
 
-  loadData(ivec2(0), gradientAtUv, normalAtUv, colorAtUv, depthAtUv,
-           varianceAtUv);
+  loadData(ivec2(0), gradientAtUv, normalAtUv, colorAtUv, depthAtUv, varianceAtUv);
 
   luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
 
@@ -161,8 +155,7 @@ void main() {
   vec4 sumOfWeightedValues = vec4(0);
   for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
     for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
-      blurKernel(ivec2(indexX, indexY), kernalHalfSize, weightSum,
-                 sumOfWeightedValues);
+      blurKernel(ivec2(indexX, indexY), kernalHalfSize, weightSum, sumOfWeightedValues);
     }
   }
 

@@ -107,6 +107,13 @@ void Application::createBufferBundles() {
                                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                     VMA_MEMORY_USAGE_CPU_TO_GPU);
 
+  for (int i = 0; i < 6; i++) {
+    auto stratumFilterBufferBundle = std::make_unique<BufferBundle>(
+        swapchainSize, sizeof(StratumFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VMA_MEMORY_USAGE_CPU_TO_GPU);
+    mStratumFilterBufferBundle.emplace_back(std::move(stratumFilterBufferBundle));
+  }
+
   mTemperalFilterBufferBundle = std::make_unique<BufferBundle>(
       swapchainSize, sizeof(TemporalFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -176,8 +183,8 @@ void Application::createImagesAndForwardingPairs() {
                                              VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                              VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
-  // creating forwarding pairs to copy the image result each frame to a specific
-  // swapchain
+  // creating forwarding pairs to copy the image result each frame to a specific swapchain
+  mTargetForwardingPairs.clear();
   for (int i = 0; i < mAppContext->getSwapchainSize(); i++) {
     mTargetForwardingPairs.emplace_back(std::make_unique<ImageForwardingPair>(
         mTargetImage->getVkImage(), mAppContext->getSwapchainImages()[i], VK_IMAGE_LAYOUT_GENERAL,
@@ -287,7 +294,11 @@ void Application::createImagesAndForwardingPairs() {
       perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_UINT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  mTemporalGradientImage = std::make_unique<Image>(
+  mTemporalGradientNormalizationImagePing = std::make_unique<Image>(
+      perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  mTemporalGradientNormalizationImagePong = std::make_unique<Image>(
       perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 }
@@ -332,7 +343,7 @@ void Application::createComputeModels() {
     rtxMat->addStorageImage(mMeshHashImage.get());
     rtxMat->addStorageImage(mRawImage.get());
     rtxMat->addStorageImage(mSeedImage.get());
-    rtxMat->addStorageImage(mTemporalGradientImage.get());
+    rtxMat->addStorageImage(mTemporalGradientNormalizationImagePing.get());
     // buffers
     rtxMat->addStorageBufferBundle(mTriangleBufferBundle.get());
     rtxMat->addStorageBufferBundle(mMaterialBufferBundle.get());
@@ -351,6 +362,20 @@ void Application::createComputeModels() {
     gradientMat->addStorageImage(mGradientImage.get());
   }
   mGradientModel = std::make_unique<ComputeModel>(std::move(gradientMat));
+
+  mStratumFilterModels.clear();
+  for (int i = 0; i < 6; i++) {
+    auto stratumFilterMat = std::make_unique<ComputeMaterial>(
+        kPathToResourceFolder + "/shaders/generated/stratumFilter.spv");
+    {
+      stratumFilterMat->addUniformBufferBundle(mGlobalBufferBundle.get());
+      stratumFilterMat->addUniformBufferBundle(mStratumFilterBufferBundle[i].get());
+      // pingpong
+      stratumFilterMat->addStorageImage(mTemporalGradientNormalizationImagePing.get());
+      stratumFilterMat->addStorageImage(mTemporalGradientNormalizationImagePong.get());
+    }
+    mStratumFilterModels.emplace_back(std::make_unique<ComputeModel>(std::move(stratumFilterMat)));
+  }
 
   auto temporalFilterMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/temporalFilter.spv");
@@ -392,6 +417,7 @@ void Application::createComputeModels() {
   }
   mVarianceModel = std::make_unique<ComputeModel>(std::move(varianceMat));
 
+  mATrousModels.clear();
   for (int i = 0; i < kATrousSize; i++) {
     auto aTrousMat =
         std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/aTrous.spv");
@@ -425,7 +451,7 @@ void Application::createComputeModels() {
     postProcessingMat->addStorageImage(mRawImage.get());
     postProcessingMat->addStorageImage(mStratumOffsetImage.get());
     postProcessingMat->addStorageImage(mVisibilityImage.get());
-    postProcessingMat->addStorageImage(mTemporalGradientImage.get());
+    postProcessingMat->addStorageImage(mTemporalGradientNormalizationImagePing.get());
     postProcessingMat->addStorageImage(mWeightedCosineBlueNoise.get());
     // output
     postProcessingMat->addStorageImage(mTargetImage.get());
@@ -468,6 +494,11 @@ void Application::updateScene(uint32_t currentImageIndex) {
       mOutputType};
 
   mRtxBufferBundle->getBuffer(currentImageIndex)->fillData(&rtxUbo);
+
+  for (int i = 0; i < 6; i++) {
+    StratumFilterUniformBufferObject sfUbo = {i};
+    mStratumFilterBufferBundle[i]->getBuffer(currentImageIndex)->fillData(&sfUbo);
+  }
 
   TemporalFilterUniformBufferObject tfUbo = {!mUseTemporalBlend, mUseNormalTest, mNormalThreshold,
                                              mBlendingAlpha, lastMvpe};
@@ -532,7 +563,7 @@ void Application::createRenderCommandBuffers() {
     mPerStratumLockingImage->clearImage(currentCommandBuffer);
     mVisibilityImage->clearImage(currentCommandBuffer);
     mSeedVisibilityImage->clearImage(currentCommandBuffer);
-    mTemporalGradientImage->clearImage(currentCommandBuffer);
+    mTemporalGradientNormalizationImagePing->clearImage(currentCommandBuffer);
 
     mGradientProjectionModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
                                              ceil(mTargetImage->getWidth() / 24.F),
@@ -558,9 +589,18 @@ void Application::createRenderCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
                          nullptr);
 
+    for (int j = 0; j < 6; j++) {
+      mStratumFilterModels[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
+                                              ceil(mTargetImage->getWidth() / 32.F),
+                                              ceil(mTargetImage->getHeight() / 32.F), 1);
+      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
+                           nullptr);
+    }
+
     mTemporalFilterModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                         ceil(mTargetImage->getWidth() / 32.F),
-                                         ceil(mTargetImage->getHeight() / 32.F), 1);
+                                         ceil(mTargetImage->getWidth() / 3.F / 32.F),
+                                         ceil(mTargetImage->getHeight() / 3.F / 32.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
@@ -614,54 +654,8 @@ void Application::createRenderCommandBuffers() {
   }
 }
 
-void Application::cleanupImagesAndForwardingPairs() {
-  // this is not needed, since changing swapchain size does not affect this
-  // image
-  // mVec2BlueNoise.reset();
-  // mWeightedCosineBlueNoise.reset();
-
-  // mSeedImage.reset();
-  // mPerStratumLockingImage.reset();
-  // mVisibilityImage.reset();
-  // mSeedVisibilityImage.reset();
-  // mTemporalGradientImage.reset();
-
-  // mPositionImage.reset();
-  // mRawImage.reset();
-
-  // mTargetImage.reset();
-  // mTargetForwardingPairs.clear();
-
-  // mLastFrameAccumImage.reset();
-
-  // mVarianceImage.reset();
-
-  // mStratumOffsetImage.reset();
-
-  // mDepthImage.reset();
-  // mDepthImagePrev.reset();
-  // mDepthForwardingPair.reset();
-
-  // mNormalImage.reset();
-  // mNormalImagePrev.reset();
-  // mNormalForwardingPair.reset();
-
-  // mGradientImage.reset();
-  // mGradientImagePrev.reset();
-  // mGradientForwardingPair.reset();
-
-  // mVarianceHistImage.reset();
-  // mVarianceHistImagePrev.reset();
-  // mVarianceHistForwardingPair.reset();
-
-  // mMeshHashImage.reset();
-  // mMeshHashImagePrev.reset();
-  // mMeshHashForwardingPair.reset();
-
-  // mATrousInputImage.reset();
-  // mATrousOutputImage.reset();
-  // mATrousForwardingPair.reset();
-}
+// not needed now because of smart pointers
+void Application::cleanupImagesAndForwardingPairs() {}
 
 void Application::cleanupGuiFrameBuffers() {
   for (auto &framebuffer : mGuiFrameBuffers) {
@@ -669,15 +663,8 @@ void Application::cleanupGuiFrameBuffers() {
   }
 }
 
-// these models are binded with image resources
-void Application::cleanupComputeModels() {
-  mRtxModel.reset();
-  mGradientModel.reset();
-  mTemporalFilterModel.reset();
-  mVarianceModel.reset();
-  mATrousModels.clear();
-  mPostProcessingModel.reset();
-}
+// not needed now because of smart pointers
+void Application::cleanupComputeModels() {}
 
 // these commandbuffers are initially recorded with the models
 void Application::cleanupRenderCommandBuffers() {

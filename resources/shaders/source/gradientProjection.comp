@@ -47,7 +47,7 @@ void preload() {
 }
 
 void pickInStratum(ivec2 localStratumUv, ivec2 stratumUv, out ivec2 pickedGlobalPos,
-                   out float pickedLum, out uvec2 pickedSeed) {
+                   out float pickedLum, out uvec3 pickedSeed) {
   uvec3 seed  = uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, globalUbo.currentSample);
   vec2 randUv = randomUv(seed, BaseDisturbance(0), false); // TODO: change random function here
 
@@ -57,14 +57,14 @@ void pickInStratum(ivec2 localStratumUv, ivec2 stratumUv, out ivec2 pickedGlobal
   pickedLum              = luminance[localStratumBase.x + i][localStratumBase.y + j];
   pickedGlobalPos        = ivec2(stratumUv.x * STRATUM_SIZE + i, stratumUv.y * STRATUM_SIZE + j);
 
-  pickedSeed = imageLoad(lastSeedTex, pickedGlobalPos).xy;
+  pickedSeed = imageLoad(lastSeedTex, pickedGlobalPos).xyz;
 }
 
 uint encodeOffsetInStratum(uvec2 offsetInStratum) {
   return offsetInStratum.x + offsetInStratum.y * STRATUM_SIZE + 1;
 }
 
-void forwardProjection(ivec2 globalPosToProject, float lum, uvec2 seed) {
+void forwardProjection(ivec2 globalPosToProject, float lum, uvec3 seed) {
   vec4 worldPos = imageLoad(lastPosTex, globalPosToProject);
   // invalid position culling
   if (worldPos.w == -1) return;
@@ -92,8 +92,8 @@ void forwardProjection(ivec2 globalPosToProject, float lum, uvec2 seed) {
 
   // xy: uv in floating point, z: luminance w: valid sample
   imageStore(visibilityTex, stratumUv, vec4(pp, lum, 1));
-  // xy: seed in uvec2, z: 0, w: valid sample
-  imageStore(seedVisibilityTex, stratumUv, uvec4(seed, 0, 1));
+  // xy: seed in uvec3, z: 0
+  imageStore(seedVisibilityTex, stratumUv, uvec4(seed, 0));
 }
 
 void main() {
@@ -117,10 +117,8 @@ void main() {
 
   ivec2 pickedGlobalPos;
   float pickedLum;
-  uvec2 pickedSeed;
+  uvec3 pickedSeed;
   pickInStratum(localStratumUv, stratumUv, pickedGlobalPos, pickedLum, pickedSeed);
 
-  if (pickedLum != 0) {
-    forwardProjection(pickedGlobalPos, pickedLum, pickedSeed);
-  }
+  forwardProjection(pickedGlobalPos, pickedLum, pickedSeed);
 }

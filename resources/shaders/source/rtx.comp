@@ -42,6 +42,7 @@ layout(binding = 1) uniform UniformBufferObject {
 }
 ubo;
 
+// custom res
 layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
 layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
 
@@ -50,16 +51,16 @@ layout(binding = 4, r32ui) readonly uniform uimage2D stratumOffsetTex;
 layout(binding = 5, rgba32f) readonly uniform image2D visibilityTex;
 layout(binding = 6, rgba32ui) readonly uniform uimage2D seedVisibilityTex;
 
+// full res
 layout(binding = 7, rgba32f) writeonly uniform image2D posTex;
 layout(binding = 8, rgba32f) writeonly uniform image2D normalTex;
 layout(binding = 9, r32f) writeonly uniform image2D depthTex;
 layout(binding = 10, r32ui) writeonly uniform uimage2D meshHashTex1;
-// Result: the image that stores ray traced color
 layout(binding = 11, rgba32f) writeonly uniform image2D rawTex;
-// Seed texture
 layout(binding = 12, rgba32ui) writeonly uniform uimage2D seedTex;
-// Temporal gradient, stratum resolution
-layout(binding = 13, rgba32f) writeonly uniform image2D temporalGradientTex;
+
+// stratum res, [float luminance, float variance, float temporal_gradient, float normalized_factor]
+layout(binding = 13, rgba32f) writeonly uniform image2D temporalGradientNormalizationTex;
 
 // the buffer that contains all triangles (read only)
 layout(std430, binding = 14) readonly buffer TriangleBufferObject { Triangle[] triangles; };
@@ -405,31 +406,32 @@ bool checkStratumRecord() {
 }
 
 vec2 getSubsubpixOffset() {
-  ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
   if (!hasStratumRec) return vec2(0.5);
-  return imageLoad(visibilityTex, stratumUv).xy - gl_GlobalInvocationID.xy;
+  ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
+  vec2 offset     = imageLoad(visibilityTex, stratumUv).xy - gl_GlobalInvocationID.xy;
+  vec2 dist       = vec2(0.5) - offset;
+  float distSqr   = dot(dist, dist);
+  offset          = distSqr < 1e-5 ? vec2(0.5) : offset; // avoids rounding off issues
+  return offset;
 }
 
-uvec4 getSeed() {
-  ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
+uvec3 getSeed() {
   if (!hasStratumRec) {
-    return uvec4(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, globalUbo.currentSample, 0);
+    return uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, globalUbo.currentSample);
   }
-  return imageLoad(seedVisibilityTex, stratumUv);
+  ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
+  return imageLoad(seedVisibilityTex, stratumUv).xyz;
 }
 
 void calculateTemporalGradient(float thisTimeLuminance) {
   ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
-  if (!hasStratumRec) return;
 
   float previousLuminance = imageLoad(visibilityTex, stratumUv).z;
   float temporalGradient  = thisTimeLuminance - previousLuminance;
+  float normalizedFactor  = max(thisTimeLuminance, previousLuminance);
 
-  if (temporalGradient < 0) {
-    imageStore(temporalGradientTex, stratumUv, vec4(-temporalGradient, 0, 0, 0));
-  } else {
-    imageStore(temporalGradientTex, stratumUv, vec4(0, temporalGradient, 0, 0));
-  }
+  imageStore(temporalGradientNormalizationTex, stratumUv,
+             vec4(0, 0, temporalGradient, normalizedFactor));
 }
 
 void main() {
@@ -440,14 +442,14 @@ void main() {
 
   Ray camRay = rayGen(getSubsubpixOffset());
 
-  uvec4 seed = getSeed();
+  uvec3 seed = getSeed();
 
   vec3 hitColor    = vec3(0, 0, 0);
   vec4 hitWorldPos = vec4(0, 0, 0, -1);
   vec4 hitNormal   = vec4(0, 0, 0, -1);
   float hitDepth   = -1;
   uint meshHash    = 0;
-  HitRecord rec    = pathTracing(camRay, seed.xyz);
+  HitRecord rec    = pathTracing(camRay, seed);
   if (rec.hit) {
     hitColor    = rec.color;
     hitWorldPos = vec4(rec.p, 1);
@@ -460,25 +462,12 @@ void main() {
   vec4 thisTimeRawColor   = vec4(hitColor, 1);
   float thisTimeLuminance = dot(kRgbToLuminanceMat, thisTimeRawColor.rgb);
 
-  // ivec2 stratumUv = uv / STRATUM_SIZE;
-
-  // uvec2 stratumOffset             = decodeOffsetInStratum(imageLoad(stratumOffsetTex,
-  // stratumUv).x); ivec2 uvWithRecordInThisStratum = stratumUv * STRATUM_SIZE +
-  // ivec2(stratumOffset);
-
-  // // has record
-  // if (uv == uvWithRecordInThisStratum) {
-  //   hitColor = vec3(1);
-  // }else{
-  //   hitColor = vec3(0);
-  // }
-
   imageStore(rawTex, uv, vec4(hitColor, 1));
   imageStore(posTex, uv, hitWorldPos);                    // w: -1 (invalid) or 1 (valid)
   imageStore(normalTex, uv, hitNormal);                   // w: -1 (invalid) or 0 (valid)
   imageStore(depthTex, uv, vec4(hitDepth, 0, 0, 0));      // -1 (invalid)
   imageStore(meshHashTex1, uv, ivec4(meshHash, 0, 0, 0)); // -1 (invalid)
-  imageStore(seedTex, uv, seed);
+  imageStore(seedTex, uv, uvec4(seed, 0));
 
-  calculateTemporalGradient(thisTimeLuminance);
+  if (hasStratumRec) calculateTemporalGradient(thisTimeLuminance);
 }
