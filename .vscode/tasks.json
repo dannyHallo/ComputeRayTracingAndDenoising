@@ -7,9 +7,15 @@
       "command": "${workspaceFolder}/batch/build.bat debug"
     },
     {
+      "label": "build debug version - skip cpp compilation",
+      "type": "shell",
+      "command": "${workspaceFolder}/batch/build.bat debug skipcpp"
+    },
+    {
       "label": "build release version",
       "type": "shell",
       "command": "${workspaceFolder}/batch/build.bat release"
-    }
+    },
+ 
   ]
 }

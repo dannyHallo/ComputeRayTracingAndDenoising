@@ -1,13 +1,19 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-if %1==debug (
+if "%1"=="debug" (
     set BUILD_TYPE=debug
-) else if %1==release (
+) else if "%1"=="release" (
     set BUILD_TYPE=release
 ) else (
-    echo Invalid build type %1. Exiting...
+    echo Invalid build type "%1". Exiting...
     goto :eof
+)
+
+if "%2"=="skipcpp" (
+    set SKIP_CPP=1
+) else (
+    set SKIP_CPP=0
 )
 
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
@@ -28,23 +34,29 @@ for %%s in (%SHADERS%) do (
     )
 )
 
-echo:
-echo xmake
-xmake f -p windows -a x64 -m %BUILD_TYPE%
-xmake -w
-echo done
+if %SKIP_CPP%==0 (
+    echo Compiling cpp
 
-if %errorlevel% neq 0 (
-   echo Build failed with error %errorlevel%. Exiting... 
-   goto :eof
+    echo:
+    echo xmake
+    xmake f -p windows -a x64 -m %BUILD_TYPE%
+    xmake -w
+    echo done
+
+    if %errorlevel% neq 0 (
+       echo Build failed with error %errorlevel%. Exiting... 
+       goto :eof
+    )
+) else (
+    echo Skipping cpp compilation
 )
 
 echo:
 @echo copy resources
-mkdir "build/windows/x64/%BUILD_TYPE%/resources"
-@REM wiping out the destination resources
-rd /s /q "build/windows/x64/%BUILD_TYPE%/resources"
-xcopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /s /i /y
+@REM Create the directory if it doesn't exist
+if not exist "build/windows/x64/%BUILD_TYPE%/resources" mkdir "build/windows/x64/%BUILD_TYPE%/resources"
+@REM Use robocopy instead of xcopy for better performance
+robocopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /E /IS /NFL /NDL /NJH /NJS /nc /ns /np
 @REM wiping out the source shaders
 rd /s /q "build/windows/x64/%BUILD_TYPE%/resources/shaders/source"
 
