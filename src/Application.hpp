@@ -61,7 +61,9 @@ class Application {
 
   struct StratumFilterUniformBufferObject {
     int i;
+    int bypassStratumFiltering;
   };
+  bool mUseStratumFiltering = false;
 
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
@@ -119,7 +121,7 @@ class Application {
   struct PostProcessingUniformBufferObject {
     uint32_t displayType;
   };
-  uint32_t mDisplayType = 5;
+  uint32_t mDisplayType = 2;
 
   float mFps = 0;
 

@@ -61,9 +61,7 @@ const float invExp         = 1 / exp2(24.);
 const int alpha1Large      = 12664746;
 const int alpha2Large      = 9560334;
 vec2 ldsNoise(uvec3 seed, BaseDisturbance baseDisturbance) {
-  uint n =
-      hash(seed.x + globalUbo.swapchainWidth * seed.y + baseDisturbance.d) +
-      seed.z;
+  uint n = hash(seed.x + globalUbo.swapchainWidth * seed.y + baseDisturbance.d) + seed.z;
   return fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
 }
 
@@ -80,13 +78,11 @@ vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
   if (useLdsNoise) {
     vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(baseDisturbance);
 
-    seed =
-        uvec3(seed.x + offsetBasedOnDisturbance.x * kBlueNoiseSize.x,
-              seed.y + offsetBasedOnDisturbance.y * kBlueNoiseSize.x, seed.z);
+    seed = uvec3(seed.x + offsetBasedOnDisturbance.x * kBlueNoiseSize.x,
+                 seed.y + offsetBasedOnDisturbance.y * kBlueNoiseSize.x, seed.z);
 
-    rand = imageLoad(vec2BlueNoise,
-                     ivec3(seed.x % kBlueNoiseSize.x, seed.y % kBlueNoiseSize.y,
-                           seed.z % kBlueNoiseSize.z))
+    rand = imageLoad(vec2BlueNoise, ivec3(seed.x % kBlueNoiseSize.x, seed.y % kBlueNoiseSize.y,
+                                          seed.z % kBlueNoiseSize.z))
                .xy;
   } else {
     rand.x = random(seed);
@@ -95,8 +91,7 @@ vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
   return rand;
 }
 
-vec3 randomInUnitSphere(uvec3 seed, BaseDisturbance baseDisturbance,
-                        bool useLdsNoise) {
+vec3 randomInUnitSphere(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
   vec2 rand = randomUv(seed, baseDisturbance, useLdsNoise);
 
   float phi   = acos(1 - 2 * rand.x);
@@ -109,8 +104,8 @@ vec3 randomInUnitSphere(uvec3 seed, BaseDisturbance baseDisturbance,
   return vec3(x, y, z);
 }
 
-vec3 randomInHemisphere(vec3 normal, uvec3 seed,
-                        BaseDisturbance baseDisturbance, bool useLdsNoise) {
+vec3 randomInHemisphere(vec3 normal, uvec3 seed, BaseDisturbance baseDisturbance,
+                        bool useLdsNoise) {
   vec3 inUnitSphere = randomInUnitSphere(seed, baseDisturbance, useLdsNoise);
   if (dot(inUnitSphere, normal) > 0.0)
     return inUnitSphere;
@@ -125,18 +120,16 @@ mat3 makeTBN(vec3 N) {
   return mat3(T, B, N);
 }
 
-vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed,
-                                         BaseDisturbance baseDisturbance,
+vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed, BaseDisturbance baseDisturbance,
                                          bool useLdsNoise) {
   vec3 dir;
   if (useLdsNoise) {
     vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(baseDisturbance);
-    seed =
-        uvec3(seed.x + offsetBasedOnDisturbance.x * kBlueNoiseSize.x,
-              seed.y + offsetBasedOnDisturbance.y * kBlueNoiseSize.x, seed.z);
-    dir = imageLoad(weightedCosineBlueNoise,
-                    ivec3(seed.x % kBlueNoiseSize.x, seed.y % kBlueNoiseSize.y,
-                          seed.z % kBlueNoiseSize.z))
+    seed                          = uvec3(seed.x + offsetBasedOnDisturbance.x * kBlueNoiseSize.x,
+                                          seed.y + offsetBasedOnDisturbance.y * kBlueNoiseSize.x, seed.z);
+    dir                           = imageLoad(weightedCosineBlueNoise,
+                                              ivec3(seed.x % kBlueNoiseSize.x, seed.y % kBlueNoiseSize.y,
+                                                    seed.z % kBlueNoiseSize.z))
               .xyz;
     // change from [0,1] to [-1,1]
     dir = dir * 2.0 - 1.0;

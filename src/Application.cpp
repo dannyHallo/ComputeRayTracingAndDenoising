@@ -370,6 +370,13 @@ void Application::createComputeModels() {
     {
       stratumFilterMat->addUniformBufferBundle(mGlobalBufferBundle.get());
       stratumFilterMat->addUniformBufferBundle(mStratumFilterBufferBundle[i].get());
+      // input
+      stratumFilterMat->addStorageImage(mPositionImage.get());
+      stratumFilterMat->addStorageImage(mNormalImage.get());
+      stratumFilterMat->addStorageImage(mDepthImage.get());
+      stratumFilterMat->addStorageImage(mGradientImage.get());
+      stratumFilterMat->addStorageImage(mRawImage.get());
+      stratumFilterMat->addStorageImage(mStratumOffsetImage.get());
       // pingpong
       stratumFilterMat->addStorageImage(mTemporalGradientNormalizationImagePing.get());
       stratumFilterMat->addStorageImage(mTemporalGradientNormalizationImagePong.get());
@@ -451,8 +458,8 @@ void Application::createComputeModels() {
     postProcessingMat->addStorageImage(mRawImage.get());
     postProcessingMat->addStorageImage(mStratumOffsetImage.get());
     postProcessingMat->addStorageImage(mVisibilityImage.get());
-    postProcessingMat->addStorageImage(mTemporalGradientNormalizationImagePing.get());
-    postProcessingMat->addStorageImage(mWeightedCosineBlueNoise.get());
+    postProcessingMat->addStorageImage(mTemporalGradientNormalizationImagePong.get());
+    postProcessingMat->addStorageImage(mSeedImage.get());
     // output
     postProcessingMat->addStorageImage(mTargetImage.get());
   }
@@ -496,7 +503,7 @@ void Application::updateScene(uint32_t currentImageIndex) {
   mRtxBufferBundle->getBuffer(currentImageIndex)->fillData(&rtxUbo);
 
   for (int i = 0; i < 6; i++) {
-    StratumFilterUniformBufferObject sfUbo = {i};
+    StratumFilterUniformBufferObject sfUbo = {i, !mUseStratumFiltering};
     mStratumFilterBufferBundle[i]->getBuffer(currentImageIndex)->fillData(&sfUbo);
   }
 
@@ -564,6 +571,7 @@ void Application::createRenderCommandBuffers() {
     mVisibilityImage->clearImage(currentCommandBuffer);
     mSeedVisibilityImage->clearImage(currentCommandBuffer);
     mTemporalGradientNormalizationImagePing->clearImage(currentCommandBuffer);
+    mTemporalGradientNormalizationImagePong->clearImage(currentCommandBuffer);
 
     mGradientProjectionModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
                                              ceil(mTargetImage->getWidth() / 24.F),
@@ -1000,12 +1008,18 @@ void Application::prepareGui() {
 
   ImGui::BeginMainMenuBar();
   if (ImGui::BeginMenu("Config")) {
-    ImGui::SeparatorText("Scene");
+    ImGui::SeparatorText("Gradient Projection");
+    ImGui::Checkbox("Use Gradient Projection", &mUseGradientProjection);
+
+    ImGui::SeparatorText("Rtx");
     ImGui::Checkbox("Moving Light Source", &mMovingLightSource);
     ImGui::Checkbox("Use LDS Noise", &mUseLdsNoise);
     ImGui::Checkbox("Use weighted cosine", &mUseWeightedCosineFunction);
     const char *outputItems[] = {"Combined", "Direct Only", "Indirect Only"};
     comboSelector("Output Type", outputItems, mOutputType);
+
+    ImGui::SeparatorText("Stratum Filter");
+    ImGui::Checkbox("Use Stratum Filter", &mUseStratumFiltering);
 
     ImGui::SeparatorText("Temporal Blend");
     ImGui::Checkbox("Temporal Accumulation", &mUseTemporalBlend);

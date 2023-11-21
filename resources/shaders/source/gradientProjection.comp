@@ -66,7 +66,7 @@ uint encodeOffsetInStratum(uvec2 offsetInStratum) {
 
 void forwardProjection(ivec2 globalPosToProject, float lum, uvec3 seed) {
   vec4 worldPos = imageLoad(lastPosTex, globalPosToProject);
-  // invalid position culling
+  // cull invalid position
   if (worldPos.w == -1) return;
 
   vec4 screenBoxCoord = ubo.thisMvpe * worldPos;
@@ -99,8 +99,6 @@ void forwardProjection(ivec2 globalPosToProject, float lum, uvec3 seed) {
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) return;
-
-  if (ubo.bypassGradientProjection) return;
 
   preload(); // loads variance to shared memory for faster access
   barrier(); // wait for all threads to finish loading in work group

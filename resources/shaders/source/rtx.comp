@@ -224,7 +224,7 @@ HitRecord traceRayToBvh(Ray r) {
   return rec;
 }
 
-void getRamdomSampleOnLight(uvec3 seed, BaseDisturbance baseDisturbance,
+void getRandomSampleOnLight(uvec3 seed, BaseDisturbance baseDisturbance,
                             out vec3 randomSamplingPointOnLight, out vec3 lightNormal,
                             out float lightArea) {
   vec2 rand = randomUv(seed, baseDisturbance, ubo.useLdsNoise);
@@ -266,7 +266,7 @@ vec3 pathTracing2(Ray r, uvec3 seed) {
   // direct lighting
   float lightArea;
   vec3 randomSamplingPointOnLight, lightNormal;
-  getRamdomSampleOnLight(seed, BaseDisturbance(1), randomSamplingPointOnLight, lightNormal,
+  getRandomSampleOnLight(seed, BaseDisturbance(1), randomSamplingPointOnLight, lightNormal,
                          lightArea);
   vec3 o2l      = randomSamplingPointOnLight - rec.p;
   float distSqr = dot(o2l, o2l);
@@ -307,7 +307,7 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
   // direct lighting
   float lightArea;
   vec3 randomSamplingPointOnLight, lightNormal;
-  getRamdomSampleOnLight(seed, BaseDisturbance(4), randomSamplingPointOnLight, lightNormal,
+  getRandomSampleOnLight(seed, BaseDisturbance(4), randomSamplingPointOnLight, lightNormal,
                          lightArea);
 
   vec3 o2l      = randomSamplingPointOnLight - rec.p;
@@ -406,18 +406,21 @@ bool checkStratumRecord() {
 }
 
 vec2 getSubsubpixOffset() {
+  // return vec2(0.5);
+
   if (!hasStratumRec) return vec2(0.5);
   ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
   vec2 offset     = imageLoad(visibilityTex, stratumUv).xy - gl_GlobalInvocationID.xy;
   vec2 dist       = vec2(0.5) - offset;
   float distSqr   = dot(dist, dist);
-  offset          = distSqr < 1e-5 ? vec2(0.5) : offset; // avoids rounding off issues
+  offset          = distSqr < 1e-4 ? vec2(0.5) : offset; // avoids rounding off issues
   return offset;
 }
 
 uvec3 getSeed() {
   if (!hasStratumRec) {
     return uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, globalUbo.currentSample);
+    // return uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, 0);
   }
   ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
   return imageLoad(seedVisibilityTex, stratumUv).xyz;
@@ -439,6 +442,7 @@ void main() {
   if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) return;
 
   hasStratumRec = checkStratumRecord();
+  // hasStratumRec = false;
 
   Ray camRay = rayGen(getSubsubpixOffset());
 
@@ -457,7 +461,7 @@ void main() {
     hitDepth    = rec.t;
     meshHash    = rec.meshHash;
   }
-  hitColor = fireflyRejectionClamp(hitColor);
+  // hitColor = fireflyRejectionClamp(hitColor);
 
   vec4 thisTimeRawColor   = vec4(hitColor, 1);
   float thisTimeLuminance = dot(kRgbToLuminanceMat, thisTimeRawColor.rgb);
