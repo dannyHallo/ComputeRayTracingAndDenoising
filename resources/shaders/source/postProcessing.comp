@@ -95,14 +95,17 @@ void main() {
   }
   case DISPLAY_TYPE_VISIBILITY: {
     ivec2 stratumUv = uv / 3;
-    writingCol      = imageLoad(visibilityTex, stratumUv).xyz;
+    vec3 readVal    = imageLoad(visibilityTex, stratumUv).xyz;
+    float xFract    = abs(fract(readVal.x) - 0.5);
+    float yFract    = abs(fract(readVal.y) - 0.5);
 
+    writingCol = vec3(xFract, 0, yFract) * 1000;
     break;
   }
   case DISPLAY_TYPE_TEMPORAL_GRADIENT: {
     ivec2 stratumUv = uv / 3;
 
-    vec4 readVal = imageLoad(temporalGradientTex, stratumUv);
+    vec4 readVal           = imageLoad(temporalGradientTex, stratumUv);
     float grad             = readVal.z;
     float normalizationFac = readVal.w;
 

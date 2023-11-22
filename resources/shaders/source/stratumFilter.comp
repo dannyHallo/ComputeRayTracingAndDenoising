@@ -190,5 +190,25 @@ void main() {
     imageStore(pongTex, uv, blurred);
     break;
   }
+  case (3): {
+    vec4 blurred = bilateralBlur(false, stratumOffset);
+    imageStore(pingTex, uv, blurred);
+    break;
+  }
+  case (4): {
+    vec4 blurred = bilateralBlur(true, stratumOffset);
+    imageStore(pongTex, uv, blurred);
+    break;
+  }
+  case (5): {
+    vec4 blurred = bilateralBlur(false, stratumOffset);
+    imageStore(pingTex, uv, blurred);
+    break;
+  }
+  case (6): {
+    vec4 blurred = bilateralBlur(true, stratumOffset);
+    imageStore(pongTex, uv, blurred);
+    break;
+  }
   }
 }

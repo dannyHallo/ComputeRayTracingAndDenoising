@@ -498,7 +498,9 @@ void Application::updateScene(uint32_t currentImageIndex) {
       mMovingLightSource,
       mUseLdsNoise,
       mUseWeightedCosineFunction,
-      mOutputType};
+      mOutputType,
+      mOffsetX,
+      mOffsetY};
 
   mRtxBufferBundle->getBuffer(currentImageIndex)->fillData(&rtxUbo);
 
@@ -1017,6 +1019,8 @@ void Application::prepareGui() {
     ImGui::Checkbox("Use weighted cosine", &mUseWeightedCosineFunction);
     const char *outputItems[] = {"Combined", "Direct Only", "Indirect Only"};
     comboSelector("Output Type", outputItems, mOutputType);
+    ImGui::DragFloat("Offset X", &mOffsetX, 0.01F, -1.0F, 1.0F);
+    ImGui::DragFloat("Offset Y", &mOffsetY, 0.01F, -1.0F, 1.0F);
 
     ImGui::SeparatorText("Stratum Filter");
     ImGui::Checkbox("Use Stratum Filter", &mUseStratumFiltering);

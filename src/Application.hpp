@@ -43,6 +43,7 @@ class Application {
   struct GradientProjectionUniformBufferObject {
     int bypassGradientProjection;
     alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
+    // alignas(sizeof(glm::dvec3::x) * 4) glm::dmat4 thisMvpe; // use glm::dmat4 for double
   };
   bool mUseGradientProjection = true;
 
@@ -53,11 +54,15 @@ class Application {
     int useLdsNoise;
     int useWeightedCosineFunction;
     uint32_t outputType;
+    float offsetX;
+    float offsetY;
   };
   bool mMovingLightSource         = false;
   bool mUseLdsNoise               = true;
   bool mUseWeightedCosineFunction = true;
   uint32_t mOutputType            = 0;
+  float mOffsetX                  = 0.f;
+  float mOffsetY                  = 0.f;
 
   struct StratumFilterUniformBufferObject {
     int i;
@@ -121,7 +126,7 @@ class Application {
   struct PostProcessingUniformBufferObject {
     uint32_t displayType;
   };
-  uint32_t mDisplayType = 2;
+  uint32_t mDisplayType = 2; // FIXME: look at me!
 
   float mFps = 0;
 
