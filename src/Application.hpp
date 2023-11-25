@@ -51,14 +51,12 @@ class Application {
     uint32_t numTriangles;
     uint32_t numLights;
     int movingLightSource;
-    int useLdsNoise;
     int useWeightedCosineFunction;
     uint32_t outputType;
     float offsetX;
     float offsetY;
   };
   bool mMovingLightSource         = false;
-  bool mUseLdsNoise               = true;
   bool mUseWeightedCosineFunction = true;
   uint32_t mOutputType            = 1; // combined, direct only, indirect only
   float mOffsetX                  = 0.f;
@@ -134,6 +132,8 @@ class Application {
 
   // delta time and last recorded frame time
   float mDeltaTime = 0, mFrameRecordLastTime = 0;
+
+  Logger mLogger;
 
   static std::unique_ptr<Camera> mCamera;
   static std::unique_ptr<Window> mWindow;

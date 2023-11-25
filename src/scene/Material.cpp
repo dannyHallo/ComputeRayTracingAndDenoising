@@ -2,6 +2,7 @@
 #include "utils/Logger.hpp"
 #include "utils/Readfile.hpp"
 
+#include <cassert>
 #include <memory>
 #include <vector>
 
@@ -12,31 +13,27 @@ VkShaderModule Material::createShaderModule(const std::vector<char> &code) {
   createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
 
   VkShaderModule shaderModule = VK_NULL_HANDLE;
-  VkResult result =
-      vkCreateShaderModule(VulkanApplicationContext::getInstance()->getDevice(),
-                           &createInfo, nullptr, &shaderModule);
-  Logger::checkStep("vkCreateShaderModule", result);
+  VkResult result = vkCreateShaderModule(VulkanApplicationContext::getInstance()->getDevice(),
+                                         &createInfo, nullptr, &shaderModule);
+  assert(result == VK_SUCCESS && "Material::createShaderModule: failed to create shader module");
+
   return shaderModule;
 }
 
 Material::~Material() {
-  vkDestroyDescriptorSetLayout(
-      VulkanApplicationContext::getInstance()->getDevice(),
-      mDescriptorSetLayout, nullptr);
-  vkDestroyPipeline(VulkanApplicationContext::getInstance()->getDevice(),
-                    mPipeline, nullptr);
-  vkDestroyPipelineLayout(VulkanApplicationContext::getInstance()->getDevice(),
-                          mPipelineLayout, nullptr);
+  vkDestroyDescriptorSetLayout(VulkanApplicationContext::getInstance()->getDevice(),
+                               mDescriptorSetLayout, nullptr);
+  vkDestroyPipeline(VulkanApplicationContext::getInstance()->getDevice(), mPipeline, nullptr);
+  vkDestroyPipelineLayout(VulkanApplicationContext::getInstance()->getDevice(), mPipelineLayout,
+                          nullptr);
 
   // mDescriptorSets be automatically freed when the descriptor pool is
   // destroyed
-  vkDestroyDescriptorPool(VulkanApplicationContext::getInstance()->getDevice(),
-                          mDescriptorPool, nullptr);
+  vkDestroyDescriptorPool(VulkanApplicationContext::getInstance()->getDevice(), mDescriptorPool,
+                          nullptr);
 }
 
-void Material::addStorageImage(Image *storageImage) {
-  mStorageImages.emplace_back(storageImage);
-}
+void Material::addStorageImage(Image *storageImage) { mStorageImages.emplace_back(storageImage); }
 
 void Material::addUniformBufferBundle(BufferBundle *uniformBufferBundle) {
   mUniformBufferBundles.emplace_back(uniformBufferBundle);
@@ -86,10 +83,11 @@ void Material::initDescriptorSetLayout() {
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
   layoutInfo.pBindings    = bindings.data();
 
-  VkResult result = vkCreateDescriptorSetLayout(
-      VulkanApplicationContext::getInstance()->getDevice(), &layoutInfo,
-      nullptr, &mDescriptorSetLayout);
-  Logger::checkStep("vkCreateDescriptorSetLayout", result);
+  VkResult result =
+      vkCreateDescriptorSetLayout(VulkanApplicationContext::getInstance()->getDevice(), &layoutInfo,
+                                  nullptr, &mDescriptorSetLayout);
+  assert(result == VK_SUCCESS &&
+         "Material::initDescriptorSetLayout: failed to create descriptor set layout");
 }
 
 void Material::initDescriptorPool() {
@@ -101,18 +99,15 @@ void Material::initDescriptorPool() {
   // pool sizes info indicates how many descriptors of a certain type can be
   // allocated from the pool - NOT THE SET!
   for (size_t i = 0; i < mUniformBufferBundles.size(); i++) {
-    poolSizes.emplace_back(VkDescriptorPoolSize{
-        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mSwapchainSize});
+    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, mSwapchainSize});
   }
 
   for (size_t i = 0; i < mStorageImages.size(); i++) {
-    poolSizes.emplace_back(
-        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, mSwapchainSize});
+    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, mSwapchainSize});
   }
 
   for (size_t i = 0; i < mStorageBufferBundles.size(); i++) {
-    poolSizes.emplace_back(VkDescriptorPoolSize{
-        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mSwapchainSize});
+    poolSizes.emplace_back(VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, mSwapchainSize});
   }
 
   VkDescriptorPoolCreateInfo poolInfo{};
@@ -122,17 +117,15 @@ void Material::initDescriptorPool() {
   // the max number of descriptor sets that can be allocated from this pool
   poolInfo.maxSets = mSwapchainSize;
 
-  VkResult result = vkCreateDescriptorPool(
-      VulkanApplicationContext::getInstance()->getDevice(), &poolInfo, nullptr,
-      &mDescriptorPool);
-  Logger::checkStep("vkCreateDescriptorPool", result);
+  VkResult result = vkCreateDescriptorPool(VulkanApplicationContext::getInstance()->getDevice(),
+                                           &poolInfo, nullptr, &mDescriptorPool);
+  assert(result == VK_SUCCESS && "Material::initDescriptorPool: failed to create descriptor pool");
 }
 
 // chop the buffer bundles here, and create the descriptor sets for each of the
 // swapchains buffers are loaded to descriptor sets
 void Material::initDescriptorSets() {
-  std::vector<VkDescriptorSetLayout> layouts(mSwapchainSize,
-                                             mDescriptorSetLayout);
+  std::vector<VkDescriptorSetLayout> layouts(mSwapchainSize, mDescriptorSetLayout);
 
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -141,9 +134,8 @@ void Material::initDescriptorSets() {
   allocInfo.pSetLayouts        = layouts.data();
 
   mDescriptorSets.resize(mSwapchainSize);
-  if (vkAllocateDescriptorSets(
-          VulkanApplicationContext::getInstance()->getDevice(), &allocInfo,
-          mDescriptorSets.data()) != VK_SUCCESS) {
+  if (vkAllocateDescriptorSets(VulkanApplicationContext::getInstance()->getDevice(), &allocInfo,
+                               mDescriptorSets.data()) != VK_SUCCESS) {
     throw std::runtime_error("failed to allocate descriptor sets!");
   }
 
@@ -151,8 +143,7 @@ void Material::initDescriptorSets() {
     VkDescriptorSet &dstSet = mDescriptorSets[j];
 
     std::vector<VkWriteDescriptorSet> descriptorWrites{};
-    descriptorWrites.reserve(mUniformBufferBundles.size() +
-                             mStorageImages.size() +
+    descriptorWrites.reserve(mUniformBufferBundles.size() + mStorageImages.size() +
                              mStorageBufferBundles.size());
 
     uint32_t bindingNo = 0;
@@ -216,7 +207,7 @@ void Material::initDescriptorSets() {
     }
 
     vkUpdateDescriptorSets(VulkanApplicationContext::getInstance()->getDevice(),
-                           static_cast<uint32_t>(descriptorWrites.size()),
-                           descriptorWrites.data(), 0, nullptr);
+                           static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(),
+                           0, nullptr);
   }
 }

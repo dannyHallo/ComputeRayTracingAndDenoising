@@ -20,8 +20,7 @@ VkVertexInputBindingDescription Vertex::getBindingDescription() {
   return bindingDescription;
 }
 
-std::array<VkVertexInputAttributeDescription, 3>
-Vertex::getAttributeDescriptions() {
+std::array<VkVertexInputAttributeDescription, 3> Vertex::getAttributeDescriptions() {
   std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
 
   attributeDescriptions[0].binding  = 0;
@@ -43,8 +42,7 @@ Vertex::getAttributeDescriptions() {
 }
 
 bool Vertex::operator==(const Vertex &other) const {
-  return pos == other.pos && normal == other.normal &&
-         texCoord == other.texCoord;
+  return pos == other.pos && normal == other.normal && texCoord == other.texCoord;
 }
 
 Mesh::Mesh(MeshType type) {
@@ -63,12 +61,9 @@ Mesh::Mesh(std::string model_path) {
   std::vector<tinyobj::material_t> materials;
   std::string warn, err;
 
-  if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err,
-                        model_path.c_str())) {
-    Logger::throwError("Mesh::Mesh: " + warn + err);
-  }
-
-  Logger::print("mesh loaded: " + model_path);
+  const bool result =
+      tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, model_path.c_str());
+  assert(result && "failed to load model");
 
   std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 
@@ -79,14 +74,6 @@ Mesh::Mesh(std::string model_path) {
       vertex.pos = {attrib.vertices[3 * index.vertex_index + 0],
                     attrib.vertices[3 * index.vertex_index + 1],
                     attrib.vertices[3 * index.vertex_index + 2]};
-
-      // vertex.normal = {attrib.normals[3 * index.normal_index + 0],
-      // attrib.normals[3 * index.normal_index + 1],
-      //                  attrib.normals[3 * index.normal_index + 2]};
-
-      // vertex.texCoord = {
-      //     attrib.texcoords[2 * index.texcoord_index + 0],
-      //     1.0f - attrib.texcoords[2 * index.texcoord_index + 1]};
 
       if (uniqueVertices.count(vertex) == 0) {
         uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
@@ -108,8 +95,7 @@ void Mesh::initPlane() {
 
   for (int i = 0; i < 4; i++) {
     Vertex v{};
-    v.pos      = glm::vec3(quadVertices[5 * i], quadVertices[5 * i + 1],
-                           quadVertices[5 * i + 2]);
+    v.pos      = glm::vec3(quadVertices[5 * i], quadVertices[5 * i + 1], quadVertices[5 * i + 2]);
     v.normal   = glm::vec3(0.0f, 0.0f, 0.0f);
     v.texCoord = glm::vec2(quadVertices[5 * i + 3], quadVertices[5 * i + 4]);
     vertices.push_back(v);

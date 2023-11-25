@@ -22,8 +22,7 @@ class Image {
 
 public:
   // create a blank image
-  Image(uint32_t width, uint32_t height, VkFormat format,
-        VkImageUsageFlags usage,
+  Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
         VkImageLayout initialImageLayout = VK_IMAGE_LAYOUT_GENERAL,
         VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT,
         VkImageTiling tiling             = VK_IMAGE_TILING_OPTIMAL,
@@ -59,17 +58,14 @@ public:
   VkImage &getVkImage() { return mVkImage; }
   // VmaAllocation &getAllocation() { return mAllocation; }
   // VkImageView &getImageView() { return mVkImageView; }
-  [[nodiscard]] VkDescriptorImageInfo
-  getDescriptorInfo(VkImageLayout imageLayout) const;
+  [[nodiscard]] VkDescriptorImageInfo getDescriptorInfo(VkImageLayout imageLayout) const;
   [[nodiscard]] uint32_t getWidth() const { return mWidth; }
   [[nodiscard]] uint32_t getHeight() const { return mHeight; }
 
   void clearImage(VkCommandBuffer commandBuffer);
 
-  static VkImageView createImageView(VkDevice device, const VkImage &image,
-                                     VkFormat format,
-                                     VkImageAspectFlags aspectFlags,
-                                     uint32_t layerCount = 1);
+  static VkImageView createImageView(VkDevice device, const VkImage &image, VkFormat format,
+                                     VkImageAspectFlags aspectFlags, uint32_t layerCount = 1);
 
 private:
   void _copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo = 0);
@@ -93,10 +89,8 @@ class ImageForwardingPair {
   VkImageMemoryBarrier mImage2AfterCopy{};
 
 public:
-  ImageForwardingPair(VkImage image1, VkImage image2,
-                      VkImageLayout image1BeforeCopy,
-                      VkImageLayout image2BeforeCopy,
-                      VkImageLayout image1AfterCopy,
+  ImageForwardingPair(VkImage image1, VkImage image2, VkImageLayout image1BeforeCopy,
+                      VkImageLayout image2BeforeCopy, VkImageLayout image1AfterCopy,
                       VkImageLayout image2AfterCopy);
 
   void forwardCopying(VkCommandBuffer commandBuffer);

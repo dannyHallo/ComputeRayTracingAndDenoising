@@ -36,7 +36,6 @@ layout(binding = 1) uniform UniformBufferObject {
   uint numTriangles;
   uint numLights;
   bool movingLightSource;
-  bool useLdsNoise;
   bool useWeightedCosine;
   uint outputType;
   float offsetX;
@@ -257,7 +256,7 @@ vec2 edgeAvoiding(vec2 val) {
 void getRandomSampleOnLight(uvec3 seed, BaseDisturbance baseDisturbance,
                             out vec3 randomSamplingPointOnLight, out vec3 lightNormal,
                             out float lightArea) {
-  vec2 rand = randomUv(seed, baseDisturbance, ubo.useLdsNoise);
+  vec2 rand = randomUv(seed, baseDisturbance, true);
   rand      = edgeAvoiding(rand);
 
   int i = 0;
@@ -351,7 +350,6 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
       float pdf   = distSqr / (lightArea * abs(dot(o2l, lightNormal)));
       directColor = materials[shadowRec.materialIndex].albedo * changeLightIntensity() * brdf *
                     dot(o2l, hitNormal) / pdf;
-      directColor = vec3(0.8);
     }
   }
 
@@ -361,11 +359,10 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
 
   // cosine weighted sampling effectively increases sampling efficiency
   if (ubo.useWeightedCosine) {
-    indirectRayDir =
-        randomCosineWeightedHemispherePoint(hitNormal, seed, BaseDisturbance(2), ubo.useLdsNoise);
-    pdf = dot(indirectRayDir, rec.normal) / kPi;
+    indirectRayDir = randomCosineWeightedHemispherePoint(hitNormal, seed, BaseDisturbance(2), true);
+    pdf            = dot(indirectRayDir, rec.normal) / kPi;
   } else {
-    indirectRayDir = randomInHemisphere(hitNormal, seed, BaseDisturbance(3), ubo.useLdsNoise);
+    indirectRayDir = randomInHemisphere(hitNormal, seed, BaseDisturbance(3), true);
     pdf            = 1 / (2 * kPi);
   }
 
@@ -435,11 +432,14 @@ Ray rayGen(vec2 subpixOffset) {
 }
 
 vec2 getSubsubpixOffset() {
-  // return vec2(0.5);
-
   if (!hasStratumRec) return vec2(0.5);
   ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
   vec2 offset     = imageLoad(visibilityTex, stratumUv).xy;
+
+  const float toleranceDist = 1e-4;
+  vec2 delta                = offset - vec2(0.5);
+  if (dot(delta, delta) < toleranceDist) return vec2(0.5);
+
   return offset;
 }
 

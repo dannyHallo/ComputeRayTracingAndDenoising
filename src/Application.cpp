@@ -2,6 +2,7 @@
 
 #include "render-context/RenderSystem.hpp"
 #include "scene/ComputeMaterial.hpp"
+#include "utils/Logger.hpp"
 #include "window/Window.hpp"
 
 static const int kATrousSize                   = 5;
@@ -38,7 +39,7 @@ Camera *Application::getCamera() { return mCamera.get(); }
 Application::Application() {
   mWindow     = std::make_unique<Window>(WindowStyle::kFullScreen);
   mAppContext = VulkanApplicationContext::getInstance();
-  mAppContext->init(mWindow->getGlWindow());
+  mAppContext->init(&mLogger, mWindow->getGlWindow());
   mCamera = std::make_unique<Camera>(mWindow.get());
 }
 
@@ -49,7 +50,7 @@ void Application::run() {
 }
 
 void Application::cleanup() {
-  Logger::print("Application is cleaning up resources...");
+  mLogger.print("Application is cleaning up resources...");
 
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
     vkDestroySemaphore(mAppContext->getDevice(), mRenderFinishedSemaphores[i], nullptr);
@@ -81,7 +82,9 @@ void Application::cleanup() {
   glfwTerminate();
 }
 
-void check_vk_result(VkResult resultCode) { Logger::checkStep("check_vk_result", resultCode); }
+void check_vk_result(VkResult resultCode) {
+  assert(resultCode == VK_SUCCESS && "check_vk_result failed");
+}
 
 void Application::createScene() {
 
@@ -323,7 +326,8 @@ void Application::createComputeModels() {
     gradientProjectionMat->addStorageImage(mVisibilityImage.get());
     gradientProjectionMat->addStorageImage(mSeedVisibilityImage.get());
   }
-  mGradientProjectionModel = std::make_unique<ComputeModel>(std::move(gradientProjectionMat));
+  mGradientProjectionModel =
+      std::make_unique<ComputeModel>(&mLogger, std::move(gradientProjectionMat));
 
   auto rtxMat =
       std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/rtx.spv");
@@ -350,7 +354,7 @@ void Application::createComputeModels() {
     rtxMat->addStorageBufferBundle(mBvhBufferBundle.get());
     rtxMat->addStorageBufferBundle(mLightsBufferBundle.get());
   }
-  mRtxModel = std::make_unique<ComputeModel>(std::move(rtxMat));
+  mRtxModel = std::make_unique<ComputeModel>(&mLogger, std::move(rtxMat));
 
   auto gradientMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/screenSpaceGradient.spv");
@@ -361,7 +365,7 @@ void Application::createComputeModels() {
     // output
     gradientMat->addStorageImage(mGradientImage.get());
   }
-  mGradientModel = std::make_unique<ComputeModel>(std::move(gradientMat));
+  mGradientModel = std::make_unique<ComputeModel>(&mLogger, std::move(gradientMat));
 
   mStratumFilterModels.clear();
   for (int i = 0; i < 6; i++) {
@@ -381,7 +385,8 @@ void Application::createComputeModels() {
       stratumFilterMat->addStorageImage(mTemporalGradientNormalizationImagePing.get());
       stratumFilterMat->addStorageImage(mTemporalGradientNormalizationImagePong.get());
     }
-    mStratumFilterModels.emplace_back(std::make_unique<ComputeModel>(std::move(stratumFilterMat)));
+    mStratumFilterModels.emplace_back(
+        std::make_unique<ComputeModel>(&mLogger, std::move(stratumFilterMat)));
   }
 
   auto temporalFilterMat = std::make_unique<ComputeMaterial>(
@@ -406,7 +411,7 @@ void Application::createComputeModels() {
     temporalFilterMat->addStorageImage(mATrousInputImage.get());
     temporalFilterMat->addStorageImage(mVarianceHistImage.get());
   }
-  mTemporalFilterModel = std::make_unique<ComputeModel>(std::move(temporalFilterMat));
+  mTemporalFilterModel = std::make_unique<ComputeModel>(&mLogger, std::move(temporalFilterMat));
 
   auto varianceMat =
       std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/variance.spv");
@@ -422,7 +427,7 @@ void Application::createComputeModels() {
     varianceMat->addStorageImage(mVarianceImage.get());
     varianceMat->addStorageImage(mVarianceHistImage.get());
   }
-  mVarianceModel = std::make_unique<ComputeModel>(std::move(varianceMat));
+  mVarianceModel = std::make_unique<ComputeModel>(&mLogger, std::move(varianceMat));
 
   mATrousModels.clear();
   for (int i = 0; i < kATrousSize; i++) {
@@ -444,7 +449,7 @@ void Application::createComputeModels() {
       aTrousMat->addStorageImage(mLastFrameAccumImage.get());
       aTrousMat->addStorageImage(mATrousOutputImage.get());
     }
-    mATrousModels.emplace_back(std::make_unique<ComputeModel>(std::move(aTrousMat)));
+    mATrousModels.emplace_back(std::make_unique<ComputeModel>(&mLogger, std::move(aTrousMat)));
   }
 
   auto postProcessingMat = std::make_unique<ComputeMaterial>(
@@ -463,7 +468,7 @@ void Application::createComputeModels() {
     // output
     postProcessingMat->addStorageImage(mTargetImage.get());
   }
-  mPostProcessingModel = std::make_unique<ComputeModel>(std::move(postProcessingMat));
+  mPostProcessingModel = std::make_unique<ComputeModel>(&mLogger, std::move(postProcessingMat));
 }
 
 void Application::updateScene(uint32_t currentImageIndex) {
@@ -496,7 +501,6 @@ void Application::updateScene(uint32_t currentImageIndex) {
       static_cast<uint32_t>(mRtScene->triangles.size()),
       static_cast<uint32_t>(mRtScene->lights.size()),
       mMovingLightSource,
-      mUseLdsNoise,
       mUseWeightedCosineFunction,
       mOutputType,
       mOffsetX,
@@ -552,7 +556,7 @@ void Application::createRenderCommandBuffers() {
 
   VkResult result =
       vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, mCommandBuffers.data());
-  Logger::checkStep("vkAllocateCommandBuffers", result);
+  assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
 
   for (size_t i = 0; i < mCommandBuffers.size(); i++) {
     VkCommandBuffer &currentCommandBuffer = mCommandBuffers[i];
@@ -563,7 +567,7 @@ void Application::createRenderCommandBuffers() {
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
     VkResult result = vkBeginCommandBuffer(currentCommandBuffer, &beginInfo);
-    Logger::checkStep("vkBeginCommandBuffer", result);
+    assert(result == VK_SUCCESS && "vkBeginCommandBuffer failed");
 
     mTargetImage->clearImage(currentCommandBuffer);
     mATrousInputImage->clearImage(currentCommandBuffer);
@@ -660,7 +664,7 @@ void Application::createRenderCommandBuffers() {
     // postProcessScene->writeRenderCommand(currentCommandBuffer, i);
 
     result = vkEndCommandBuffer(currentCommandBuffer);
-    Logger::checkStep("vkEndCommandBuffer", result);
+    assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
   }
 }
 
@@ -715,13 +719,13 @@ void Application::vkCreateSemaphoresAndFences() {
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
     VkResult result = vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr,
                                         &mImageAvailableSemaphores[i]);
-    Logger::checkStep("vkCreateSemaphore", result);
+    assert(result == VK_SUCCESS && "vkCreateSemaphore failed");
     result = vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr,
                                &mRenderFinishedSemaphores[i]);
-    Logger::checkStep("vkCreateSemaphore", result);
+    assert(result == VK_SUCCESS && "vkCreateSemaphore failed");
     result =
         vkCreateFence(mAppContext->getDevice(), &fenceInfo, nullptr, &mFramesInFlightFences[i]);
-    Logger::checkStep("vkCreateFence", result);
+    assert(result == VK_SUCCESS && "vkCreateFence failed");
   }
 }
 
@@ -735,7 +739,7 @@ void Application::createGuiCommandBuffers() {
 
   VkResult result =
       vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, mGuiCommandBuffers.data());
-  Logger::checkStep("vkAllocateCommandBuffers", result);
+  mLogger.checkStep("vkAllocateCommandBuffers", result);
 }
 
 void Application::createGuiRenderPass() {
@@ -782,7 +786,7 @@ void Application::createGuiRenderPass() {
 
   VkResult result =
       vkCreateRenderPass(mAppContext->getDevice(), &renderPassCreateInfo, nullptr, &mGuiPass);
-  Logger::checkStep("vkCreateRenderPass", result);
+  mLogger.checkStep("vkCreateRenderPass", result);
 }
 
 void Application::createGuiFramebuffers() {
@@ -806,7 +810,7 @@ void Application::createGuiFramebuffers() {
 
     VkResult result = vkCreateFramebuffer(mAppContext->getDevice(), &frameBufferCreateInfo, nullptr,
                                           &mGuiFrameBuffers[i]);
-    Logger::checkStep("vkCreateFramebuffer", result);
+    mLogger.checkStep("vkCreateFramebuffer", result);
   }
 }
 
@@ -832,7 +836,7 @@ void Application::createGuiDescripterPool() {
 
   VkResult result =
       vkCreateDescriptorPool(mAppContext->getDevice(), &poolInfo, nullptr, &mGuiDescriptorPool);
-  Logger::checkStep("vkCreateDescriptorPool", result);
+  mLogger.checkStep("vkCreateDescriptorPool", result);
 }
 
 void Application::initGui() {
@@ -864,7 +868,7 @@ void Application::initGui() {
   init_info.ImageCount                = static_cast<uint32_t>(mAppContext->getSwapchainSize());
   init_info.CheckVkResultFn           = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&init_info, mGuiPass)) {
-    Logger::print("failed to init impl");
+    mLogger.print("failed to init impl");
   }
 
   // Create fonts texture
@@ -872,7 +876,7 @@ void Application::initGui() {
       mAppContext->getDevice(), mAppContext->getCommandPool());
 
   if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer)) {
-    Logger::print("failed to create fonts texture");
+    mLogger.print("failed to create fonts texture");
   }
   RenderSystem::endSingleTimeCommands(mAppContext->getDevice(), mAppContext->getCommandPool(),
                                       mAppContext->getGraphicsQueue(), commandBuffer);
@@ -886,7 +890,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
 
   // A call to vkBeginCommandBuffer will implicitly reset the command buffer
   VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-  Logger::checkStep("vkBeginCommandBuffer", result);
+  mLogger.checkStep("vkBeginCommandBuffer", result);
 
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -908,7 +912,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   vkCmdEndRenderPass(commandBuffer);
 
   result = vkEndCommandBuffer(commandBuffer);
-  Logger::checkStep("vkEndCommandBuffer", result);
+  mLogger.checkStep("vkEndCommandBuffer", result);
 }
 
 void Application::drawFrame() {
@@ -929,7 +933,7 @@ void Application::drawFrame() {
   if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     // sub-optimal: a swapchain no longer matches the surface properties
     // exactly, but can still be used to present to the surface successfully
-    Logger::throwError("resizing is not allowed!");
+    mLogger.throwError("resizing is not allowed!");
   }
 
   updateScene(imageIndex);
@@ -959,7 +963,7 @@ void Application::drawFrame() {
 
   result = vkQueueSubmit(mAppContext->getGraphicsQueue(), 1, &submitInfo,
                          mFramesInFlightFences[currentFrame]);
-  Logger::checkStep("vkQueueSubmit", result);
+  mLogger.checkStep("vkQueueSubmit", result);
 
   VkPresentInfoKHR presentInfo{};
   {
@@ -973,7 +977,7 @@ void Application::drawFrame() {
   }
 
   result = vkQueuePresentKHR(mAppContext->getPresentQueue(), &presentInfo);
-  Logger::checkStep("vkQueuePresentKHR", result);
+  mLogger.checkStep("vkQueuePresentKHR", result);
 
   // Commented this out for playing around with it later :)
   // vkQueueWaitIdle(context.getPresentQueue());
@@ -1015,7 +1019,6 @@ void Application::prepareGui() {
 
     ImGui::SeparatorText("Rtx");
     ImGui::Checkbox("Moving Light Source", &mMovingLightSource);
-    ImGui::Checkbox("Use LDS Noise", &mUseLdsNoise);
     ImGui::Checkbox("Use weighted cosine", &mUseWeightedCosineFunction);
     const char *outputItems[] = {"Combined", "Direct Only", "Indirect Only"};
     comboSelector("Output Type", outputItems, mOutputType);
@@ -1106,7 +1109,7 @@ void Application::mainLoop() {
     io.MousePos = ImVec2(mWindow->getCursorXPos(), mWindow->getCursorYPos());
 
     if (glfwGetWindowAttrib(mWindow->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
-      Logger::print("window is not focused");
+      mLogger.print("window is not focused");
     }
 
     if (mWindow->windowSizeChanged() || needToToggleWindowStyle()) {

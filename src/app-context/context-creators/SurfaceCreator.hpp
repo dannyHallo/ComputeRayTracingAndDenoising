@@ -9,7 +9,7 @@
 #endif
 // we undefine this to solve conflict with systemLog
 
+class Logger;
 namespace ContextCreator {
-void createSurface(VkInstance instance, VkSurfaceKHR &surface,
-                   GLFWwindow *window);
+void createSurface(Logger *logger, VkInstance instance, VkSurfaceKHR &surface, GLFWwindow *window);
 } // namespace ContextCreator

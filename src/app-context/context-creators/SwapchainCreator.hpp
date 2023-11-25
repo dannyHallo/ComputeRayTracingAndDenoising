@@ -2,13 +2,12 @@
 
 #include "Common.hpp"
 
+class Logger;
 namespace ContextCreator {
-void createSwapchain(VkSwapchainKHR &swapchain,
+void createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
                      std::vector<VkImage> &swapchainImages,
-                     std::vector<VkImageView> &swapchainImageViews,
-                     VkFormat &swapchainImageFormat,
+                     std::vector<VkImageView> &swapchainImageViews, VkFormat &swapchainImageFormat,
                      VkExtent2D &swapchainExtent, const VkSurfaceKHR &surface,
-                     const VkDevice &device,
-                     const VkPhysicalDevice &physicalDevice,
+                     const VkDevice &device, const VkPhysicalDevice &physicalDevice,
                      const QueueFamilyIndices &queueFamilyIndices);
 } // namespace ContextCreator

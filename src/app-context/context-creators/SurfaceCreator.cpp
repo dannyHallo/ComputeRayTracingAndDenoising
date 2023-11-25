@@ -2,9 +2,8 @@
 
 #include "utils/Logger.hpp"
 
-void ContextCreator::createSurface(VkInstance instance, VkSurfaceKHR &surface,
+void ContextCreator::createSurface(Logger *logger, VkInstance instance, VkSurfaceKHR &surface,
                                    GLFWwindow *window) {
-  VkResult result =
-      glfwCreateWindowSurface(instance, window, nullptr, &surface);
-  Logger::checkStep("glfwCreateWindowSurface", result);
+  VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
+  logger->checkStep("glfwCreateWindowSurface", result);
 }

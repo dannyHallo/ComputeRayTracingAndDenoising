@@ -21,8 +21,8 @@ public:
   /// @param memoryUsage memory usage of buffer
   /// @param data data to be filled in buffer, if left as nullptr, buffer will
   /// be zero-initialized
-  Buffer(VkDeviceSize size, VkBufferUsageFlags usage,
-         VmaMemoryUsage memoryUsage, const void *data = nullptr);
+  Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage,
+         const void *data = nullptr);
 
   ~Buffer();
 
@@ -46,8 +46,7 @@ public:
 
 private:
   // buffer allocation is only allowed during construction
-  void allocate(VkDeviceSize size, VkBufferUsageFlags usage,
-                VmaMemoryUsage memoryUsage);
+  void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 };
 
 // class of series of buffers, can be used for storing identical buffers for
@@ -67,8 +66,7 @@ public:
   BufferBundle(size_t bufferCount, VkDeviceSize size, VkBufferUsageFlags usage,
                VmaMemoryUsage memoryUsage, const void *data = nullptr) {
     for (size_t i = 0; i < bufferCount; i++) {
-      mBuffers.emplace_back(
-          std::make_shared<Buffer>(size, usage, memoryUsage, data));
+      mBuffers.emplace_back(std::make_shared<Buffer>(size, usage, memoryUsage, data));
     }
   }
 

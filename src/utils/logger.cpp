@@ -1,3 +1,4 @@
+#define SPDLOG_HEADER_ONLY
 #include "Logger.hpp"
 
 // this is required to define format functions that are used by spdlog
@@ -5,8 +6,6 @@
 #include "spdlog/fmt/bundled/format.h"
 
 #include "spdlog/spdlog.h" // spdlog/include/spdlog/details/windows_include.h defines APIENTRY!
-
-#include <iostream>
 
 const std::unordered_map<int, std::string> resultCodeNamePair = {
     {VK_SUCCESS, "Command successfully completed"},
@@ -17,23 +16,19 @@ const std::unordered_map<int, std::string> resultCodeNamePair = {
     {VK_INCOMPLETE, "A return array was too small for the result"},
     {VK_ERROR_OUT_OF_HOST_MEMORY, "A host memory allocation has failed"},
     {VK_ERROR_OUT_OF_DEVICE_MEMORY, "A device memory allocation has failed"},
-    {VK_ERROR_INITIALIZATION_FAILED,
-     "Initialization of an object could not be completed for "
-     "implementation-specific reasons"},
+    {VK_ERROR_INITIALIZATION_FAILED, "Initialization of an object could not be completed for "
+                                     "implementation-specific reasons"},
     {VK_ERROR_DEVICE_LOST, "The logical or physical device has been lost"},
     {VK_ERROR_MEMORY_MAP_FAILED, "Mapping of a memory object has failed"},
-    {VK_ERROR_LAYER_NOT_PRESENT,
-     "A requested layer is not present or could not be loaded"},
+    {VK_ERROR_LAYER_NOT_PRESENT, "A requested layer is not present or could not be loaded"},
     {VK_ERROR_EXTENSION_NOT_PRESENT, "A requested extension is not supported"},
     {VK_ERROR_FEATURE_NOT_PRESENT, "A requested feature is not supported"},
     {VK_ERROR_INCOMPATIBLE_DRIVER,
      "The requested version of Vulkan is not supported by the driver or is "
      "otherwise "
      "incompatible for implementation-specific reasons"},
-    {VK_ERROR_TOO_MANY_OBJECTS,
-     "Too many objects of the type have already been created"},
-    {VK_ERROR_FORMAT_NOT_SUPPORTED,
-     "A requested format is not supported on this device"},
+    {VK_ERROR_TOO_MANY_OBJECTS, "Too many objects of the type have already been created"},
+    {VK_ERROR_FORMAT_NOT_SUPPORTED, "A requested format is not supported on this device"},
     {VK_ERROR_FRAGMENTED_POOL,
      "A pool allocation has failed due to fragmentation of the pool’s memory. "
      "This must only be returned if no attempt to "
@@ -57,8 +52,7 @@ const std::unordered_map<int, std::string> resultCodeNamePair = {
      "of the cause."},
     {VK_ERROR_INVALID_EXTERNAL_HANDLE,
      "An external handle is not a valid handle of the specified type"},
-    {VK_ERROR_FRAGMENTATION,
-     "A descriptor pool creation has failed due to fragmentation."},
+    {VK_ERROR_FRAGMENTATION, "A descriptor pool creation has failed due to fragmentation."},
     {VK_ERROR_INVALID_OPAQUE_CAPTURE_ADDRESS,
      "A buffer creation or memory allocation failed because the requested "
      "address is not available. A shader group handle "
@@ -142,9 +136,8 @@ const std::unordered_map<int, std::string> resultCodeNamePair = {
      "exlusive full-screen access. This may occur due to "
      "implementation-dependent reasons, outside of the application’s "
      "control."},
-    {VK_THREAD_IDLE_KHR,
-     "A deferred operation is not complete but there is currently no work for "
-     "this thread to do at the time of this call."},
+    {VK_THREAD_IDLE_KHR, "A deferred operation is not complete but there is currently no work for "
+                         "this thread to do at the time of this call."},
     {VK_THREAD_DONE_KHR, "A deferred operation is not complete but there is no "
                          "work remaining to assign to additional threads."},
     {VK_OPERATION_DEFERRED_KHR, "A deferred operation was requested and at "
@@ -163,8 +156,7 @@ const std::unordered_map<int, std::string> resultCodeNamePair = {
      "of the cause."},
     {VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR,
      "An external handle is not a valid handle of the specified type"},
-    {VK_ERROR_FRAGMENTATION_EXT,
-     "A descriptor pool creation has failed due to fragmentation."},
+    {VK_ERROR_FRAGMENTATION_EXT, "A descriptor pool creation has failed due to fragmentation."},
     {VK_ERROR_NOT_PERMITTED_EXT, "The operation is not permitted."},
     {VK_ERROR_INVALID_DEVICE_ADDRESS_EXT,
      "A buffer creation or memory allocation failed because the requested "
@@ -184,14 +176,7 @@ const std::unordered_map<int, std::string> resultCodeNamePair = {
      "Indicates that a pipeline creation would have required compilation if "
      "the "
      "compiled state was not already available in cache."},
-    {VK_RESULT_MAX_ENUM,
-     "Reserved for internal use by the Vulkan specification"}};
-
-// void Logger::throwError(const std::string content) {
-//   spdlog::error(content);
-//   assert(false && content.c_str());
-//   exit(0);
-// }
+    {VK_RESULT_MAX_ENUM, "Reserved for internal use by the Vulkan specification"}};
 
 void Logger::checkStep(const std::string stepName, const int resultCode) {
   if (resultCode == VK_SUCCESS) return;

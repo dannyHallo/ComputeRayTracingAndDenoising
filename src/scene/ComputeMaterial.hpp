@@ -12,12 +12,11 @@ class ComputeMaterial : public Material {
 
 public:
   ComputeMaterial(std::string computeShaderPath)
-      : Material(VK_SHADER_STAGE_COMPUTE_BIT),
-        mComputeShaderPath(std::move(computeShaderPath)) {}
+      : Material(VK_SHADER_STAGE_COMPUTE_BIT), mComputeShaderPath(std::move(computeShaderPath)) {}
 
   void bind(VkCommandBuffer commandBuffer, size_t currentFrame) override;
 
-  void init() override;
+  void init(Logger *logger) override;
 
 private:
   // must be called after initDescriptorSetLayout()

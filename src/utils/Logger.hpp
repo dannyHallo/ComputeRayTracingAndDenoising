@@ -1,7 +1,9 @@
 #pragma once
 
 #include "glm/glm.hpp"
+#include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
+
 #include "utils/Vulkan.hpp"
 
 #include <iostream>
@@ -10,33 +12,43 @@
 
 #pragma once
 
-namespace Logger {
+class Logger {
+  std::shared_ptr<spdlog::logger> logger;
+  std::shared_ptr<spdlog::logger> printlnLogger;
 
-// Print glm::vec3 directly
-inline void print(const glm::vec3 &v) {
-  spdlog::info("{}, {}, {}", v.x, v.y, v.z);
-}
+public:
+  Logger() {
+    // the normal logger is designed to showcase the log level
+    logger = spdlog::stdout_color_mt("normalLogger");
+    logger->set_pattern("[%l] %v");
 
-// Print with a format string and a variable number of arguments
-template <typename... Args>
-inline void print(const std::string &format, Args &&...args) {
-  spdlog::info(fmt::runtime(format), args...);
-}
+    // the println logger is designed to print without any log level
+    printlnLogger = spdlog::stdout_color_mt("printlnLogger");
+    printlnLogger->set_pattern("%v");
+  }
 
-// Print a single argument
-template <typename T> inline void print(const T &t) { spdlog::info("{}", t); }
+  // print glm::vec3
+  inline void print(const glm::vec3 &v) { logger->info("{}, {}, {}", v.x, v.y, v.z); }
 
-// Throw a warning
-inline void throwWarning(const std::string &warning) {
-  spdlog::warn("Warning: {}", warning);
-}
+  // print with a format string and a variable number of arguments
+  template <typename... Args> inline void print(const std::string &format, Args &&...args) {
+    logger->info(fmt::runtime(format), args...);
+  }
 
-// Throw an error and exit
-inline void throwError(const std::string &error) {
-  spdlog::error("Error: {}", error);
-  exit(1);
-}
+  inline void println() { printlnLogger->info(""); }
 
-// Check a step's result code
-void checkStep(const std::string stepName, const int resultCode);
-}; // namespace Logger
+  // print a single argument
+  template <typename T> inline void print(const T &t) { logger->info("{}", t); }
+
+  // throw a warning
+  inline void throwWarning(const std::string &warning) { logger->warn("Warning: {}", warning); }
+
+  // throw an error and exit
+  inline void throwError(const std::string &error) {
+    logger->error("Error: {}", error);
+    exit(1);
+  }
+
+  // check a step's result code
+  void checkStep(const std::string stepName, const int resultCode);
+};
