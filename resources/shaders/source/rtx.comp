@@ -107,14 +107,29 @@ struct HitRecord {
   int backFaceInt;
 };
 
+Triangle moveLightTri(Triangle tri) {
+  if (!ubo.movingLightSource) return tri;
+
+  float xOffset = sin(globalUbo.time * 4) * 0.2;
+  tri.v0.x += xOffset;
+  tri.v1.x += xOffset;
+  tri.v2.x += xOffset;
+  return tri;
+}
+
 float changeLightIntensity() {
-  const float changingTime = 2;
+  return 1.0;
   if (!ubo.movingLightSource) return 1.0;
-  return sin(globalUbo.time * (1 / changingTime) * kPi) * 0.5 + 0.5;
+
+  const float avgLum       = 0.7;
+  const float maxLum       = 1;
+  const float changingTime = 2;
+  return sin(globalUbo.time * (1 / changingTime) * kPi) * (maxLum - avgLum) + avgLum;
 }
 
 bool triIntersect(vec3 origin, vec3 dir, Triangle tri, out vec3 normal, out vec2 uv,
                   out float tNear) {
+
   vec3 e1 = tri.v1 - tri.v0;
   vec3 e2 = tri.v2 - tri.v0;
   vec3 s  = origin - tri.v0;
@@ -146,6 +161,11 @@ HitRecord hitTriangle(int triangleIndex, Ray r, float tMin, float tMax) {
   vec3 normal;
   vec2 uv;
   float tNear;
+
+  // TODO: move light here!
+  if (materials[tri.materialIndex].materialType == LIGHT_MATERIAL) {
+    tri = moveLightTri(tri);
+  }
 
   if (triIntersect(r.origin, r.dir, tri, normal, uv, tNear)) {
     rec.backFaceInt   = int(step(0, dot(r.dir, normal)));
@@ -250,7 +270,7 @@ void getRandomSampleOnLight(uvec3 seed, BaseDisturbance baseDisturbance,
   // we have two lighting tris (identical)
   lightArea = lights[i].area * 2;
 
-  Triangle samplingLightTri = triangles[lightId];
+  Triangle samplingLightTri = moveLightTri(triangles[lightId]);
   vec3 e1                   = samplingLightTri.v1 - samplingLightTri.v0;
   vec3 e2                   = samplingLightTri.v2 - samplingLightTri.v0;
   // CAUTION: direction is unfixed! lit from both sides!
@@ -279,11 +299,13 @@ vec3 pathTracing2(Ray r, uvec3 seed) {
   float dist    = sqrt(distSqr);
   o2l /= dist;
 
-  Ray shadowRay       = Ray(rec.p + rec.normal * kEpsilon, o2l);
-  HitRecord shadowRec = traceRayToBvh(Ray(rec.p + rec.normal * 0.0001, o2l));
-  vec3 directColor    = vec3(0);
-
-  if (shadowRec.hit && materials[shadowRec.materialIndex].materialType == LIGHT_MATERIAL) {
+  Ray shadowRay           = Ray(rec.p + rec.normal * kEpsilon, o2l);
+  HitRecord shadowRec     = traceRayToBvh(Ray(rec.p + rec.normal * 0.0001, o2l));
+  vec3 directColor        = vec3(0);
+  bool isDirectionCorrect = dot(lightNormal, o2l) < 0; // light backface culling
+  bool hitLight =
+      shadowRec.hit && materials[shadowRec.materialIndex].materialType == LIGHT_MATERIAL;
+  if (hitLight && isDirectionCorrect) {
     vec3 brdf   = kInvPi * materials[rec.materialIndex].albedo;
     float pdf   = distSqr / (lightArea * abs(dot(o2l, lightNormal)));
     directColor = materials[shadowRec.materialIndex].albedo * changeLightIntensity() * brdf *
@@ -291,11 +313,6 @@ vec3 pathTracing2(Ray r, uvec3 seed) {
   }
 
   return directColor;
-}
-
-float getLambertianBrdf() {
-  const float kReflectance = 1.0;
-  return kReflectance * kInvPi;
 }
 
 HitRecord pathTracing(Ray r, uvec3 seed) {
@@ -322,15 +339,19 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
   float dist    = sqrt(distSqr);
   o2l /= dist;
 
-  Ray shadowRay       = Ray(hitPos + hitNormal * kEpsilon, o2l);
-  HitRecord shadowRec = traceRayToBvh(shadowRay);
-  vec3 directColor    = vec3(0);
-  if (shadowRec.hit && materials[shadowRec.materialIndex].materialType == LIGHT_MATERIAL) {
+  Ray shadowRay           = Ray(hitPos + hitNormal * kEpsilon, o2l);
+  HitRecord shadowRec     = traceRayToBvh(shadowRay);
+  vec3 directColor        = vec3(0);
+  bool isDirectionCorrect = dot(lightNormal, o2l) < 0; // light backface culling
+  bool hitLight =
+      shadowRec.hit && materials[shadowRec.materialIndex].materialType == LIGHT_MATERIAL;
+  if (hitLight && isDirectionCorrect) {
     if (ubo.outputType != OUTPUT_TYPE_INDIRECT_ONLY) {
       vec3 brdf   = kInvPi * materials[rec.materialIndex].albedo;
       float pdf   = distSqr / (lightArea * abs(dot(o2l, lightNormal)));
       directColor = materials[shadowRec.materialIndex].albedo * changeLightIntensity() * brdf *
                     dot(o2l, hitNormal) / pdf;
+      // directColor = vec3(0.8);
     }
   }
 
@@ -414,18 +435,17 @@ bool checkStratumRecord() {
 }
 
 vec2 getSubsubpixOffset() {
-  // return vec2(0.5);
+  return vec2(0.5);
+   
   if (!hasStratumRec) return vec2(0.5);
   ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
   vec2 offset     = imageLoad(visibilityTex, stratumUv).xy;
-  // vec2 offset = vec2(ubo.offsetX, ubo.offsetY);
   return offset;
 }
 
 uvec3 getSeed() {
   if (!hasStratumRec) {
     return uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, globalUbo.currentSample);
-    // return uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, 0);
   }
   ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
   return imageLoad(seedVisibilityTex, stratumUv).xyz;
