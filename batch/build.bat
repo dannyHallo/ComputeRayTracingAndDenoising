@@ -41,12 +41,14 @@ if %SKIP_CPP%==0 (
     echo xmake
     xmake f -p windows -a x64 -m %BUILD_TYPE%
     xmake -w
-    echo done
 
-    if %errorlevel% neq 0 (
-       echo Build failed with error %errorlevel%. Exiting... 
+    if !errorlevel! neq 0 (
+       echo Build failed with error !errorlevel!. Exiting... 
        goto :eof
     )
+
+    echo done
+
 ) else (
     echo Skipping cpp compilation
 )
