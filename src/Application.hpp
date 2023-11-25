@@ -60,7 +60,7 @@ class Application {
   bool mMovingLightSource         = false;
   bool mUseLdsNoise               = true;
   bool mUseWeightedCosineFunction = true;
-  uint32_t mOutputType            = 0;
+  uint32_t mOutputType            = 1; // combined, direct only, indirect only
   float mOffsetX                  = 0.f;
   float mOffsetY                  = 0.f;
 

@@ -351,7 +351,7 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
       float pdf   = distSqr / (lightArea * abs(dot(o2l, lightNormal)));
       directColor = materials[shadowRec.materialIndex].albedo * changeLightIntensity() * brdf *
                     dot(o2l, hitNormal) / pdf;
-      // directColor = vec3(0.8);
+      directColor = vec3(0.8);
     }
   }
 
@@ -403,11 +403,6 @@ vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
   return top_left_corner + viewport_width * right * uv.x - viewport_height * up * uv.y;
 }
 
-Ray rayGen(vec2 subpixOffset) {
-  vec3 rayDir = normalize(getPixelInScreenPosByDispatch(subpixOffset));
-  return Ray(globalUbo.camPos, rayDir);
-}
-
 // component vise min()
 vec3 fireflyRejectionClamp(vec3 radiance) {
   const vec3 maxRadiance = vec3(2);
@@ -434,9 +429,14 @@ bool checkStratumRecord() {
   return uv == uvWithRec;
 }
 
+Ray rayGen(vec2 subpixOffset) {
+  vec3 rayDir = normalize(getPixelInScreenPosByDispatch(subpixOffset));
+  return Ray(globalUbo.camPos, rayDir);
+}
+
 vec2 getSubsubpixOffset() {
-  return vec2(0.5);
-   
+  // return vec2(0.5);
+
   if (!hasStratumRec) return vec2(0.5);
   ivec2 stratumUv = ivec2(gl_GlobalInvocationID.xy) / STRATUM_SIZE;
   vec2 offset     = imageLoad(visibilityTex, stratumUv).xy;
