@@ -2,6 +2,7 @@
 
 #include "utils/Logger.hpp"
 
+#include <cassert>
 #include <set>
 
 namespace {
@@ -51,7 +52,7 @@ void _setupDebugMessager(Logger *logger, VkInstance instance,
          "vkCreateDebugUtilsMessengerEXT is a null function, call "
          "volkLoadInstance first");
   VkResult result = vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessager);
-  logger->checkStep("vkCreateDebugUtilsMessengerEXT", result);
+  assert(result == VK_SUCCESS && "failed to set up debug messager");
 }
 
 // returns instance required extension names (i.e glfw, validation layers), they
@@ -86,7 +87,7 @@ bool _checkInstanceLayerSupport(Logger *logger, const std::vector<const char *> 
   std::set<std::string> availableLayersSet{};
   for (const auto &layerProperty : availableLayers) {
     availableLayersSet.insert(static_cast<const char *>(layerProperty.layerName));
-    logger->print("\t{}", static_cast<const char *>(layerProperty.layerName));
+    logger->printSubinfo("{}", static_cast<const char *>(layerProperty.layerName));
   }
 
   logger->print("using instance layers: {}", layers.size());
@@ -95,7 +96,7 @@ bool _checkInstanceLayerSupport(Logger *logger, const std::vector<const char *> 
   // for each validation layer, we check for its validity from the avaliable
   // layer pool
   for (const auto &layerName : layers) {
-    logger->print("\t{}", layerName);
+    logger->printSubinfo("{}", layerName);
     if (availableLayersSet.find(layerName) == availableLayersSet.end()) {
       unavailableLayerNames.emplace_back(layerName);
     }
@@ -107,7 +108,7 @@ bool _checkInstanceLayerSupport(Logger *logger, const std::vector<const char *> 
   }
 
   for (const auto &unavailableLayerName : unavailableLayerNames) {
-    logger->print("\t{}", unavailableLayerName);
+    logger->printSubinfo("{}", unavailableLayerName);
   }
   logger->println();
   return false;
@@ -132,7 +133,7 @@ void ContextCreator::createInstance(Logger *logger, VkInstance &instance,
   // logger->prints all available instance extensions
   logger->print("available instance extensions {}", availavleExtensions.size());
   for (const auto &extension : availavleExtensions) {
-    logger->print("\t{}", static_cast<const char *>(extension.extensionName));
+    logger->printSubinfo("{}", static_cast<const char *>(extension.extensionName));
   }
   logger->println();
 
@@ -143,7 +144,7 @@ void ContextCreator::createInstance(Logger *logger, VkInstance &instance,
 
   logger->print("using instance extensions", instanceRequiredExtensions.size());
   for (const auto &extension : instanceRequiredExtensions) {
-    logger->print("\t{}", extension);
+    logger->printSubinfo("{}", extension);
   }
   logger->println();
 
@@ -165,7 +166,7 @@ void ContextCreator::createInstance(Logger *logger, VkInstance &instance,
 
   // create VK Instance
   VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
-  logger->checkStep("vkCreateInstance", result);
+  assert(result == VK_SUCCESS && "failed to create instance");
 
   // load instance-related functions
   volkLoadInstance(instance);

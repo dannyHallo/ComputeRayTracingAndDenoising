@@ -30,6 +30,11 @@ public:
   // print glm::vec3
   inline void print(const glm::vec3 &v) { logger->info("{}, {}, {}", v.x, v.y, v.z); }
 
+  template <typename... Args> inline void printSubinfo(std::string format, Args &&...args) {
+    std::string formatWithSubInfo = "* " + std::move(format);
+    logger->info(fmt::runtime(formatWithSubInfo), args...);
+  }
+
   // print with a format string and a variable number of arguments
   template <typename... Args> inline void print(const std::string &format, Args &&...args) {
     logger->info(fmt::runtime(format), args...);

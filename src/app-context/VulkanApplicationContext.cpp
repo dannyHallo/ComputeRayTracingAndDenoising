@@ -11,6 +11,7 @@
 #include "utils/Logger.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
 #include <set>
 
@@ -28,7 +29,7 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
 
   mGlWindow       = window;
   VkResult result = volkInitialize();
-  mLogger->checkStep("volkInitialize", result);
+  assert(result == VK_SUCCESS && "Failed to initialize volk");
 
   VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
   appInfo.pApplicationName   = "Compute Ray Tracing";
@@ -133,7 +134,7 @@ void VulkanApplicationContext::createAllocator() {
   allocatorInfo.pVulkanFunctions       = &vmaVulkanFunc;
 
   VkResult result = vmaCreateAllocator(&allocatorInfo, &mAllocator);
-  mLogger->checkStep("vmaCreateAllocator", result);
+  assert(result == VK_SUCCESS && "failed to create allocator");
 }
 
 // create a command pool for rendering commands and a command pool for gui
@@ -144,7 +145,7 @@ void VulkanApplicationContext::createCommandPool() {
   commandPoolCreateInfo1.queueFamilyIndex = mQueueFamilyIndices.graphicsFamily;
 
   VkResult result = vkCreateCommandPool(mDevice, &commandPoolCreateInfo1, nullptr, &mCommandPool);
-  mLogger->checkStep("vkCreateCommandPool(commandPoolCreateInfo1)", result);
+  assert(result == VK_SUCCESS && "failed to create command pool");
 
   VkCommandPoolCreateInfo commandPoolCreateInfo2{};
   commandPoolCreateInfo2.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -154,5 +155,5 @@ void VulkanApplicationContext::createCommandPool() {
   commandPoolCreateInfo2.queueFamilyIndex = mQueueFamilyIndices.graphicsFamily;
 
   result = vkCreateCommandPool(mDevice, &commandPoolCreateInfo2, nullptr, &mGuiCommandPool);
-  mLogger->checkStep("vkCreateCommandPool(commandPoolCreateInfo2)", result);
+  assert(result == VK_SUCCESS && "failed to create command pool");
 }

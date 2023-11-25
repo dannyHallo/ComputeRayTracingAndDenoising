@@ -3,6 +3,7 @@
 #include "Common.hpp"
 #include "utils/Logger.hpp"
 
+#include <cassert>
 #include <set>
 
 namespace {
@@ -97,7 +98,7 @@ bool _checkDeviceExtensionSupport(Logger *logger, const VkPhysicalDevice &physic
   logger->print("\n");
   logger->print("using device extensions: {}", requiredDeviceExtensions.size());
   for (const auto &extensionName : requiredDeviceExtensions) {
-    logger->print("\t", extensionName);
+    logger->printSubinfo("{}", extensionName);
   }
   logger->print("\n");
   logger->print("\n");
@@ -115,7 +116,7 @@ bool _checkDeviceExtensionSupport(Logger *logger, const VkPhysicalDevice &physic
 
   logger->print("the following device extensions are not available:");
   for (const auto &unavailableExtensionName : unavailableExtensionNames) {
-    logger->print("\t{}", unavailableExtensionName);
+    logger->printSubinfo("{}", unavailableExtensionName);
   }
   return false;
 }
@@ -348,7 +349,7 @@ void ContextCreator::createDevice(Logger *logger, VkPhysicalDevice &physicalDevi
     deviceCreateInfo.ppEnabledLayerNames = nullptr;
 
     VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
-    logger->checkStep("vkCreateDevice", result);
+    assert(result == VK_SUCCESS && "failed to create logical device");
 
     // reduce loading overhead by specifing only one device is used
     volkLoadDevice(device);

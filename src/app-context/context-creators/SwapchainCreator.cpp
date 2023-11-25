@@ -3,6 +3,8 @@
 #include "memory/Image.hpp"
 #include "utils/Logger.hpp"
 
+#include <cassert>
+
 namespace {
 // query for physical device's swapchain sepport details
 ContextCreator::SwapchainSupportDetails _querySwapchainSupport(VkSurfaceKHR surface,
@@ -135,7 +137,7 @@ void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
   swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
   VkResult result = vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
-  logger->checkStep("vkCreateSwapchainKHR", result);
+  assert(result == VK_SUCCESS && "Failed to create swapchain!");
 
   // obtain the actual number of swapchain images
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);

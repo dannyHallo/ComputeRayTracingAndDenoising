@@ -5,6 +5,8 @@
 #include "utils/Logger.hpp"
 #include "window/Window.hpp"
 
+#include <cassert>
+
 static const int kATrousSize                   = 5;
 static const int kMaxFramesInFlight            = 2;
 static const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
@@ -739,7 +741,7 @@ void Application::createGuiCommandBuffers() {
 
   VkResult result =
       vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, mGuiCommandBuffers.data());
-  mLogger.checkStep("vkAllocateCommandBuffers", result);
+  assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
 }
 
 void Application::createGuiRenderPass() {
@@ -786,7 +788,7 @@ void Application::createGuiRenderPass() {
 
   VkResult result =
       vkCreateRenderPass(mAppContext->getDevice(), &renderPassCreateInfo, nullptr, &mGuiPass);
-  mLogger.checkStep("vkCreateRenderPass", result);
+  assert(result == VK_SUCCESS && "vkCreateRenderPass failed");
 }
 
 void Application::createGuiFramebuffers() {
@@ -810,7 +812,7 @@ void Application::createGuiFramebuffers() {
 
     VkResult result = vkCreateFramebuffer(mAppContext->getDevice(), &frameBufferCreateInfo, nullptr,
                                           &mGuiFrameBuffers[i]);
-    mLogger.checkStep("vkCreateFramebuffer", result);
+    assert(result == VK_SUCCESS && "vkCreateFramebuffer failed");
   }
 }
 
@@ -836,7 +838,7 @@ void Application::createGuiDescripterPool() {
 
   VkResult result =
       vkCreateDescriptorPool(mAppContext->getDevice(), &poolInfo, nullptr, &mGuiDescriptorPool);
-  mLogger.checkStep("vkCreateDescriptorPool", result);
+  assert(result == VK_SUCCESS && "vkCreateDescriptorPool failed");
 }
 
 void Application::initGui() {
@@ -890,7 +892,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
 
   // A call to vkBeginCommandBuffer will implicitly reset the command buffer
   VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-  mLogger.checkStep("vkBeginCommandBuffer", result);
+  assert(result == VK_SUCCESS && "vkBeginCommandBuffer failed");
 
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -912,7 +914,7 @@ void Application::recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_
   vkCmdEndRenderPass(commandBuffer);
 
   result = vkEndCommandBuffer(commandBuffer);
-  mLogger.checkStep("vkEndCommandBuffer", result);
+  assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
 }
 
 void Application::drawFrame() {
@@ -963,7 +965,7 @@ void Application::drawFrame() {
 
   result = vkQueueSubmit(mAppContext->getGraphicsQueue(), 1, &submitInfo,
                          mFramesInFlightFences[currentFrame]);
-  mLogger.checkStep("vkQueueSubmit", result);
+  assert(result == VK_SUCCESS && "vkQueueSubmit failed");
 
   VkPresentInfoKHR presentInfo{};
   {
@@ -977,7 +979,7 @@ void Application::drawFrame() {
   }
 
   result = vkQueuePresentKHR(mAppContext->getPresentQueue(), &presentInfo);
-  mLogger.checkStep("vkQueuePresentKHR", result);
+  assert(result == VK_SUCCESS && "vkQueuePresentKHR failed");
 
   // Commented this out for playing around with it later :)
   // vkQueueWaitIdle(context.getPresentQueue());
