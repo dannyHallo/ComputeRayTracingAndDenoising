@@ -89,6 +89,7 @@ bool _checkInstanceLayerSupport(Logger *logger, const std::vector<const char *> 
     availableLayersSet.insert(static_cast<const char *>(layerProperty.layerName));
     logger->printSubinfo("{}", static_cast<const char *>(layerProperty.layerName));
   }
+  logger->println();
 
   logger->print("using instance layers: {}", layers.size());
 

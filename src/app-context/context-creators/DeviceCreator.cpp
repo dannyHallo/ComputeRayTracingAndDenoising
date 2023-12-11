@@ -95,13 +95,13 @@ bool _checkDeviceExtensionSupport(Logger *logger, const VkPhysicalDevice &physic
   }
 
   logger->print("available device extensions count: {}", availableExtensions.size());
-  logger->print("\n");
+  logger->println();
   logger->print("using device extensions: {}", requiredDeviceExtensions.size());
   for (const auto &extensionName : requiredDeviceExtensions) {
     logger->printSubinfo("{}", extensionName);
   }
-  logger->print("\n");
-  logger->print("\n");
+  logger->println();
+  logger->println();
 
   std::vector<std::string> unavailableExtensionNames{};
   for (const auto &requiredExtension : requiredDeviceExtensions) {
@@ -237,7 +237,7 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
   }
 
   logger->print("-------------------------------------------------------");
-  logger->print("\n");
+  logger->println();
 
   uint32_t bestMark = 0;
   deviceId          = 0;
@@ -256,9 +256,8 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
   } else {
     VkPhysicalDeviceProperties bestDeviceProperty;
     vkGetPhysicalDeviceProperties(bestDevice, &bestDeviceProperty);
-    std::cout << "Selected: " << static_cast<const char *>(bestDeviceProperty.deviceName)
-              << std::endl;
-    logger->print("\n");
+    logger->print("Selected: {}", static_cast<const char *>(bestDeviceProperty.deviceName));
+    logger->println();
 
     checkDeviceSuitable(logger, surface, bestDevice, requiredDeviceExtensions);
   }
@@ -275,6 +274,7 @@ void ContextCreator::createDevice(Logger *logger, VkPhysicalDevice &physicalDevi
                                   const std::vector<const char *> &requiredDeviceExtensions) {
   // pick the physical device with the best performance
   {
+    //           << std::endl;
     physicalDevice = VK_NULL_HANDLE;
 
     uint32_t deviceCount = 0;
