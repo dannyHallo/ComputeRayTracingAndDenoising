@@ -11,17 +11,15 @@
 
 #include <functional>
 #include <map>
+#include <vector>
 
 enum class WindowStyle { kNone, kFullScreen, kMaximized, kHover };
 enum class CursorState { kNone, kInvisible, kVisible };
 
 class Window {
 public:
-  // universal constructor, the last two parameters only will be used to
-  // construct a hover window
   Window(WindowStyle windowStyle, int widthIfWindowed = 400, int heightIfWindowed = 300);
-
-  ~Window() { glfwDestroyWindow(mWindow); }
+  ~Window();
 
   // disable move and copy
   Window(const Window &)            = delete;
@@ -46,26 +44,31 @@ public:
     glfwGetWindowSize(mWindow, &width, &height);
     return width;
   }
+
   [[nodiscard]] int getWindowHeight() const {
     int width, height;
     glfwGetWindowSize(mWindow, &width, &height);
     return height;
   }
+
   [[nodiscard]] int getFrameBufferWidth() const {
     int width, height;
     glfwGetFramebufferSize(mWindow, &width, &height);
     return width;
   }
+
   [[nodiscard]] int getFrameBufferHeight() const {
     int width, height;
     glfwGetFramebufferSize(mWindow, &width, &height);
     return height;
   }
+
   [[nodiscard]] int getCursorXPos() const {
     double xPos, yPos;
     glfwGetCursorPos(mWindow, &xPos, &yPos);
     return static_cast<int>(xPos);
   }
+
   [[nodiscard]] int getCursorYPos() const {
     double xPos, yPos;
     glfwGetCursorPos(mWindow, &xPos, &yPos);
@@ -84,9 +87,7 @@ public:
 
   void disableInputBit(int bitToBeDisabled) { mKeyInputMap[bitToBeDisabled] = false; }
 
-  static void addMouseCallback(std::function<void(float, float)> callback) {
-    mouseCallback = std::move(callback);
-  }
+  void addMouseCallback(std::function<void(float, float)> callback);
 
 private:
   WindowStyle mWindowStyle = WindowStyle::kNone;
@@ -106,10 +107,12 @@ private:
   int mMaximizedFullscreenClientWidth  = 0;
   int mMaximizedFullscreenClientHeight = 0;
 
-  static std::function<void(float, float)> mouseCallback;
+  std::vector<std::function<void(float, float)>> mouseCallbacks;
 
-  static float mouseDeltaX;
-  static float mouseDeltaY;
-  static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
-  static void cursorPosCallback(GLFWwindow *window, double xPos, double yPos);
+  float mouseDeltaX = 0;
+  float mouseDeltaY = 0;
+
+  static void _keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+  static void _cursorPosCallback(GLFWwindow *window, double xPos, double yPos);
+  static void _frameBufferResizeCallback(GLFWwindow *window, int width, int height);
 };

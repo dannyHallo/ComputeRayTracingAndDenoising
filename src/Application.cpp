@@ -59,8 +59,6 @@ void Application::cleanup() {
   // clearing resources related to ImGui, this can be rewritten by using VMA
   // later
   ImGui_ImplVulkan_Shutdown();
-
-  glfwTerminate();
 }
 
 void check_vk_result(VkResult resultCode) {
@@ -1083,7 +1081,7 @@ void Application::mainLoop() {
     glfwPollEvents();
     auto &io = ImGui::GetIO();
     // the MousePos is problematic when the window is not focused, so we set it
-    // manually :<
+    // manually here
     io.MousePos = ImVec2(mWindow->getCursorXPos(), mWindow->getCursorYPos());
 
     if (glfwGetWindowAttrib(mWindow->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
