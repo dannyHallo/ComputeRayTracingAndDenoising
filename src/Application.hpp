@@ -55,10 +55,10 @@ class Application {
     float offsetX;
     float offsetY;
   };
-  bool mMovingLightSource         = false;
-  uint32_t mOutputType            = 1; // combined, direct only, indirect only
-  float mOffsetX                  = 0.f;
-  float mOffsetY                  = 0.f;
+  bool mMovingLightSource = false;
+  uint32_t mOutputType    = 1; // combined, direct only, indirect only
+  float mOffsetX          = 0.f;
+  float mOffsetY          = 0.f;
 
   struct StratumFilterUniformBufferObject {
     int i;
@@ -250,57 +250,57 @@ public:
   void run();
 
 private:
-  void createScene();
-  void createBufferBundles();
-  void createImagesAndForwardingPairs();
-  void createComputeModels();
+  void _createScene();
+  void _createBufferBundles();
+  void _createImagesAndForwardingPairs();
+  void _createComputeModels();
 
   // update uniform buffer object for each frame and save last mvpe matrix
-  void updateScene(uint32_t currentImage);
+  void _updateScene(uint32_t currentImage);
 
-  void createRenderCommandBuffers();
+  void _createRenderCommandBuffers();
 
-  void vkCreateSemaphoresAndFences();
+  void _vkCreateSemaphoresAndFences();
 
-  void createGuiCommandBuffers();
+  void _createGuiCommandBuffers();
 
-  void createGuiRenderPass();
+  void _createGuiRenderPass();
 
-  void createGuiFramebuffers();
+  void _createGuiFramebuffers();
 
-  void createGuiDescripterPool();
+  void _createGuiDescripterPool();
 
-  void cleanupSwapchainDimensionRelatedResources();
-  void cleanupImagesAndForwardingPairs();
-  void cleanupBufferBundles();
-  void cleanupGuiFrameBuffers();
-  void cleanupComputeModels();
-  void cleanupRenderCommandBuffers();
+  void _cleanupSwapchainDimensionRelatedResources();
+  void _cleanupImagesAndForwardingPairs();
+  void _cleanupBufferBundles();
+  void _cleanupGuiFrameBuffers();
+  void _cleanupComputeModels();
+  void _cleanupRenderCommandBuffers();
 
-  void createSwapchainDimensionRelatedResources();
+  void _createSwapchainDimensionRelatedResources();
 
   // initialize GUI
-  void initGui();
+  void _initGui();
 
   // record command buffer for GUI
-  void recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex);
+  void _recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex);
 
-  void waitForTheWindowToBeResumed();
+  void _waitForTheWindowToBeResumed();
 
   // draw a frame
-  void drawFrame();
+  void _drawFrame();
 
   // prepare GUI
-  void prepareGui();
+  void _prepareGui();
 
   // main loop
-  void mainLoop();
+  void _mainLoop();
 
   // initialize Vulkan
-  void init();
+  void _init();
 
   // cleanup resources
-  void cleanup();
+  void _cleanup();
 
-  bool needToToggleWindowStyle();
+  bool _needToToggleWindowStyle();
 };

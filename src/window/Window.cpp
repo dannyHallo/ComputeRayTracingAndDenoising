@@ -6,16 +6,16 @@
 namespace {} // namespace
 
 Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowed)
-    : mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed) {
+    : _widthIfWindowed(widthIfWindowed), _heightIfWindowed(heightIfWindowed) {
   auto result = glfwInit();
   assert(result == GLFW_TRUE && "Failed to initialize GLFW");
 
-  mMonitor = glfwGetPrimaryMonitor();
-  assert(mMonitor != nullptr && "Failed to get primary monitor");
+  _monitor = glfwGetPrimaryMonitor();
+  assert(_monitor != nullptr && "Failed to get primary monitor");
 
   // get primary monitor for future maximize function
   // may be used to change mode for this program
-  const GLFWvidmode *mode = glfwGetVideoMode(mMonitor);
+  const GLFWvidmode *mode = glfwGetVideoMode(_monitor);
   assert(mode != nullptr && "Failed to get video mode");
 
   // only OpenGL Api is supported, so no API here
@@ -27,36 +27,36 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
   glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt framerate
 
   // create a windowed fullscreen window temporalily, to obtain its property
-  mWindow = glfwCreateWindow(mode->width, mode->height, "Loading window...", nullptr, nullptr);
-  glfwMaximizeWindow(mWindow);
-  glfwGetWindowPos(mWindow, 0, &mTitleBarHeight);
-  glfwGetFramebufferSize(mWindow, &mMaximizedFullscreenClientWidth,
-                         &mMaximizedFullscreenClientHeight);
+  _window = glfwCreateWindow(mode->width, mode->height, "Loading window...", nullptr, nullptr);
+  glfwMaximizeWindow(_window);
+  glfwGetWindowPos(_window, 0, &_titleBarHeight);
+  glfwGetFramebufferSize(_window, &_maximizedFullscreenClientWidth,
+                         &_maximizedFullscreenClientHeight);
 
   // change the created window to the desired style
   setWindowStyle(windowStyle);
 
-  mWindowStyle = windowStyle;
+  _windowStyle = windowStyle;
 
-  if (mCursorState == CursorState::kInvisible) {
+  if (_cursorState == CursorState::kInvisible) {
     hideCursor();
   } else {
     showCursor();
   }
 
-  glfwSetWindowUserPointer(mWindow, this); // set this pointer to the window class
-  glfwSetKeyCallback(mWindow, _keyCallback);
-  glfwSetCursorPosCallback(mWindow, _cursorPosCallback);
-  glfwSetFramebufferSizeCallback(mWindow, _frameBufferResizeCallback);
+  glfwSetWindowUserPointer(_window, this); // set this pointer to the window class
+  glfwSetKeyCallback(_window, _keyCallback);
+  glfwSetCursorPosCallback(_window, _cursorPosCallback);
+  glfwSetFramebufferSizeCallback(_window, _frameBufferResizeCallback);
 }
 
 Window::~Window() {
-  glfwDestroyWindow(mWindow);
+  glfwDestroyWindow(_window);
   glfwTerminate();
 }
 
 void Window::toggleWindowStyle() {
-  switch (mWindowStyle) {
+  switch (_windowStyle) {
   case WindowStyle::kNone:
     assert(false && "Cannot toggle window style while it is none");
     break;
@@ -73,11 +73,11 @@ void Window::toggleWindowStyle() {
 }
 
 void Window::setWindowStyle(WindowStyle newStyle) {
-  if (newStyle == mWindowStyle) {
+  if (newStyle == _windowStyle) {
     return;
   }
 
-  const GLFWvidmode *mode = glfwGetVideoMode(mMonitor);
+  const GLFWvidmode *mode = glfwGetVideoMode(_monitor);
   assert(mode != nullptr && "Failed to get video mode");
 
   switch (newStyle) {
@@ -86,45 +86,45 @@ void Window::setWindowStyle(WindowStyle newStyle) {
     break;
 
   case WindowStyle::kFullScreen:
-    glfwSetWindowMonitor(mWindow, mMonitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+    glfwSetWindowMonitor(_window, _monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
     break;
 
   case WindowStyle::kMaximized:
-    glfwSetWindowMonitor(mWindow, nullptr, 0, mTitleBarHeight, mMaximizedFullscreenClientWidth,
-                         mMaximizedFullscreenClientHeight, mode->refreshRate);
+    glfwSetWindowMonitor(_window, nullptr, 0, _titleBarHeight, _maximizedFullscreenClientWidth,
+                         _maximizedFullscreenClientHeight, mode->refreshRate);
     break;
 
   case WindowStyle::kHover:
     int hoverWindowX =
-        static_cast<int>(mMaximizedFullscreenClientWidth / 2.F - mWidthIfWindowed / 2.F);
+        static_cast<int>(_maximizedFullscreenClientWidth / 2.F - _widthIfWindowed / 2.F);
     int hoverWindowY =
-        static_cast<int>(mMaximizedFullscreenClientHeight / 2.F - mHeightIfWindowed / 2.F);
-    glfwSetWindowMonitor(mWindow, nullptr, hoverWindowX, hoverWindowY, mWidthIfWindowed,
-                         mHeightIfWindowed, mode->refreshRate);
+        static_cast<int>(_maximizedFullscreenClientHeight / 2.F - _heightIfWindowed / 2.F);
+    glfwSetWindowMonitor(_window, nullptr, hoverWindowX, hoverWindowY, _widthIfWindowed,
+                         _heightIfWindowed, mode->refreshRate);
     break;
   }
 
-  mWindowStyle = newStyle;
+  _windowStyle = newStyle;
 }
 
 void Window::showCursor() {
-  glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-  mCursorState = CursorState::kVisible;
-  glfwSetCursorPos(mWindow, getFrameBufferWidth() / 2.F, getFrameBufferHeight() / 2.F);
+  glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+  _cursorState = CursorState::kVisible;
+  glfwSetCursorPos(_window, getFrameBufferWidth() / 2.F, getFrameBufferHeight() / 2.F);
 }
 
 void Window::hideCursor() {
-  glfwSetInputMode(mWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
   if (glfwRawMouseMotionSupported() != 0) {
-    glfwSetInputMode(mWindow, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    glfwSetInputMode(_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
   }
 
-  mCursorState = CursorState::kInvisible;
+  _cursorState = CursorState::kInvisible;
 }
 
 void Window::toggleCursor() {
-  if (mCursorState == CursorState::kInvisible) {
+  if (_cursorState == CursorState::kInvisible) {
     showCursor();
   } else {
     hideCursor();
@@ -132,14 +132,14 @@ void Window::toggleCursor() {
 }
 
 void Window::addMouseCallback(std::function<void(float, float)> callback) {
-  mouseCallbacks.emplace_back(std::move(callback));
+  _mouseCallbacks.emplace_back(std::move(callback));
 }
 
 void Window::_keyCallback(GLFWwindow *window, int key, int /*scancode*/, int action, int /*mods*/) {
   auto *thisWindowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
 
   if (action == GLFW_PRESS || action == GLFW_RELEASE) {
-    thisWindowClass->mKeyInputMap[key] = action == GLFW_PRESS;
+    thisWindowClass->_keyInputMap[key] = action == GLFW_PRESS;
   }
 }
 
@@ -156,19 +156,19 @@ void Window::_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
     firstMouse = false;
   }
 
-  thisWindowClass->mouseDeltaX = static_cast<float>(xpos) - lastX;
+  thisWindowClass->_mouseDeltaX = static_cast<float>(xpos) - lastX;
   // inverted y axis
-  thisWindowClass->mouseDeltaY = lastY - static_cast<float>(ypos);
+  thisWindowClass->_mouseDeltaY = lastY - static_cast<float>(ypos);
 
   lastX = static_cast<float>(xpos);
   lastY = static_cast<float>(ypos);
 
-  if (thisWindowClass->mouseCallbacks.empty()) {
+  if (thisWindowClass->_mouseCallbacks.empty()) {
     return;
   }
 
-  for (auto &callback : thisWindowClass->mouseCallbacks) {
-    callback(thisWindowClass->mouseDeltaX, thisWindowClass->mouseDeltaY);
+  for (auto &callback : thisWindowClass->_mouseCallbacks) {
+    callback(thisWindowClass->_mouseDeltaX, thisWindowClass->_mouseDeltaY);
   }
 }
 
