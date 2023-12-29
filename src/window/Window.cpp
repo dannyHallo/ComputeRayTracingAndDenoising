@@ -1,10 +1,6 @@
 #include "Window.hpp"
 #include "utils/Logger.hpp"
 
-#include <functional>
-
-namespace {} // namespace
-
 Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowed)
     : _widthIfWindowed(widthIfWindowed), _heightIfWindowed(heightIfWindowed) {
   auto result = glfwInit();
