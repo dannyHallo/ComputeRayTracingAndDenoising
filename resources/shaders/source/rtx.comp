@@ -36,7 +36,6 @@ layout(binding = 1) uniform UniformBufferObject {
   uint numTriangles;
   uint numLights;
   bool movingLightSource;
-  bool useWeightedCosine;
   uint outputType;
   float offsetX;
   float offsetY;
@@ -358,13 +357,8 @@ HitRecord pathTracing(Ray r, uvec3 seed) {
   float pdf;
 
   // cosine weighted sampling effectively increases sampling efficiency
-  if (ubo.useWeightedCosine) {
-    indirectRayDir = randomCosineWeightedHemispherePoint(hitNormal, seed, BaseDisturbance(2), true);
-    pdf            = dot(indirectRayDir, rec.normal) / kPi;
-  } else {
-    indirectRayDir = randomInHemisphere(hitNormal, seed, BaseDisturbance(3), true);
-    pdf            = 1 / (2 * kPi);
-  }
+  indirectRayDir = randomCosineWeightedHemispherePoint(hitNormal, seed, BaseDisturbance(2), true);
+  pdf            = dot(indirectRayDir, rec.normal) / kPi;
 
   Ray indirectRay = Ray(hitPos + hitNormal * kEpsilon, indirectRayDir);
 

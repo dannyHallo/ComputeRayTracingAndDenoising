@@ -51,13 +51,11 @@ class Application {
     uint32_t numTriangles;
     uint32_t numLights;
     int movingLightSource;
-    int useWeightedCosineFunction;
     uint32_t outputType;
     float offsetX;
     float offsetY;
   };
   bool mMovingLightSource         = false;
-  bool mUseWeightedCosineFunction = true;
   uint32_t mOutputType            = 1; // combined, direct only, indirect only
   float mOffsetX                  = 0.f;
   float mOffsetY                  = 0.f;

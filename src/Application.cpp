@@ -503,7 +503,6 @@ void Application::updateScene(uint32_t currentImageIndex) {
       static_cast<uint32_t>(mRtScene->triangles.size()),
       static_cast<uint32_t>(mRtScene->lights.size()),
       mMovingLightSource,
-      mUseWeightedCosineFunction,
       mOutputType,
       mOffsetX,
       mOffsetY};
@@ -1021,7 +1020,6 @@ void Application::prepareGui() {
 
     ImGui::SeparatorText("Rtx");
     ImGui::Checkbox("Moving Light Source", &mMovingLightSource);
-    ImGui::Checkbox("Use weighted cosine", &mUseWeightedCosineFunction);
     const char *outputItems[] = {"Combined", "Direct Only", "Indirect Only"};
     comboSelector("Output Type", outputItems, mOutputType);
     ImGui::DragFloat("Offset X", &mOffsetX, 0.01F, -1.0F, 1.0F);
