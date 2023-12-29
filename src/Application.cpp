@@ -15,27 +15,6 @@ static const float kFpsUpdateTime              = 0.5F;
 std::unique_ptr<Camera> Application::mCamera = nullptr;
 std::unique_ptr<Window> Application::mWindow = nullptr;
 
-void mouseCallback(GLFWwindow * /*window*/, double xpos, double ypos) {
-  static float lastX;
-  static float lastY;
-  static bool firstMouse = true;
-
-  if (firstMouse) {
-    lastX      = static_cast<float>(xpos);
-    lastY      = static_cast<float>(ypos);
-    firstMouse = false;
-  }
-
-  float xoffset = static_cast<float>(xpos) - lastX;
-  float yoffset =
-      lastY - static_cast<float>(ypos); // reversed since y-coordinates go from bottom to top
-
-  lastX = static_cast<float>(xpos);
-  lastY = static_cast<float>(ypos);
-
-  Application::getCamera()->processMouseMovement(xoffset, yoffset);
-}
-
 Camera *Application::getCamera() { return mCamera.get(); }
 
 Application::Application() {
@@ -841,11 +820,10 @@ void Application::createGuiDescripterPool() {
 }
 
 void Application::initGui() {
-  // Setup Dear ImGui context
+  // setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImGuiIO &io = ImGui::GetIO();
-  // io.Fonts->AddFontDefault();
   io.Fonts->AddFontFromFileTTF((kPathToResourceFolder + "/fonts/OverpassMono-Medium.ttf").c_str(),
                                22.0f);
 
@@ -1008,7 +986,7 @@ void comboSelector(const char *comboLabel, const char *(&items)[N], uint32_t &se
 
 void Application::prepareGui() {
   ImGui_ImplVulkan_NewFrame();
-  // handle the user inputs, the screen resize
+  // handles the user input, and the resizing of the window
   ImGui_ImplGlfw_NewFrame();
 
   ImGui::NewFrame();
@@ -1188,5 +1166,9 @@ void Application::init() {
 
   // set mouse callback function to be called whenever the cursor position
   // changes
-  glfwSetCursorPosCallback(mWindow->getGlWindow(), mouseCallback);
+  // glfwSetCursorPosCallback(mWindow->getGlWindow(), mouseCallback);
+
+  mWindow->addMouseCallback([](float mouseDeltaX, float mouseDeltaY) {
+    mCamera->processMouseMovement(mouseDeltaX, mouseDeltaY);
+  });
 }

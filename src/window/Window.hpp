@@ -9,34 +9,17 @@
 
 #include "utils/Vulkan.hpp"
 
+#include <functional>
 #include <map>
 
 enum class WindowStyle { kNone, kFullScreen, kMaximized, kHover };
 enum class CursorState { kNone, kInvisible, kVisible };
 
 class Window {
-  WindowStyle mWindowStyle = WindowStyle::kNone;
-  CursorState mCursorState = CursorState::kInvisible;
-
-  int mWidthIfWindowed;
-  int mHeightIfWindowed;
-  std::map<int, bool> mKeyInputMap;
-
-  bool mWindowSizeChanged = false;
-
-  GLFWwindow *mWindow   = nullptr;
-  GLFWmonitor *mMonitor = nullptr;
-
-  // these are used to restore maximized window to its original size and pos
-  int mTitleBarHeight                  = 0;
-  int mMaximizedFullscreenClientWidth  = 0;
-  int mMaximizedFullscreenClientHeight = 0;
-
 public:
   // universal constructor, the last two parameters only will be used to
   // construct a hover window
-  Window(WindowStyle windowStyle, int widthIfWindowed = 400,
-         int heightIfWindowed = 300);
+  Window(WindowStyle windowStyle, int widthIfWindowed = 400, int heightIfWindowed = 300);
 
   ~Window() { glfwDestroyWindow(mWindow); }
 
@@ -93,19 +76,40 @@ public:
 
   void setWindowStyle(WindowStyle newStyle);
 
-  void setWindowSizeChanged(bool windowSizeChanged) {
-    mWindowSizeChanged = windowSizeChanged;
-  }
+  void setWindowSizeChanged(bool windowSizeChanged) { mWindowSizeChanged = windowSizeChanged; }
 
   void showCursor();
   void hideCursor();
   void toggleCursor();
 
-  void disableInputBit(int bitToBeDisabled) {
-    mKeyInputMap[bitToBeDisabled] = false;
+  void disableInputBit(int bitToBeDisabled) { mKeyInputMap[bitToBeDisabled] = false; }
+
+  static void addMouseCallback(std::function<void(float, float)> callback) {
+    mouseCallback = std::move(callback);
   }
 
 private:
-  static void keyCallback(GLFWwindow *window, int key, int scancode, int action,
-                          int mods);
+  WindowStyle mWindowStyle = WindowStyle::kNone;
+  CursorState mCursorState = CursorState::kInvisible;
+
+  int mWidthIfWindowed;
+  int mHeightIfWindowed;
+  std::map<int, bool> mKeyInputMap;
+
+  bool mWindowSizeChanged = false;
+
+  GLFWwindow *mWindow   = nullptr;
+  GLFWmonitor *mMonitor = nullptr;
+
+  // these are used to restore maximized window to its original size and pos
+  int mTitleBarHeight                  = 0;
+  int mMaximizedFullscreenClientWidth  = 0;
+  int mMaximizedFullscreenClientHeight = 0;
+
+  static std::function<void(float, float)> mouseCallback;
+
+  static float mouseDeltaX;
+  static float mouseDeltaY;
+  static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
+  static void cursorPosCallback(GLFWwindow *window, double xPos, double yPos);
 };

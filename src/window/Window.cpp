@@ -1,12 +1,18 @@
 #include "Window.hpp"
 #include "utils/Logger.hpp"
 
+#include <functional>
+
 namespace {
 void frameBufferResizeCallback(GLFWwindow *window, int width, int height) {
   auto *thisWindowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
   thisWindowClass->setWindowSizeChanged(true);
 }
 } // namespace
+
+float Window::mouseDeltaX                               = 0.F;
+float Window::mouseDeltaY                               = 0.F;
+std::function<void(float, float)> Window::mouseCallback = nullptr;
 
 Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowed)
     : mWidthIfWindowed(widthIfWindowed), mHeightIfWindowed(heightIfWindowed) {
@@ -49,7 +55,31 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
 
   glfwSetWindowUserPointer(mWindow, this);
   glfwSetKeyCallback(mWindow, keyCallback);
+  glfwSetCursorPosCallback(mWindow, cursorPosCallback);
   glfwSetFramebufferSizeCallback(mWindow, frameBufferResizeCallback);
+}
+
+void Window::cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
+  static float lastX;
+  static float lastY;
+  static bool firstMouse = true;
+
+  if (firstMouse) {
+    lastX      = static_cast<float>(xpos);
+    lastY      = static_cast<float>(ypos);
+    firstMouse = false;
+  }
+
+  mouseDeltaX = static_cast<float>(xpos) - lastX;
+  // inverted y axis
+  mouseDeltaY = lastY - static_cast<float>(ypos);
+
+  lastX = static_cast<float>(xpos);
+  lastY = static_cast<float>(ypos);
+
+  if (mouseCallback != nullptr) {
+    mouseCallback(mouseDeltaX, mouseDeltaY);
+  }
 }
 
 void Window::toggleWindowStyle() {
