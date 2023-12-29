@@ -1,5 +1,6 @@
 #include "Window.hpp"
-#include "utils/Logger.hpp"
+
+#include <cassert>
 
 Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowed)
     : _widthIfWindowed(widthIfWindowed), _heightIfWindowed(heightIfWindowed) {
