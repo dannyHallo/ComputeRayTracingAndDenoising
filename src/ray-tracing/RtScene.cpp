@@ -1,17 +1,9 @@
 #include "RtScene.hpp"
 
-glm::vec3 multiplyAccordingly(glm::vec3 v1, glm::vec3 v2) {
-  glm::vec3 vOut{};
-  vOut.x = v1.x * v2.x;
-  vOut.y = v1.y * v2.y;
-  vOut.z = v1.z * v2.z;
-
-  return vOut;
-}
-
 namespace GpuModel {
-std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex,
-                                   glm::vec3 offset, glm::vec3 scale) {
+
+std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex, glm::vec3 offset,
+                                   glm::vec3 scale) {
   Mesh mesh(path);
 
   std::hash<std::string> hasher;
@@ -25,10 +17,9 @@ std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex,
     int i1 = mesh.indices[3 * i + 1];
     int i2 = mesh.indices[3 * i + 2];
 
-    Triangle t{multiplyAccordingly(mesh.vertices[i0].pos, scale) + offset,
-               multiplyAccordingly(mesh.vertices[i1].pos, scale) + offset,
-               multiplyAccordingly(mesh.vertices[i2].pos, scale) + offset,
-               materialIndex, meshId};
+    Triangle t{mesh.vertices[i0].pos * scale + offset, mesh.vertices[i1].pos * scale + offset,
+               mesh.vertices[i2].pos * scale + offset, materialIndex, meshId};
+
     triangles.push_back(t);
   }
   return triangles;
@@ -44,8 +35,7 @@ Scene::Scene() {
   Material pink  = {MaterialType::Lambertian, glm::vec3(1.f, .3f, .36f)};
   Material cyan  = {MaterialType::Lambertian, glm::vec3(.3f, .9f, .6f)};
 
-  Material whiteLight = {MaterialType::LightSource,
-                         glm::vec3(1.3f, 1.3f, 1.3f)};
+  Material whiteLight = {MaterialType::LightSource, glm::vec3(1.3f, 1.3f, 1.3f)};
 
   Material metal = {MaterialType::Metal, glm::vec3(1.0f, 1.0f, 1.0f)};
   Material glass = {MaterialType::Glass, glm::vec3(1.0f, 1.0f, 1.0f)};
@@ -63,18 +53,18 @@ Scene::Scene() {
   glm::vec3 cornellBoxPos   = {-0.5f, -0.5f, 1};
   // each getTriangles function loads a series of triangles from a file
   // (vector), which shares the same meshId and matId
-  auto floor    = getTriangles(path_prefix + "models/cornellbox/floor.obj", 1,
-                               cornellBoxPos, cornellBoxScale);
-  auto left     = getTriangles(path_prefix + "models/cornellbox/left.obj", 4,
-                               cornellBoxPos, cornellBoxScale);
-  auto right    = getTriangles(path_prefix + "models/cornellbox/right.obj", 5,
-                               cornellBoxPos, cornellBoxScale);
-  auto light    = getTriangles(path_prefix + "models/cornellbox/light.obj", 0,
-                               cornellBoxPos, cornellBoxScale);
-  auto shortbox = getTriangles(path_prefix + "models/cornellbox/shortbox.obj",
-                               1, cornellBoxPos, cornellBoxScale);
-  auto tallbox  = getTriangles(path_prefix + "models/cornellbox/tallbox.obj", 1,
-                               cornellBoxPos, cornellBoxScale);
+  auto floor =
+      getTriangles(path_prefix + "models/cornellbox/floor.obj", 1, cornellBoxPos, cornellBoxScale);
+  auto left =
+      getTriangles(path_prefix + "models/cornellbox/left.obj", 4, cornellBoxPos, cornellBoxScale);
+  auto right =
+      getTriangles(path_prefix + "models/cornellbox/right.obj", 5, cornellBoxPos, cornellBoxScale);
+  auto light =
+      getTriangles(path_prefix + "models/cornellbox/light.obj", 0, cornellBoxPos, cornellBoxScale);
+  auto shortbox = getTriangles(path_prefix + "models/cornellbox/shortbox.obj", 1, cornellBoxPos,
+                               cornellBoxScale);
+  auto tallbox  = getTriangles(path_prefix + "models/cornellbox/tallbox.obj", 1, cornellBoxPos,
+                               cornellBoxScale);
   // then all triangles are added to a single vector
   triangles.insert(triangles.end(), floor.begin(), floor.end());
   triangles.insert(triangles.end(), left.begin(), left.end());
@@ -92,8 +82,7 @@ Scene::Scene() {
       // calculate the area of this lighting triangle
       float area = glm::length(glm::cross(t.v0, t.v1)) * 0.5f;
       lights.emplace_back(Light{i, area});
-      objects.emplace_back(
-          Bvh::Object0{i, t, glm::vec3(-0.2F, 0, 0), glm::vec3(0.2F, 0, 0)});
+      objects.emplace_back(Bvh::Object0{i, t, glm::vec3(-0.2F, 0, 0), glm::vec3(0.2F, 0, 0)});
     } else {
       objects.emplace_back(Bvh::Object0{i, t});
     }
