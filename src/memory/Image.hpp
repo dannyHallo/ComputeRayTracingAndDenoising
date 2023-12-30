@@ -11,14 +11,6 @@
 // the wrapper class of VkImage and its corresponding VkImageView, handles
 // memory allocation
 class Image {
-  VkImage mVkImage          = VK_NULL_HANDLE;
-  VkImageView mVkImageView  = VK_NULL_HANDLE;
-  VmaAllocation mAllocation = VK_NULL_HANDLE;
-  VkImageLayout mCurrentImageLayout;
-  uint32_t mLayerCount;
-  VkFormat mFormat;
-  uint32_t mWidth;
-  uint32_t mHeight;
 
 public:
   // create a blank image
@@ -55,12 +47,12 @@ public:
   Image(Image &&)                 = delete;
   Image &operator=(Image &&)      = delete;
 
-  VkImage &getVkImage() { return mVkImage; }
+  VkImage &getVkImage() { return _vkImage; }
   // VmaAllocation &getAllocation() { return mAllocation; }
   // VkImageView &getImageView() { return mVkImageView; }
   [[nodiscard]] VkDescriptorImageInfo getDescriptorInfo(VkImageLayout imageLayout) const;
-  [[nodiscard]] uint32_t getWidth() const { return mWidth; }
-  [[nodiscard]] uint32_t getHeight() const { return mHeight; }
+  [[nodiscard]] uint32_t getWidth() const { return _width; }
+  [[nodiscard]] uint32_t getHeight() const { return _height; }
 
   void clearImage(VkCommandBuffer commandBuffer);
 
@@ -68,6 +60,15 @@ public:
                                      VkImageAspectFlags aspectFlags, uint32_t layerCount = 1);
 
 private:
+  VkImage _vkImage          = VK_NULL_HANDLE;
+  VkImageView _vkImageView  = VK_NULL_HANDLE;
+  VmaAllocation _allocation = VK_NULL_HANDLE;
+  VkImageLayout _currentImageLayout;
+  uint32_t _layerCount;
+  VkFormat _format;
+  uint32_t _width;
+  uint32_t _height;
+
   void _copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo = 0);
 
   // creates an image with VK_IMAGE_LAYOUT_UNDEFINED initially
@@ -79,14 +80,6 @@ private:
 
 // storing the pointer of a pair of imgs, support for easy dumping
 class ImageForwardingPair {
-  VkImage mImage1;
-  VkImage mImage2;
-
-  VkImageCopy mCopyRegion{};
-  VkImageMemoryBarrier mImage1BeforeCopy{};
-  VkImageMemoryBarrier mImage2BeforeCopy{};
-  VkImageMemoryBarrier mImage1AfterCopy{};
-  VkImageMemoryBarrier mImage2AfterCopy{};
 
 public:
   ImageForwardingPair(VkImage image1, VkImage image2, VkImageLayout image1BeforeCopy,
@@ -94,4 +87,14 @@ public:
                       VkImageLayout image2AfterCopy);
 
   void forwardCopying(VkCommandBuffer commandBuffer);
+
+private:
+  VkImage _image1;
+  VkImage _image2;
+
+  VkImageCopy _copyRegion{};
+  VkImageMemoryBarrier _image1BeforeCopy{};
+  VkImageMemoryBarrier _image2BeforeCopy{};
+  VkImageMemoryBarrier _image1AfterCopy{};
+  VkImageMemoryBarrier _image2AfterCopy{};
 };

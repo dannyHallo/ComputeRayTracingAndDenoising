@@ -57,28 +57,28 @@ void _freeImageData(unsigned char *imageData) { stbi_image_free(imageData); }
 Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
              VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
              VkImageTiling tiling, VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage)
-    : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), mLayerCount(1), mFormat(format),
-      mWidth(width), mHeight(height) {
+    : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1), _format(format),
+      _width(width), _hjeight(height) {
   VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
   assert(result == VK_SUCCESS && "failed to create image!");
 
   if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
     _transitionImageLayout(initialImageLayout);
   }
-  mVkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), mVkImage,
-                                 format, aspectFlags, mLayerCount);
+  _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
+                                 format, aspectFlags, _layerCount);
 }
 
 Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout initialImageLayout,
              VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags,
              VmaMemoryUsage memoryUsage)
-    : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), mLayerCount(1),
-      mFormat(VK_FORMAT_R8G8B8A8_UNORM) {
+    : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1),
+      _format(VK_FORMAT_R8G8B8A8_UNORM) {
   // load image from path
   int width, height, channels;
   auto *imageData = _loadImageFromPath(filename, width, height, channels);
-  mWidth          = static_cast<uint32_t>(width);
-  mHeight         = static_cast<uint32_t>(height);
+  _width          = static_cast<uint32_t>(width);
+  _hjeight        = static_cast<uint32_t>(height);
 
   VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
   assert(result == VK_SUCCESS && "failed to create image!");
@@ -98,15 +98,15 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout
     _transitionImageLayout(initialImageLayout);
   }
 
-  mVkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), mVkImage,
-                                 mFormat, aspectFlags, mLayerCount);
+  _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
+                                 _format, aspectFlags, _layerCount);
 }
 
 Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
              VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
              VkImageTiling tiling, VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage)
-    : mCurrentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), mLayerCount(filenames.size()),
-      mFormat(VK_FORMAT_R8G8B8A8_UNORM) {
+    : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(filenames.size()),
+      _format(VK_FORMAT_R8G8B8A8_UNORM) {
   std::vector<unsigned char *> imageDatas{};
 
   int width, height, channels;
@@ -115,8 +115,8 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
     auto *imageData = _loadImageFromPath(filename, width, height, channels);
     imageDatas.push_back(imageData);
   }
-  mWidth  = static_cast<uint32_t>(width);
-  mHeight = static_cast<uint32_t>(height);
+  _width   = static_cast<uint32_t>(width);
+  _hjeight = static_cast<uint32_t>(height);
 
   VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
   assert(result == VK_SUCCESS && "failed to create image!");
@@ -136,21 +136,21 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
     _transitionImageLayout(initialImageLayout);
   }
 
-  mVkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), mVkImage,
-                                 mFormat, aspectFlags, mLayerCount);
+  _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
+                                 _format, aspectFlags, _layerCount);
 }
 
 Image::~Image() {
-  if (mVkImage != VK_NULL_HANDLE) {
-    vkDestroyImageView(VulkanApplicationContext::getInstance()->getDevice(), mVkImageView, nullptr);
-    vkDestroyImage(VulkanApplicationContext::getInstance()->getDevice(), mVkImage, nullptr);
-    vmaFreeMemory(VulkanApplicationContext::getInstance()->getAllocator(), mAllocation);
+  if (_vkImage != VK_NULL_HANDLE) {
+    vkDestroyImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImageView, nullptr);
+    vkDestroyImage(VulkanApplicationContext::getInstance()->getDevice(), _vkImage, nullptr);
+    vmaFreeMemory(VulkanApplicationContext::getInstance()->getAllocator(), _allocation);
   }
 }
 
 void Image::clearImage(VkCommandBuffer commandBuffer) {
   VkImageSubresourceRange clearRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-  vkCmdClearColorImage(commandBuffer, mVkImage, VK_IMAGE_LAYOUT_GENERAL, &kClearColor, 1,
+  vkCmdClearColorImage(commandBuffer, _vkImage, VK_IMAGE_LAYOUT_GENERAL, &kClearColor, 1,
                        &clearRange);
 }
 
@@ -160,9 +160,9 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   auto &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
   auto &allocator   = VulkanApplicationContext::getInstance()->getAllocator();
 
-  const uint32_t imagePixelCount = mWidth * mHeight;
+  const uint32_t imagePixelCount = _width * _hjeight;
   // the channel count is ignored here, because the VkFormat is enough
-  const uint32_t imageDataSize = imagePixelCount * kVkFormatBytesPerPixelMap.at(mFormat);
+  const uint32_t imageDataSize = imagePixelCount * kVkFormatBytesPerPixelMap.at(_format);
 
   // create a staging buffer
   VkBufferCreateInfo bufferInfo{};
@@ -200,9 +200,9 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   region.imageSubresource.baseArrayLayer = layerToCopyTo;
   region.imageSubresource.layerCount     = 1;
   region.imageOffset                     = {0, 0, 0};
-  region.imageExtent                     = {mWidth, mHeight, 1};
+  region.imageExtent                     = {_width, _hjeight, 1};
 
-  vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, mVkImage,
+  vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, _vkImage,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
   RenderSystem::endSingleTimeCommands(device, commandPool, queue, commandBuffer);
@@ -217,12 +217,12 @@ VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling til
   VkImageCreateInfo imageInfo{};
   imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType     = VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width  = mWidth;
-  imageInfo.extent.height = mHeight;
+  imageInfo.extent.width  = _width;
+  imageInfo.extent.height = _hjeight;
   imageInfo.extent.depth  = 1;
   imageInfo.mipLevels     = 1;
-  imageInfo.arrayLayers   = mLayerCount;
-  imageInfo.format        = mFormat;
+  imageInfo.arrayLayers   = _layerCount;
+  imageInfo.format        = _format;
   imageInfo.tiling        = tiling;
   imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   imageInfo.usage         = usage;
@@ -233,7 +233,7 @@ VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling til
   vmaallocInfo.usage                   = memoryUsage;
 
   return vmaCreateImage(VulkanApplicationContext::getInstance()->getAllocator(), &imageInfo,
-                        &vmaallocInfo, &mVkImage, &mAllocation, nullptr);
+                        &vmaallocInfo, &_vkImage, &_allocation, nullptr);
 }
 
 VkImageView Image::createImageView(VkDevice device, const VkImage &image, VkFormat format,
@@ -261,7 +261,7 @@ VkImageView Image::createImageView(VkDevice device, const VkImage &image, VkForm
 VkDescriptorImageInfo Image::getDescriptorInfo(VkImageLayout imageLayout) const {
   VkDescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = imageLayout;
-  imageInfo.imageView   = mVkImageView;
+  imageInfo.imageView   = _vkImageView;
   return imageInfo;
 }
 
@@ -274,46 +274,46 @@ void Image::_transitionImageLayout(VkImageLayout newLayout) {
 
   VkImageMemoryBarrier barrier{};
   barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.oldLayout                       = mCurrentImageLayout;
+  barrier.oldLayout                       = _currentImageLayout;
   barrier.newLayout                       = newLayout;
   barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
   barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-  barrier.image                           = mVkImage;
+  barrier.image                           = _vkImage;
   barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
   barrier.subresourceRange.baseMipLevel   = 0;
   barrier.subresourceRange.levelCount     = 1;
   barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount     = mLayerCount;
+  barrier.subresourceRange.layerCount     = _layerCount;
 
   VkPipelineStageFlags sourceStage      = VK_PIPELINE_STAGE_NONE;
   VkPipelineStageFlags destinationStage = VK_PIPELINE_STAGE_NONE;
-  if (mCurrentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+  if (_currentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
       newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
     sourceStage      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-  } else if (mCurrentImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+  } else if (_currentImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
              newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
     sourceStage           = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destinationStage      = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-  } else if (mCurrentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+  } else if (_currentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
              (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ||
               newLayout == VK_IMAGE_LAYOUT_GENERAL)) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
     sourceStage           = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destinationStage      = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-  } else if (mCurrentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
+  } else if (_currentImageLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
              newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
     barrier.srcAccessMask = 0;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     sourceStage           = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destinationStage      = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-  } else if (mCurrentImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
+  } else if (_currentImageLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
              newLayout == VK_IMAGE_LAYOUT_GENERAL) {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -328,7 +328,7 @@ void Image::_transitionImageLayout(VkImageLayout newLayout) {
 
   RenderSystem::endSingleTimeCommands(device, commandPool, queue, commandBuffer);
 
-  mCurrentImageLayout = newLayout;
+  _currentImageLayout = newLayout;
 }
 
 namespace {
@@ -368,21 +368,21 @@ ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2,
                                          VkImageLayout image2BeforeCopy,
                                          VkImageLayout image1AfterCopy,
                                          VkImageLayout image2AfterCopy)
-    : mImage1(image1), mImage2(image2) {
-  mCopyRegion =
+    : _image1(image1), _image2(image2) {
+  _copyRegion =
       imageCopyRegion(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
                       VulkanApplicationContext::getInstance()->getSwapchainExtentHeight());
 
-  mImage1BeforeCopy = getMemoryBarrier(
+  _image1BeforeCopy = getMemoryBarrier(
       image1, image1BeforeCopy, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-  mImage2BeforeCopy = getMemoryBarrier(
+  _image2BeforeCopy = getMemoryBarrier(
       image2, image2BeforeCopy, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
-  mImage1AfterCopy = getMemoryBarrier(image1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image1AfterCopy,
+  _image1AfterCopy = getMemoryBarrier(image1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image1AfterCopy,
                                       VK_ACCESS_TRANSFER_READ_BIT,
                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
-  mImage2AfterCopy = getMemoryBarrier(image2, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, image2AfterCopy,
+  _image2AfterCopy = getMemoryBarrier(image2, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, image2AfterCopy,
                                       VK_ACCESS_TRANSFER_WRITE_BIT,
                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
 }
@@ -390,16 +390,16 @@ ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2,
 void ImageForwardingPair::forwardCopying(VkCommandBuffer commandBuffer) {
   vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-                       &mImage1BeforeCopy);
+                       &_image1BeforeCopy);
   vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-                       &mImage2BeforeCopy);
-  vkCmdCopyImage(commandBuffer, mImage1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mImage2,
-                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &mCopyRegion);
+                       &_image2BeforeCopy);
+  vkCmdCopyImage(commandBuffer, _image1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, _image2,
+                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &_copyRegion);
   vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-                       &mImage1AfterCopy);
+                       &_image1AfterCopy);
   vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-                       &mImage2AfterCopy);
+                       &_image2AfterCopy);
 }

@@ -9,9 +9,6 @@
 
 // the wrapper class of VkBuffer, handles memory allocation and data filling
 class Buffer {
-  VkBuffer mVkBuffer;        // native vulkan buffer
-  VmaAllocation mAllocation; // buffer allocation info
-  VkDeviceSize mSize;        // total size of buffer
 
 public:
   /// @brief the wrapper class of VkBuffer, with easier memory allocation and
@@ -30,30 +27,32 @@ public:
   // data size must be equal to buffer size
   void fillData(const void *data = nullptr);
 
-  inline VkBuffer &getVkBuffer() { return mVkBuffer; }
+  inline VkBuffer &getVkBuffer() { return _vkBuffer; }
 
-  inline VmaAllocation &getAllocation() { return mAllocation; }
+  inline VmaAllocation &getAllocation() { return _allocation; }
 
-  inline const VkDeviceSize getSize() const { return mSize; }
+  inline const VkDeviceSize getSize() const { return _size; }
 
   inline VkDescriptorBufferInfo getDescriptorInfo() {
     VkDescriptorBufferInfo descriptorInfo{};
-    descriptorInfo.buffer = mVkBuffer;
+    descriptorInfo.buffer = _vkBuffer;
     descriptorInfo.offset = 0;
-    descriptorInfo.range  = mSize;
+    descriptorInfo.range  = _size;
     return descriptorInfo;
   }
 
 private:
+  VkBuffer _vkBuffer;        // native vulkan buffer
+  VmaAllocation _allocation; // buffer allocation info
+  VkDeviceSize _size;        // total size of buffer
+
   // buffer allocation is only allowed during construction
-  void allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+  void _allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 };
 
 // class of series of buffers, can be used for storing identical buffers for
 // every swapchain image
 class BufferBundle {
-  std::vector<std::shared_ptr<Buffer>> mBuffers; // series of buffers
-
 public:
   /// @brief class of series of buffers, usually used for storing identical
   /// buffers for every swapchain image
@@ -66,11 +65,11 @@ public:
   BufferBundle(size_t bufferCount, VkDeviceSize size, VkBufferUsageFlags usage,
                VmaMemoryUsage memoryUsage, const void *data = nullptr) {
     for (size_t i = 0; i < bufferCount; i++) {
-      mBuffers.emplace_back(std::make_shared<Buffer>(size, usage, memoryUsage, data));
+      _buffers.emplace_back(std::make_shared<Buffer>(size, usage, memoryUsage, data));
     }
   }
 
-  ~BufferBundle() { mBuffers.clear(); }
+  ~BufferBundle() { _buffers.clear(); }
 
   // get buffer by index
   std::shared_ptr<Buffer> getBuffer(size_t index);
@@ -78,4 +77,7 @@ public:
   // fill every buffer in bundle with the same data, if left as nullptr, every
   // buffer will be zero-initialized
   void fillData(const void *data = nullptr);
+
+private:
+  std::vector<std::shared_ptr<Buffer>> _buffers; // series of buffers
 };
