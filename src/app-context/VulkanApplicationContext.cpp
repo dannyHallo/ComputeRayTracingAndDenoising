@@ -5,7 +5,7 @@
 // VOLK_IMPLEMENTATION lets volk define the functions, by letting volk.h include
 // volk.c this must only be defined in one translation unit
 #define VOLK_IMPLEMENTATION
-#include "app-context/VulkanApplicationContext.h"
+#include "app-context/VulkanApplicationContext.hpp"
 
 #include "memory/Image.hpp"
 #include "utils/Logger.hpp"

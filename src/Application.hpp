@@ -8,7 +8,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "app-context/VulkanApplicationContext.h"
+#include "app-context/VulkanApplicationContext.hpp"
 
 #include "ray-tracing/RtScene.hpp"
 #include "scene/ComputeModel.hpp"

@@ -1,6 +1,6 @@
 #include "Image.hpp"
 
-#include "app-context/VulkanApplicationContext.h"
+#include "app-context/VulkanApplicationContext.hpp"
 
 #include "Buffer.hpp"
 #include "render-context/RenderSystem.hpp"
