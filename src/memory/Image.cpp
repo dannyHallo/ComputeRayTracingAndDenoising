@@ -58,7 +58,7 @@ Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags
              VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
              VkImageTiling tiling, VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage)
     : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1), _format(format),
-      _width(width), _hjeight(height) {
+      _width(width), _height(height) {
   VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
   assert(result == VK_SUCCESS && "failed to create image!");
 
@@ -78,7 +78,7 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout
   int width, height, channels;
   auto *imageData = _loadImageFromPath(filename, width, height, channels);
   _width          = static_cast<uint32_t>(width);
-  _hjeight        = static_cast<uint32_t>(height);
+  _height         = static_cast<uint32_t>(height);
 
   VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
   assert(result == VK_SUCCESS && "failed to create image!");
@@ -115,8 +115,8 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
     auto *imageData = _loadImageFromPath(filename, width, height, channels);
     imageDatas.push_back(imageData);
   }
-  _width   = static_cast<uint32_t>(width);
-  _hjeight = static_cast<uint32_t>(height);
+  _width  = static_cast<uint32_t>(width);
+  _height = static_cast<uint32_t>(height);
 
   VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
   assert(result == VK_SUCCESS && "failed to create image!");
@@ -160,7 +160,7 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   auto &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
   auto &allocator   = VulkanApplicationContext::getInstance()->getAllocator();
 
-  const uint32_t imagePixelCount = _width * _hjeight;
+  const uint32_t imagePixelCount = _width * _height;
   // the channel count is ignored here, because the VkFormat is enough
   const uint32_t imageDataSize = imagePixelCount * kVkFormatBytesPerPixelMap.at(_format);
 
@@ -200,7 +200,7 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   region.imageSubresource.baseArrayLayer = layerToCopyTo;
   region.imageSubresource.layerCount     = 1;
   region.imageOffset                     = {0, 0, 0};
-  region.imageExtent                     = {_width, _hjeight, 1};
+  region.imageExtent                     = {_width, _height, 1};
 
   vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, _vkImage,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
@@ -218,7 +218,7 @@ VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling til
   imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType     = VK_IMAGE_TYPE_2D;
   imageInfo.extent.width  = _width;
-  imageInfo.extent.height = _hjeight;
+  imageInfo.extent.height = _height;
   imageInfo.extent.depth  = 1;
   imageInfo.mipLevels     = 1;
   imageInfo.arrayLayers   = _layerCount;
