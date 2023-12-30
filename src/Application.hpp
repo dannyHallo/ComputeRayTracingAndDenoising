@@ -45,7 +45,7 @@ class Application {
     alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
     // alignas(sizeof(glm::dvec3::x) * 4) glm::dmat4 thisMvpe; // use glm::dmat4 for double
   };
-  bool mUseGradientProjection = true;
+  bool _useGradientProjection = true;
 
   struct RtxUniformBufferObject {
     uint32_t numTriangles;
@@ -55,16 +55,16 @@ class Application {
     float offsetX;
     float offsetY;
   };
-  bool mMovingLightSource = false;
-  uint32_t mOutputType    = 1; // combined, direct only, indirect only
-  float mOffsetX          = 0.f;
-  float mOffsetY          = 0.f;
+  bool _movingLightSource = false;
+  uint32_t _outputType    = 1; // combined, direct only, indirect only
+  float _offsetX          = 0.f;
+  float _offsetY          = 0.f;
 
   struct StratumFilterUniformBufferObject {
     int i;
     int bypassStratumFiltering;
   };
-  bool mUseStratumFiltering = false;
+  bool _useStratumFiltering = false;
 
   struct TemporalFilterUniformBufferObject {
     int bypassTemporalFiltering;
@@ -73,12 +73,12 @@ class Application {
     float blendingAlpha;
     alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
   };
-  bool mUseTemporalBlend = true;
-  bool mUseDepthTest     = false;
-  float mDepthThreshold  = 0.07;
-  bool mUseNormalTest    = true;
-  float mNormalThreshold = 0.99;
-  float mBlendingAlpha   = 0.15;
+  bool _useTemporalBlend = true;
+  bool _useDepthTest     = false;
+  float _depthThreshold  = 0.07;
+  bool _useNormalTest    = true;
+  float _normalThreshold = 0.99;
+  float _blendingAlpha   = 0.15;
 
   struct VarianceUniformBufferObject {
     int bypassVarianceEstimation;
@@ -88,12 +88,12 @@ class Application {
     float phiGaussian;
     float phiDepth;
   };
-  bool mUseVarianceEstimation = true;
-  bool mSkipStoppingFunctions = false;
-  bool mUseTemporalVariance   = true;
-  int mVarianceKernelSize     = 4;
-  float mVariancePhiGaussian  = 1.f;
-  float mVariancePhiDepth     = 0.2f;
+  bool _useVarianceEstimation = true;
+  bool _skipStoppingFunctions = false;
+  bool _useTemporalVariance   = true;
+  int _varianceKernelSize     = 4;
+  float _variancePhiGaussian  = 1.f;
+  float _variancePhiDepth     = 0.2f;
 
   struct BlurFilterUniformBufferObject {
     int bypassBluring;
@@ -108,21 +108,21 @@ class Application {
     int changingLuminancePhi;
     int useJittering;
   };
-  bool mUseATrous                       = true;
-  int mICap                             = 5;
-  bool mUseVarianceGuidedFiltering      = true;
-  bool mUseGradientInDepth              = true;
-  float mPhiLuminance                   = 0.3f;
-  float mPhiDepth                       = 0.2f;
-  float mPhiNormal                      = 128.f;
-  bool mIgnoreLuminanceAtFirstIteration = true;
-  bool mChangingLuminancePhi            = true;
-  bool mUseJittering                    = true;
+  bool _useATrous                       = true;
+  int _iCap                             = 5;
+  bool _useVarianceGuidedFiltering      = true;
+  bool _useGradientInDepth              = true;
+  float _phiLuminance                   = 0.3f;
+  float _phiDepth                       = 0.2f;
+  float _phiNormal                      = 128.f;
+  bool _ignoreLuminanceAtFirstIteration = true;
+  bool _changingLuminancePhi            = true;
+  bool _useJittering                    = true;
 
   struct PostProcessingUniformBufferObject {
     uint32_t displayType;
   };
-  uint32_t mDisplayType = 2;
+  uint32_t _displayType = 2;
 
 public:
   Application();

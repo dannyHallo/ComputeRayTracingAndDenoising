@@ -472,52 +472,52 @@ void Application::_updateScene(uint32_t currentImageIndex) {
       mCamera->getProjectionMatrix(static_cast<float>(mAppContext->getSwapchainExtentWidth()) /
                                    static_cast<float>(mAppContext->getSwapchainExtentHeight())) *
       mCamera->getViewMatrix();
-  GradientProjectionUniformBufferObject gpUbo = {!mUseGradientProjection, thisMvpe};
+  GradientProjectionUniformBufferObject gpUbo = {!_useGradientProjection, thisMvpe};
   _gradientProjectionBufferBundle->getBuffer(currentImageIndex)->fillData(&gpUbo);
 
   RtxUniformBufferObject rtxUbo = {
 
       static_cast<uint32_t>(_rtScene->triangles.size()),
       static_cast<uint32_t>(_rtScene->lights.size()),
-      mMovingLightSource,
-      mOutputType,
-      mOffsetX,
-      mOffsetY};
+      _movingLightSource,
+      _outputType,
+      _offsetX,
+      _offsetY};
 
   _rtxBufferBundle->getBuffer(currentImageIndex)->fillData(&rtxUbo);
 
   for (int i = 0; i < 6; i++) {
-    StratumFilterUniformBufferObject sfUbo = {i, !mUseStratumFiltering};
+    StratumFilterUniformBufferObject sfUbo = {i, !_useStratumFiltering};
     _stratumFilterBufferBundle[i]->getBuffer(currentImageIndex)->fillData(&sfUbo);
   }
 
-  TemporalFilterUniformBufferObject tfUbo = {!mUseTemporalBlend, mUseNormalTest, mNormalThreshold,
-                                             mBlendingAlpha, lastMvpe};
+  TemporalFilterUniformBufferObject tfUbo = {!_useTemporalBlend, _useNormalTest, _normalThreshold,
+                                             _blendingAlpha, lastMvpe};
   _temperalFilterBufferBundle->getBuffer(currentImageIndex)->fillData(&tfUbo);
   lastMvpe = thisMvpe;
 
-  VarianceUniformBufferObject varianceUbo = {!mUseVarianceEstimation, mSkipStoppingFunctions,
-                                             mUseTemporalVariance,    mVarianceKernelSize,
-                                             mVariancePhiGaussian,    mVariancePhiDepth};
+  VarianceUniformBufferObject varianceUbo = {!_useVarianceEstimation, _skipStoppingFunctions,
+                                             _useTemporalVariance,    _varianceKernelSize,
+                                             _variancePhiGaussian,    _variancePhiDepth};
   _varianceBufferBundle->getBuffer(currentImageIndex)->fillData(&varianceUbo);
 
   for (int j = 0; j < kATrousSize; j++) {
     // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {!mUseATrous,
+    BlurFilterUniformBufferObject bfUbo = {!_useATrous,
                                            j,
-                                           mICap,
-                                           mUseVarianceGuidedFiltering,
-                                           mUseGradientInDepth,
-                                           mPhiLuminance,
-                                           mPhiDepth,
-                                           mPhiNormal,
-                                           mIgnoreLuminanceAtFirstIteration,
-                                           mChangingLuminancePhi,
-                                           mUseJittering};
+                                           _iCap,
+                                           _useVarianceGuidedFiltering,
+                                           _useGradientInDepth,
+                                           _phiLuminance,
+                                           _phiDepth,
+                                           _phiNormal,
+                                           _ignoreLuminanceAtFirstIteration,
+                                           _changingLuminancePhi,
+                                           _useJittering};
     _blurFilterBufferBundles[j]->getBuffer(currentImageIndex)->fillData(&bfUbo);
   }
 
-  PostProcessingUniformBufferObject postProcessingUbo = {mDisplayType};
+  PostProcessingUniformBufferObject postProcessingUbo = {_displayType};
   _postProcessingBufferBundle->getBuffer(currentImageIndex)->fillData(&postProcessingUbo);
 
   currentSample++;
@@ -992,48 +992,48 @@ void Application::_prepareGui() {
   ImGui::BeginMainMenuBar();
   if (ImGui::BeginMenu("Config")) {
     ImGui::SeparatorText("Gradient Projection");
-    ImGui::Checkbox("Use Gradient Projection", &mUseGradientProjection);
+    ImGui::Checkbox("Use Gradient Projection", &_useGradientProjection);
 
     ImGui::SeparatorText("Rtx");
-    ImGui::Checkbox("Moving Light Source", &mMovingLightSource);
+    ImGui::Checkbox("Moving Light Source", &_movingLightSource);
     const char *outputItems[] = {"Combined", "Direct Only", "Indirect Only"};
-    comboSelector("Output Type", outputItems, mOutputType);
-    ImGui::DragFloat("Offset X", &mOffsetX, 0.01F, -1.0F, 1.0F);
-    ImGui::DragFloat("Offset Y", &mOffsetY, 0.01F, -1.0F, 1.0F);
+    comboSelector("Output Type", outputItems, _outputType);
+    ImGui::DragFloat("Offset X", &_offsetX, 0.01F, -1.0F, 1.0F);
+    ImGui::DragFloat("Offset Y", &_offsetY, 0.01F, -1.0F, 1.0F);
 
     ImGui::SeparatorText("Stratum Filter");
-    ImGui::Checkbox("Use Stratum Filter", &mUseStratumFiltering);
+    ImGui::Checkbox("Use Stratum Filter", &_useStratumFiltering);
 
     ImGui::SeparatorText("Temporal Blend");
-    ImGui::Checkbox("Temporal Accumulation", &mUseTemporalBlend);
-    ImGui::Checkbox("Use normal test", &mUseNormalTest);
-    ImGui::SliderFloat("Normal threhold", &mNormalThreshold, 0.0F, 1.0F);
-    ImGui::SliderFloat("Blending Alpha", &mBlendingAlpha, 0.0F, 1.0F);
+    ImGui::Checkbox("Temporal Accumulation", &_useTemporalBlend);
+    ImGui::Checkbox("Use normal test", &_useNormalTest);
+    ImGui::SliderFloat("Normal threhold", &_normalThreshold, 0.0F, 1.0F);
+    ImGui::SliderFloat("Blending Alpha", &_blendingAlpha, 0.0F, 1.0F);
 
     ImGui::SeparatorText("Variance Estimation");
-    ImGui::Checkbox("Variance Calculation", &mUseVarianceEstimation);
-    ImGui::Checkbox("Skip Stopping Functions", &mSkipStoppingFunctions);
-    ImGui::Checkbox("Use Temporal Variance", &mUseTemporalVariance);
-    ImGui::SliderInt("Variance Kernel Size", &mVarianceKernelSize, 1, 15);
-    ImGui::SliderFloat("Variance Phi Gaussian", &mVariancePhiGaussian, 0.0F, 1.0F);
-    ImGui::SliderFloat("Variance Phi Depth", &mVariancePhiDepth, 0.0F, 1.0F);
+    ImGui::Checkbox("Variance Calculation", &_useVarianceEstimation);
+    ImGui::Checkbox("Skip Stopping Functions", &_skipStoppingFunctions);
+    ImGui::Checkbox("Use Temporal Variance", &_useTemporalVariance);
+    ImGui::SliderInt("Variance Kernel Size", &_varianceKernelSize, 1, 15);
+    ImGui::SliderFloat("Variance Phi Gaussian", &_variancePhiGaussian, 0.0F, 1.0F);
+    ImGui::SliderFloat("Variance Phi Depth", &_variancePhiDepth, 0.0F, 1.0F);
 
     ImGui::SeparatorText("A-Trous");
-    ImGui::Checkbox("A-Trous", &mUseATrous);
-    ImGui::SliderInt("A-Trous times", &mICap, 0, 5);
-    ImGui::Checkbox("Use variance guided filtering", &mUseVarianceGuidedFiltering);
-    ImGui::Checkbox("Use gradient in depth", &mUseGradientInDepth);
-    ImGui::SliderFloat("Luminance Phi", &mPhiLuminance, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Depth", &mPhiDepth, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Normal", &mPhiNormal, 0.0F, 200.0F);
-    ImGui::Checkbox("Ignore Luminance For First Iteration", &mIgnoreLuminanceAtFirstIteration);
-    ImGui::Checkbox("Changing luminance phi", &mChangingLuminancePhi);
-    ImGui::Checkbox("Use jitter", &mUseJittering);
+    ImGui::Checkbox("A-Trous", &_useATrous);
+    ImGui::SliderInt("A-Trous times", &_iCap, 0, 5);
+    ImGui::Checkbox("Use variance guided filtering", &_useVarianceGuidedFiltering);
+    ImGui::Checkbox("Use gradient in depth", &_useGradientInDepth);
+    ImGui::SliderFloat("Luminance Phi", &_phiLuminance, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Depth", &_phiDepth, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Normal", &_phiNormal, 0.0F, 200.0F);
+    ImGui::Checkbox("Ignore Luminance For First Iteration", &_ignoreLuminanceAtFirstIteration);
+    ImGui::Checkbox("Changing luminance phi", &_changingLuminancePhi);
+    ImGui::Checkbox("Use jitter", &_useJittering);
 
     ImGui::SeparatorText("Post Processing");
     const char *displayItems[] = {"Color",      "Variance", "RawCol", "Stratum",
                                   "Visibility", "Gradient", "Custom"};
-    comboSelector("Display Type", displayItems, mDisplayType);
+    comboSelector("Display Type", displayItems, _displayType);
 
     ImGui::EndMenu();
   }
