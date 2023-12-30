@@ -19,15 +19,15 @@ static const std::vector<const char *> validationLayers         = {"VK_LAYER_KHR
 static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
-  mLogger = logger;
-  mLogger->print("Creating VulkanApplicationContext");
+  _logger = logger;
+  _logger->print("Creating VulkanApplicationContext");
 #ifndef NVALIDATIONLAYERS
-  mLogger->print("DEBUG mode is enabled");
+  _logger->print("DEBUG mode is enabled");
 #else
   mLogger->print("DEBUG mode is disabled");
 #endif // NDEBUG
 
-  mGlWindow       = window;
+  _glWindow       = window;
   VkResult result = volkInitialize();
   assert(result == VK_SUCCESS && "Failed to initialize volk");
 
@@ -37,20 +37,20 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
   appInfo.pEngineName        = "No Engine";
   appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
   appInfo.apiVersion         = VK_API_VERSION_1_2;
-  ContextCreator::createInstance(mLogger, mVkInstance, mDebugMessager, appInfo, validationLayers);
+  ContextCreator::createInstance(_logger, _vkInstance, _debugMessager, appInfo, validationLayers);
 
-  ContextCreator::createSurface(mLogger, mVkInstance, mSurface, mGlWindow);
+  ContextCreator::createSurface(_logger, _vkInstance, _surface, _glWindow);
 
   // selects physical device, creates logical device from that, decides queues,
   // loads device-related functions too
-  ContextCreator::createDevice(mLogger, mPhysicalDevice, mDevice, mQueueFamilyIndices,
-                               mGraphicsQueue, mPresentQueue, mComputeQueue, mTransferQueue,
-                               mVkInstance, mSurface, requiredDeviceExtensions);
+  ContextCreator::createDevice(_logger, _physicalDevice, _device, _queueFamilyIndices,
+                               _graphicsQueue, _presentQueue, _computeQueue, _transferQueue,
+                               _vkInstance, _surface, requiredDeviceExtensions);
 
   createSwapchainDimensionRelatedResources();
 
-  createAllocator();
-  createCommandPool();
+  _createAllocator();
+  _createCommandPool();
 }
 
 VulkanApplicationContext *VulkanApplicationContext::getInstance() {
@@ -59,46 +59,46 @@ VulkanApplicationContext *VulkanApplicationContext::getInstance() {
 }
 
 void VulkanApplicationContext::cleanupSwapchainDimensionRelatedResources() {
-  for (auto &swapchainImageView : mSwapchainImageViews) {
-    vkDestroyImageView(mDevice, swapchainImageView, nullptr);
+  for (auto &swapchainImageView : _swapchainImageViews) {
+    vkDestroyImageView(_device, swapchainImageView, nullptr);
   }
 
-  vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+  vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 }
 
 void VulkanApplicationContext::createSwapchainDimensionRelatedResources() {
-  ContextCreator::createSwapchain(mLogger, mSwapchain, mSwapchainImages, mSwapchainImageViews,
-                                  mSwapchainImageFormat, mSwapchainExtent, mSurface, mDevice,
-                                  mPhysicalDevice, mQueueFamilyIndices);
+  ContextCreator::createSwapchain(_logger, _swapchain, _swapchainImages, _swapchainImageViews,
+                                  _swapchainImageFormat, _swapchainExtent, _surface, _device,
+                                  _physicalDevice, _queueFamilyIndices);
 }
 
 VulkanApplicationContext::~VulkanApplicationContext() {
-  mLogger->print("Destroying VulkanApplicationContext");
+  _logger->print("Destroying VulkanApplicationContext");
 
-  vkDestroyCommandPool(mDevice, mCommandPool, nullptr);
-  vkDestroyCommandPool(mDevice, mGuiCommandPool, nullptr);
+  vkDestroyCommandPool(_device, _commandPool, nullptr);
+  vkDestroyCommandPool(_device, _guiCommandPool, nullptr);
 
-  for (auto &swapchainImageView : mSwapchainImageViews) {
-    vkDestroyImageView(mDevice, swapchainImageView, nullptr);
+  for (auto &swapchainImageView : _swapchainImageViews) {
+    vkDestroyImageView(_device, swapchainImageView, nullptr);
   }
 
-  vkDestroySwapchainKHR(mDevice, mSwapchain, nullptr);
+  vkDestroySwapchainKHR(_device, _swapchain, nullptr);
 
-  vkDestroySurfaceKHR(mVkInstance, mSurface, nullptr);
+  vkDestroySurfaceKHR(_vkInstance, _surface, nullptr);
 
   // this step destroys allocated VkDestroyMemory allocated by VMA when creating
   // buffers and images, by destroying the global allocator
-  vmaDestroyAllocator(mAllocator);
-  vkDestroyDevice(mDevice, nullptr);
+  vmaDestroyAllocator(_allocator);
+  vkDestroyDevice(_device, nullptr);
 
 #ifndef NVALIDATIONLAYERS
-  vkDestroyDebugUtilsMessengerEXT(mVkInstance, mDebugMessager, nullptr);
+  vkDestroyDebugUtilsMessengerEXT(_vkInstance, _debugMessager, nullptr);
 #endif // NDEBUG
 
-  vkDestroyInstance(mVkInstance, nullptr);
+  vkDestroyInstance(_vkInstance, nullptr);
 }
 
-void VulkanApplicationContext::createAllocator() {
+void VulkanApplicationContext::_createAllocator() {
   // load vulkan functions dynamically
   VmaVulkanFunctions vmaVulkanFunc{};
   vmaVulkanFunc.vkAllocateMemory                        = vkAllocateMemory;
@@ -128,23 +128,23 @@ void VulkanApplicationContext::createAllocator() {
 
   VmaAllocatorCreateInfo allocatorInfo = {};
   allocatorInfo.vulkanApiVersion       = VK_API_VERSION_1_2;
-  allocatorInfo.physicalDevice         = mPhysicalDevice;
-  allocatorInfo.device                 = mDevice;
-  allocatorInfo.instance               = mVkInstance;
+  allocatorInfo.physicalDevice         = _physicalDevice;
+  allocatorInfo.device                 = _device;
+  allocatorInfo.instance               = _vkInstance;
   allocatorInfo.pVulkanFunctions       = &vmaVulkanFunc;
 
-  VkResult result = vmaCreateAllocator(&allocatorInfo, &mAllocator);
+  VkResult result = vmaCreateAllocator(&allocatorInfo, &_allocator);
   assert(result == VK_SUCCESS && "failed to create allocator");
 }
 
 // create a command pool for rendering commands and a command pool for gui
 // commands (imgui)
-void VulkanApplicationContext::createCommandPool() {
+void VulkanApplicationContext::_createCommandPool() {
   VkCommandPoolCreateInfo commandPoolCreateInfo1{};
   commandPoolCreateInfo1.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  commandPoolCreateInfo1.queueFamilyIndex = mQueueFamilyIndices.graphicsFamily;
+  commandPoolCreateInfo1.queueFamilyIndex = _queueFamilyIndices.graphicsFamily;
 
-  VkResult result = vkCreateCommandPool(mDevice, &commandPoolCreateInfo1, nullptr, &mCommandPool);
+  VkResult result = vkCreateCommandPool(_device, &commandPoolCreateInfo1, nullptr, &_commandPool);
   assert(result == VK_SUCCESS && "failed to create command pool");
 
   VkCommandPoolCreateInfo commandPoolCreateInfo2{};
@@ -152,8 +152,8 @@ void VulkanApplicationContext::createCommandPool() {
   commandPoolCreateInfo2.flags =
       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // allows the use of
                                                        // vkResetCommandBuffer
-  commandPoolCreateInfo2.queueFamilyIndex = mQueueFamilyIndices.graphicsFamily;
+  commandPoolCreateInfo2.queueFamilyIndex = _queueFamilyIndices.graphicsFamily;
 
-  result = vkCreateCommandPool(mDevice, &commandPoolCreateInfo2, nullptr, &mGuiCommandPool);
+  result = vkCreateCommandPool(_device, &commandPoolCreateInfo2, nullptr, &_guiCommandPool);
   assert(result == VK_SUCCESS && "failed to create command pool");
 }

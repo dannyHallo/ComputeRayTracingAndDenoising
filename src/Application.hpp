@@ -138,19 +138,19 @@ public:
   void run();
 
 private:
-  float mFps = 0;
+  float _fps = 0;
 
   // atrous twicking
 
   // delta time and last recorded frame time
-  float mDeltaTime = 0, mFrameRecordLastTime = 0;
+  float _deltaTime = 0, _frameRecordLastTime = 0;
 
-  Logger mLogger;
+  Logger _logger;
 
-  static std::unique_ptr<Camera> mCamera;
-  static std::unique_ptr<Window> mWindow;
+  static std::unique_ptr<Camera> _camera;
+  static std::unique_ptr<Window> _window;
 
-  VulkanApplicationContext *mAppContext;
+  VulkanApplicationContext *_appContext;
 
   /// the following resources are NOT swapchain dim related
   // scene for ray tracing
@@ -263,15 +263,11 @@ private:
   void _vkCreateSemaphoresAndFences();
 
   void _createGuiCommandBuffers();
-
   void _createGuiRenderPass();
-
   void _createGuiFramebuffers();
-
   void _createGuiDescripterPool();
 
   void _cleanupSwapchainDimensionRelatedResources();
-  void _cleanupImagesAndForwardingPairs();
   void _cleanupBufferBundles();
   void _cleanupGuiFrameBuffers();
   void _cleanupComputeModels();

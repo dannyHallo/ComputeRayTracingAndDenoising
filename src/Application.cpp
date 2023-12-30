@@ -12,16 +12,16 @@ static const int kMaxFramesInFlight            = 2;
 static const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
 static const float kFpsUpdateTime              = 0.5F;
 
-std::unique_ptr<Camera> Application::mCamera = nullptr;
-std::unique_ptr<Window> Application::mWindow = nullptr;
+std::unique_ptr<Camera> Application::_camera = nullptr;
+std::unique_ptr<Window> Application::_window = nullptr;
 
-Camera *Application::getCamera() { return mCamera.get(); }
+Camera *Application::getCamera() { return _camera.get(); }
 
 Application::Application() {
-  mWindow     = std::make_unique<Window>(WindowStyle::kFullScreen);
-  mAppContext = VulkanApplicationContext::getInstance();
-  mAppContext->init(&mLogger, mWindow->getGlWindow());
-  mCamera = std::make_unique<Camera>(mWindow.get());
+  _window     = std::make_unique<Window>(WindowStyle::kFullScreen);
+  _appContext = VulkanApplicationContext::getInstance();
+  _appContext->init(&_logger, _window->getGlWindow());
+  _camera = std::make_unique<Camera>(_window.get());
 }
 
 void Application::run() {
@@ -31,33 +31,29 @@ void Application::run() {
 }
 
 void Application::_cleanup() {
-  mLogger.print("Application is cleaning up resources...");
+  _logger.print("Application is cleaning up resources...");
 
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
-    vkDestroySemaphore(mAppContext->getDevice(), _renderFinishedSemaphores[i], nullptr);
-    vkDestroySemaphore(mAppContext->getDevice(), _imageAvailableSemaphores[i], nullptr);
-    vkDestroyFence(mAppContext->getDevice(), _framesInFlightFences[i], nullptr);
+    vkDestroySemaphore(_appContext->getDevice(), _renderFinishedSemaphores[i], nullptr);
+    vkDestroySemaphore(_appContext->getDevice(), _imageAvailableSemaphores[i], nullptr);
+    vkDestroyFence(_appContext->getDevice(), _framesInFlightFences[i], nullptr);
   }
 
   for (auto &commandBuffer : _commandBuffers) {
-    vkFreeCommandBuffers(mAppContext->getDevice(), mAppContext->getCommandPool(), 1,
+    vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                          &commandBuffer);
   }
 
   for (auto &mGuiCommandBuffers : _guiCommandBuffers) {
-    vkFreeCommandBuffers(mAppContext->getDevice(), mAppContext->getGuiCommandPool(), 1,
+    vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getGuiCommandPool(), 1,
                          &mGuiCommandBuffers);
   }
 
-  for (auto &guiFrameBuffer : _guiFrameBuffers) {
-    vkDestroyFramebuffer(mAppContext->getDevice(), guiFrameBuffer, nullptr);
-  }
+  _cleanupGuiFrameBuffers();
 
-  vkDestroyRenderPass(mAppContext->getDevice(), _guiPass, nullptr);
-  vkDestroyDescriptorPool(mAppContext->getDevice(), _guiDescriptorPool, nullptr);
+  vkDestroyRenderPass(_appContext->getDevice(), _guiPass, nullptr);
+  vkDestroyDescriptorPool(_appContext->getDevice(), _guiDescriptorPool, nullptr);
 
-  // clearing resources related to ImGui, this can be rewritten by using VMA
-  // later
   ImGui_ImplVulkan_Shutdown();
 }
 
@@ -66,14 +62,13 @@ void check_vk_result(VkResult resultCode) {
 }
 
 void Application::_createScene() {
-
   // creates material, loads models from files, creates bvh
   _rtScene = std::make_unique<GpuModel::Scene>();
 }
 
 void Application::_createBufferBundles() {
   // equals to descriptor sets size
-  auto swapchainSize = static_cast<uint32_t>(mAppContext->getSwapchainSize());
+  auto swapchainSize = static_cast<uint32_t>(_appContext->getSwapchainSize());
   // uniform buffers are faster to fill compared to storage buffers, but they
   // are restricted in their size Buffer bundle is an array of buffers, one per
   // each swapchain image/descriptor set.
@@ -157,8 +152,8 @@ void Application::_createImagesAndForwardingPairs() {
         filenames, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   }
 
-  auto imageWidth  = mAppContext->getSwapchainExtentWidth();
-  auto imageHeight = mAppContext->getSwapchainExtentHeight();
+  auto imageWidth  = _appContext->getSwapchainExtentWidth();
+  auto imageHeight = _appContext->getSwapchainExtentHeight();
 
   _targetImage = std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R8G8B8A8_UNORM,
                                          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
@@ -167,9 +162,9 @@ void Application::_createImagesAndForwardingPairs() {
 
   // creating forwarding pairs to copy the image result each frame to a specific swapchain
   _targetForwardingPairs.clear();
-  for (int i = 0; i < mAppContext->getSwapchainSize(); i++) {
+  for (int i = 0; i < _appContext->getSwapchainSize(); i++) {
     _targetForwardingPairs.emplace_back(std::make_unique<ImageForwardingPair>(
-        _targetImage->getVkImage(), mAppContext->getSwapchainImages()[i], VK_IMAGE_LAYOUT_GENERAL,
+        _targetImage->getVkImage(), _appContext->getSwapchainImages()[i], VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
   }
@@ -306,7 +301,7 @@ void Application::_createComputeModels() {
     gradientProjectionMat->addStorageImage(_seedVisibilityImage.get());
   }
   _gradientProjectionModel =
-      std::make_unique<ComputeModel>(&mLogger, std::move(gradientProjectionMat));
+      std::make_unique<ComputeModel>(&_logger, std::move(gradientProjectionMat));
 
   auto rtxMat =
       std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/rtx.spv");
@@ -333,7 +328,7 @@ void Application::_createComputeModels() {
     rtxMat->addStorageBufferBundle(_bvhBufferBundle.get());
     rtxMat->addStorageBufferBundle(_lightsBufferBundle.get());
   }
-  _rtxModel = std::make_unique<ComputeModel>(&mLogger, std::move(rtxMat));
+  _rtxModel = std::make_unique<ComputeModel>(&_logger, std::move(rtxMat));
 
   auto gradientMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/screenSpaceGradient.spv");
@@ -344,7 +339,7 @@ void Application::_createComputeModels() {
     // output
     gradientMat->addStorageImage(_gradientImage.get());
   }
-  _gradientModel = std::make_unique<ComputeModel>(&mLogger, std::move(gradientMat));
+  _gradientModel = std::make_unique<ComputeModel>(&_logger, std::move(gradientMat));
 
   _stratumFilterModels.clear();
   for (int i = 0; i < 6; i++) {
@@ -365,7 +360,7 @@ void Application::_createComputeModels() {
       stratumFilterMat->addStorageImage(_temporalGradientNormalizationImagePong.get());
     }
     _stratumFilterModels.emplace_back(
-        std::make_unique<ComputeModel>(&mLogger, std::move(stratumFilterMat)));
+        std::make_unique<ComputeModel>(&_logger, std::move(stratumFilterMat)));
   }
 
   auto temporalFilterMat = std::make_unique<ComputeMaterial>(
@@ -390,7 +385,7 @@ void Application::_createComputeModels() {
     temporalFilterMat->addStorageImage(_aTrousInputImage.get());
     temporalFilterMat->addStorageImage(_varianceHistImage.get());
   }
-  _temporalFilterModel = std::make_unique<ComputeModel>(&mLogger, std::move(temporalFilterMat));
+  _temporalFilterModel = std::make_unique<ComputeModel>(&_logger, std::move(temporalFilterMat));
 
   auto varianceMat =
       std::make_unique<ComputeMaterial>(kPathToResourceFolder + "/shaders/generated/variance.spv");
@@ -406,7 +401,7 @@ void Application::_createComputeModels() {
     varianceMat->addStorageImage(_varianceImage.get());
     varianceMat->addStorageImage(_varianceHistImage.get());
   }
-  _varianceModel = std::make_unique<ComputeModel>(&mLogger, std::move(varianceMat));
+  _varianceModel = std::make_unique<ComputeModel>(&_logger, std::move(varianceMat));
 
   _aTrousModels.clear();
   for (int i = 0; i < kATrousSize; i++) {
@@ -428,7 +423,7 @@ void Application::_createComputeModels() {
       aTrousMat->addStorageImage(_lastFrameAccumImage.get());
       aTrousMat->addStorageImage(_aTrousOutputImage.get());
     }
-    _aTrousModels.emplace_back(std::make_unique<ComputeModel>(&mLogger, std::move(aTrousMat)));
+    _aTrousModels.emplace_back(std::make_unique<ComputeModel>(&_logger, std::move(aTrousMat)));
   }
 
   auto postProcessingMat = std::make_unique<ComputeMaterial>(
@@ -447,7 +442,7 @@ void Application::_createComputeModels() {
     // output
     postProcessingMat->addStorageImage(_targetImage.get());
   }
-  _postProcessingModel = std::make_unique<ComputeModel>(&mLogger, std::move(postProcessingMat));
+  _postProcessingModel = std::make_unique<ComputeModel>(&_logger, std::move(postProcessingMat));
 }
 
 void Application::_updateScene(uint32_t currentImageIndex) {
@@ -456,22 +451,22 @@ void Application::_updateScene(uint32_t currentImageIndex) {
 
   auto currentTime = static_cast<float>(glfwGetTime());
 
-  GlobalUniformBufferObject globalUbo = {mCamera->getPosition(),
-                                         mCamera->getFront(),
-                                         mCamera->getUp(),
-                                         mCamera->getRight(),
-                                         mAppContext->getSwapchainExtentWidth(),
-                                         mAppContext->getSwapchainExtentHeight(),
-                                         mCamera->getVFov(),
+  GlobalUniformBufferObject globalUbo = {_camera->getPosition(),
+                                         _camera->getFront(),
+                                         _camera->getUp(),
+                                         _camera->getRight(),
+                                         _appContext->getSwapchainExtentWidth(),
+                                         _appContext->getSwapchainExtentHeight(),
+                                         _camera->getVFov(),
                                          currentSample,
                                          currentTime};
 
   _globalBufferBundle->getBuffer(currentImageIndex)->fillData(&globalUbo);
 
   auto thisMvpe =
-      mCamera->getProjectionMatrix(static_cast<float>(mAppContext->getSwapchainExtentWidth()) /
-                                   static_cast<float>(mAppContext->getSwapchainExtentHeight())) *
-      mCamera->getViewMatrix();
+      _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
+                                   static_cast<float>(_appContext->getSwapchainExtentHeight())) *
+      _camera->getViewMatrix();
   GradientProjectionUniformBufferObject gpUbo = {!_useGradientProjection, thisMvpe};
   _gradientProjectionBufferBundle->getBuffer(currentImageIndex)->fillData(&gpUbo);
 
@@ -525,15 +520,15 @@ void Application::_updateScene(uint32_t currentImageIndex) {
 
 void Application::_createRenderCommandBuffers() {
   // create command buffers per swapchain image
-  _commandBuffers.resize(mAppContext->getSwapchainSize());
+  _commandBuffers.resize(_appContext->getSwapchainSize());
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool        = mAppContext->getCommandPool();
+  allocInfo.commandPool        = _appContext->getCommandPool();
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)_commandBuffers.size();
 
   VkResult result =
-      vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, _commandBuffers.data());
+      vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _commandBuffers.data());
   assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
 
   for (size_t i = 0; i < _commandBuffers.size(); i++) {
@@ -646,12 +641,9 @@ void Application::_createRenderCommandBuffers() {
   }
 }
 
-// not needed now because of smart pointers
-void Application::_cleanupImagesAndForwardingPairs() {}
-
 void Application::_cleanupGuiFrameBuffers() {
-  for (auto &framebuffer : _guiFrameBuffers) {
-    vkDestroyFramebuffer(mAppContext->getDevice(), framebuffer, nullptr);
+  for (auto &guiFrameBuffer : _guiFrameBuffers) {
+    vkDestroyFramebuffer(_appContext->getDevice(), guiFrameBuffer, nullptr);
   }
 }
 
@@ -662,12 +654,11 @@ void Application::_cleanupComputeModels() {}
 void Application::_cleanupRenderCommandBuffers() {
 
   for (auto &commandBuffer : _commandBuffers) {
-    vkFreeCommandBuffers(mAppContext->getDevice(), mAppContext->getCommandPool(), 1,
+    vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                          &commandBuffer);
   }
 }
 void Application::_cleanupSwapchainDimensionRelatedResources() {
-  _cleanupImagesAndForwardingPairs();
   _cleanupComputeModels();
   _cleanupRenderCommandBuffers();
   _cleanupGuiFrameBuffers();
@@ -695,35 +686,35 @@ void Application::_vkCreateSemaphoresAndFences() {
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
   for (size_t i = 0; i < kMaxFramesInFlight; i++) {
-    VkResult result = vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr,
+    VkResult result = vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
                                         &_imageAvailableSemaphores[i]);
     assert(result == VK_SUCCESS && "vkCreateSemaphore failed");
-    result = vkCreateSemaphore(mAppContext->getDevice(), &semaphoreInfo, nullptr,
+    result = vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
                                &_renderFinishedSemaphores[i]);
     assert(result == VK_SUCCESS && "vkCreateSemaphore failed");
     result =
-        vkCreateFence(mAppContext->getDevice(), &fenceInfo, nullptr, &_framesInFlightFences[i]);
+        vkCreateFence(_appContext->getDevice(), &fenceInfo, nullptr, &_framesInFlightFences[i]);
     assert(result == VK_SUCCESS && "vkCreateFence failed");
   }
 }
 
 void Application::_createGuiCommandBuffers() {
-  _guiCommandBuffers.resize(mAppContext->getSwapchainSize());
+  _guiCommandBuffers.resize(_appContext->getSwapchainSize());
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool        = mAppContext->getGuiCommandPool();
+  allocInfo.commandPool        = _appContext->getGuiCommandPool();
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)_guiCommandBuffers.size();
 
   VkResult result =
-      vkAllocateCommandBuffers(mAppContext->getDevice(), &allocInfo, _guiCommandBuffers.data());
+      vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _guiCommandBuffers.data());
   assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
 }
 
 void Application::_createGuiRenderPass() {
   // Imgui Pass, right after the main pass
   VkAttachmentDescription attachment = {};
-  attachment.format                  = mAppContext->getSwapchainImageFormat();
+  attachment.format                  = _appContext->getSwapchainImageFormat();
   attachment.samples                 = VK_SAMPLE_COUNT_1_BIT;
   // Load onto the current render pass
   attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
@@ -763,7 +754,7 @@ void Application::_createGuiRenderPass() {
   renderPassCreateInfo.pDependencies          = &dependency;
 
   VkResult result =
-      vkCreateRenderPass(mAppContext->getDevice(), &renderPassCreateInfo, nullptr, &_guiPass);
+      vkCreateRenderPass(_appContext->getDevice(), &renderPassCreateInfo, nullptr, &_guiPass);
   assert(result == VK_SUCCESS && "vkCreateRenderPass failed");
 }
 
@@ -771,22 +762,22 @@ void Application::_createGuiFramebuffers() {
   // Create gui frame buffers for gui pass to use
   // Each frame buffer will have an attachment of VkImageView, in this case, the
   // attachments are mSwapchainImageViews
-  _guiFrameBuffers.resize(mAppContext->getSwapchainSize());
+  _guiFrameBuffers.resize(_appContext->getSwapchainSize());
 
   // Iterate through image views
-  for (size_t i = 0; i < mAppContext->getSwapchainSize(); i++) {
-    VkImageView attachment = mAppContext->getSwapchainImageViews()[i];
+  for (size_t i = 0; i < _appContext->getSwapchainSize(); i++) {
+    VkImageView attachment = _appContext->getSwapchainImageViews()[i];
 
     VkFramebufferCreateInfo frameBufferCreateInfo{};
     frameBufferCreateInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     frameBufferCreateInfo.renderPass      = _guiPass;
     frameBufferCreateInfo.attachmentCount = 1;
     frameBufferCreateInfo.pAttachments    = &attachment;
-    frameBufferCreateInfo.width           = mAppContext->getSwapchainExtentWidth();
-    frameBufferCreateInfo.height          = mAppContext->getSwapchainExtentHeight();
+    frameBufferCreateInfo.width           = _appContext->getSwapchainExtentWidth();
+    frameBufferCreateInfo.height          = _appContext->getSwapchainExtentHeight();
     frameBufferCreateInfo.layers          = 1;
 
-    VkResult result = vkCreateFramebuffer(mAppContext->getDevice(), &frameBufferCreateInfo, nullptr,
+    VkResult result = vkCreateFramebuffer(_appContext->getDevice(), &frameBufferCreateInfo, nullptr,
                                           &_guiFrameBuffers[i]);
     assert(result == VK_SUCCESS && "vkCreateFramebuffer failed");
   }
@@ -813,7 +804,7 @@ void Application::_createGuiDescripterPool() {
   poolInfo.pPoolSizes                 = poolSizes;
 
   VkResult result =
-      vkCreateDescriptorPool(mAppContext->getDevice(), &poolInfo, nullptr, &_guiDescriptorPool);
+      vkCreateDescriptorPool(_appContext->getDevice(), &poolInfo, nullptr, &_guiDescriptorPool);
   assert(result == VK_SUCCESS && "vkCreateDescriptorPool failed");
 }
 
@@ -830,33 +821,33 @@ void Application::_initGui() {
   ImGui::StyleColorsClassic();
 
   // Setup Platform/Renderer bindings
-  ImGui_ImplGlfw_InitForVulkan(mWindow->getGlWindow(), true);
+  ImGui_ImplGlfw_InitForVulkan(_window->getGlWindow(), true);
 
   ImGui_ImplVulkan_InitInfo init_info = {};
-  init_info.Instance                  = mAppContext->getVkInstance();
-  init_info.PhysicalDevice            = mAppContext->getPhysicalDevice();
-  init_info.Device                    = mAppContext->getDevice();
-  init_info.QueueFamily               = mAppContext->getQueueFamilyIndices().graphicsFamily;
-  init_info.Queue                     = mAppContext->getGraphicsQueue();
+  init_info.Instance                  = _appContext->getVkInstance();
+  init_info.PhysicalDevice            = _appContext->getPhysicalDevice();
+  init_info.Device                    = _appContext->getDevice();
+  init_info.QueueFamily               = _appContext->getQueueFamilyIndices().graphicsFamily;
+  init_info.Queue                     = _appContext->getGraphicsQueue();
   init_info.PipelineCache             = VK_NULL_HANDLE;
   init_info.DescriptorPool            = _guiDescriptorPool;
   init_info.Allocator                 = VK_NULL_HANDLE;
-  init_info.MinImageCount             = static_cast<uint32_t>(mAppContext->getSwapchainSize());
-  init_info.ImageCount                = static_cast<uint32_t>(mAppContext->getSwapchainSize());
+  init_info.MinImageCount             = static_cast<uint32_t>(_appContext->getSwapchainSize());
+  init_info.ImageCount                = static_cast<uint32_t>(_appContext->getSwapchainSize());
   init_info.CheckVkResultFn           = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&init_info, _guiPass)) {
-    mLogger.print("failed to init impl");
+    _logger.print("failed to init impl");
   }
 
   // Create fonts texture
   VkCommandBuffer commandBuffer = RenderSystem::beginSingleTimeCommands(
-      mAppContext->getDevice(), mAppContext->getCommandPool());
+      _appContext->getDevice(), _appContext->getCommandPool());
 
   if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer)) {
-    mLogger.print("failed to create fonts texture");
+    _logger.print("failed to create fonts texture");
   }
-  RenderSystem::endSingleTimeCommands(mAppContext->getDevice(), mAppContext->getCommandPool(),
-                                      mAppContext->getGraphicsQueue(), commandBuffer);
+  RenderSystem::endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                                      _appContext->getGraphicsQueue(), commandBuffer);
 }
 
 void Application::_recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex) {
@@ -873,7 +864,7 @@ void Application::_recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass            = _guiPass;
   renderPassInfo.framebuffer           = _guiFrameBuffers[imageIndex];
-  renderPassInfo.renderArea.extent     = mAppContext->getSwapchainExtent();
+  renderPassInfo.renderArea.extent     = _appContext->getSwapchainExtent();
 
   VkClearValue clearValue{};
   clearValue.color = {{0.0F, 0.0F, 0.0F, 1.0F}};
@@ -894,13 +885,13 @@ void Application::_recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32
 
 void Application::_drawFrame() {
   static size_t currentFrame = 0;
-  vkWaitForFences(mAppContext->getDevice(), 1, &_framesInFlightFences[currentFrame], VK_TRUE,
+  vkWaitForFences(_appContext->getDevice(), 1, &_framesInFlightFences[currentFrame], VK_TRUE,
                   UINT64_MAX);
-  vkResetFences(mAppContext->getDevice(), 1, &_framesInFlightFences[currentFrame]);
+  vkResetFences(_appContext->getDevice(), 1, &_framesInFlightFences[currentFrame]);
 
   uint32_t imageIndex = 0;
   VkResult result =
-      vkAcquireNextImageKHR(mAppContext->getDevice(), mAppContext->getSwapchain(), UINT64_MAX,
+      vkAcquireNextImageKHR(_appContext->getDevice(), _appContext->getSwapchain(), UINT64_MAX,
                             _imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -910,7 +901,7 @@ void Application::_drawFrame() {
   if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     // sub-optimal: a swapchain no longer matches the surface properties
     // exactly, but can still be used to present to the surface successfully
-    mLogger.throwError("resizing is not allowed!");
+    _logger.throwError("resizing is not allowed!");
   }
 
   _updateScene(imageIndex);
@@ -938,7 +929,7 @@ void Application::_drawFrame() {
     submitInfo.pCommandBuffers    = submitCommandBuffers.data();
   }
 
-  result = vkQueueSubmit(mAppContext->getGraphicsQueue(), 1, &submitInfo,
+  result = vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo,
                          _framesInFlightFences[currentFrame]);
   assert(result == VK_SUCCESS && "vkQueueSubmit failed");
 
@@ -948,12 +939,12 @@ void Application::_drawFrame() {
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores    = &_renderFinishedSemaphores[currentFrame];
     presentInfo.swapchainCount     = 1;
-    presentInfo.pSwapchains        = &mAppContext->getSwapchain();
+    presentInfo.pSwapchains        = &_appContext->getSwapchain();
     presentInfo.pImageIndices      = &imageIndex;
     presentInfo.pResults           = nullptr;
   }
 
-  result = vkQueuePresentKHR(mAppContext->getPresentQueue(), &presentInfo);
+  result = vkQueuePresentKHR(_appContext->getPresentQueue(), &presentInfo);
   assert(result == VK_SUCCESS && "vkQueuePresentKHR failed");
 
   // Commented this out for playing around with it later :)
@@ -1055,21 +1046,21 @@ void Application::_prepareGui() {
                    ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
 
   ImGui::SetWindowSize(ImVec2(kStatsWindowWidth, kStatsWindowHeight));
-  ImGui::Text("fps : %.2f", mFps);
-  ImGui::Text("mspf: %.2f", 1 / mFps * 1000.F);
+  ImGui::Text("fps : %.2f", _fps);
+  ImGui::Text("mspf: %.2f", 1 / _fps * 1000.F);
 
   ImGui::End();
   ImGui::Render();
 }
 
 void Application::_waitForTheWindowToBeResumed() {
-  int width  = mWindow->getFrameBufferWidth();
-  int height = mWindow->getFrameBufferHeight();
+  int width  = _window->getFrameBufferWidth();
+  int height = _window->getFrameBufferHeight();
 
   while (width == 0 || height == 0) {
     glfwWaitEvents();
-    width  = mWindow->getFrameBufferWidth();
-    height = mWindow->getFrameBufferHeight();
+    width  = _window->getFrameBufferWidth();
+    height = _window->getFrameBufferHeight();
   }
 }
 
@@ -1077,26 +1068,26 @@ void Application::_mainLoop() {
   static float fpsFrameCount     = 0;
   static float fpsRecordLastTime = 0;
 
-  while (glfwWindowShouldClose(mWindow->getGlWindow()) == 0) {
+  while (glfwWindowShouldClose(_window->getGlWindow()) == 0) {
     glfwPollEvents();
     auto &io = ImGui::GetIO();
     // the MousePos is problematic when the window is not focused, so we set it
     // manually here
-    io.MousePos = ImVec2(mWindow->getCursorXPos(), mWindow->getCursorYPos());
+    io.MousePos = ImVec2(_window->getCursorXPos(), _window->getCursorYPos());
 
-    if (glfwGetWindowAttrib(mWindow->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
-      mLogger.print("window is not focused");
+    if (glfwGetWindowAttrib(_window->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
+      _logger.print("window is not focused");
     }
 
-    if (mWindow->windowSizeChanged() || _needToToggleWindowStyle()) {
-      mWindow->setWindowSizeChanged(false);
+    if (_window->windowSizeChanged() || _needToToggleWindowStyle()) {
+      _window->setWindowSizeChanged(false);
 
-      vkDeviceWaitIdle(mAppContext->getDevice());
+      vkDeviceWaitIdle(_appContext->getDevice());
       _waitForTheWindowToBeResumed();
 
       _cleanupSwapchainDimensionRelatedResources();
-      mAppContext->cleanupSwapchainDimensionRelatedResources();
-      mAppContext->createSwapchainDimensionRelatedResources();
+      _appContext->cleanupSwapchainDimensionRelatedResources();
+      _appContext->createSwapchainDimensionRelatedResources();
       _createSwapchainDimensionRelatedResources();
 
       fpsFrameCount     = 0;
@@ -1107,29 +1098,29 @@ void Application::_mainLoop() {
 
     fpsFrameCount++;
     auto currentTime     = static_cast<float>(glfwGetTime());
-    mDeltaTime           = currentTime - mFrameRecordLastTime;
-    mFrameRecordLastTime = currentTime;
+    _deltaTime           = currentTime - _frameRecordLastTime;
+    _frameRecordLastTime = currentTime;
 
     if (currentTime - fpsRecordLastTime >= kFpsUpdateTime) {
-      mFps              = fpsFrameCount / kFpsUpdateTime;
-      std::string title = "FPS - " + std::to_string(static_cast<int>(mFps));
-      glfwSetWindowTitle(mWindow->getGlWindow(), title.c_str());
+      _fps              = fpsFrameCount / kFpsUpdateTime;
+      std::string title = "FPS - " + std::to_string(static_cast<int>(_fps));
+      glfwSetWindowTitle(_window->getGlWindow(), title.c_str());
       fpsFrameCount = 0;
 
       fpsRecordLastTime = currentTime;
     }
 
-    mCamera->processInput(mDeltaTime);
+    _camera->processInput(_deltaTime);
     _drawFrame();
   }
 
-  vkDeviceWaitIdle(mAppContext->getDevice());
+  vkDeviceWaitIdle(_appContext->getDevice());
 }
 
 bool Application::_needToToggleWindowStyle() {
-  if (mWindow->isInputBitActive(GLFW_KEY_F)) {
-    mWindow->disableInputBit(GLFW_KEY_F);
-    mWindow->toggleWindowStyle();
+  if (_window->isInputBitActive(GLFW_KEY_F)) {
+    _window->disableInputBit(GLFW_KEY_F);
+    _window->toggleWindowStyle();
     return true;
   }
   return false;
@@ -1166,7 +1157,7 @@ void Application::_init() {
   // changes
   // glfwSetCursorPosCallback(mWindow->getGlWindow(), mouseCallback);
 
-  mWindow->addMouseCallback([](float mouseDeltaX, float mouseDeltaY) {
-    mCamera->processMouseMovement(mouseDeltaX, mouseDeltaY);
+  _window->addMouseCallback([](float mouseDeltaX, float mouseDeltaY) {
+    _camera->processMouseMovement(mouseDeltaX, mouseDeltaY);
   });
 }
