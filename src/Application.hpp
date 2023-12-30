@@ -122,8 +122,22 @@ class Application {
   struct PostProcessingUniformBufferObject {
     uint32_t displayType;
   };
-  uint32_t mDisplayType = 2; // FIXME: look at me!
+  uint32_t mDisplayType = 2;
 
+public:
+  Application();
+  ~Application() = default;
+
+  // disable move and copy
+  Application(const Application &)            = delete;
+  Application &operator=(const Application &) = delete;
+  Application(Application &&)                 = delete;
+  Application &operator=(Application &&)      = delete;
+
+  static Camera *getCamera();
+  void run();
+
+private:
   float mFps = 0;
 
   // atrous twicking
@@ -140,116 +154,102 @@ class Application {
 
   /// the following resources are NOT swapchain dim related
   // scene for ray tracing
-  std::unique_ptr<GpuModel::Scene> mRtScene;
+  std::unique_ptr<GpuModel::Scene> _rtScene;
 
-  std::unique_ptr<ComputeModel> mGradientProjectionModel;
-  std::unique_ptr<ComputeModel> mRtxModel;
-  std::unique_ptr<ComputeModel> mGradientModel;
-  std::vector<std::unique_ptr<ComputeModel>> mStratumFilterModels;
-  std::unique_ptr<ComputeModel> mTemporalFilterModel;
-  std::unique_ptr<ComputeModel> mVarianceModel;
-  std::vector<std::unique_ptr<ComputeModel>> mATrousModels;
-  std::unique_ptr<ComputeModel> mPostProcessingModel;
+  std::unique_ptr<ComputeModel> _gradientProjectionModel;
+  std::unique_ptr<ComputeModel> _rtxModel;
+  std::unique_ptr<ComputeModel> _gradientModel;
+  std::vector<std::unique_ptr<ComputeModel>> _stratumFilterModels;
+  std::unique_ptr<ComputeModel> _temporalFilterModel;
+  std::unique_ptr<ComputeModel> _varianceModel;
+  std::vector<std::unique_ptr<ComputeModel>> _aTrousModels;
+  std::unique_ptr<ComputeModel> _postProcessingModel;
 
   // buffer bundles for ray tracing, temporal filtering, and blur filtering
-  std::unique_ptr<BufferBundle> mGlobalBufferBundle;
-  std::unique_ptr<BufferBundle> mGradientProjectionBufferBundle;
-  std::unique_ptr<BufferBundle> mRtxBufferBundle;
-  std::unique_ptr<BufferBundle> mTemperalFilterBufferBundle;
-  std::vector<std::unique_ptr<BufferBundle>> mStratumFilterBufferBundle;
-  std::unique_ptr<BufferBundle> mVarianceBufferBundle;
-  std::vector<std::unique_ptr<BufferBundle>> mBlurFilterBufferBundles;
-  std::unique_ptr<BufferBundle> mPostProcessingBufferBundle;
+  std::unique_ptr<BufferBundle> _globalBufferBundle;
+  std::unique_ptr<BufferBundle> _gradientProjectionBufferBundle;
+  std::unique_ptr<BufferBundle> _rtxBufferBundle;
+  std::unique_ptr<BufferBundle> _temperalFilterBufferBundle;
+  std::vector<std::unique_ptr<BufferBundle>> _stratumFilterBufferBundle;
+  std::unique_ptr<BufferBundle> _varianceBufferBundle;
+  std::vector<std::unique_ptr<BufferBundle>> _blurFilterBufferBundles;
+  std::unique_ptr<BufferBundle> _postProcessingBufferBundle;
 
-  std::unique_ptr<BufferBundle> mTriangleBufferBundle;
-  std::unique_ptr<BufferBundle> mMaterialBufferBundle;
-  std::unique_ptr<BufferBundle> mBvhBufferBundle;
-  std::unique_ptr<BufferBundle> mLightsBufferBundle;
+  std::unique_ptr<BufferBundle> _triangleBufferBundle;
+  std::unique_ptr<BufferBundle> _materialBufferBundle;
+  std::unique_ptr<BufferBundle> _bvhBufferBundle;
+  std::unique_ptr<BufferBundle> _lightsBufferBundle;
 
   // command buffers for rendering and GUI
-  std::vector<VkCommandBuffer> mCommandBuffers;
-  std::vector<VkCommandBuffer> mGuiCommandBuffers;
+  std::vector<VkCommandBuffer> _commandBuffers;
+  std::vector<VkCommandBuffer> _guiCommandBuffers;
 
   // render pass for GUI
-  VkRenderPass mGuiPass = VK_NULL_HANDLE;
+  VkRenderPass _guiPass = VK_NULL_HANDLE;
 
   // descriptor pool for GUI
-  VkDescriptorPool mGuiDescriptorPool = VK_NULL_HANDLE;
+  VkDescriptorPool _guiDescriptorPool = VK_NULL_HANDLE;
 
   // semaphores and fences for synchronization
-  std::vector<VkSemaphore> mImageAvailableSemaphores;
-  std::vector<VkSemaphore> mRenderFinishedSemaphores;
-  std::vector<VkFence> mFramesInFlightFences;
+  std::vector<VkSemaphore> _imageAvailableSemaphores;
+  std::vector<VkSemaphore> _renderFinishedSemaphores;
+  std::vector<VkFence> _framesInFlightFences;
 
   // spatial-temporal blue noise
-  std::unique_ptr<Image> mVec2BlueNoise;
-  std::unique_ptr<Image> mWeightedCosineBlueNoise;
+  std::unique_ptr<Image> _vec2BlueNoise;
+  std::unique_ptr<Image> _weightedCosineBlueNoise;
 
   /// the following resources ARE swapchain dim related
   // images for ray tracing and post-processing
-  std::unique_ptr<Image> mPositionImage;
-  std::unique_ptr<Image> mRawImage;
+  std::unique_ptr<Image> _positionImage;
+  std::unique_ptr<Image> _rawImage;
 
-  std::unique_ptr<Image> mTargetImage;
-  std::vector<std::unique_ptr<ImageForwardingPair>> mTargetForwardingPairs;
+  std::unique_ptr<Image> _targetImage;
+  std::vector<std::unique_ptr<ImageForwardingPair>> _targetForwardingPairs;
 
-  std::unique_ptr<Image> mLastFrameAccumImage;
+  std::unique_ptr<Image> _lastFrameAccumImage;
 
-  std::unique_ptr<Image> mVarianceImage;
+  std::unique_ptr<Image> _varianceImage;
 
-  std::unique_ptr<Image> mStratumOffsetImage;
-  std::unique_ptr<Image> mPerStratumLockingImage;
+  std::unique_ptr<Image> _stratumOffsetImage;
+  std::unique_ptr<Image> _perStratumLockingImage;
 
-  std::unique_ptr<Image> mVisibilityImage;
-  std::unique_ptr<Image> mVisibilitySeedImage;
+  std::unique_ptr<Image> _visibilityImage;
+  std::unique_ptr<Image> _visibilitySeedImage;
 
-  std::unique_ptr<Image> mSeedImage;
-  std::unique_ptr<Image> mSeedVisibilityImage;
+  std::unique_ptr<Image> _seedImage;
+  std::unique_ptr<Image> _seedVisibilityImage;
 
-  std::unique_ptr<Image> mTemporalGradientNormalizationImagePing;
-  std::unique_ptr<Image> mTemporalGradientNormalizationImagePong;
+  std::unique_ptr<Image> _temporalGradientNormalizationImagePing;
+  std::unique_ptr<Image> _temporalGradientNormalizationImagePong;
 
-  std::unique_ptr<Image> mDepthImage;
-  std::unique_ptr<Image> mDepthImagePrev;
-  std::unique_ptr<ImageForwardingPair> mDepthForwardingPair;
+  std::unique_ptr<Image> _depthImage;
+  std::unique_ptr<Image> _depthImagePrev;
+  std::unique_ptr<ImageForwardingPair> _depthForwardingPair;
 
-  std::unique_ptr<Image> mNormalImage;
-  std::unique_ptr<Image> mNormalImagePrev;
-  std::unique_ptr<ImageForwardingPair> mNormalForwardingPair;
+  std::unique_ptr<Image> _normalImage;
+  std::unique_ptr<Image> _normalImagePrev;
+  std::unique_ptr<ImageForwardingPair> _normalForwardingPair;
 
-  std::unique_ptr<Image> mGradientImage;
-  std::unique_ptr<Image> mGradientImagePrev;
-  std::unique_ptr<ImageForwardingPair> mGradientForwardingPair;
+  std::unique_ptr<Image> _gradientImage;
+  std::unique_ptr<Image> _gradientImagePrev;
+  std::unique_ptr<ImageForwardingPair> _gradientForwardingPair;
 
-  std::unique_ptr<Image> mVarianceHistImage;
-  std::unique_ptr<Image> mVarianceHistImagePrev;
-  std::unique_ptr<ImageForwardingPair> mVarianceHistForwardingPair;
+  std::unique_ptr<Image> _varianceHistImage;
+  std::unique_ptr<Image> _varianceHistImagePrev;
+  std::unique_ptr<ImageForwardingPair> _varianceHistForwardingPair;
 
-  std::unique_ptr<Image> mMeshHashImage;
-  std::unique_ptr<Image> mMeshHashImagePrev;
-  std::unique_ptr<ImageForwardingPair> mMeshHashForwardingPair;
+  std::unique_ptr<Image> _meshHashImage;
+  std::unique_ptr<Image> _meshHashImagePrev;
+  std::unique_ptr<ImageForwardingPair> _meshHashForwardingPair;
 
-  std::unique_ptr<Image> mATrousInputImage;
-  std::unique_ptr<Image> mATrousOutputImage;
-  std::unique_ptr<ImageForwardingPair> mATrousForwardingPair;
+  std::unique_ptr<Image> _aTrousInputImage;
+  std::unique_ptr<Image> _aTrousOutputImage;
+  std::unique_ptr<ImageForwardingPair> _aTrousForwardingPair;
 
   // framebuffers for GUI
-  std::vector<VkFramebuffer> mGuiFrameBuffers;
+  std::vector<VkFramebuffer> _guiFrameBuffers;
 
-public:
-  Application();
-  ~Application() = default;
-
-  // disable move and copy
-  Application(const Application &)            = delete;
-  Application &operator=(const Application &) = delete;
-  Application(Application &&)                 = delete;
-  Application &operator=(Application &&)      = delete;
-
-  static Camera *getCamera();
-  void run();
-
-private:
   void _createScene();
   void _createBufferBundles();
   void _createImagesAndForwardingPairs();
