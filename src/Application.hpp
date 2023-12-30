@@ -269,7 +269,7 @@ private:
 
   void _cleanupSwapchainDimensionRelatedResources();
   void _cleanupBufferBundles();
-  void _cleanupGuiFrameBuffers();
+  void _cleanupFrameBuffers();
   void _cleanupComputeModels();
   void _cleanupRenderCommandBuffers();
 

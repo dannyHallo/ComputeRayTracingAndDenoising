@@ -49,7 +49,7 @@ void Application::_cleanup() {
                          &mGuiCommandBuffers);
   }
 
-  _cleanupGuiFrameBuffers();
+  _cleanupFrameBuffers();
 
   vkDestroyRenderPass(_appContext->getDevice(), _guiPass, nullptr);
   vkDestroyDescriptorPool(_appContext->getDevice(), _guiDescriptorPool, nullptr);
@@ -641,7 +641,7 @@ void Application::_createRenderCommandBuffers() {
   }
 }
 
-void Application::_cleanupGuiFrameBuffers() {
+void Application::_cleanupFrameBuffers() {
   for (auto &guiFrameBuffer : _guiFrameBuffers) {
     vkDestroyFramebuffer(_appContext->getDevice(), guiFrameBuffer, nullptr);
   }
@@ -661,7 +661,7 @@ void Application::_cleanupRenderCommandBuffers() {
 void Application::_cleanupSwapchainDimensionRelatedResources() {
   _cleanupComputeModels();
   _cleanupRenderCommandBuffers();
-  _cleanupGuiFrameBuffers();
+  _cleanupFrameBuffers();
 }
 
 void Application::_createSwapchainDimensionRelatedResources() {

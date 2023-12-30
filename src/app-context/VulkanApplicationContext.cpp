@@ -148,11 +148,10 @@ void VulkanApplicationContext::_createCommandPool() {
   assert(result == VK_SUCCESS && "failed to create command pool");
 
   VkCommandPoolCreateInfo commandPoolCreateInfo2{};
-  commandPoolCreateInfo2.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  commandPoolCreateInfo2.flags =
-      VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT; // allows the use of
-                                                       // vkResetCommandBuffer
+  commandPoolCreateInfo2.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   commandPoolCreateInfo2.queueFamilyIndex = _queueFamilyIndices.graphicsFamily;
+  // this flag allows the use of vkResetCommandBuffer
+  commandPoolCreateInfo2.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
   result = vkCreateCommandPool(_device, &commandPoolCreateInfo2, nullptr, &_guiCommandPool);
   assert(result == VK_SUCCESS && "failed to create command pool");
