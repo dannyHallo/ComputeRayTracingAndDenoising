@@ -1,5 +1,6 @@
-#include "Application.hpp"
+#include "application/Application.hpp"
 
+#include "application/app-res/images/ImagesHolder.hpp"
 #include "render-context/RenderSystem.hpp"
 #include "scene/ComputeMaterial.hpp"
 #include "utils/logger/Logger.hpp"
@@ -127,170 +128,27 @@ void Application::_createBufferBundles() {
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, _rtScene->lights.data());
 }
 
-void Application::_createImagesAndForwardingPairs() {
-  {
-    std::vector<std::string> filenames{};
-    for (int i = 0; i < 64; i++) {
-      filenames.emplace_back(kPathToResourceFolder +
-                             "/textures/stbn/vec2_2d_1d/"
-                             "stbn_vec2_2Dx1D_128x128x64_" +
-                             std::to_string(i) + ".png");
-    }
-    _vec2BlueNoise = std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
-                                                            VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  }
-  {
-    std::vector<std::string> filenames{};
-    for (int i = 0; i < 64; i++) {
-      filenames.emplace_back(kPathToResourceFolder +
-                             "/textures/stbn/unitvec3_cosine_2d_1d/"
-                             "stbn_unitvec3_cosine_2Dx1D_128x128x64_" +
-                             std::to_string(i) + ".png");
-    }
-    _weightedCosineBlueNoise = std::make_unique<Image>(
-        filenames, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  }
-
-  auto w = _appContext->getSwapchainExtentWidth();
-  auto h = _appContext->getSwapchainExtentHeight();
-
-  _targetImage = std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM,
-                                         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
-                                             VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                             VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-
-  // creating forwarding pairs to copy the image result each frame to a specific swapchain
-  _targetForwardingPairs.clear();
-  for (int i = 0; i < _appContext->getSwapchainSize(); i++) {
-    _targetForwardingPairs.emplace_back(std::make_unique<ImageForwardingPair>(
-        _targetImage->getVkImage(), _appContext->getSwapchainImages()[i], VK_IMAGE_LAYOUT_GENERAL,
-        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
-  }
-
-  _rawImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  _seedImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  _aTrousInputImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  _aTrousOutputImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                                  VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  _aTrousForwardingPair = std::make_unique<ImageForwardingPair>(
-      _aTrousOutputImage->getVkImage(), _aTrousInputImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-
-  _positionImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  _depthImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _depthImagePrev = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  _depthForwardingPair = std::make_unique<ImageForwardingPair>(
-      _depthImage->getVkImage(), _depthImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-
-  _normalImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _normalImagePrev =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  _normalForwardingPair = std::make_unique<ImageForwardingPair>(
-      _normalImage->getVkImage(), _normalImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-
-  _gradientImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _gradientImagePrev = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  _gradientForwardingPair = std::make_unique<ImageForwardingPair>(
-      _gradientImage->getVkImage(), _gradientImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-
-  _varianceHistImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _varianceHistImagePrev =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  _varianceHistForwardingPair = std::make_unique<ImageForwardingPair>(
-      _varianceHistImage->getVkImage(), _varianceHistImagePrev->getVkImage(),
-      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_GENERAL);
-
-  _meshHashImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _meshHashImagePrev = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  _meshHashForwardingPair = std::make_unique<ImageForwardingPair>(
-      _meshHashImage->getVkImage(), _meshHashImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-
-  _varianceImage = std::make_unique<Image>(w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  _lastFrameAccumImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  uint32_t perStratumImageWidth  = ceil(static_cast<float>(w) / 3.0F);
-  uint32_t perStratumImageHeight = ceil(static_cast<float>(h) / 3.0F);
-  _stratumOffsetImage =
-      std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  _perStratumLockingImage =
-      std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
-
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  _visibilityImage = std::make_unique<Image>(
-      perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  _seedVisibilityImage = std::make_unique<Image>(
-      perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_UINT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  _temporalGradientNormalizationImagePing = std::make_unique<Image>(
-      perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  _temporalGradientNormalizationImagePong = std::make_unique<Image>(
-      perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-}
-
 void Application::_createComputeModels() {
+
+  auto *ih                   = ImagesHolder::getInstance();
   auto gradientProjectionMat = std::make_unique<ComputeMaterial>(
       kPathToResourceFolder + "/shaders/generated/gradientProjection.spv");
   {
     gradientProjectionMat->addUniformBufferBundle(_globalBufferBundle.get());
     gradientProjectionMat->addUniformBufferBundle(_gradientProjectionBufferBundle.get());
     // read
-    gradientProjectionMat->addStorageImage(_vec2BlueNoise.get());
-    gradientProjectionMat->addStorageImage(_weightedCosineBlueNoise.get());
-    gradientProjectionMat->addStorageImage(_rawImage.get());
-    gradientProjectionMat->addStorageImage(_positionImage.get());
-    gradientProjectionMat->addStorageImage(_seedImage.get());
+    gradientProjectionMat->addStorageImage(ih->getVec2BlueNoise());
+    gradientProjectionMat->addStorageImage(ih->getWeightedCosineBlueNoise());
+    gradientProjectionMat->addStorageImage(ih->getRawImage());
+    gradientProjectionMat->addStorageImage(ih->getPositionImage());
+    gradientProjectionMat->addStorageImage(ih->getSeedImage());
     // write
-    gradientProjectionMat->addStorageImage(_stratumOffsetImage.get());
+    gradientProjectionMat->addStorageImage(ih->getStratumOffsetImage());
     // (atomic) readwrite
-    gradientProjectionMat->addStorageImage(_perStratumLockingImage.get());
+    gradientProjectionMat->addStorageImage(ih->getPerStratumLockingImage());
     // write
-    gradientProjectionMat->addStorageImage(_visibilityImage.get());
-    gradientProjectionMat->addStorageImage(_seedVisibilityImage.get());
+    gradientProjectionMat->addStorageImage(ih->getVisibilityImage());
+    gradientProjectionMat->addStorageImage(ih->getSeedVisibilityImage());
   }
   _gradientProjectionModel =
       std::make_unique<ComputeModel>(&_logger, std::move(gradientProjectionMat));
@@ -301,19 +159,19 @@ void Application::_createComputeModels() {
     rtxMat->addUniformBufferBundle(_globalBufferBundle.get());
     rtxMat->addUniformBufferBundle(_rtxBufferBundle.get());
     // read
-    rtxMat->addStorageImage(_vec2BlueNoise.get());
-    rtxMat->addStorageImage(_weightedCosineBlueNoise.get());
-    rtxMat->addStorageImage(_stratumOffsetImage.get());
-    rtxMat->addStorageImage(_visibilityImage.get());
-    rtxMat->addStorageImage(_seedVisibilityImage.get());
+    rtxMat->addStorageImage(ih->getVec2BlueNoise());
+    rtxMat->addStorageImage(ih->getWeightedCosineBlueNoise());
+    rtxMat->addStorageImage(ih->getStratumOffsetImage());
+    rtxMat->addStorageImage(ih->getVisibilityImage());
+    rtxMat->addStorageImage(ih->getSeedVisibilityImage());
     // output
-    rtxMat->addStorageImage(_positionImage.get());
-    rtxMat->addStorageImage(_normalImage.get());
-    rtxMat->addStorageImage(_depthImage.get());
-    rtxMat->addStorageImage(_meshHashImage.get());
-    rtxMat->addStorageImage(_rawImage.get());
-    rtxMat->addStorageImage(_seedImage.get());
-    rtxMat->addStorageImage(_temporalGradientNormalizationImagePing.get());
+    rtxMat->addStorageImage(ih->getPositionImage());
+    rtxMat->addStorageImage(ih->getNormalImage());
+    rtxMat->addStorageImage(ih->getDepthImage());
+    rtxMat->addStorageImage(ih->getMeshHashImage());
+    rtxMat->addStorageImage(ih->getRawImage());
+    rtxMat->addStorageImage(ih->getSeedImage());
+    rtxMat->addStorageImage(ih->getTemporalGradientNormalizationImagePing());
     // buffers
     rtxMat->addStorageBufferBundle(_triangleBufferBundle.get());
     rtxMat->addStorageBufferBundle(_materialBufferBundle.get());
@@ -327,9 +185,9 @@ void Application::_createComputeModels() {
   {
     gradientMat->addUniformBufferBundle(_globalBufferBundle.get());
     // i2nput
-    gradientMat->addStorageImage(_depthImage.get());
+    gradientMat->addStorageImage(ih->getDepthImage());
     // output
-    gradientMat->addStorageImage(_gradientImage.get());
+    gradientMat->addStorageImage(ih->getGradientImage());
   }
   _gradientModel = std::make_unique<ComputeModel>(&_logger, std::move(gradientMat));
 
@@ -341,15 +199,16 @@ void Application::_createComputeModels() {
       stratumFilterMat->addUniformBufferBundle(_globalBufferBundle.get());
       stratumFilterMat->addUniformBufferBundle(_stratumFilterBufferBundle[i].get());
       // input
-      stratumFilterMat->addStorageImage(_positionImage.get());
-      stratumFilterMat->addStorageImage(_normalImage.get());
-      stratumFilterMat->addStorageImage(_depthImage.get());
-      stratumFilterMat->addStorageImage(_gradientImage.get());
-      stratumFilterMat->addStorageImage(_rawImage.get());
-      stratumFilterMat->addStorageImage(_stratumOffsetImage.get());
+      stratumFilterMat->addStorageImage(ih->getPositionImage());
+      stratumFilterMat->addStorageImage(ih->getNormalImage());
+      stratumFilterMat->addStorageImage(ih->getDepthImage());
+      stratumFilterMat->addStorageImage(ih->getGradientImage());
+      stratumFilterMat->addStorageImage(ih->getRawImage());
+      stratumFilterMat->addStorageImage(ih->getStratumOffsetImage());
+
       // pingpong
-      stratumFilterMat->addStorageImage(_temporalGradientNormalizationImagePing.get());
-      stratumFilterMat->addStorageImage(_temporalGradientNormalizationImagePong.get());
+      stratumFilterMat->addStorageImage(ih->getTemporalGradientNormalizationImagePing());
+      stratumFilterMat->addStorageImage(ih->getTemporalGradientNormalizationImagePong());
     }
     _stratumFilterModels.emplace_back(
         std::make_unique<ComputeModel>(&_logger, std::move(stratumFilterMat)));
@@ -361,21 +220,35 @@ void Application::_createComputeModels() {
     temporalFilterMat->addUniformBufferBundle(_globalBufferBundle.get());
     temporalFilterMat->addUniformBufferBundle(_temperalFilterBufferBundle.get());
     // input
-    temporalFilterMat->addStorageImage(_positionImage.get());
-    temporalFilterMat->addStorageImage(_rawImage.get());
-    temporalFilterMat->addStorageImage(_depthImage.get());
-    temporalFilterMat->addStorageImage(_depthImagePrev.get());
-    temporalFilterMat->addStorageImage(_normalImage.get());
-    temporalFilterMat->addStorageImage(_normalImagePrev.get());
-    temporalFilterMat->addStorageImage(_gradientImage.get());
-    temporalFilterMat->addStorageImage(_gradientImagePrev.get());
-    temporalFilterMat->addStorageImage(_meshHashImage.get());
-    temporalFilterMat->addStorageImage(_meshHashImagePrev.get());
-    temporalFilterMat->addStorageImage(_lastFrameAccumImage.get());
-    temporalFilterMat->addStorageImage(_varianceHistImagePrev.get());
+    // temporalFilterMat->addStorageImage(_positionImage.get());
+    // temporalFilterMat->addStorageImage(_rawImage.get());
+    // temporalFilterMat->addStorageImage(_depthImage.get());
+    // temporalFilterMat->addStorageImage(_depthImagePrev.get());
+    // temporalFilterMat->addStorageImage(_normalImage.get());
+    // temporalFilterMat->addStorageImage(_normalImagePrev.get());
+    // temporalFilterMat->addStorageImage(_gradientImage.get());
+    // temporalFilterMat->addStorageImage(_gradientImagePrev.get());
+    // temporalFilterMat->addStorageImage(_meshHashImage.get());
+    // temporalFilterMat->addStorageImage(_meshHashImagePrev.get());
+    // temporalFilterMat->addStorageImage(_lastFrameAccumImage.get());
+    // temporalFilterMat->addStorageImage(_varianceHistImagePrev.get());
+
+    temporalFilterMat->addStorageImage(ih->getPositionImage());
+    temporalFilterMat->addStorageImage(ih->getRawImage());
+    temporalFilterMat->addStorageImage(ih->getDepthImage());
+    temporalFilterMat->addStorageImage(ih->getDepthImagePrev());
+    temporalFilterMat->addStorageImage(ih->getNormalImage());
+    temporalFilterMat->addStorageImage(ih->getNormalImagePrev());
+    temporalFilterMat->addStorageImage(ih->getGradientImage());
+    temporalFilterMat->addStorageImage(ih->getGradientImagePrev());
+    temporalFilterMat->addStorageImage(ih->getMeshHashImage());
+    temporalFilterMat->addStorageImage(ih->getMeshHashImagePrev());
+    temporalFilterMat->addStorageImage(ih->getLastFrameAccumImage());
+    temporalFilterMat->addStorageImage(ih->getVarianceHistImagePrev());
+
     // output
-    temporalFilterMat->addStorageImage(_aTrousInputImage.get());
-    temporalFilterMat->addStorageImage(_varianceHistImage.get());
+    temporalFilterMat->addStorageImage(ih->getATrousInputImage());
+    temporalFilterMat->addStorageImage(ih->getVarianceHistImage());
   }
   _temporalFilterModel = std::make_unique<ComputeModel>(&_logger, std::move(temporalFilterMat));
 
@@ -384,14 +257,16 @@ void Application::_createComputeModels() {
   {
     varianceMat->addUniformBufferBundle(_globalBufferBundle.get());
     varianceMat->addUniformBufferBundle(_varianceBufferBundle.get());
+
     // input
-    varianceMat->addStorageImage(_aTrousInputImage.get());
-    varianceMat->addStorageImage(_normalImage.get());
-    varianceMat->addStorageImage(_depthImage.get());
+    varianceMat->addStorageImage(ih->getATrousInputImage());
+    varianceMat->addStorageImage(ih->getNormalImage());
+    varianceMat->addStorageImage(ih->getDepthImage());
+
     // output
-    varianceMat->addStorageImage(_gradientImage.get());
-    varianceMat->addStorageImage(_varianceImage.get());
-    varianceMat->addStorageImage(_varianceHistImage.get());
+    varianceMat->addStorageImage(ih->getGradientImage());
+    varianceMat->addStorageImage(ih->getVarianceImage());
+    varianceMat->addStorageImage(ih->getVarianceHistImage());
   }
   _varianceModel = std::make_unique<ComputeModel>(&_logger, std::move(varianceMat));
 
@@ -402,18 +277,22 @@ void Application::_createComputeModels() {
     {
       aTrousMat->addUniformBufferBundle(_globalBufferBundle.get());
       aTrousMat->addUniformBufferBundle(_blurFilterBufferBundles[i].get());
+      ;
+
       // readonly input
-      aTrousMat->addStorageImage(_vec2BlueNoise.get());
-      aTrousMat->addStorageImage(_weightedCosineBlueNoise.get());
+      aTrousMat->addStorageImage(ih->getVec2BlueNoise());
+      aTrousMat->addStorageImage(ih->getWeightedCosineBlueNoise());
+
       // input
-      aTrousMat->addStorageImage(_aTrousInputImage.get());
-      aTrousMat->addStorageImage(_normalImage.get());
-      aTrousMat->addStorageImage(_depthImage.get());
-      aTrousMat->addStorageImage(_gradientImage.get());
-      aTrousMat->addStorageImage(_varianceImage.get());
+      aTrousMat->addStorageImage(ih->getATrousInputImage());
+      aTrousMat->addStorageImage(ih->getNormalImage());
+      aTrousMat->addStorageImage(ih->getDepthImage());
+      aTrousMat->addStorageImage(ih->getGradientImage());
+      aTrousMat->addStorageImage(ih->getVarianceImage());
+
       // output
-      aTrousMat->addStorageImage(_lastFrameAccumImage.get());
-      aTrousMat->addStorageImage(_aTrousOutputImage.get());
+      aTrousMat->addStorageImage(ih->getLastFrameAccumImage());
+      aTrousMat->addStorageImage(ih->getATrousOutputImage());
     }
     _aTrousModels.emplace_back(std::make_unique<ComputeModel>(&_logger, std::move(aTrousMat)));
   }
@@ -423,16 +302,18 @@ void Application::_createComputeModels() {
   {
     postProcessingMat->addUniformBufferBundle(_globalBufferBundle.get());
     postProcessingMat->addUniformBufferBundle(_postProcessingBufferBundle.get());
+
     // input
-    postProcessingMat->addStorageImage(_aTrousOutputImage.get());
-    postProcessingMat->addStorageImage(_varianceImage.get());
-    postProcessingMat->addStorageImage(_rawImage.get());
-    postProcessingMat->addStorageImage(_stratumOffsetImage.get());
-    postProcessingMat->addStorageImage(_visibilityImage.get());
-    postProcessingMat->addStorageImage(_temporalGradientNormalizationImagePong.get());
-    postProcessingMat->addStorageImage(_seedImage.get());
+    postProcessingMat->addStorageImage(ih->getATrousOutputImage());
+    postProcessingMat->addStorageImage(ih->getVarianceImage());
+    postProcessingMat->addStorageImage(ih->getRawImage());
+    postProcessingMat->addStorageImage(ih->getStratumOffsetImage());
+    postProcessingMat->addStorageImage(ih->getVisibilityImage());
+    postProcessingMat->addStorageImage(ih->getTemporalGradientNormalizationImagePong());
+    postProcessingMat->addStorageImage(ih->getSeedImage());
+
     // output
-    postProcessingMat->addStorageImage(_targetImage.get());
+    postProcessingMat->addStorageImage(ih->getTargetImage());
   }
   _postProcessingModel = std::make_unique<ComputeModel>(&_logger, std::move(postProcessingMat));
 }
@@ -534,35 +415,36 @@ void Application::_createRenderCommandBuffers() {
     VkResult result = vkBeginCommandBuffer(currentCommandBuffer, &beginInfo);
     assert(result == VK_SUCCESS && "vkBeginCommandBuffer failed");
 
-    _targetImage->clearImage(currentCommandBuffer);
-    _aTrousInputImage->clearImage(currentCommandBuffer);
-    _aTrousOutputImage->clearImage(currentCommandBuffer);
-    _stratumOffsetImage->clearImage(currentCommandBuffer);
-    _perStratumLockingImage->clearImage(currentCommandBuffer);
-    _visibilityImage->clearImage(currentCommandBuffer);
-    _seedVisibilityImage->clearImage(currentCommandBuffer);
-    _temporalGradientNormalizationImagePing->clearImage(currentCommandBuffer);
-    _temporalGradientNormalizationImagePong->clearImage(currentCommandBuffer);
+    auto *ih = ImagesHolder::getInstance();
+    ih->getTargetImage()->clearImage(currentCommandBuffer);
+    ih->getATrousInputImage()->clearImage(currentCommandBuffer);
+    ih->getATrousOutputImage()->clearImage(currentCommandBuffer);
+    ih->getStratumOffsetImage()->clearImage(currentCommandBuffer);
+    ih->getPerStratumLockingImage()->clearImage(currentCommandBuffer);
+    ih->getVisibilityImage()->clearImage(currentCommandBuffer);
+    ih->getSeedVisibilityImage()->clearImage(currentCommandBuffer);
+    ih->getTemporalGradientNormalizationImagePing()->clearImage(currentCommandBuffer);
+    ih->getTemporalGradientNormalizationImagePong()->clearImage(currentCommandBuffer);
+
+    uint32_t w = _appContext->getSwapchainExtentWidth();
+    uint32_t h = _appContext->getSwapchainExtentHeight();
 
     _gradientProjectionModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                             ceil(_targetImage->getWidth() / 24.F),
-                                             ceil(_targetImage->getHeight() / 24.F), 1);
+                                             ceil(w / 24.F), ceil(h / 24.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
                          nullptr);
 
-    _rtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                              ceil(_targetImage->getWidth() / 32.F),
-                              ceil(_targetImage->getHeight() / 32.F), 1);
+    _rtxModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), ceil(w / 32.F),
+                              ceil(h / 32.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
                          nullptr);
 
-    _gradientModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                   ceil(_targetImage->getWidth() / 32.F),
-                                   ceil(_targetImage->getHeight() / 32.F), 1);
+    _gradientModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), ceil(w / 32.F),
+                                   ceil(h / 32.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
@@ -570,24 +452,21 @@ void Application::_createRenderCommandBuffers() {
 
     for (int j = 0; j < 6; j++) {
       _stratumFilterModels[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                              ceil(_targetImage->getWidth() / 32.F),
-                                              ceil(_targetImage->getHeight() / 32.F), 1);
+                                              ceil(w / 32.F), ceil(h / 32.F), 1);
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
                            nullptr);
     }
 
     _temporalFilterModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                         ceil(_targetImage->getWidth() / 3.F / 32.F),
-                                         ceil(_targetImage->getHeight() / 3.F / 32.F), 1);
+                                         ceil(w / 3.F / 32.F), ceil(h / 3.F / 32.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
                          nullptr);
 
-    _varianceModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                   ceil(_targetImage->getWidth() / 32.F),
-                                   ceil(_targetImage->getHeight() / 32.F), 1);
+    _varianceModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i), ceil(w / 32.F),
+                                   ceil(h / 32.F), 1);
 
     vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
@@ -598,44 +477,33 @@ void Application::_createRenderCommandBuffers() {
     for (int j = 0; j < kATrousSize; j++) {
       // dispatch filter shader
       _aTrousModels[j]->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                       ceil(_targetImage->getWidth() / 32.F),
-                                       ceil(_targetImage->getHeight() / 32.F), 1);
+                                       ceil(w / 32.F), ceil(h / 32.F), 1);
       vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
                            nullptr);
 
       // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
       if (j != kATrousSize - 1) {
-        _aTrousForwardingPair->forwardCopying(currentCommandBuffer);
+        ih->getATrousForwardingPair()->forwardCopying(currentCommandBuffer);
       }
     }
 
     /////////////////////////////////////////////
 
     _postProcessingModel->computeCommand(currentCommandBuffer, static_cast<uint32_t>(i),
-                                         ceil(_targetImage->getWidth() / 32.F),
-                                         ceil(_targetImage->getHeight() / 32.F), 1);
+                                         ceil(w / 32.F), ceil(h / 32.F), 1);
 
-    _targetForwardingPairs[i]->forwardCopying(currentCommandBuffer);
+    ih->getTargetForwardingPair(i)->forwardCopying(currentCommandBuffer);
 
     // copy to history images
-    _depthForwardingPair->forwardCopying(currentCommandBuffer);
-    _normalForwardingPair->forwardCopying(currentCommandBuffer);
-    _gradientForwardingPair->forwardCopying(currentCommandBuffer);
-    _varianceHistForwardingPair->forwardCopying(currentCommandBuffer);
-    _meshHashForwardingPair->forwardCopying(currentCommandBuffer);
-
-    // Bind graphics pipeline and dispatch draw command.
-    // postProcessScene->writeRenderCommand(currentCommandBuffer, i);
+    ih->getDepthForwardingPair()->forwardCopying(currentCommandBuffer);
+    ih->getNormalForwardingPair()->forwardCopying(currentCommandBuffer);
+    ih->getGradientForwardingPair()->forwardCopying(currentCommandBuffer);
+    ih->getVarianceHistForwardingPair()->forwardCopying(currentCommandBuffer);
+    ih->getMeshHashForwardingPair()->forwardCopying(currentCommandBuffer);
 
     result = vkEndCommandBuffer(currentCommandBuffer);
     assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
-  }
-}
-
-void Application::_cleanupFrameBuffers() {
-  for (auto &guiFrameBuffer : _guiFrameBuffers) {
-    vkDestroyFramebuffer(_appContext->getDevice(), guiFrameBuffer, nullptr);
   }
 }
 
@@ -647,15 +515,23 @@ void Application::_cleanupRenderCommandBuffers() {
                          &commandBuffer);
   }
 }
+
+void Application::_cleanupFrameBuffers() {
+  for (auto &guiFrameBuffer : _guiFrameBuffers) {
+    vkDestroyFramebuffer(_appContext->getDevice(), guiFrameBuffer, nullptr);
+  }
+}
+
 void Application::_cleanupSwapchainDimensionRelatedResources() {
   _cleanupRenderCommandBuffers();
   _cleanupFrameBuffers();
 }
 
 void Application::_createSwapchainDimensionRelatedResources() {
-  _createImagesAndForwardingPairs();
+  ImagesHolder::getInstance()->recreateDueToSwapchainResize(_appContext);
+  _createComputeModels(); // the previous one is automatically deleted
   _createRenderCommandBuffers();
-  _createGuiFramebuffers();
+  _createFramebuffers();
 }
 
 void Application::_createSemaphoresAndFences() {
@@ -745,7 +621,7 @@ void Application::_createGuiRenderPass() {
   assert(result == VK_SUCCESS && "vkCreateRenderPass failed");
 }
 
-void Application::_createGuiFramebuffers() {
+void Application::_createFramebuffers() {
   // Create gui frame buffers for gui pass to use
   // Each frame buffer will have an attachment of VkImageView, in this case, the
   // attachments are mSwapchainImageViews
@@ -1074,6 +950,7 @@ void Application::_mainLoop() {
 
       _cleanupSwapchainDimensionRelatedResources();
       _appContext->cleanupSwapchainDimensionRelatedResources();
+
       _appContext->createSwapchainDimensionRelatedResources();
       _createSwapchainDimensionRelatedResources();
 
@@ -1116,7 +993,9 @@ bool Application::_needToToggleWindowStyle() {
 void Application::_init() {
   _createScene();
   _createBufferBundles();
-  _createImagesAndForwardingPairs();
+
+  ImagesHolder::getInstance()->init(_appContext);
+
   _createComputeModels();
 
   // create render command buffers
@@ -1132,7 +1011,7 @@ void Application::_init() {
   _createGuiRenderPass();
 
   // create GUI framebuffers
-  _createGuiFramebuffers();
+  _createFramebuffers();
 
   // create GUI descriptor pool
   _createGuiDescripterPool();

@@ -14,7 +14,6 @@
 #include "scene/ComputeModel.hpp"
 #include "scene/Mesh.hpp"
 #include "utils/camera/Camera.hpp"
-#include "utils/config/RootDir.h"
 #include "utils/incl/Glm.hpp"
 #include "utils/logger/Logger.hpp"
 
@@ -195,64 +194,11 @@ private:
   std::vector<VkSemaphore> _renderFinishedSemaphores;
   std::vector<VkFence> _framesInFlightFences;
 
-  // spatial-temporal blue noise
-  std::unique_ptr<Image> _vec2BlueNoise;
-  std::unique_ptr<Image> _weightedCosineBlueNoise;
-
-  /// the following resources ARE swapchain dim related
-  // images for ray tracing and post-processing
-  std::unique_ptr<Image> _positionImage;
-  std::unique_ptr<Image> _rawImage;
-
-  std::unique_ptr<Image> _targetImage;
-  std::vector<std::unique_ptr<ImageForwardingPair>> _targetForwardingPairs;
-
-  std::unique_ptr<Image> _lastFrameAccumImage;
-
-  std::unique_ptr<Image> _varianceImage;
-
-  std::unique_ptr<Image> _stratumOffsetImage;
-  std::unique_ptr<Image> _perStratumLockingImage;
-
-  std::unique_ptr<Image> _visibilityImage;
-  std::unique_ptr<Image> _visibilitySeedImage;
-
-  std::unique_ptr<Image> _seedImage;
-  std::unique_ptr<Image> _seedVisibilityImage;
-
-  std::unique_ptr<Image> _temporalGradientNormalizationImagePing;
-  std::unique_ptr<Image> _temporalGradientNormalizationImagePong;
-
-  std::unique_ptr<Image> _depthImage;
-  std::unique_ptr<Image> _depthImagePrev;
-  std::unique_ptr<ImageForwardingPair> _depthForwardingPair;
-
-  std::unique_ptr<Image> _normalImage;
-  std::unique_ptr<Image> _normalImagePrev;
-  std::unique_ptr<ImageForwardingPair> _normalForwardingPair;
-
-  std::unique_ptr<Image> _gradientImage;
-  std::unique_ptr<Image> _gradientImagePrev;
-  std::unique_ptr<ImageForwardingPair> _gradientForwardingPair;
-
-  std::unique_ptr<Image> _varianceHistImage;
-  std::unique_ptr<Image> _varianceHistImagePrev;
-  std::unique_ptr<ImageForwardingPair> _varianceHistForwardingPair;
-
-  std::unique_ptr<Image> _meshHashImage;
-  std::unique_ptr<Image> _meshHashImagePrev;
-  std::unique_ptr<ImageForwardingPair> _meshHashForwardingPair;
-
-  std::unique_ptr<Image> _aTrousInputImage;
-  std::unique_ptr<Image> _aTrousOutputImage;
-  std::unique_ptr<ImageForwardingPair> _aTrousForwardingPair;
-
   // framebuffers for GUI
   std::vector<VkFramebuffer> _guiFrameBuffers;
 
   void _createScene();
   void _createBufferBundles();
-  void _createImagesAndForwardingPairs();
   void _createComputeModels();
 
   // update uniform buffer object for each frame and save last mvpe matrix
@@ -264,7 +210,7 @@ private:
 
   void _createGuiCommandBuffers();
   void _createGuiRenderPass();
-  void _createGuiFramebuffers();
+  void _createFramebuffers();
   void _createGuiDescripterPool();
 
   void _cleanupSwapchainDimensionRelatedResources();
