@@ -1,6 +1,6 @@
 #include "Material.hpp"
-#include "utils/Logger.hpp"
-#include "utils/Readfile.hpp"
+#include "utils/io/Readfile.hpp"
+#include "utils/logger/Logger.hpp"
 
 #include <cassert>
 #include <memory>

@@ -4,7 +4,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 
-#include "utils/Vulkan.hpp"
+#include "utils/incl/Vulkan.hpp"
 
 #include <iostream>
 #include <string>

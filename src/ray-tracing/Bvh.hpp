@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../utils/Glm.hpp"
+#include "../utils/incl/Glm.hpp"
 #include "GpuModels.hpp"
 #include <algorithm>
 #include <stack>
@@ -38,11 +38,9 @@ struct Object0 {
   glm::vec3 minOffset;
   glm::vec3 maxOffset;
 
-  Object0(uint32_t i, GpuModel::Triangle t)
-      : index(i), t(t), minOffset(0), maxOffset(0) {}
+  Object0(uint32_t i, GpuModel::Triangle t) : index(i), t(t), minOffset(0), maxOffset(0) {}
 
-  Object0(uint32_t i, GpuModel::Triangle t, glm::vec3 minOffset,
-          glm::vec3 maxOffset)
+  Object0(uint32_t i, GpuModel::Triangle t, glm::vec3 minOffset, glm::vec3 maxOffset)
       : index(i), t(t), minOffset(minOffset), maxOffset(maxOffset) {}
 };
 
@@ -71,6 +69,5 @@ struct BvhNode0 {
 
 // Since GPU can't deal with tree structures we need to create a flattened BVH.
 // Stack is used instead of a tree.
-std::vector<GpuModel::BvhNode>
-createBvh(const std::vector<Object0> &srcObjects);
+std::vector<GpuModel::BvhNode> createBvh(const std::vector<Object0> &srcObjects);
 } // namespace Bvh

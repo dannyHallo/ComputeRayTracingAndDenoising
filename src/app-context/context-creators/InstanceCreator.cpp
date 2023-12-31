@@ -1,6 +1,6 @@
 #include "InstanceCreator.hpp"
 
-#include "utils/Logger.hpp"
+#include "utils/logger/Logger.hpp"
 
 #include <cassert>
 #include <set>

@@ -2,7 +2,7 @@
 
 #include "Mesh.hpp"
 
-#include "utils/Logger.hpp"
+#include "utils/logger/Logger.hpp"
 
 #include <array>
 #include <iostream>

@@ -8,7 +8,7 @@
 #include "app-context/VulkanApplicationContext.hpp"
 
 #include "memory/Image.hpp"
-#include "utils/Logger.hpp"
+#include "utils/logger/Logger.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -20,7 +20,7 @@ static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCH
 
 void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
   _logger = logger;
-  _logger->print("Creating VulkanApplicationContext");
+  _logger->print("Initiating VulkanApplicationContext");
 #ifndef NVALIDATIONLAYERS
   _logger->print("DEBUG mode is enabled");
 #else

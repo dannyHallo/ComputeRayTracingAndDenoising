@@ -2,7 +2,7 @@
 
 #include "render-context/RenderSystem.hpp"
 #include "scene/ComputeMaterial.hpp"
-#include "utils/Logger.hpp"
+#include "utils/logger/Logger.hpp"
 #include "window/Window.hpp"
 
 #include <cassert>
@@ -18,8 +18,8 @@ std::unique_ptr<Window> Application::_window = nullptr;
 Camera *Application::getCamera() { return _camera.get(); }
 
 Application::Application() {
-  _window     = std::make_unique<Window>(WindowStyle::kFullScreen);
   _appContext = VulkanApplicationContext::getInstance();
+  _window     = std::make_unique<Window>(WindowStyle::kFullScreen);
   _appContext->init(&_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 }
@@ -128,7 +128,6 @@ void Application::_createBufferBundles() {
 }
 
 void Application::_createImagesAndForwardingPairs() {
-
   {
     std::vector<std::string> filenames{};
     for (int i = 0; i < 64; i++) {
@@ -152,10 +151,10 @@ void Application::_createImagesAndForwardingPairs() {
         filenames, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   }
 
-  auto imageWidth  = _appContext->getSwapchainExtentWidth();
-  auto imageHeight = _appContext->getSwapchainExtentHeight();
+  auto w = _appContext->getSwapchainExtentWidth();
+  auto h = _appContext->getSwapchainExtentHeight();
 
-  _targetImage = std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R8G8B8A8_UNORM,
+  _targetImage = std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM,
                                          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
                                              VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                              VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
@@ -169,18 +168,18 @@ void Application::_createImagesAndForwardingPairs() {
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
   }
 
-  _rawImage = std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                      VK_IMAGE_USAGE_STORAGE_BIT);
+  _rawImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _seedImage = std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_UINT,
-                                       VK_IMAGE_USAGE_STORAGE_BIT);
+  _seedImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _aTrousInputImage =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _aTrousOutputImage =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
@@ -188,47 +187,43 @@ void Application::_createImagesAndForwardingPairs() {
       _aTrousOutputImage->getVkImage(), _aTrousInputImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
-  _positionImage = std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                           VK_IMAGE_USAGE_STORAGE_BIT);
+  _positionImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _depthImage =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _depthImagePrev =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _depthImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _depthImagePrev = std::make_unique<Image>(
+      w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   _depthForwardingPair = std::make_unique<ImageForwardingPair>(
       _depthImage->getVkImage(), _depthImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
   _normalImage =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
 
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _normalImagePrev =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
 
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   _normalForwardingPair = std::make_unique<ImageForwardingPair>(
       _normalImage->getVkImage(), _normalImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
-  _gradientImage =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _gradientImagePrev =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _gradientImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _gradientImagePrev = std::make_unique<Image>(
+      w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   _gradientForwardingPair = std::make_unique<ImageForwardingPair>(
       _gradientImage->getVkImage(), _gradientImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
   _varianceHistImage =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
 
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _varianceHistImagePrev =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
 
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   _varianceHistForwardingPair = std::make_unique<ImageForwardingPair>(
@@ -236,24 +231,21 @@ void Application::_createImagesAndForwardingPairs() {
       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_GENERAL);
 
-  _meshHashImage =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _meshHashImagePrev =
-      std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _meshHashImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _meshHashImagePrev = std::make_unique<Image>(
+      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   _meshHashForwardingPair = std::make_unique<ImageForwardingPair>(
       _meshHashImage->getVkImage(), _meshHashImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
-  _varianceImage = std::make_unique<Image>(imageWidth, imageHeight, VK_FORMAT_R32_SFLOAT,
-                                           VK_IMAGE_USAGE_STORAGE_BIT);
+  _varianceImage = std::make_unique<Image>(w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _lastFrameAccumImage = std::make_unique<Image>(
-      imageWidth, imageHeight, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+  _lastFrameAccumImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  uint32_t perStratumImageWidth  = ceil(static_cast<float>(imageWidth) / 3.0F);
-  uint32_t perStratumImageHeight = ceil(static_cast<float>(imageHeight) / 3.0F);
+  uint32_t perStratumImageWidth  = ceil(static_cast<float>(w) / 3.0F);
+  uint32_t perStratumImageHeight = ceil(static_cast<float>(h) / 3.0F);
   _stratumOffsetImage =
       std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
@@ -647,9 +639,6 @@ void Application::_cleanupFrameBuffers() {
   }
 }
 
-// not needed now because of smart pointers
-void Application::_cleanupComputeModels() {}
-
 // these commandbuffers are initially recorded with the models
 void Application::_cleanupRenderCommandBuffers() {
 
@@ -659,19 +648,17 @@ void Application::_cleanupRenderCommandBuffers() {
   }
 }
 void Application::_cleanupSwapchainDimensionRelatedResources() {
-  _cleanupComputeModels();
   _cleanupRenderCommandBuffers();
   _cleanupFrameBuffers();
 }
 
 void Application::_createSwapchainDimensionRelatedResources() {
   _createImagesAndForwardingPairs();
-  _createComputeModels();
   _createRenderCommandBuffers();
   _createGuiFramebuffers();
 }
 
-void Application::_vkCreateSemaphoresAndFences() {
+void Application::_createSemaphoresAndFences() {
   _imageAvailableSemaphores.resize(kMaxFramesInFlight);
   _renderFinishedSemaphores.resize(kMaxFramesInFlight);
   _framesInFlightFences.resize(kMaxFramesInFlight);
@@ -1139,7 +1126,7 @@ void Application::_init() {
   _createGuiCommandBuffers();
 
   // create synchronization objects
-  _vkCreateSemaphoresAndFences();
+  _createSemaphoresAndFences();
 
   // create GUI render pass
   _createGuiRenderPass();

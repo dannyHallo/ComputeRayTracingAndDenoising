@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/Vulkan.hpp"
+#include "utils/incl/Vulkan.hpp"
 
 // glfw3 will define APIENTRY if it is not defined yet
 #include "GLFW/glfw3.h"

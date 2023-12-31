@@ -13,10 +13,10 @@
 #include "ray-tracing/RtScene.hpp"
 #include "scene/ComputeModel.hpp"
 #include "scene/Mesh.hpp"
-#include "utils/Camera.hpp"
-#include "utils/Glm.hpp"
-#include "utils/Logger.hpp"
-#include "utils/RootDir.h"
+#include "utils/camera/Camera.hpp"
+#include "utils/config/RootDir.h"
+#include "utils/incl/Glm.hpp"
+#include "utils/logger/Logger.hpp"
 
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
@@ -260,7 +260,7 @@ private:
 
   void _createRenderCommandBuffers();
 
-  void _vkCreateSemaphoresAndFences();
+  void _createSemaphoresAndFences();
 
   void _createGuiCommandBuffers();
   void _createGuiRenderPass();
@@ -270,7 +270,6 @@ private:
   void _cleanupSwapchainDimensionRelatedResources();
   void _cleanupBufferBundles();
   void _cleanupFrameBuffers();
-  void _cleanupComputeModels();
   void _cleanupRenderCommandBuffers();
 
   void _createSwapchainDimensionRelatedResources();

@@ -27,7 +27,7 @@ target("main")
     -- add_defines("NDEBUG")
     set_configvar("PROJECT_DIR", (os.projectdir():gsub("\\", "/")))
     set_configdir("src/utils/")
-    add_configfiles("src/utils/RootDir.h.in")
+    add_configfiles("src/utils/config/RootDir.h.in")
     -- recursivelly add all cpp files in src, to make compile units
     add_files("src/**.cpp")
     add_files(

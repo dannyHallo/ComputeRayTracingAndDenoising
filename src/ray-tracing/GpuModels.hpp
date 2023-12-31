@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/Glm.hpp"
+#include "utils/incl/Glm.hpp"
 #include <algorithm>
 #include <stack>
 #include <stdlib.h> /* srand, rand */
@@ -22,9 +22,7 @@ struct Material {
   MaterialType type;
   alignas(16) glm::vec3 albedo;
 
-  Material(MaterialType t, glm::vec3 a,
-           ColorInputType c = ColorInputType::Normalized)
-      : type(t) {
+  Material(MaterialType t, glm::vec3 a, ColorInputType c = ColorInputType::Normalized) : type(t) {
     if (c == ColorInputType::Normalized) {
       albedo = a;
     } else {

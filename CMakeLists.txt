@@ -7,7 +7,7 @@ if(NOT DEFINED PROJ_NAME)
 endif()
 
 # Configure assets header file
-configure_file(${CMAKE_SOURCE_DIR}/src/utils/RootDir.h.in ${CMAKE_SOURCE_DIR}/src/utils/RootDir.h)
+configure_file(${CMAKE_SOURCE_DIR}/src/utils/config/RootDir.h.in ${CMAKE_SOURCE_DIR}/src/utils/RootDir.h)
 
 include_directories(
 	src

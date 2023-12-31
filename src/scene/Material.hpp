@@ -2,7 +2,7 @@
 
 #include "memory/Buffer.hpp"
 #include "memory/Image.hpp"
-#include "utils/Vulkan.hpp"
+#include "utils/incl/Vulkan.hpp"
 
 #include <memory>
 #include <vector>

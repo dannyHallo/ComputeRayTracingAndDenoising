@@ -6,7 +6,7 @@
 #undef APIENTRY
 #endif
 
-#include "utils/Vulkan.hpp"
+#include "utils/incl/Vulkan.hpp"
 
 #include <functional>
 #include <map>

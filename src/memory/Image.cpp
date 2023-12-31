@@ -4,8 +4,9 @@
 
 #include "Buffer.hpp"
 #include "render-context/RenderSystem.hpp"
-#include "utils/Logger.hpp"
-#include "utils/Vulkan.hpp"
+#include "utils/incl/Vulkan.hpp"
+#include "utils/logger/Logger.hpp"
+
 
 #define STB_IMAGE_IMPLEMENTATION
 // disable all warnings from stb_image (gcc & clang)
