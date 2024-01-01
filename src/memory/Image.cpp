@@ -7,7 +7,6 @@
 #include "utils/incl/Vulkan.hpp"
 #include "utils/logger/Logger.hpp"
 
-
 #define STB_IMAGE_IMPLEMENTATION
 // disable all warnings from stb_image (gcc & clang)
 #pragma GCC diagnostic push
@@ -388,7 +387,7 @@ ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2,
                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
 }
 
-void ImageForwardingPair::forwardCopying(VkCommandBuffer commandBuffer) {
+void ImageForwardingPair::forwardCopy(VkCommandBuffer commandBuffer) {
   vkCmdPipelineBarrier(commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
                        &_image1BeforeCopy);

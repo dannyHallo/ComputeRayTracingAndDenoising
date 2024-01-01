@@ -16,17 +16,13 @@ namespace GpuModel {
 std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex,
                                    glm::vec3 offset = {0, 0, 0}, glm::vec3 scale = {1, 1, 1});
 
-/*
- * The scene to be ray traced. All objects are split into triangles and put into
- * a common triangle array.
- */
-struct Scene {
+struct RtScene {
   // triangles contain all triangles from all objects in the scene.
   std::vector<Triangle> triangles;
   std::vector<Material> materials;
   std::vector<Light> lights;
   std::vector<BvhNode> bvhNodes;
 
-  Scene();
+  RtScene();
 };
 } // namespace GpuModel

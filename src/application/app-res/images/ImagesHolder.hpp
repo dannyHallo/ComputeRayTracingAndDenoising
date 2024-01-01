@@ -8,12 +8,11 @@
 class VulkanApplicationContext;
 class ImagesHolder {
 public:
-  static ImagesHolder *getInstance();
+  ImagesHolder(VulkanApplicationContext *appContext);
 
-  void init(VulkanApplicationContext *appContext);
-  void recreateDueToSwapchainResize(VulkanApplicationContext *appContext);
+  void init();
+  void onSwapchainResize();
 
-  // getters
   Image *getVec2BlueNoise() const { return _vec2BlueNoise.get(); }
   Image *getWeightedCosineBlueNoise() const { return _weightedCosineBlueNoise.get(); }
 
@@ -72,7 +71,7 @@ public:
   ImageForwardingPair *getATrousForwardingPair() const { return _aTrousForwardingPair.get(); }
 
 private:
-  ImagesHolder();
+  VulkanApplicationContext *_appContext;
 
   // spatial-temporal blue noise
   std::unique_ptr<Image> _vec2BlueNoise;
@@ -126,11 +125,11 @@ private:
   std::unique_ptr<Image> _aTrousOutputImage;
   std::unique_ptr<ImageForwardingPair> _aTrousForwardingPair;
 
-  void _createSwapchainRelatedImages(VulkanApplicationContext *appContext);
+  void _createSwapchainRelatedImages();
 
   void _createBlueNoiseImages();
-  void _createFrameBufferSizedImages(VulkanApplicationContext *appContext);
-  void _createStratumResolutionImages(VulkanApplicationContext *appContext);
+  void _createFrameBufferSizedImages();
+  void _createStratumResolutionImages();
 
   void _createImageForwardingPairs();
 };

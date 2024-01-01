@@ -2,32 +2,39 @@
 Checks: "
 -*,
 bugprone-*,
--bugprone-easily-swappable-parameters,
+-bugprone-standalone-empty,
+-bugprone-lambda-function-name,
 
 performance-*,
 readability-*,
+-readability-simplify-boolean-expr,
 
 misc-*,
 -misc-non-private-member-variables-in-classes,
 
 modernize-*,
 -modernize-use-trailing-return-type,
--modernize-avoid-c-arrays,
 
 cppcoreguidelines-*,
 -cppcoreguidelines-pro-type-vararg,
 -cppcoreguidelines-avoid-non-const-global-variables,
 -cppcoreguidelines-non-private-member-variables-in-classes,
--cppcoreguidelines-avoid-c-arrays,
+-cppcoreguidelines-pro-type-reinterpret-cast,
 -cppcoreguidelines-pro-bounds-pointer-arithmetic,
--cppcoreguidelines-prefer-member-initializer,
+-cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+-cppcoreguidelines-owning-memory,
 
 -readability-identifier-length,
 "
 
 WarningsAsErrors: ""
 HeaderFilterRegex: ""
-FormatStyle: llvm
+AnalyzeTemporaryDtors: false
+FormatStyle: none
 CheckOptions:
+  bugprone-easily-swappable-parameters.MinimumLength: 4
+  cppcoreguidelines-avoid-magic-numbers.IgnoredFloatingPointValues: "0.5;1.0;2.0;100.0;"
+  readability-magic-numbers.IgnoredFloatingPointValues: "0.5;1.0;2.0;100.0;"
+  cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues: "0;1;2;100;255"
+  readability-magic-numbers.IgnoredIntegerValues: "0;1;2;100;255"
 ---
-

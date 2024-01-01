@@ -25,7 +25,7 @@ std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex, 
   return triangles;
 }
 
-Scene::Scene() {
+RtScene::RtScene() {
   const std::string path_prefix = std::string(ROOT_DIR) + "resources/";
 
   // struct and classes without default initializer can be inited by this way

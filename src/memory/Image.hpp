@@ -86,7 +86,7 @@ public:
                       VkImageLayout image2BeforeCopy, VkImageLayout image1AfterCopy,
                       VkImageLayout image2AfterCopy);
 
-  void forwardCopying(VkCommandBuffer commandBuffer);
+  void forwardCopy(VkCommandBuffer commandBuffer);
 
 private:
   VkImage _image1;

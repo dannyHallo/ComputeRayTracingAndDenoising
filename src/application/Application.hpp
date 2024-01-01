@@ -11,15 +11,16 @@
 #include "app-context/VulkanApplicationContext.hpp"
 
 #include "ray-tracing/RtScene.hpp"
-#include "scene/ComputeModel.hpp"
 #include "scene/Mesh.hpp"
 #include "utils/camera/Camera.hpp"
-#include "utils/incl/Glm.hpp"
 #include "utils/logger/Logger.hpp"
 
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 
+class BuffersHolder;
+class ImagesHolder;
+class ModelsHolder;
 class Application {
   // data alignment in c++ side to meet Vulkan specification:
   // A scalar of size N has a base alignment of N.
@@ -27,51 +28,18 @@ class Application {
   // alignment of 4 N.
   // https://fvcaputo.github.io/2019/02/06/memory-alignment.html
 
-  struct GlobalUniformBufferObject {
-    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camPosition;
-    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
-    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
-    alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camRight;
-    uint32_t swapchainWidth;
-    uint32_t swapchainHeight;
-    float vfov;
-    uint32_t currentSample;
-    float time;
-  };
-
-  struct GradientProjectionUniformBufferObject {
-    int bypassGradientProjection;
-    alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
-    // alignas(sizeof(glm::dvec3::x) * 4) glm::dmat4 thisMvpe; // use glm::dmat4 for double
-  };
+  // GradientProjectionUniformBufferObject
   bool _useGradientProjection = true;
 
-  struct RtxUniformBufferObject {
-    uint32_t numTriangles;
-    uint32_t numLights;
-    int movingLightSource;
-    uint32_t outputType;
-    float offsetX;
-    float offsetY;
-  };
   bool _movingLightSource = false;
   uint32_t _outputType    = 1; // combined, direct only, indirect only
   float _offsetX          = 0.f;
   float _offsetY          = 0.f;
 
-  struct StratumFilterUniformBufferObject {
-    int i;
-    int bypassStratumFiltering;
-  };
+  // StratumFilterUniformBufferObject
   bool _useStratumFiltering = false;
 
-  struct TemporalFilterUniformBufferObject {
-    int bypassTemporalFiltering;
-    int useNormalTest;
-    float normalThrehold;
-    float blendingAlpha;
-    alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
-  };
+  // TemporalFilterUniformBufferObject
   bool _useTemporalBlend = true;
   bool _useDepthTest     = false;
   float _depthThreshold  = 0.07;
@@ -79,14 +47,7 @@ class Application {
   float _normalThreshold = 0.99;
   float _blendingAlpha   = 0.15;
 
-  struct VarianceUniformBufferObject {
-    int bypassVarianceEstimation;
-    int skipStoppingFunctions;
-    int useTemporalVariance;
-    int kernelSize;
-    float phiGaussian;
-    float phiDepth;
-  };
+  // VarianceUniformBufferObject
   bool _useVarianceEstimation = true;
   bool _skipStoppingFunctions = false;
   bool _useTemporalVariance   = true;
@@ -94,19 +55,7 @@ class Application {
   float _variancePhiGaussian  = 1.f;
   float _variancePhiDepth     = 0.2f;
 
-  struct BlurFilterUniformBufferObject {
-    int bypassBluring;
-    int i;
-    int iCap;
-    int useVarianceGuidedFiltering;
-    int useGradientInDepth;
-    float phiLuminance;
-    float phiDepth;
-    float phiNormal;
-    int ignoreLuminanceAtFirstIteration;
-    int changingLuminancePhi;
-    int useJittering;
-  };
+  // BlurFilterUniformBufferObject
   bool _useATrous                       = true;
   int _iCap                             = 5;
   bool _useVarianceGuidedFiltering      = true;
@@ -118,14 +67,12 @@ class Application {
   bool _changingLuminancePhi            = true;
   bool _useJittering                    = true;
 
-  struct PostProcessingUniformBufferObject {
-    uint32_t displayType;
-  };
+  // PostProcessingUniformBufferObject
   uint32_t _displayType = 2;
 
 public:
   Application();
-  ~Application() = default;
+  ~Application();
 
   // disable move and copy
   Application(const Application &)            = delete;
@@ -153,31 +100,7 @@ private:
 
   /// the following resources are NOT swapchain dim related
   // scene for ray tracing
-  std::unique_ptr<GpuModel::Scene> _rtScene;
-
-  std::unique_ptr<ComputeModel> _gradientProjectionModel;
-  std::unique_ptr<ComputeModel> _rtxModel;
-  std::unique_ptr<ComputeModel> _gradientModel;
-  std::vector<std::unique_ptr<ComputeModel>> _stratumFilterModels;
-  std::unique_ptr<ComputeModel> _temporalFilterModel;
-  std::unique_ptr<ComputeModel> _varianceModel;
-  std::vector<std::unique_ptr<ComputeModel>> _aTrousModels;
-  std::unique_ptr<ComputeModel> _postProcessingModel;
-
-  // buffer bundles for ray tracing, temporal filtering, and blur filtering
-  std::unique_ptr<BufferBundle> _globalBufferBundle;
-  std::unique_ptr<BufferBundle> _gradientProjectionBufferBundle;
-  std::unique_ptr<BufferBundle> _rtxBufferBundle;
-  std::unique_ptr<BufferBundle> _temperalFilterBufferBundle;
-  std::vector<std::unique_ptr<BufferBundle>> _stratumFilterBufferBundle;
-  std::unique_ptr<BufferBundle> _varianceBufferBundle;
-  std::vector<std::unique_ptr<BufferBundle>> _blurFilterBufferBundles;
-  std::unique_ptr<BufferBundle> _postProcessingBufferBundle;
-
-  std::unique_ptr<BufferBundle> _triangleBufferBundle;
-  std::unique_ptr<BufferBundle> _materialBufferBundle;
-  std::unique_ptr<BufferBundle> _bvhBufferBundle;
-  std::unique_ptr<BufferBundle> _lightsBufferBundle;
+  std::unique_ptr<GpuModel::RtScene> _rtScene;
 
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> _commandBuffers;
@@ -197,9 +120,11 @@ private:
   // framebuffers for GUI
   std::vector<VkFramebuffer> _guiFrameBuffers;
 
+  std::unique_ptr<BuffersHolder> _buffersHolder;
+  std::unique_ptr<ImagesHolder> _imagesHolder;
+  std::unique_ptr<ModelsHolder> _modelsHolder;
+
   void _createScene();
-  void _createBufferBundles();
-  void _createComputeModels();
 
   // update uniform buffer object for each frame and save last mvpe matrix
   void _updateScene(uint32_t currentImage);

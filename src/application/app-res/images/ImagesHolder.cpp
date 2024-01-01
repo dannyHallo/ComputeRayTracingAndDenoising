@@ -3,29 +3,22 @@
 #include "app-context/VulkanApplicationContext.hpp"
 #include "utils/config/RootDir.h"
 
-static const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
+ImagesHolder::ImagesHolder(VulkanApplicationContext *appContext) : _appContext(appContext) {}
 
-ImagesHolder *ImagesHolder::getInstance() {
-  static ImagesHolder instance;
-  return &instance;
-}
-
-ImagesHolder::ImagesHolder() = default;
-
-void ImagesHolder::init(VulkanApplicationContext *appContext) {
+void ImagesHolder::init() {
   _createBlueNoiseImages();
-  _createSwapchainRelatedImages(appContext);
+  _createSwapchainRelatedImages();
   _createImageForwardingPairs();
 }
 
-void ImagesHolder::recreateDueToSwapchainResize(VulkanApplicationContext *appContext) {
-  _createSwapchainRelatedImages(appContext);
+void ImagesHolder::onSwapchainResize() {
+  _createSwapchainRelatedImages();
   _createImageForwardingPairs();
 }
 
-void ImagesHolder::_createSwapchainRelatedImages(VulkanApplicationContext *appContext) {
-  _createFrameBufferSizedImages(appContext);
-  _createStratumResolutionImages(appContext);
+void ImagesHolder::_createSwapchainRelatedImages() {
+  _createFrameBufferSizedImages();
+  _createStratumResolutionImages();
 }
 
 void ImagesHolder::_createBlueNoiseImages() {
@@ -49,9 +42,9 @@ void ImagesHolder::_createBlueNoiseImages() {
       filenames, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 }
 
-void ImagesHolder::_createFrameBufferSizedImages(VulkanApplicationContext *appContext) {
-  auto w = appContext->getSwapchainExtentWidth();
-  auto h = appContext->getSwapchainExtentHeight();
+void ImagesHolder::_createFrameBufferSizedImages() {
+  auto w = _appContext->getSwapchainExtentWidth();
+  auto h = _appContext->getSwapchainExtentHeight();
 
   _targetImage = std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM,
                                          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
@@ -60,9 +53,9 @@ void ImagesHolder::_createFrameBufferSizedImages(VulkanApplicationContext *appCo
 
   // creating forwarding pairs to copy the image result each frame to a specific swapchain
   _targetForwardingPairs.clear();
-  for (int i = 0; i < appContext->getSwapchainSize(); i++) {
+  for (int i = 0; i < _appContext->getSwapchainSize(); i++) {
     _targetForwardingPairs.emplace_back(std::make_unique<ImageForwardingPair>(
-        _targetImage->getVkImage(), appContext->getSwapchainImages()[i], VK_IMAGE_LAYOUT_GENERAL,
+        _targetImage->getVkImage(), _appContext->getSwapchainImages()[i], VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
   }
@@ -124,9 +117,9 @@ void ImagesHolder::_createFrameBufferSizedImages(VulkanApplicationContext *appCo
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
-void ImagesHolder::_createStratumResolutionImages(VulkanApplicationContext *appContext) {
-  auto w = appContext->getSwapchainExtentWidth();
-  auto h = appContext->getSwapchainExtentHeight();
+void ImagesHolder::_createStratumResolutionImages() {
+  auto w = _appContext->getSwapchainExtentWidth();
+  auto h = _appContext->getSwapchainExtentHeight();
 
   uint32_t perStratumImageWidth  = ceil(static_cast<float>(w) / 3.0F);
   uint32_t perStratumImageHeight = ceil(static_cast<float>(h) / 3.0F);

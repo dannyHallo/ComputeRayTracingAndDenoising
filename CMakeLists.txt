@@ -31,8 +31,8 @@ add_executable(${PROJ_NAME}
 	src/render-context/RenderSystem.cpp
 	src/ray-tracing/Bvh.cpp
 	src/ray-tracing/RtScene.cpp
-	src/scene/ComputeMaterial.cpp
-	src/scene/Material.cpp
+	src/material/ComputeMaterial.cpp
+	src/material/Material.cpp
 	src/scene/mesh.cpp
 	src/utils/Camera.cpp
 	src/utils/logger.cpp
