@@ -28,7 +28,7 @@ Application::Application() {
 
   _buffersHolder = std::make_unique<BuffersHolder>(_appContext);
   _imagesHolder  = std::make_unique<ImagesHolder>(_appContext);
-  _modelsHolder  = std::make_unique<ModelsHolder>(&_logger);
+  _modelsHolder  = std::make_unique<ModelsHolder>(_appContext, &_logger);
 }
 
 Application::~Application() = default;
@@ -185,11 +185,11 @@ void Application::_createRenderCommandBuffers() {
     uint32_t w = _appContext->getSwapchainExtentWidth();
     uint32_t h = _appContext->getSwapchainExtentHeight();
 
-    _modelsHolder->getGradientProjectionModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    // _modelsHolder->getGradientProjectionModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
 
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-                         nullptr);
+    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
+    //                      nullptr);
 
     _modelsHolder->getRtxModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
 
@@ -197,46 +197,46 @@ void Application::_createRenderCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
                          nullptr);
 
-    _modelsHolder->getGradientModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    // _modelsHolder->getGradientModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
 
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-                         nullptr);
+    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
+    //                      nullptr);
 
-    for (int j = 0; j < 6; j++) {
-      _modelsHolder->getStratumFilterModel(j)->computeCommand(currentCommandBuffer, i, w, h, 1);
+    // for (int j = 0; j < 6; j++) {
+    //   _modelsHolder->getStratumFilterModel(j)->computeCommand(currentCommandBuffer, i, w, h, 1);
 
-      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-                           nullptr);
-    }
+    //   vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
+    //                        nullptr);
+    // }
 
-    _modelsHolder->getTemporalFilterModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    // _modelsHolder->getTemporalFilterModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
 
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-                         nullptr);
+    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
+    //                      nullptr);
 
-    _modelsHolder->getVarianceModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    // _modelsHolder->getVarianceModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
 
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-                         nullptr);
+    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
+    //                      nullptr);
 
-    /////////////////////////////////////////////
+    // /////////////////////////////////////////////
 
-    for (int j = 0; j < kATrousSize; j++) {
-      // dispatch filter shader
-      _modelsHolder->getATrousModel(j)->computeCommand(currentCommandBuffer, i, w, h, 1);
-      vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-                           nullptr);
+    // for (int j = 0; j < kATrousSize; j++) {
+    //   // dispatch filter shader
+    //   _modelsHolder->getATrousModel(j)->computeCommand(currentCommandBuffer, i, w, h, 1);
+    //   vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
+    //                        nullptr);
 
-      // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
-      if (j != kATrousSize - 1) {
-        _imagesHolder->getATrousForwardingPair()->forwardCopy(currentCommandBuffer);
-      }
-    }
+    //   // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
+    //   if (j != kATrousSize - 1) {
+    //     _imagesHolder->getATrousForwardingPair()->forwardCopy(currentCommandBuffer);
+    //   }
+    // }
 
     /////////////////////////////////////////////
 
