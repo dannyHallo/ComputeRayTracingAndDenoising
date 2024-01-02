@@ -10,10 +10,10 @@
 void ComputeMaterial::init(Logger *logger) {
   logger->print("Initing compute material {}", _computeShaderPath.c_str());
   _createDescriptorSetLayout();
-  // must be done after _createDescriptorSetLayout(), we need that layout
-  _createComputePipeline();
   _createDescriptorPool();
   _createDescriptorSets();
+
+  _createComputePipeline();
 }
 
 void ComputeMaterial::_createComputePipeline() {
@@ -46,8 +46,4 @@ void ComputeMaterial::_createComputePipeline() {
 
   // since we have created the pipeline, we can destroy the shader module
   vkDestroyShaderModule(_appContext->getDevice(), shaderModule, nullptr);
-}
-
-void ComputeMaterial::bind(VkCommandBuffer commandBuffer, size_t currentFrame) {
-  _bind(VK_PIPELINE_BIND_POINT_COMPUTE, commandBuffer, currentFrame);
 }

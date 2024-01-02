@@ -185,7 +185,8 @@ void Application::_createRenderCommandBuffers() {
     uint32_t w = _appContext->getSwapchainExtentWidth();
     uint32_t h = _appContext->getSwapchainExtentHeight();
 
-    // _modelsHolder->getGradientProjectionModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    // _modelsHolder->getGradientProjectionModel()->computeCommand(currentCommandBuffer, i, w, h,
+    // 1);
 
     // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
@@ -397,24 +398,27 @@ void Application::_createFramebuffers() {
 }
 
 void Application::_createGuiDescripterPool() {
-  VkDescriptorPoolSize poolSizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-                                      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-                                      {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-                                      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-                                      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-                                      {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+  std::vector<VkDescriptorPoolSize> poolSizes = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
+                                                 {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
 
   VkDescriptorPoolCreateInfo poolInfo = {};
   poolInfo.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  poolInfo.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-  poolInfo.maxSets                    = 1000 * IM_ARRAYSIZE(poolSizes);
-  poolInfo.poolSizeCount              = (uint32_t)IM_ARRAYSIZE(poolSizes);
-  poolInfo.pPoolSizes                 = poolSizes;
+  // this descriptor pool is created only for once, so we can set the flag to allow individual
+  // descriptor sets to be de-allocated
+  poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+  // actually imgui takes only 1 descriptor set
+  poolInfo.maxSets       = 1000 * poolSizes.size();
+  poolInfo.pPoolSizes    = poolSizes.data();
+  poolInfo.poolSizeCount = poolSizes.size();
 
   VkResult result =
       vkCreateDescriptorPool(_appContext->getDevice(), &poolInfo, nullptr, &_guiDescriptorPool);

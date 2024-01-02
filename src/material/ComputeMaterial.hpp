@@ -13,8 +13,6 @@ public:
       : Material(appContext, VK_SHADER_STAGE_COMPUTE_BIT),
         _computeShaderPath(std::move(computeShaderPath)) {}
 
-  void bind(VkCommandBuffer commandBuffer, size_t currentFrame) override;
-
   void init(Logger *logger) override;
 
 private:

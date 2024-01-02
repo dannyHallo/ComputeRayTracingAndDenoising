@@ -31,7 +31,7 @@ public:
   virtual void init(Logger *logger) = 0;
 
   // binding should be done in model, must be overridden
-  virtual void bind(VkCommandBuffer commandBuffer, size_t currentFrame) = 0;
+  void bind(VkCommandBuffer commandBuffer, size_t currentFrame);
 
 protected:
   VulkanApplicationContext *_appContext = nullptr;
@@ -60,8 +60,6 @@ protected:
   void _createDescriptorSets();
 
   VkShaderModule _createShaderModule(const std::vector<char> &code);
-
-  ;
 
   void _bind(VkPipelineBindPoint pipelineBindPoint, VkCommandBuffer commandBuffer,
              size_t currentFrame);
