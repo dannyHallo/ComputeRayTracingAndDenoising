@@ -34,7 +34,7 @@ public:
 
   // processes input received from a mouse input system. Expects the offset
   // value in both the x and y direction.
-  void processMouseMovement(float xoffset, float yoffset);
+  void handleMouseMovement(float xoffset, float yoffset);
 
   // processes input received from a mouse scroll-wheel event. Only requires
   // input on the vertical wheel-axis void processMouseScroll(float yoffset);

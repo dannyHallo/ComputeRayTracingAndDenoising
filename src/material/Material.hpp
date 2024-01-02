@@ -12,9 +12,8 @@ class VulkanApplicationContext;
 class Material {
 protected:
 public:
-  Material(VulkanApplicationContext *appContext, VkShaderStageFlags shaderStageFlags)
-      : _appContext(appContext), _shaderStageFlags(shaderStageFlags) {}
-
+  Material(VulkanApplicationContext *appContext, Logger *logger,
+           VkShaderStageFlags shaderStageFlags);
   virtual ~Material();
 
   // disable copy and move
@@ -28,13 +27,15 @@ public:
   void addStorageBufferBundle(BufferBundle *storageBufferBundle);
 
   // late initialization during model creation, must be overridden
-  virtual void init(Logger *logger) = 0;
+  // virtual void init(Logger *logger) = 0;
+  void init();
 
   // binding should be done in model, must be overridden
   void bind(VkCommandBuffer commandBuffer, size_t currentFrame);
 
 protected:
   VulkanApplicationContext *_appContext = nullptr;
+  Logger *_logger                       = nullptr;
 
   std::vector<BufferBundle *> _uniformBufferBundles; // buffer bundles for uniform data
   std::vector<BufferBundle *> _storageBufferBundles; // buffer bundles for storage data
@@ -44,6 +45,7 @@ protected:
   std::string _fragmentShaderPath;
 
   VkShaderStageFlags _shaderStageFlags;
+  VkPipelineBindPoint _pipelineBindPoint; // deducted from _shaderStageFlags
 
   VkPipeline _pipeline                       = VK_NULL_HANDLE;
   VkPipelineLayout _pipelineLayout           = VK_NULL_HANDLE;
@@ -58,6 +60,8 @@ protected:
   void _createDescriptorPool();
 
   void _createDescriptorSets();
+
+  virtual void _createPipeline() = 0;
 
   VkShaderModule _createShaderModule(const std::vector<char> &code);
 

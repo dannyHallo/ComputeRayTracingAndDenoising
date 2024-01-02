@@ -53,9 +53,9 @@ void Application::_cleanup() {
                          &commandBuffer);
   }
 
-  for (auto &mGuiCommandBuffers : _guiCommandBuffers) {
+  for (auto &guiCommandBuffer : _guiCommandBuffers) {
     vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getGuiCommandPool(), 1,
-                         &mGuiCommandBuffers);
+                         &guiCommandBuffer);
   }
 
   _cleanupFrameBuffers();
@@ -161,66 +161,71 @@ void Application::_createRenderCommandBuffers() {
       vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _commandBuffers.data());
   assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
 
-  for (uint32_t i = 0; i < static_cast<uint32_t>(_commandBuffers.size()); i++) {
-    VkCommandBuffer &currentCommandBuffer = _commandBuffers[i];
+  for (uint32_t imageIndex = 0; imageIndex < static_cast<uint32_t>(_commandBuffers.size());
+       imageIndex++) {
+    VkCommandBuffer &cmdBuffer = _commandBuffers[imageIndex];
 
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags            = 0;       // Optional
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
-    VkResult result = vkBeginCommandBuffer(currentCommandBuffer, &beginInfo);
+    VkResult result = vkBeginCommandBuffer(cmdBuffer, &beginInfo);
     assert(result == VK_SUCCESS && "vkBeginCommandBuffer failed");
 
-    _imagesHolder->getTargetImage()->clearImage(currentCommandBuffer);
-    _imagesHolder->getATrousInputImage()->clearImage(currentCommandBuffer);
-    _imagesHolder->getATrousOutputImage()->clearImage(currentCommandBuffer);
-    _imagesHolder->getStratumOffsetImage()->clearImage(currentCommandBuffer);
-    _imagesHolder->getPerStratumLockingImage()->clearImage(currentCommandBuffer);
-    _imagesHolder->getVisibilityImage()->clearImage(currentCommandBuffer);
-    _imagesHolder->getSeedVisibilityImage()->clearImage(currentCommandBuffer);
-    _imagesHolder->getTemporalGradientNormalizationImagePing()->clearImage(currentCommandBuffer);
-    _imagesHolder->getTemporalGradientNormalizationImagePong()->clearImage(currentCommandBuffer);
+    _imagesHolder->getTargetImage()->clearImage(cmdBuffer);
+    _imagesHolder->getATrousInputImage()->clearImage(cmdBuffer);
+    _imagesHolder->getATrousOutputImage()->clearImage(cmdBuffer);
+    _imagesHolder->getStratumOffsetImage()->clearImage(cmdBuffer);
+    _imagesHolder->getPerStratumLockingImage()->clearImage(cmdBuffer);
+    _imagesHolder->getVisibilityImage()->clearImage(cmdBuffer);
+    _imagesHolder->getSeedVisibilityImage()->clearImage(cmdBuffer);
+    _imagesHolder->getTemporalGradientNormalizationImagePing()->clearImage(cmdBuffer);
+    _imagesHolder->getTemporalGradientNormalizationImagePong()->clearImage(cmdBuffer);
 
     uint32_t w = _appContext->getSwapchainExtentWidth();
     uint32_t h = _appContext->getSwapchainExtentHeight();
 
-    // _modelsHolder->getGradientProjectionModel()->computeCommand(currentCommandBuffer, i, w, h,
+    // _modelsHolder->getGradientProjectionModel()->computeCommand(cmdBuffer, imageIndex, w, h,
     // 1);
 
-    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                      nullptr);
 
-    _modelsHolder->getRtxModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    _modelsHolder->getRtxModel()->computeCommand(cmdBuffer, 0, w, h, 1);
 
-    vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
+    VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+    memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
+    memoryBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT;
+
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    // _modelsHolder->getGradientModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    // _modelsHolder->getGradientModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
 
-    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                      nullptr);
 
     // for (int j = 0; j < 6; j++) {
-    //   _modelsHolder->getStratumFilterModel(j)->computeCommand(currentCommandBuffer, i, w, h, 1);
+    //   _modelsHolder->getStratumFilterModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
 
-    //   vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //   vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                        nullptr);
     // }
 
-    // _modelsHolder->getTemporalFilterModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    // _modelsHolder->getTemporalFilterModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
 
-    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                      nullptr);
 
-    // _modelsHolder->getVarianceModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    // _modelsHolder->getVarianceModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
 
-    // vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                      nullptr);
 
@@ -228,31 +233,31 @@ void Application::_createRenderCommandBuffers() {
 
     // for (int j = 0; j < kATrousSize; j++) {
     //   // dispatch filter shader
-    //   _modelsHolder->getATrousModel(j)->computeCommand(currentCommandBuffer, i, w, h, 1);
-    //   vkCmdPipelineBarrier(currentCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    //   _modelsHolder->getATrousModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
+    //   vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                        nullptr);
 
     //   // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
     //   if (j != kATrousSize - 1) {
-    //     _imagesHolder->getATrousForwardingPair()->forwardCopy(currentCommandBuffer);
+    //     _imagesHolder->getATrousForwardingPair()->forwardCopy(cmdBuffer);
     //   }
     // }
 
     /////////////////////////////////////////////
 
-    _modelsHolder->getPostProcessingModel()->computeCommand(currentCommandBuffer, i, w, h, 1);
+    _modelsHolder->getPostProcessingModel()->computeCommand(cmdBuffer, 0, w, h, 1);
 
-    _imagesHolder->getTargetForwardingPair(i)->forwardCopy(currentCommandBuffer);
+    _imagesHolder->getTargetForwardingPair(imageIndex)->forwardCopy(cmdBuffer);
 
     // copy to history images
-    _imagesHolder->getDepthForwardingPair()->forwardCopy(currentCommandBuffer);
-    _imagesHolder->getNormalForwardingPair()->forwardCopy(currentCommandBuffer);
-    _imagesHolder->getGradientForwardingPair()->forwardCopy(currentCommandBuffer);
-    _imagesHolder->getVarianceHistForwardingPair()->forwardCopy(currentCommandBuffer);
-    _imagesHolder->getMeshHashForwardingPair()->forwardCopy(currentCommandBuffer);
+    _imagesHolder->getDepthForwardingPair()->forwardCopy(cmdBuffer);
+    _imagesHolder->getNormalForwardingPair()->forwardCopy(cmdBuffer);
+    _imagesHolder->getGradientForwardingPair()->forwardCopy(cmdBuffer);
+    _imagesHolder->getVarianceHistForwardingPair()->forwardCopy(cmdBuffer);
+    _imagesHolder->getMeshHashForwardingPair()->forwardCopy(cmdBuffer);
 
-    result = vkEndCommandBuffer(currentCommandBuffer);
+    result = vkEndCommandBuffer(cmdBuffer);
     assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
   }
 }
@@ -507,10 +512,11 @@ void Application::_drawFrame() {
   vkResetFences(_appContext->getDevice(), 1, &_framesInFlightFences[currentFrame]);
 
   uint32_t imageIndex = 0;
+  // this process is fairly quick, but it's still better to trigger for semaphores
+  // https://stackoverflow.com/questions/60419749/why-does-vkacquirenextimagekhr-never-block-my-thread
   VkResult result =
       vkAcquireNextImageKHR(_appContext->getDevice(), _appContext->getSwapchain(), UINT64_MAX,
                             _imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-
   if (result == VK_ERROR_OUT_OF_DATE_KHR) {
     return;
   }
@@ -527,39 +533,32 @@ void Application::_drawFrame() {
   std::array<VkCommandBuffer, 2> submitCommandBuffers = {_commandBuffers[imageIndex],
                                                          _guiCommandBuffers[imageIndex]};
 
-  VkSubmitInfo submitInfo{};
-  {
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+  // wait until the image is ready
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores    = &_imageAvailableSemaphores[currentFrame];
+  // signal a semaphore after render finished
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores    = &_renderFinishedSemaphores[currentFrame];
+  // wait for no stage
+  VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+  submitInfo.pWaitDstStageMask      = static_cast<VkPipelineStageFlags *>(waitStages);
 
-    // wait until the image is ready
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores    = &_imageAvailableSemaphores[currentFrame];
-    // signal a semaphore after render finished
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores    = &_renderFinishedSemaphores[currentFrame];
-
-    // wait for no stage
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
-    submitInfo.pWaitDstStageMask      = static_cast<VkPipelineStageFlags *>(waitStages);
-
-    submitInfo.commandBufferCount = static_cast<uint32_t>(submitCommandBuffers.size());
-    submitInfo.pCommandBuffers    = submitCommandBuffers.data();
-  }
+  submitInfo.commandBufferCount = static_cast<uint32_t>(submitCommandBuffers.size());
+  submitInfo.pCommandBuffers    = submitCommandBuffers.data();
 
   result = vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo,
                          _framesInFlightFences[currentFrame]);
   assert(result == VK_SUCCESS && "vkQueueSubmit failed");
 
   VkPresentInfoKHR presentInfo{};
-  {
-    presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores    = &_renderFinishedSemaphores[currentFrame];
-    presentInfo.swapchainCount     = 1;
-    presentInfo.pSwapchains        = &_appContext->getSwapchain();
-    presentInfo.pImageIndices      = &imageIndex;
-    presentInfo.pResults           = nullptr;
-  }
+  presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores    = &_renderFinishedSemaphores[currentFrame];
+  presentInfo.swapchainCount     = 1;
+  presentInfo.pSwapchains        = &_appContext->getSwapchain();
+  presentInfo.pImageIndices      = &imageIndex;
+  presentInfo.pResults           = nullptr;
 
   result = vkQueuePresentKHR(_appContext->getPresentQueue(), &presentInfo);
   assert(result == VK_SUCCESS && "vkQueuePresentKHR failed");
@@ -704,7 +703,6 @@ void Application::_mainLoop() {
 
       _cleanupSwapchainDimensionRelatedResources();
       _appContext->cleanupSwapchainDimensionRelatedResources();
-
       _appContext->createSwapchainDimensionRelatedResources();
       _createSwapchainDimensionRelatedResources();
 
@@ -751,32 +749,22 @@ void Application::_init() {
   _imagesHolder->init();
   _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get());
 
-  // create render command buffers
   _createRenderCommandBuffers();
-
-  // create GUI command buffers
   _createGuiCommandBuffers();
 
-  // create synchronization objects
   _createSemaphoresAndFences();
 
-  // create GUI render pass
   _createGuiRenderPass();
 
-  // create GUI framebuffers
   _createFramebuffers();
 
-  // create GUI descriptor pool
   _createGuiDescripterPool();
 
-  // initialize GUI
   _initGui();
 
-  // set mouse callback function to be called whenever the cursor position
-  // changes
-  // glfwSetCursorPosCallback(mWindow->getGlWindow(), mouseCallback);
-
+  // attach camera's mouse handler to the window mouse callback, more handlers can be added in the
+  // future
   _window->addMouseCallback([](float mouseDeltaX, float mouseDeltaY) {
-    _camera->processMouseMovement(mouseDeltaX, mouseDeltaY);
+    _camera->handleMouseMovement(mouseDeltaX, mouseDeltaY);
   });
 }

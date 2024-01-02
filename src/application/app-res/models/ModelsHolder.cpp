@@ -22,7 +22,8 @@ std::string _makeShaderPath(const std::string &shaderName) {
 // void ModelsHolder::_createGradientProjectionModel(ImagesHolder *imagesHolder,
 //                                                   BuffersHolder *buffersHolder) {
 //   auto gradientProjectionMat =
-//       std::make_unique<ComputeMaterial>(_appContext, _makeShaderPath("gradientProjection"));
+//       std::make_unique<ComputeMaterial>(_appContext,  _logger,
+//       _makeShaderPath("gradientProjection"));
 //   gradientProjectionMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
 //   gradientProjectionMat->addUniformBufferBundle(buffersHolder->getGradientProjectionBufferBundle());
 //   // read
@@ -44,7 +45,7 @@ std::string _makeShaderPath(const std::string &shaderName) {
 // }
 
 void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder) {
-  auto rtxMat = std::make_unique<ComputeMaterial>(_appContext, _makeShaderPath("rtx"));
+  auto rtxMat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath("rtx"));
   rtxMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
   rtxMat->addUniformBufferBundle(buffersHolder->getRtxBufferBundle());
   // read
@@ -66,20 +67,21 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
   rtxMat->addStorageBufferBundle(buffersHolder->getMaterialBufferBundle());
   rtxMat->addStorageBufferBundle(buffersHolder->getBvhBufferBundle());
   rtxMat->addStorageBufferBundle(buffersHolder->getLightsBufferBundle());
-  _rtxModel = std::make_unique<ComputeModel>(_logger, std::move(rtxMat), 32, 32, 32);
+  _rtxModel = std::make_unique<ComputeModel>(std::move(rtxMat), 32, 32, 32);
 }
 
 // void ModelsHolder::_createGradientModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder)
 // {
 
 //   auto gradientMat =
-//       std::make_unique<ComputeMaterial>(appContext, _makeShaderPath("screenSpaceGradient"));
+//       std::make_unique<ComputeMaterial>(appContext, _logger,
+//       _makeShaderPath("screenSpaceGradient"));
 //   gradientMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
 //   // i2nput
 //   gradientMat->addStorageImage(imagesHolder->getDepthImage());
 //   // output
 //   gradientMat->addStorageImage(imagesHolder->getGradientImage());
-//   _gradientModel = std::make_unique<ComputeModel>(_logger, std::move(gradientMat), 32, 32, 32);
+//   _gradientModel = std::make_unique<ComputeModel>(std::move(gradientMat), 32, 32, 32);
 // }
 
 // void ModelsHolder::_createStratumFilterModels(ImagesHolder *imagesHolder,
@@ -87,7 +89,7 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
 //   _stratumFilterModels.clear();
 //   for (int i = 0; i < 6; i++) {
 //     auto stratumFilterMat =
-//         std::make_unique<ComputeMaterial>(appContext, _makeShaderPath("stratumFilter"));
+//         std::make_unique<ComputeMaterial>(appContext, _logger, _makeShaderPath("stratumFilter"));
 //     {
 //       stratumFilterMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
 //       stratumFilterMat->addUniformBufferBundle(buffersHolder->getStratumFilterBufferBundle(i));
@@ -103,13 +105,13 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
 //       stratumFilterMat->addStorageImage(imagesHolder->getTemporalGradientNormalizationImagePong());
 //     }
 //     _stratumFilterModels.emplace_back(
-//         std::make_unique<ComputeModel>(_logger, std::move(stratumFilterMat), 32, 32, 32));
+//         std::make_unique<ComputeModel>(std::move(stratumFilterMat), 32, 32, 32));
 //   }
 // }
 // void ModelsHolder::_createTemporalFilterModel(ImagesHolder *imagesHolder,
 //                                               BuffersHolder *buffersHolder) {
 //   auto temporalFilterMat =
-//       std::make_unique<ComputeMaterial>(_appContext, _makeShaderPath("temporalFilter"));
+//       std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath("temporalFilter"));
 //   temporalFilterMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
 //   temporalFilterMat->addUniformBufferBundle(buffersHolder->getTemperalFilterBufferBundle());
 //   // input
@@ -129,13 +131,14 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
 //   temporalFilterMat->addStorageImage(imagesHolder->getATrousInputImage());
 //   temporalFilterMat->addStorageImage(imagesHolder->getVarianceHistImage());
 //   _temporalFilterModel =
-//       std::make_unique<ComputeModel>(_logger, std::move(temporalFilterMat), 32, 32, 32);
+//       std::make_unique<ComputeModel>(std::move(temporalFilterMat), 32, 32, 32);
 // }
 
 // void ModelsHolder::_createVarianceModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder)
 // {
 
-//   auto varianceMat = std::make_unique<ComputeMaterial>(_appContext, _makeShaderPath("variance"));
+//   auto varianceMat = std::make_unique<ComputeMaterial>(_appContext, _logger,
+//   _makeShaderPath("variance"));
 //   {
 //     varianceMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
 //     varianceMat->addUniformBufferBundle(buffersHolder->getVarianceBufferBundle());
@@ -148,14 +151,15 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
 //     varianceMat->addStorageImage(imagesHolder->getVarianceImage());
 //     varianceMat->addStorageImage(imagesHolder->getVarianceHistImage());
 //   }
-//   _varianceModel = std::make_unique<ComputeModel>(_logger, std::move(varianceMat), 32, 32, 32);
+//   _varianceModel = std::make_unique<ComputeModel>(std::move(varianceMat), 32, 32, 32);
 // }
 
 // void ModelsHolder::_createATrousModels(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder)
 // {
 //   _aTrousModels.clear();
 //   for (int i = 0; i < kATrousSize; i++) {
-//     auto aTrousMat = std::make_unique<ComputeMaterial>(_appContext, _makeShaderPath("aTrous"));
+//     auto aTrousMat = std::make_unique<ComputeMaterial>(_appContext, _logger,
+//     makeShaderPath("aTrous"));
 //     {
 //       aTrousMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
 //       aTrousMat->addUniformBufferBundle(buffersHolder->getBlurFilterBufferBundle(i));
@@ -176,14 +180,14 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
 //       aTrousMat->addStorageImage(imagesHolder->getATrousOutputImage());
 //     }
 //     _aTrousModels.emplace_back(
-//         std::make_unique<ComputeModel>(_logger, std::move(aTrousMat), 32, 32, 32));
+//         std::make_unique<ComputeModel>(std::move(aTrousMat), 32, 32, 32));
 //   }
 // }
 
 void ModelsHolder::_createPostProcessingModel(ImagesHolder *imagesHolder,
                                               BuffersHolder *buffersHolder) {
   auto postProcessingMat =
-      std::make_unique<ComputeMaterial>(_appContext, _makeShaderPath("postProcessing"));
+      std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath("postProcessing"));
   postProcessingMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
   postProcessingMat->addUniformBufferBundle(buffersHolder->getPostProcessingBufferBundle());
   // input
@@ -196,8 +200,7 @@ void ModelsHolder::_createPostProcessingModel(ImagesHolder *imagesHolder,
   postProcessingMat->addStorageImage(imagesHolder->getSeedImage());
   // output
   postProcessingMat->addStorageImage(imagesHolder->getTargetImage());
-  _postProcessingModel =
-      std::make_unique<ComputeModel>(_logger, std::move(postProcessingMat), 32, 32, 32);
+  _postProcessingModel = std::make_unique<ComputeModel>(std::move(postProcessingMat), 32, 32, 32);
 }
 
 void ModelsHolder::init(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder) {

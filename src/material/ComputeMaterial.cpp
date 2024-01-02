@@ -6,21 +6,12 @@
 #include <memory>
 #include <vector>
 
-// loads the compute shader, creates descriptor set
-void ComputeMaterial::init(Logger *logger) {
-  logger->print("Initing compute material {}", _computeShaderPath.c_str());
-  _createDescriptorSetLayout();
-  _createDescriptorPool();
-  _createDescriptorSets();
-
-  _createComputePipeline();
-}
-
-void ComputeMaterial::_createComputePipeline() {
+void ComputeMaterial::_createPipeline() {
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
-  pipelineLayoutInfo.pSetLayouts    = &_descriptorSetLayout;
+  // this is why the compute pipeline requires the descriptor set layout to be specified
+  pipelineLayoutInfo.pSetLayouts = &_descriptorSetLayout;
 
   VkResult result = vkCreatePipelineLayout(_appContext->getDevice(), &pipelineLayoutInfo, nullptr,
                                            &_pipelineLayout);
@@ -44,6 +35,6 @@ void ComputeMaterial::_createComputePipeline() {
                                     &computePipelineCreateInfo, nullptr, &_pipeline);
   assert(result == VK_SUCCESS && "failed to create compute pipeline");
 
-  // since we have created the pipeline, we can destroy the shader module
+  // the shader module can be destroyed after the pipeline has been created
   vkDestroyShaderModule(_appContext->getDevice(), shaderModule, nullptr);
 }

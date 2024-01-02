@@ -9,14 +9,13 @@
 
 class ComputeMaterial : public Material {
 public:
-  ComputeMaterial(VulkanApplicationContext *appContext, std::string computeShaderPath)
-      : Material(appContext, VK_SHADER_STAGE_COMPUTE_BIT),
+  ComputeMaterial(VulkanApplicationContext *appContext, Logger *logger,
+                  std::string computeShaderPath)
+      : Material(appContext, logger, VK_SHADER_STAGE_COMPUTE_BIT),
         _computeShaderPath(std::move(computeShaderPath)) {}
-
-  void init(Logger *logger) override;
 
 private:
   std::string _computeShaderPath;
 
-  void _createComputePipeline();
+  void _createPipeline() override;
 };

@@ -1,16 +1,22 @@
 #include "Material.hpp"
 #include "utils/io/Readfile.hpp"
-#include "utils/logger/Logger.hpp"
 
 #include <cassert>
 #include <map>
 #include <memory>
 #include <vector>
 
-static std::map<VkShaderStageFlags, VkPipelineBindPoint> kShaderStageFlagsToBindPoint{
+static const std::map<VkShaderStageFlags, VkPipelineBindPoint> kShaderStageFlagsToBindPoint{
     {VK_SHADER_STAGE_VERTEX_BIT, VK_PIPELINE_BIND_POINT_GRAPHICS},
     {VK_SHADER_STAGE_FRAGMENT_BIT, VK_PIPELINE_BIND_POINT_GRAPHICS},
     {VK_SHADER_STAGE_COMPUTE_BIT, VK_PIPELINE_BIND_POINT_COMPUTE}};
+
+void Material::init() {
+  _createDescriptorSetLayout();
+  _createDescriptorPool();
+  _createDescriptorSets();
+  _createPipeline();
+}
 
 VkShaderModule Material::_createShaderModule(const std::vector<char> &code) {
   VkShaderModuleCreateInfo createInfo{};
@@ -25,6 +31,11 @@ VkShaderModule Material::_createShaderModule(const std::vector<char> &code) {
 
   return shaderModule;
 }
+
+Material::Material(VulkanApplicationContext *appContext, Logger *logger,
+                   VkShaderStageFlags shaderStageFlags)
+    : _appContext(appContext), _logger(logger), _shaderStageFlags(shaderStageFlags),
+      _pipelineBindPoint(kShaderStageFlagsToBindPoint.at(shaderStageFlags)) {}
 
 Material::~Material() {
   vkDestroyDescriptorSetLayout(_appContext->getDevice(), _descriptorSetLayout, nullptr);
@@ -217,13 +228,12 @@ void Material::_createDescriptorSets() {
 void Material::bind(VkCommandBuffer commandBuffer, size_t currentFrame) {
   assert(kShaderStageFlagsToBindPoint.contains(_shaderStageFlags) &&
          "Material::bind: shader stage flag not supported");
-  _bind(kShaderStageFlagsToBindPoint[_shaderStageFlags], commandBuffer, currentFrame);
+  _bind(_pipelineBindPoint, commandBuffer, currentFrame);
 }
 
 void Material::_bind(VkPipelineBindPoint pipelineBindPoint, VkCommandBuffer commandBuffer,
                      size_t currentFrame) {
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _pipelineLayout, 0, 1,
+  vkCmdBindDescriptorSets(commandBuffer, pipelineBindPoint, _pipelineLayout, 0, 1,
                           &_descriptorSets[currentFrame], 0, nullptr);
-
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline);
 }

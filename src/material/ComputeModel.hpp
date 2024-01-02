@@ -11,11 +11,11 @@ class Logger;
 class VulkanApplicationContext;
 class ComputeModel {
 public:
-  ComputeModel(Logger *logger, std::unique_ptr<ComputeMaterial> material, uint32_t localSizeX,
-               uint32_t localSizeY, uint32_t localSizeZ)
+  ComputeModel(std::unique_ptr<ComputeMaterial> material, uint32_t localSizeX, uint32_t localSizeY,
+               uint32_t localSizeZ)
       : _localSizeX(localSizeX), _localSizeY(localSizeY), _localSizeZ(localSizeZ),
         _computeMaterial(std::move(material)) {
-    _computeMaterial->init(logger);
+    _computeMaterial->init();
   }
 
   ComputeMaterial *getMaterial() { return _computeMaterial.get(); }

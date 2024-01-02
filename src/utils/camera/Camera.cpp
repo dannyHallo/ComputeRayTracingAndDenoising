@@ -64,7 +64,7 @@ void Camera::processKeyboard(float deltaTime) {
   }
 }
 
-void Camera::processMouseMovement(float xoffset, float yoffset) {
+void Camera::handleMouseMovement(float xoffset, float yoffset) {
   if (!canMove()) {
     return;
   }
