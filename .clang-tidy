@@ -37,4 +37,3 @@ CheckOptions:
   readability-magic-numbers.IgnoredFloatingPointValues: "0.5;1.0;2.0;100.0;"
   cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues: "0;1;2;100;255"
   readability-magic-numbers.IgnoredIntegerValues: "0;1;2;100;255"
----

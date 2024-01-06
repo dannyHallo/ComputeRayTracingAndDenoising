@@ -1,24 +1,21 @@
 {
   "clangd.arguments": [
-    // 在后台自动分析文件（基于complie_commands)
-    "--background-index",
+    // number of async workers used by clangd. background index also uses this many workers
+    "-j=16",
 
-    // 标记compelie_commands.json文件的目录位置
+    // specify a path to look for compile_commands.json
     "--compile-commands-dir=.vscode",
 
-    // 同时开启的任务数量
-    "-j=12",
-
-    // 全局补全（会自动补充头文件）
+    // code completion can suggest symbols that are defined outside of the current scope
     "--all-scopes-completion",
 
-    // 更详细的补全内容
-    // "--completion-style=detailed",
-
-    // 补充头文件的形式
+    // never insert headers for me
     "--header-insertion=never",
 
-    // 存放precompiled header的位置
-    "--pch-storage=memory"
+    // load pre compiled headers from memory, this is faster than loading from disk
+    "--pch-storage=memory",
+
+    // enable clang tidy
+    "--clang-tidy"
   ]
 }
