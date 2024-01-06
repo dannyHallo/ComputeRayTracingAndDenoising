@@ -530,8 +530,8 @@ void Application::_drawFrame() {
   _updateScene(imageIndex);
 
   _recordGuiCommandBuffer(_guiCommandBuffers[imageIndex], imageIndex);
-  std::array<VkCommandBuffer, 2> submitCommandBuffers = {_commandBuffers[imageIndex],
-                                                         _guiCommandBuffers[imageIndex]};
+  std::vector<VkCommandBuffer> submitCommandBuffers = {_commandBuffers[imageIndex],
+                                                       _guiCommandBuffers[imageIndex]};
 
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
   // wait until the image is ready
