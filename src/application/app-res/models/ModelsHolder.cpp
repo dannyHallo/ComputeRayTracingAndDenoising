@@ -25,7 +25,7 @@ static const std::map<std::string, WorkGroupSize> kShaderNameToWorkGroupSizes = 
     // {"temporalFilter", {32, 32, 1}},
     // {"variance", {32, 32, 1}},
     // {"aTrous", {32, 32, 1}},
-    {"postProcessing", {32, 32, 1}},
+    {"postProcessing", {8, 8, 1}},
 };
 
 // void ModelsHolder::_createGradientProjectionModel(ImagesHolder *imagesHolder,
