@@ -7,7 +7,7 @@
 #include "utils/config/RootDir.h"
 #include "utils/logger/Logger.hpp"
 
-// static constexpr int kATrousSize = 5;
+#include <map>
 
 ModelsHolder::ModelsHolder(VulkanApplicationContext *appContext, Logger *logger)
     : _appContext(appContext), _logger(logger){};
@@ -16,8 +16,17 @@ namespace {
 std::string _makeShaderPath(const std::string &shaderName) {
   return kPathToResourceFolder + "/shaders/generated/" + shaderName + ".spv";
 }
-
 } // namespace
+
+static const std::map<std::string, WorkGroupSize> kShaderNameToWorkGroupSizes = {
+    {"rtx", {8, 8, 1}},
+    // {"screenSpaceGradient", {32, 32, 1}},
+    // {"stratumFilter", {32, 32, 1}},
+    // {"temporalFilter", {32, 32, 1}},
+    // {"variance", {32, 32, 1}},
+    // {"aTrous", {32, 32, 1}},
+    {"postProcessing", {32, 32, 1}},
+};
 
 // void ModelsHolder::_createGradientProjectionModel(ImagesHolder *imagesHolder,
 //                                                   BuffersHolder *buffersHolder) {
@@ -46,7 +55,9 @@ std::string _makeShaderPath(const std::string &shaderName) {
 
 void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
                                    size_t framesInFlight) {
-  auto rtxMat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath("rtx"));
+  std::string const shaderName = "rtx";
+  auto rtxMat =
+      std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
   rtxMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
   rtxMat->addUniformBufferBundle(buffersHolder->getRtxBufferBundle());
   // read
@@ -68,7 +79,8 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
   rtxMat->addStorageBufferBundle(buffersHolder->getMaterialBufferBundle());
   rtxMat->addStorageBufferBundle(buffersHolder->getBvhBufferBundle());
   rtxMat->addStorageBufferBundle(buffersHolder->getLightsBufferBundle());
-  _rtxModel = std::make_unique<ComputeModel>(std::move(rtxMat), framesInFlight, 32, 32, 32);
+  _rtxModel = std::make_unique<ComputeModel>(std::move(rtxMat), framesInFlight,
+                                             kShaderNameToWorkGroupSizes.at(shaderName));
 }
 
 // void ModelsHolder::_createGradientModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder)
@@ -187,8 +199,9 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
 
 void ModelsHolder::_createPostProcessingModel(ImagesHolder *imagesHolder,
                                               BuffersHolder *buffersHolder, size_t framesInFlight) {
+  std::string const shaderName = "postProcessing";
   auto postProcessingMat =
-      std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath("postProcessing"));
+      std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
   postProcessingMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
   postProcessingMat->addUniformBufferBundle(buffersHolder->getPostProcessingBufferBundle());
   // input
@@ -201,8 +214,8 @@ void ModelsHolder::_createPostProcessingModel(ImagesHolder *imagesHolder,
   postProcessingMat->addStorageImage(imagesHolder->getSeedImage());
   // output
   postProcessingMat->addStorageImage(imagesHolder->getTargetImage());
-  _postProcessingModel =
-      std::make_unique<ComputeModel>(std::move(postProcessingMat), framesInFlight, 32, 32, 32);
+  _postProcessingModel = std::make_unique<ComputeModel>(
+      std::move(postProcessingMat), framesInFlight, kShaderNameToWorkGroupSizes.at(shaderName));
 }
 
 void ModelsHolder::init(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
