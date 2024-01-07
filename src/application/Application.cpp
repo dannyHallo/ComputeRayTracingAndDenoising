@@ -11,22 +11,24 @@
 
 #include <cassert>
 
-static const int kATrousSize        = 5;
-static const int kMaxFramesInFlight = 2;
-static const float kFpsUpdateTime   = 0.5F;
+// https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
+
+static constexpr int kStratumFilterSize = 6;
+static constexpr int kATrousSize        = 5;
+static const int kFramesInFlight        = 2;
+static const float kFpsUpdateTime       = 0.5F;
 
 std::unique_ptr<Camera> Application::_camera = nullptr;
 std::unique_ptr<Window> Application::_window = nullptr;
 
 Camera *Application::getCamera() { return _camera.get(); }
 
-Application::Application() {
-  _appContext = VulkanApplicationContext::getInstance();
-  _window     = std::make_unique<Window>(WindowStyle::kFullScreen);
+Application::Application() : _appContext(VulkanApplicationContext::getInstance()) {
+  _window = std::make_unique<Window>(WindowStyle::kFullScreen);
   _appContext->init(&_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 
-  _buffersHolder = std::make_unique<BuffersHolder>(_appContext);
+  _buffersHolder = std::make_unique<BuffersHolder>();
   _imagesHolder  = std::make_unique<ImagesHolder>(_appContext);
   _modelsHolder  = std::make_unique<ModelsHolder>(_appContext, &_logger);
 }
@@ -42,7 +44,7 @@ void Application::run() {
 void Application::_cleanup() {
   _logger.print("Application is cleaning up resources...");
 
-  for (size_t i = 0; i < kMaxFramesInFlight; i++) {
+  for (size_t i = 0; i < kFramesInFlight; i++) {
     vkDestroySemaphore(_appContext->getDevice(), _renderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(_appContext->getDevice(), _imageAvailableSemaphores[i], nullptr);
     vkDestroyFence(_appContext->getDevice(), _framesInFlightFences[i], nullptr);
@@ -75,7 +77,7 @@ void Application::_createScene() {
   _rtScene = std::make_unique<GpuModel::RtScene>();
 }
 
-void Application::_updateScene(uint32_t currentImageIndex) {
+void Application::_updateScene(size_t frameIndex) {
   static uint32_t currentSample = 0;
   static glm::mat4 lastMvpe{1.0F};
 
@@ -91,14 +93,14 @@ void Application::_updateScene(uint32_t currentImageIndex) {
                                          currentSample,
                                          currentTime};
 
-  _buffersHolder->getGlobalBuffer(currentImageIndex)->fillData(&globalUbo);
+  _buffersHolder->getGlobalBuffer(frameIndex)->fillData(&globalUbo);
 
   auto thisMvpe =
       _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
                                    static_cast<float>(_appContext->getSwapchainExtentHeight())) *
       _camera->getViewMatrix();
   GradientProjectionUniformBufferObject gpUbo = {!_useGradientProjection, thisMvpe};
-  _buffersHolder->getGradientProjectionBuffer(currentImageIndex)->fillData(&gpUbo);
+  _buffersHolder->getGradientProjectionBuffer(frameIndex)->fillData(&gpUbo);
 
   RtxUniformBufferObject rtxUbo = {
 
@@ -109,22 +111,22 @@ void Application::_updateScene(uint32_t currentImageIndex) {
       _offsetX,
       _offsetY};
 
-  _buffersHolder->getRtxBuffer(currentImageIndex)->fillData(&rtxUbo);
+  _buffersHolder->getRtxBuffer(frameIndex)->fillData(&rtxUbo);
 
   for (int i = 0; i < 6; i++) {
     StratumFilterUniformBufferObject sfUbo = {i, !_useStratumFiltering};
-    _buffersHolder->getStratumFilterBuffer(i, currentImageIndex)->fillData(&sfUbo);
+    _buffersHolder->getStratumFilterBuffer(frameIndex, i)->fillData(&sfUbo);
   }
 
   TemporalFilterUniformBufferObject tfUbo = {!_useTemporalBlend, _useNormalTest, _normalThreshold,
                                              _blendingAlpha, lastMvpe};
-  _buffersHolder->getTemperalFilterBuffer(currentImageIndex)->fillData(&tfUbo);
+  _buffersHolder->getTemperalFilterBuffer(frameIndex)->fillData(&tfUbo);
   lastMvpe = thisMvpe;
 
   VarianceUniformBufferObject varianceUbo = {!_useVarianceEstimation, _skipStoppingFunctions,
                                              _useTemporalVariance,    _varianceKernelSize,
                                              _variancePhiGaussian,    _variancePhiDepth};
-  _buffersHolder->getVarianceBuffer(currentImageIndex)->fillData(&varianceUbo);
+  _buffersHolder->getVarianceBuffer(frameIndex)->fillData(&varianceUbo);
 
   for (int i = 0; i < kATrousSize; i++) {
     // update ubo for the sampleDistance
@@ -139,18 +141,19 @@ void Application::_updateScene(uint32_t currentImageIndex) {
                                            _ignoreLuminanceAtFirstIteration,
                                            _changingLuminancePhi,
                                            _useJittering};
-    _buffersHolder->getBlurFilterBuffer(i, currentImageIndex)->fillData(&bfUbo);
+    _buffersHolder->getBlurFilterBuffer(frameIndex, i)->fillData(&bfUbo);
   }
 
   PostProcessingUniformBufferObject postProcessingUbo = {_displayType};
-  _buffersHolder->getPostProcessingBuffer(currentImageIndex)->fillData(&postProcessingUbo);
+  _buffersHolder->getPostProcessingBuffer(frameIndex)->fillData(&postProcessingUbo);
 
   currentSample++;
 }
 
 void Application::_createRenderCommandBuffers() {
   // create command buffers per swapchain image
-  _commandBuffers.resize(_appContext->getSwapchainSize());
+  _commandBuffers.resize(_appContext->getSwapchainSize()); //  change this later on, because it is
+                                                           //  bounded to the swapchain image
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.commandPool        = _appContext->getCommandPool();
@@ -161,8 +164,7 @@ void Application::_createRenderCommandBuffers() {
       vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _commandBuffers.data());
   assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
 
-  for (uint32_t imageIndex = 0; imageIndex < static_cast<uint32_t>(_commandBuffers.size());
-       imageIndex++) {
+  for (size_t imageIndex = 0; imageIndex < _commandBuffers.size(); imageIndex++) {
     VkCommandBuffer &cmdBuffer = _commandBuffers[imageIndex];
 
     VkCommandBufferBeginInfo beginInfo{};
@@ -284,16 +286,16 @@ void Application::_cleanupSwapchainDimensionRelatedResources() {
 
 void Application::_createSwapchainDimensionRelatedResources() {
   _imagesHolder->onSwapchainResize();
-  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get());
+  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get(), kFramesInFlight);
 
   _createRenderCommandBuffers();
   _createFramebuffers();
 }
 
 void Application::_createSemaphoresAndFences() {
-  _imageAvailableSemaphores.resize(kMaxFramesInFlight);
-  _renderFinishedSemaphores.resize(kMaxFramesInFlight);
-  _framesInFlightFences.resize(kMaxFramesInFlight);
+  _imageAvailableSemaphores.resize(kFramesInFlight);
+  _renderFinishedSemaphores.resize(kFramesInFlight);
+  _framesInFlightFences.resize(kFramesInFlight);
 
   VkSemaphoreCreateInfo semaphoreInfo{};
   semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -304,7 +306,7 @@ void Application::_createSemaphoresAndFences() {
   fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  for (size_t i = 0; i < kMaxFramesInFlight; i++) {
+  for (size_t i = 0; i < kFramesInFlight; i++) {
     VkResult result = vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
                                         &_imageAvailableSemaphores[i]);
     assert(result == VK_SUCCESS && "vkCreateSemaphore failed");
@@ -318,7 +320,7 @@ void Application::_createSemaphoresAndFences() {
 }
 
 void Application::_createGuiCommandBuffers() {
-  _guiCommandBuffers.resize(_appContext->getSwapchainSize());
+  _guiCommandBuffers.resize(kFramesInFlight);
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.commandPool        = _appContext->getGuiCommandPool();
@@ -383,6 +385,9 @@ void Application::_createFramebuffers() {
   // attachments are mSwapchainImageViews
   _guiFrameBuffers.resize(_appContext->getSwapchainSize());
 
+  uint32_t const w = _appContext->getSwapchainExtentWidth();
+  uint32_t const h = _appContext->getSwapchainExtentHeight();
+
   // Iterate through image views
   for (size_t i = 0; i < _appContext->getSwapchainSize(); i++) {
     VkImageView attachment = _appContext->getSwapchainImageViews()[i];
@@ -392,8 +397,8 @@ void Application::_createFramebuffers() {
     frameBufferCreateInfo.renderPass      = _guiPass;
     frameBufferCreateInfo.attachmentCount = 1;
     frameBufferCreateInfo.pAttachments    = &attachment;
-    frameBufferCreateInfo.width           = _appContext->getSwapchainExtentWidth();
-    frameBufferCreateInfo.height          = _appContext->getSwapchainExtentHeight();
+    frameBufferCreateInfo.width           = w;
+    frameBufferCreateInfo.height          = h;
     frameBufferCreateInfo.layers          = 1;
 
     VkResult result = vkCreateFramebuffer(_appContext->getDevice(), &frameBufferCreateInfo, nullptr,
@@ -472,7 +477,8 @@ void Application::_initGui() {
                                       _appContext->getGraphicsQueue(), commandBuffer);
 }
 
-void Application::_recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex) {
+void Application::_recordGuiCommandBuffer(VkCommandBuffer &commandBuffer,
+                                          uint32_t swapchainImageIndex) {
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags            = 0;       // Optional
@@ -485,7 +491,7 @@ void Application::_recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass            = _guiPass;
-  renderPassInfo.framebuffer           = _guiFrameBuffers[imageIndex];
+  renderPassInfo.framebuffer           = _guiFrameBuffers[swapchainImageIndex];
   renderPassInfo.renderArea.extent     = _appContext->getSwapchainExtent();
 
   VkClearValue clearValue{};
@@ -527,11 +533,11 @@ void Application::_drawFrame() {
     _logger.throwError("resizing is not allowed!");
   }
 
-  _updateScene(imageIndex);
+  _updateScene(currentFrame);
 
-  _recordGuiCommandBuffer(_guiCommandBuffers[imageIndex], imageIndex);
+  _recordGuiCommandBuffer(_guiCommandBuffers[currentFrame], imageIndex);
   std::vector<VkCommandBuffer> submitCommandBuffers = {_commandBuffers[imageIndex],
-                                                       _guiCommandBuffers[imageIndex]};
+                                                       _guiCommandBuffers[currentFrame]};
 
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
   // wait until the image is ready
@@ -565,7 +571,7 @@ void Application::_drawFrame() {
 
   // Commented this out for playing around with it later :)
   // vkQueueWaitIdle(context.getPresentQueue());
-  currentFrame = (currentFrame + 1) % kMaxFramesInFlight;
+  currentFrame = (currentFrame + 1) % kFramesInFlight;
 }
 
 namespace {
@@ -745,9 +751,9 @@ bool Application::_needToToggleWindowStyle() {
 void Application::_init() {
   _createScene();
 
-  _buffersHolder->init(_rtScene.get());
+  _buffersHolder->init(_rtScene.get(), kStratumFilterSize, kATrousSize, kFramesInFlight);
   _imagesHolder->init();
-  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get());
+  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get(), kFramesInFlight);
 
   _createRenderCommandBuffers();
   _createGuiCommandBuffers();

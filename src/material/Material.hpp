@@ -27,10 +27,8 @@ public:
   void addStorageBufferBundle(BufferBundle *storageBufferBundle);
 
   // late initialization during model creation, must be overridden
-  // virtual void init(Logger *logger) = 0;
-  void init();
+  void init(size_t framesInFlight);
 
-  // binding should be done in model, must be overridden
   void bind(VkCommandBuffer commandBuffer, size_t currentFrame);
 
 protected:
@@ -57,9 +55,9 @@ protected:
   void _createDescriptorSetLayout();
 
   // allocates pool sizes and creates mDescriptorPool
-  void _createDescriptorPool();
+  void _createDescriptorPool(size_t framesInFlight);
 
-  void _createDescriptorSets();
+  void _createDescriptorSets(size_t framesInFlight);
 
   virtual void _createPipeline() = 0;
 

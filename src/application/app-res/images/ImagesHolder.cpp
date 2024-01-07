@@ -3,8 +3,6 @@
 #include "app-context/VulkanApplicationContext.hpp"
 #include "utils/config/RootDir.h"
 
-ImagesHolder::ImagesHolder(VulkanApplicationContext *appContext) : _appContext(appContext) {}
-
 void ImagesHolder::init() {
   _createBlueNoiseImages();
   _createSwapchainRelatedImages();
@@ -23,8 +21,11 @@ void ImagesHolder::_createSwapchainRelatedImages() {
 
 void ImagesHolder::_createBlueNoiseImages() {
   std::vector<std::string> filenames{};
+  constexpr int kVec2BlueNoiseSize           = 64;
+  constexpr int kWeightedCosineBlueNoiseSize = 64;
 
-  for (int i = 0; i < 64; i++) {
+  filenames.reserve(kVec2BlueNoiseSize);
+  for (int i = 0; i < kVec2BlueNoiseSize; i++) {
     filenames.emplace_back(kPathToResourceFolder +
                            "/textures/stbn/vec2_2d_1d/"
                            "stbn_vec2_2Dx1D_128x128x64_" +
@@ -32,7 +33,10 @@ void ImagesHolder::_createBlueNoiseImages() {
   }
   _vec2BlueNoise = std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
                                                           VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  for (int i = 0; i < 64; i++) {
+
+  filenames.clear();
+  filenames.reserve(kWeightedCosineBlueNoiseSize);
+  for (int i = 0; i < kWeightedCosineBlueNoiseSize; i++) {
     filenames.emplace_back(kPathToResourceFolder +
                            "/textures/stbn/unitvec3_cosine_2d_1d/"
                            "stbn_unitvec3_cosine_2Dx1D_128x128x64_" +
@@ -121,8 +125,11 @@ void ImagesHolder::_createStratumResolutionImages() {
   auto w = _appContext->getSwapchainExtentWidth();
   auto h = _appContext->getSwapchainExtentHeight();
 
-  uint32_t perStratumImageWidth  = ceil(static_cast<float>(w) / 3.0F);
-  uint32_t perStratumImageHeight = ceil(static_cast<float>(h) / 3.0F);
+  constexpr float kStratumResolutionScale = 1.0F / 3.0F;
+
+  uint32_t perStratumImageWidth  = ceil(static_cast<float>(w) * kStratumResolutionScale);
+  uint32_t perStratumImageHeight = ceil(static_cast<float>(h) * kStratumResolutionScale);
+
   _stratumOffsetImage =
       std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);

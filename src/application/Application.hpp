@@ -127,7 +127,7 @@ private:
   void _createScene();
 
   // update uniform buffer object for each frame and save last mvpe matrix
-  void _updateScene(uint32_t currentImage);
+  void _updateScene(size_t frameIndex);
 
   void _createRenderCommandBuffers();
 
@@ -149,7 +149,7 @@ private:
   void _initGui();
 
   // record command buffer for GUI
-  void _recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t imageIndex);
+  void _recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t swapchainImageIndex);
 
   void _waitForTheWindowToBeResumed();
 

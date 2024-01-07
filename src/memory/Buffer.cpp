@@ -36,22 +36,27 @@ void Buffer::_allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsa
 
 void Buffer::fillData(const void *data) {
   // a pointer to the first byte of the allocated memory
-  void *mappedData;
+  void *mappedData = nullptr;
   vmaMapMemory(VulkanApplicationContext::getInstance()->getAllocator(), _allocation, &mappedData);
 
-  if (data != nullptr)
+  if (data != nullptr) {
     memcpy(mappedData, data, _size);
-  else
+  } else {
     memset(mappedData, 0, _size);
+  }
 
   vmaUnmapMemory(VulkanApplicationContext::getInstance()->getAllocator(), _allocation);
 }
 
-std::shared_ptr<Buffer> BufferBundle::getBuffer(size_t index) {
+Buffer *BufferBundle::getBuffer(size_t index) {
   assert((index >= 0 && index < _buffers.size()) && "BufferBundle::getBuffer: index out of range");
-  return _buffers[index];
+  return _buffers[index].get();
 }
 
+Buffer *BufferBundle::operator[](size_t index) { return getBuffer(index); }
+
 void BufferBundle::fillData(const void *data) {
-  for (auto &buffer : _buffers) buffer->fillData(data);
+  for (auto &buffer : _buffers) {
+    buffer->fillData(data);
+  }
 }

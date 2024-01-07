@@ -6,11 +6,13 @@
 
 #include <memory>
 
+constexpr int kGpuVecPackingSize = 4;
+
 struct GlobalUniformBufferObject {
-  alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camPosition;
-  alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
-  alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
-  alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camRight;
+  alignas(sizeof(glm::vec3::x) * kGpuVecPackingSize) glm::vec3 camPosition;
+  alignas(sizeof(glm::vec3::x) * kGpuVecPackingSize) glm::vec3 camFront;
+  alignas(sizeof(glm::vec3::x) * kGpuVecPackingSize) glm::vec3 camUp;
+  alignas(sizeof(glm::vec3::x) * kGpuVecPackingSize) glm::vec3 camRight;
   uint32_t swapchainWidth;
   uint32_t swapchainHeight;
   float vfov;
@@ -20,7 +22,7 @@ struct GlobalUniformBufferObject {
 
 struct GradientProjectionUniformBufferObject {
   int bypassGradientProjection;
-  alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
+  alignas(sizeof(glm::vec3::x) * kGpuVecPackingSize) glm::mat4 thisMvpe;
 };
 
 struct RtxUniformBufferObject {
@@ -42,7 +44,7 @@ struct TemporalFilterUniformBufferObject {
   int useNormalTest;
   float normalThrehold;
   float blendingAlpha;
-  alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
+  alignas(sizeof(glm::vec3::x) * kGpuVecPackingSize) glm::mat4 lastMvpe;
 };
 struct VarianceUniformBufferObject {
   int bypassVarianceEstimation;
@@ -74,9 +76,10 @@ struct PostProcessingUniformBufferObject {
 class VulkanApplicationContext;
 class BuffersHolder {
 public:
-  BuffersHolder(VulkanApplicationContext *appContext);
+  BuffersHolder() = default;
 
-  void init(GpuModel::RtScene *rtScene);
+  void init(GpuModel::RtScene *rtScene, int stratumFilterSize, int aTrousSize,
+            size_t framesInFlight);
 
   // buffer bundles getter
   BufferBundle *getGlobalBufferBundle() { return _globalBufferBundle.get(); }
@@ -100,44 +103,40 @@ public:
   BufferBundle *getLightsBufferBundle() { return _lightsBufferBundle.get(); }
 
   // buffers getter
-  std::shared_ptr<Buffer> getGlobalBuffer(int index) {
-    return _globalBufferBundle->getBuffer(index);
+  Buffer *getGlobalBuffer(size_t frameIndex) { return _globalBufferBundle->getBuffer(frameIndex); }
+  Buffer *getGradientProjectionBuffer(size_t frameIndex) {
+    return _gradientProjectionBufferBundle->getBuffer(frameIndex);
   }
-  std::shared_ptr<Buffer> getGradientProjectionBuffer(int index) {
-    return _gradientProjectionBufferBundle->getBuffer(index);
+  Buffer *getRtxBuffer(size_t frameIndex) { return _rtxBufferBundle->getBuffer(frameIndex); }
+  Buffer *getTemperalFilterBuffer(size_t frameIndex) {
+    return _temperalFilterBufferBundle->getBuffer(frameIndex);
   }
-  std::shared_ptr<Buffer> getRtxBuffer(int index) { return _rtxBufferBundle->getBuffer(index); }
-  std::shared_ptr<Buffer> getTemperalFilterBuffer(int index) {
-    return _temperalFilterBufferBundle->getBuffer(index);
+  Buffer *getStratumFilterBuffer(size_t frameIndex, int index) {
+    return _stratumFilterBufferBundle[index]->getBuffer(frameIndex);
   }
-  std::shared_ptr<Buffer> getStratumFilterBuffer(int index, int index2) {
-    return _stratumFilterBufferBundle[index]->getBuffer(index2);
+  Buffer *getVarianceBuffer(size_t frameIndex) {
+    return _varianceBufferBundle->getBuffer(frameIndex);
   }
-  std::shared_ptr<Buffer> getVarianceBuffer(int index) {
-    return _varianceBufferBundle->getBuffer(index);
+  Buffer *getBlurFilterBuffer(size_t frameIndex, int index) {
+    return _blurFilterBufferBundles[index]->getBuffer(frameIndex);
   }
-  std::shared_ptr<Buffer> getBlurFilterBuffer(int index, int index2) {
-    return _blurFilterBufferBundles[index]->getBuffer(index2);
-  }
-  std::shared_ptr<Buffer> getPostProcessingBuffer(int index) {
-    return _postProcessingBufferBundle->getBuffer(index);
+  Buffer *getPostProcessingBuffer(size_t frameIndex) {
+    return _postProcessingBufferBundle->getBuffer(frameIndex);
   }
 
-  std::shared_ptr<Buffer> getTriangleBuffer(int index) {
-    return _triangleBufferBundle->getBuffer(index);
-  }
-  std::shared_ptr<Buffer> getMaterialBuffer(int index) {
-    return _materialBufferBundle->getBuffer(index);
-  }
-  std::shared_ptr<Buffer> getBvhBuffer(int index) { return _bvhBufferBundle->getBuffer(index); }
-  std::shared_ptr<Buffer> getLightsBuffer(int index) {
-    return _lightsBufferBundle->getBuffer(index);
-  }
+  Buffer *getTriangleBuffer() { return _triangleBufferBundle->getBuffer(0); }
+  Buffer *getMaterialBuffer() { return _materialBufferBundle->getBuffer(0); }
+  Buffer *getBvhBuffer() { return _bvhBufferBundle->getBuffer(0); }
+  Buffer *getLightsBuffer() { return _lightsBufferBundle->getBuffer(0); }
 
 private:
-  VulkanApplicationContext *_appContext;
+  // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
+  // You seem to be saying you keep #FIF copies of all resources. Only resources that are actively
+  // accessed by both the CPU and GPU need to because the GPU will not work on multiple frames at
+  // the same time. You don't need to multiply textures or buffers in device memory. This means that
+  // the memory increase should be small and solves your problem with uploading data.
 
-  // buffer bundles for ray tracing, temporal filtering, and blur filtering
+  // buffers that are updated by CPU and sent to GPU every frame
   std::unique_ptr<BufferBundle> _globalBufferBundle;
   std::unique_ptr<BufferBundle> _gradientProjectionBufferBundle;
   std::unique_ptr<BufferBundle> _rtxBufferBundle;
@@ -147,8 +146,12 @@ private:
   std::vector<std::unique_ptr<BufferBundle>> _blurFilterBufferBundles;
   std::unique_ptr<BufferBundle> _postProcessingBufferBundle;
 
+  // buffers that are updated by CPU and sent to GPU only once
   std::unique_ptr<BufferBundle> _triangleBufferBundle;
   std::unique_ptr<BufferBundle> _materialBufferBundle;
   std::unique_ptr<BufferBundle> _bvhBufferBundle;
   std::unique_ptr<BufferBundle> _lightsBufferBundle;
+
+  void _createMultiBufferBundles(int stratumFilterSize, int aTrousSize, size_t framesInFlight);
+  void _createSingleBufferBundles(GpuModel::RtScene *rtScene);
 };

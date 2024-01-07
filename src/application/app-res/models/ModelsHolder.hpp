@@ -14,7 +14,7 @@ public:
   ModelsHolder(VulkanApplicationContext *appContext, Logger *logger);
 
   // the image holder is required to be initialized first
-  void init(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
+  void init(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder, size_t framesInFlight);
 
   // ComputeModel *getGradientProjectionModel() { return _gradientProjectionModel.get(); }
   ComputeModel *getRtxModel() { return _rtxModel.get(); }
@@ -39,11 +39,13 @@ private:
   std::unique_ptr<ComputeModel> _postProcessingModel;
 
   // void _createGradientProjectionModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
-  void _createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
+  void _createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
+                       size_t framesInFlight);
   // void _createGradientModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
   // void _createStratumFilterModels(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
   // void _createTemporalFilterModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
   // void _createVarianceModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
-  // void _createATrousModels(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
-  void _createPostProcessingModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
+  // void _createATrousModelsImagesHolder *imagesHolder, BuffersHolder *buffersHolder);
+  void _createPostProcessingModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
+                                  size_t framesInFlight);
 };

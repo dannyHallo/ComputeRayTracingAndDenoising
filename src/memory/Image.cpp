@@ -75,7 +75,9 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout
     : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1),
       _format(VK_FORMAT_R8G8B8A8_UNORM) {
   // load image from path
-  int width, height, channels;
+  int width       = 0;
+  int height      = 0;
+  int channels    = 0;
   auto *imageData = _loadImageFromPath(filename, width, height, channels);
   _width          = static_cast<uint32_t>(width);
   _height         = static_cast<uint32_t>(height);
@@ -109,8 +111,10 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
       _format(VK_FORMAT_R8G8B8A8_UNORM) {
   std::vector<unsigned char *> imageDatas{};
 
-  int width, height, channels;
-  for (auto &filename : filenames) {
+  int width    = 0;
+  int height   = 0;
+  int channels = 0;
+  for (std::string const &filename : filenames) {
     // load image from path
     auto *imageData = _loadImageFromPath(filename, width, height, channels);
     imageDatas.push_back(imageData);
@@ -155,10 +159,10 @@ void Image::clearImage(VkCommandBuffer commandBuffer) {
 }
 
 void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
-  auto &device      = VulkanApplicationContext::getInstance()->getDevice();
-  auto &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
-  auto &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
-  auto &allocator   = VulkanApplicationContext::getInstance()->getAllocator();
+  auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
+  auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
+  auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
+  auto const &allocator   = VulkanApplicationContext::getInstance()->getAllocator();
 
   const uint32_t imagePixelCount = _width * _height;
   // the channel count is ignored here, because the VkFormat is enough
@@ -174,13 +178,13 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   VmaAllocationCreateInfo vmaAllocInfo{};
   vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
 
-  VkBuffer stagingBuffer;
-  VmaAllocation stagingBufferAllocation;
+  VkBuffer stagingBuffer                = VK_NULL_HANDLE;
+  VmaAllocation stagingBufferAllocation = nullptr;
   vmaCreateBuffer(allocator, &bufferInfo, &vmaAllocInfo, &stagingBuffer, &stagingBufferAllocation,
                   nullptr);
 
   // copy your data to the staging buffer
-  void *mappedData;
+  void *mappedData = nullptr;
   vmaMapMemory(allocator, stagingBufferAllocation, &mappedData);
   memcpy(mappedData, imageData, imageDataSize);
   vmaUnmapMemory(allocator, stagingBufferAllocation);
@@ -266,9 +270,9 @@ VkDescriptorImageInfo Image::getDescriptorInfo(VkImageLayout imageLayout) const 
 }
 
 void Image::_transitionImageLayout(VkImageLayout newLayout) {
-  auto &device      = VulkanApplicationContext::getInstance()->getDevice();
-  auto &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
-  auto &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
+  auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
+  auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
+  auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
 
   VkCommandBuffer commandBuffer = RenderSystem::beginSingleTimeCommands(device, commandPool);
 

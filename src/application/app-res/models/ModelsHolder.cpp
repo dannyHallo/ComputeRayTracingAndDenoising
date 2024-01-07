@@ -44,7 +44,8 @@ std::string _makeShaderPath(const std::string &shaderName) {
 //       std::make_unique<ComputeModel>(_logger, std::move(gradientProjectionMat), 24, 24, 24);
 // }
 
-void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder) {
+void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
+                                   size_t framesInFlight) {
   auto rtxMat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath("rtx"));
   rtxMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
   rtxMat->addUniformBufferBundle(buffersHolder->getRtxBufferBundle());
@@ -67,7 +68,7 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
   rtxMat->addStorageBufferBundle(buffersHolder->getMaterialBufferBundle());
   rtxMat->addStorageBufferBundle(buffersHolder->getBvhBufferBundle());
   rtxMat->addStorageBufferBundle(buffersHolder->getLightsBufferBundle());
-  _rtxModel = std::make_unique<ComputeModel>(std::move(rtxMat), 32, 32, 32);
+  _rtxModel = std::make_unique<ComputeModel>(std::move(rtxMat), framesInFlight, 32, 32, 32);
 }
 
 // void ModelsHolder::_createGradientModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder)
@@ -185,7 +186,7 @@ void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *bu
 // }
 
 void ModelsHolder::_createPostProcessingModel(ImagesHolder *imagesHolder,
-                                              BuffersHolder *buffersHolder) {
+                                              BuffersHolder *buffersHolder, size_t framesInFlight) {
   auto postProcessingMat =
       std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath("postProcessing"));
   postProcessingMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
@@ -200,16 +201,18 @@ void ModelsHolder::_createPostProcessingModel(ImagesHolder *imagesHolder,
   postProcessingMat->addStorageImage(imagesHolder->getSeedImage());
   // output
   postProcessingMat->addStorageImage(imagesHolder->getTargetImage());
-  _postProcessingModel = std::make_unique<ComputeModel>(std::move(postProcessingMat), 32, 32, 32);
+  _postProcessingModel =
+      std::make_unique<ComputeModel>(std::move(postProcessingMat), framesInFlight, 32, 32, 32);
 }
 
-void ModelsHolder::init(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder) {
+void ModelsHolder::init(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
+                        size_t framesInFlight) {
   // _createGradientProjectionModel(imagesHolder, buffersHolder);
-  _createRtxModel(imagesHolder, buffersHolder);
+  _createRtxModel(imagesHolder, buffersHolder, framesInFlight);
   // _createGradientModel(imagesHolder, buffersHolder);
   // _createStratumFilterModels(imagesHolder, buffersHolder);
   // _createTemporalFilterModel(imagesHolder, buffersHolder);
   // _createVarianceModel(imagesHolder, buffersHolder);
   // _createATrousModels(imagesHolder, buffersHolder);
-  _createPostProcessingModel(imagesHolder, buffersHolder);
+  _createPostProcessingModel(imagesHolder, buffersHolder, framesInFlight);
 }

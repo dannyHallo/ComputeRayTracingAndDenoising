@@ -11,10 +11,10 @@ static const std::map<VkShaderStageFlags, VkPipelineBindPoint> kShaderStageFlags
     {VK_SHADER_STAGE_FRAGMENT_BIT, VK_PIPELINE_BIND_POINT_GRAPHICS},
     {VK_SHADER_STAGE_COMPUTE_BIT, VK_PIPELINE_BIND_POINT_COMPUTE}};
 
-void Material::init() {
+void Material::init(size_t framesInFlight) {
   _createDescriptorSetLayout();
-  _createDescriptorPool();
-  _createDescriptorSets();
+  _createDescriptorPool(framesInFlight);
+  _createDescriptorSets(framesInFlight);
   _createPipeline();
 }
 
@@ -103,33 +103,32 @@ void Material::_createDescriptorSetLayout() {
          "Material::initDescriptorSetLayout: failed to create descriptor set layout");
 }
 
-void Material::_createDescriptorPool() {
+void Material::_createDescriptorPool(size_t framesInFlight) {
   std::vector<VkDescriptorPoolSize> poolSizes{};
-  uint32_t swapchainSize = _appContext->getSwapchainSize();
 
   // https://www.reddit.com/r/vulkan/comments/8u9zqr/having_trouble_understanding_descriptor_pool/
   // pool sizes info indicates how many descriptors of a certain type can be
   // allocated from the pool - NOT THE SET!
-  if (_uniformBufferBundles.size() > 0) {
+  if (!_uniformBufferBundles.empty()) {
     poolSizes.emplace_back(
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                             static_cast<uint32_t>(swapchainSize * _uniformBufferBundles.size())});
+                             static_cast<uint32_t>(framesInFlight * _uniformBufferBundles.size())});
   }
-  if (_storageImages.size() > 0) {
+  if (!_storageImages.empty()) {
     poolSizes.emplace_back(
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-                             static_cast<uint32_t>(swapchainSize * _storageImages.size())});
+                             static_cast<uint32_t>(framesInFlight * _storageImages.size())});
   }
-  if (_storageBufferBundles.size() > 0) {
+  if (!_storageBufferBundles.empty()) {
     poolSizes.emplace_back(
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                             static_cast<uint32_t>(swapchainSize * _storageBufferBundles.size())});
+                             static_cast<uint32_t>(framesInFlight * _storageBufferBundles.size())});
   }
 
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   // the max number of descriptor sets that can be allocated from this pool
-  poolInfo.maxSets       = swapchainSize;
+  poolInfo.maxSets       = framesInFlight;
   poolInfo.pPoolSizes    = poolSizes.data();
   poolInfo.poolSizeCount = poolSizes.size();
 
@@ -140,23 +139,21 @@ void Material::_createDescriptorPool() {
 
 // chop the buffer bundles here, and create the descriptor sets for each of the
 // swapchains buffers are loaded to descriptor sets
-void Material::_createDescriptorSets() {
-  uint32_t swapchainSize = _appContext->getSwapchainSize();
-
-  std::vector<VkDescriptorSetLayout> layouts(swapchainSize, _descriptorSetLayout);
+void Material::_createDescriptorSets(size_t framesInFlight) {
+  std::vector<VkDescriptorSetLayout> layouts(framesInFlight, _descriptorSetLayout);
 
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool     = _descriptorPool;
-  allocInfo.descriptorSetCount = swapchainSize;
+  allocInfo.descriptorSetCount = framesInFlight;
   allocInfo.pSetLayouts        = layouts.data();
 
-  _descriptorSets.resize(swapchainSize);
+  _descriptorSets.resize(framesInFlight);
   VkResult res =
       vkAllocateDescriptorSets(_appContext->getDevice(), &allocInfo, _descriptorSets.data());
   assert(res == VK_SUCCESS && "Material::initDescriptorSets: failed to allocate descriptor sets");
 
-  for (size_t j = 0; j < swapchainSize; j++) {
+  for (size_t j = 0; j < framesInFlight; j++) {
     VkDescriptorSet &dstSet = _descriptorSets[j];
 
     std::vector<VkWriteDescriptorSet> descriptorWrites{};
@@ -204,7 +201,8 @@ void Material::_createDescriptorSets() {
     std::vector<VkDescriptorBufferInfo> storageBufferInfos{};
     storageBufferInfos.reserve(_storageBufferBundles.size());
     for (auto &storageBufferBundle : _storageBufferBundles) {
-      storageBufferInfos.push_back(storageBufferBundle->getBuffer(j)->getDescriptorInfo());
+      // TODO: notice here!!!
+      storageBufferInfos.push_back(storageBufferBundle->getBuffer(0)->getDescriptorInfo());
     }
 
     for (size_t i = 0; i < _storageBufferBundles.size(); i++) {

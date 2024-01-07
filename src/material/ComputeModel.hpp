@@ -11,11 +11,11 @@ class Logger;
 class VulkanApplicationContext;
 class ComputeModel {
 public:
-  ComputeModel(std::unique_ptr<ComputeMaterial> material, uint32_t localSizeX, uint32_t localSizeY,
-               uint32_t localSizeZ)
+  ComputeModel(std::unique_ptr<ComputeMaterial> material, size_t framesInFlight,
+               uint32_t localSizeX, uint32_t localSizeY, uint32_t localSizeZ)
       : _localSizeX(localSizeX), _localSizeY(localSizeY), _localSizeZ(localSizeZ),
         _computeMaterial(std::move(material)) {
-    _computeMaterial->init();
+    _computeMaterial->init(framesInFlight);
   }
 
   ComputeMaterial *getMaterial() { return _computeMaterial.get(); }
@@ -23,9 +23,9 @@ public:
   void computeCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t threadCountX,
                       uint32_t threadCountY, uint32_t threadCountZ) {
     _computeMaterial->bind(commandBuffer, currentFrame);
-    vkCmdDispatch(commandBuffer, std::ceil(threadCountX / static_cast<float>(_localSizeX)),
-                  std::ceil(threadCountY / static_cast<float>(_localSizeY)),
-                  std::ceil(threadCountZ / static_cast<float>(_localSizeZ)));
+    vkCmdDispatch(commandBuffer, std::ceil((float)threadCountX / (float)_localSizeX),
+                  std::ceil((float)threadCountY / (float)(_localSizeY)),
+                  std::ceil((float)threadCountZ / (float)(_localSizeZ)));
   }
 
 private:
