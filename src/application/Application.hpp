@@ -22,6 +22,20 @@ class BuffersHolder;
 class ImagesHolder;
 class ModelsHolder;
 class Application {
+public:
+  Application();
+  ~Application();
+
+  // disable move and copy
+  Application(const Application &)            = delete;
+  Application &operator=(const Application &) = delete;
+  Application(Application &&)                 = delete;
+  Application &operator=(Application &&)      = delete;
+
+  Camera *getCamera();
+  void run();
+
+private:
   // data alignment in c++ side to meet Vulkan specification:
   // A scalar of size N has a base alignment of N.
   // A three- or four-component vector, with components of size N, has a base
@@ -70,20 +84,6 @@ class Application {
   // PostProcessingUniformBufferObject
   uint32_t _displayType = 2;
 
-public:
-  Application();
-  ~Application();
-
-  // disable move and copy
-  Application(const Application &)            = delete;
-  Application &operator=(const Application &) = delete;
-  Application(Application &&)                 = delete;
-  Application &operator=(Application &&)      = delete;
-
-  Camera *getCamera();
-  void run();
-
-private:
   float _fps = 0;
 
   // atrous twicking
