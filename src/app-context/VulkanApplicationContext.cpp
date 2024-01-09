@@ -24,7 +24,7 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
 #ifndef NVALIDATIONLAYERS
   _logger->print("DEBUG mode is enabled");
 #else
-  mLogger->print("DEBUG mode is disabled");
+  _logger->print("DEBUG mode is disabled");
 #endif // NDEBUG
 
   _glWindow       = window;
