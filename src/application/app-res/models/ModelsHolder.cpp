@@ -20,11 +20,12 @@ std::string _makeShaderPath(const std::string &shaderName) {
 
 static const std::map<std::string, WorkGroupSize> kShaderNameToWorkGroupSizes = {
     {"rtx", {8, 8, 1}},
-    // {"screenSpaceGradient", {32, 32, 1}},
-    // {"stratumFilter", {32, 32, 1}},
-    // {"temporalFilter", {32, 32, 1}},
-    // {"variance", {32, 32, 1}},
-    // {"aTrous", {32, 32, 1}},
+    {"svo", {8, 8, 1}},
+    {"screenSpaceGradient", {32, 32, 1}},
+    {"stratumFilter", {32, 32, 1}},
+    {"temporalFilter", {32, 32, 1}},
+    {"variance", {32, 32, 1}},
+    {"aTrous", {32, 32, 1}},
     {"postProcessing", {8, 8, 1}},
 };
 
@@ -53,36 +54,51 @@ static const std::map<std::string, WorkGroupSize> kShaderNameToWorkGroupSizes = 
 //       std::make_unique<ComputeModel>(_logger, std::move(gradientProjectionMat), 24, 24, 24);
 // }
 
-void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
+// void ModelsHolder::_createRtxModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
+//                                    size_t framesInFlight) {
+//   std::string const shaderName = "rtx";
+//   auto rtxMat =
+//       std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+//   rtxMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
+//   rtxMat->addUniformBufferBundle(buffersHolder->getRtxBufferBundle());
+//   // read
+//   rtxMat->addStorageImage(imagesHolder->getVec2BlueNoise());
+//   rtxMat->addStorageImage(imagesHolder->getWeightedCosineBlueNoise());
+//   rtxMat->addStorageImage(imagesHolder->getStratumOffsetImage());
+//   rtxMat->addStorageImage(imagesHolder->getVisibilityImage());
+//   rtxMat->addStorageImage(imagesHolder->getSeedVisibilityImage());
+//   // output
+//   rtxMat->addStorageImage(imagesHolder->getPositionImage());
+//   rtxMat->addStorageImage(imagesHolder->getNormalImage());
+//   rtxMat->addStorageImage(imagesHolder->getDepthImage());
+//   rtxMat->addStorageImage(imagesHolder->getMeshHashImage());
+//   rtxMat->addStorageImage(imagesHolder->getRawImage());
+//   rtxMat->addStorageImage(imagesHolder->getSeedImage());
+//   rtxMat->addStorageImage(imagesHolder->getTemporalGradientNormalizationImagePing());
+//   // buffers
+//   rtxMat->addStorageBufferBundle(buffersHolder->getTriangleBufferBundle());
+//   rtxMat->addStorageBufferBundle(buffersHolder->getMaterialBufferBundle());
+//   rtxMat->addStorageBufferBundle(buffersHolder->getBvhBufferBundle());
+//   rtxMat->addStorageBufferBundle(buffersHolder->getLightsBufferBundle());
+//   _rtxModel = std::make_unique<ComputeModel>(std::move(rtxMat), framesInFlight,
+//                                              kShaderNameToWorkGroupSizes.at(shaderName));
+// }
+
+void ModelsHolder::_createSvoModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
                                    size_t framesInFlight) {
-  std::string const shaderName = "rtx";
-  auto rtxMat =
-      std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
-  rtxMat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
-  rtxMat->addUniformBufferBundle(buffersHolder->getRtxBufferBundle());
-  // read
-  rtxMat->addStorageImage(imagesHolder->getVec2BlueNoise());
-  rtxMat->addStorageImage(imagesHolder->getWeightedCosineBlueNoise());
-  rtxMat->addStorageImage(imagesHolder->getStratumOffsetImage());
-  rtxMat->addStorageImage(imagesHolder->getVisibilityImage());
-  rtxMat->addStorageImage(imagesHolder->getSeedVisibilityImage());
+  std::string const shaderName = "svo";
+  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+
+  // ubo
+  mat->addUniformBufferBundle(buffersHolder->getGlobalBufferBundle());
+
   // output
-  rtxMat->addStorageImage(imagesHolder->getPositionImage());
-  rtxMat->addStorageImage(imagesHolder->getNormalImage());
-  rtxMat->addStorageImage(imagesHolder->getDepthImage());
-  rtxMat->addStorageImage(imagesHolder->getMeshHashImage());
-  rtxMat->addStorageImage(imagesHolder->getRawImage());
-  rtxMat->addStorageImage(imagesHolder->getSeedImage());
-  rtxMat->addStorageImage(imagesHolder->getTemporalGradientNormalizationImagePing());
-  // buffers
-  rtxMat->addStorageBufferBundle(buffersHolder->getTriangleBufferBundle());
-  rtxMat->addStorageBufferBundle(buffersHolder->getMaterialBufferBundle());
-  rtxMat->addStorageBufferBundle(buffersHolder->getBvhBufferBundle());
-  rtxMat->addStorageBufferBundle(buffersHolder->getLightsBufferBundle());
-  _rtxModel = std::make_unique<ComputeModel>(std::move(rtxMat), framesInFlight,
+  mat->addStorageImage(imagesHolder->getRawImage());
+
+  // model creation
+  _svoModel = std::make_unique<ComputeModel>(std::move(mat), framesInFlight,
                                              kShaderNameToWorkGroupSizes.at(shaderName));
 }
-
 // void ModelsHolder::_createGradientModel(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder)
 // {
 
@@ -221,7 +237,8 @@ void ModelsHolder::_createPostProcessingModel(ImagesHolder *imagesHolder,
 void ModelsHolder::init(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,
                         size_t framesInFlight) {
   // _createGradientProjectionModel(imagesHolder, buffersHolder);
-  _createRtxModel(imagesHolder, buffersHolder, framesInFlight);
+  //   _createRtxModel(imagesHolder, buffersHolder, framesInFlight);
+  _createSvoModel(imagesHolder, buffersHolder, framesInFlight);
   // _createGradientModel(imagesHolder, buffersHolder);
   // _createStratumFilterModels(imagesHolder, buffersHolder);
   // _createTemporalFilterModel(imagesHolder, buffersHolder);

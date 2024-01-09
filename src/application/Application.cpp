@@ -195,7 +195,8 @@ void Application::_createRenderCommandBuffers() {
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                      nullptr);
 
-    _modelsHolder->getRtxModel()->computeCommand(cmdBuffer, 0, w, h, 1);
+    // _modelsHolder->getRtxModel()->computeCommand(cmdBuffer, 0, w, h, 1);
+    _modelsHolder->getSvoModel()->computeCommand(cmdBuffer, 0, w, h, 1);
 
     VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
     memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
