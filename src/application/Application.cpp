@@ -18,8 +18,8 @@ static constexpr int kATrousSize        = 5;
 static const int kFramesInFlight        = 2;
 static const float kFpsUpdateTime       = 0.5F;
 
-std::unique_ptr<Camera> Application::_camera = nullptr;
-std::unique_ptr<Window> Application::_window = nullptr;
+// std::unique_ptr<Camera> Application::_camera = nullptr;
+// std::unique_ptr<Window> Application::_window = nullptr;
 
 Camera *Application::getCamera() { return _camera.get(); }
 
@@ -549,8 +549,8 @@ void Application::_drawFrame() {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores    = &_renderFinishedSemaphores[currentFrame];
   // wait for no stage
-  VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
-  submitInfo.pWaitDstStageMask      = static_cast<VkPipelineStageFlags *>(waitStages);
+  VkPipelineStageFlags waitStages{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+  submitInfo.pWaitDstStageMask = &waitStages;
 
   submitInfo.commandBufferCount = static_cast<uint32_t>(submitCommandBuffers.size());
   submitInfo.pCommandBuffers    = submitCommandBuffers.data();
@@ -577,15 +577,16 @@ void Application::_drawFrame() {
 }
 
 namespace {
-template <std::size_t N>
-void comboSelector(const char *comboLabel, const char *(&items)[N], uint32_t &selectedIdx) {
-  assert(selectedIdx < N && "selectedIdx is out of range");
-  const char *currentSelectedItem = items[selectedIdx];
-  if (ImGui::BeginCombo(comboLabel, currentSelectedItem)) {
-    for (int n = 0; n < N; n++) {
-      bool isSelected = n == selectedIdx;
-      if (ImGui::Selectable(items[n], isSelected)) {
-        currentSelectedItem = items[n];
+void comboSelector(std::string const &comboLabel, std::vector<std::string> const &outputItems,
+                   uint32_t &selectedIdx) {
+  assert(selectedIdx < outputItems.size() && "selectedIdx is out of range");
+  char const *currentSelectedItem = outputItems[selectedIdx].c_str();
+  if (ImGui::BeginCombo(comboLabel.c_str(), currentSelectedItem)) {
+    for (int n = 0; n < outputItems.size(); n++) {
+      bool isSelected         = n == selectedIdx;
+      std::string const &item = outputItems[n];
+      if (ImGui::Selectable(item.c_str(), isSelected)) {
+        currentSelectedItem = item.c_str();
         selectedIdx         = n;
       }
       if (isSelected) {
@@ -611,7 +612,7 @@ void Application::_prepareGui() {
 
     ImGui::SeparatorText("Rtx");
     ImGui::Checkbox("Moving Light Source", &_movingLightSource);
-    const char *outputItems[] = {"Combined", "Direct Only", "Indirect Only"};
+    const std::vector<std::string> outputItems{"Combined", "Direct Only", "Indirect Only"};
     comboSelector("Output Type", outputItems, _outputType);
     ImGui::DragFloat("Offset X", &_offsetX, 0.01F, -1.0F, 1.0F);
     ImGui::DragFloat("Offset Y", &_offsetY, 0.01F, -1.0F, 1.0F);
@@ -635,7 +636,7 @@ void Application::_prepareGui() {
 
     ImGui::SeparatorText("A-Trous");
     ImGui::Checkbox("A-Trous", &_useATrous);
-    ImGui::SliderInt("A-Trous times", &_iCap, 0, 5);
+    ImGui::SliderInt("A-Trous times", &_iCap, 0, kATrousSize);
     ImGui::Checkbox("Use variance guided filtering", &_useVarianceGuidedFiltering);
     ImGui::Checkbox("Use gradient in depth", &_useGradientInDepth);
     ImGui::SliderFloat("Luminance Phi", &_phiLuminance, 0.0F, 1.0F);
@@ -646,8 +647,8 @@ void Application::_prepareGui() {
     ImGui::Checkbox("Use jitter", &_useJittering);
 
     ImGui::SeparatorText("Post Processing");
-    const char *displayItems[] = {"Color",      "Variance", "RawCol", "Stratum",
-                                  "Visibility", "Gradient", "Custom"};
+    std::vector<std::string> displayItems{"Color",      "Variance", "RawCol", "Stratum",
+                                          "Visibility", "Gradient", "Custom"};
     comboSelector("Display Type", displayItems, _displayType);
 
     ImGui::EndMenu();
@@ -773,7 +774,7 @@ void Application::_init() {
 
   // attach camera's mouse handler to the window mouse callback, more handlers can be added in the
   // future
-  _window->addMouseCallback([](float mouseDeltaX, float mouseDeltaY) {
+  _window->addMouseCallback([this](float mouseDeltaX, float mouseDeltaY) {
     _camera->handleMouseMovement(mouseDeltaX, mouseDeltaY);
   });
 }

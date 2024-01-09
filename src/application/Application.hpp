@@ -15,7 +15,6 @@
 #include "utils/camera/Camera.hpp"
 #include "utils/logger/Logger.hpp"
 
-
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
 
@@ -34,8 +33,8 @@ class Application {
 
   bool _movingLightSource = false;
   uint32_t _outputType    = 1; // combined, direct only, indirect only
-  float _offsetX          = 0.f;
-  float _offsetY          = 0.f;
+  float _offsetX          = 0.F;
+  float _offsetY          = 0.F;
 
   // StratumFilterUniformBufferObject
   bool _useStratumFiltering = false;
@@ -53,7 +52,7 @@ class Application {
   bool _skipStoppingFunctions = false;
   bool _useTemporalVariance   = true;
   int _varianceKernelSize     = 4;
-  float _variancePhiGaussian  = 1.f;
+  float _variancePhiGaussian  = 1.F;
   float _variancePhiDepth     = 0.2f;
 
   // BlurFilterUniformBufferObject
@@ -63,7 +62,7 @@ class Application {
   bool _useGradientInDepth              = true;
   float _phiLuminance                   = 0.3f;
   float _phiDepth                       = 0.2f;
-  float _phiNormal                      = 128.f;
+  float _phiNormal                      = 128.F;
   bool _ignoreLuminanceAtFirstIteration = true;
   bool _changingLuminancePhi            = true;
   bool _useJittering                    = true;
@@ -81,7 +80,7 @@ public:
   Application(Application &&)                 = delete;
   Application &operator=(Application &&)      = delete;
 
-  static Camera *getCamera();
+  Camera *getCamera();
   void run();
 
 private:
@@ -94,8 +93,8 @@ private:
 
   Logger _logger;
 
-  static std::unique_ptr<Camera> _camera;
-  static std::unique_ptr<Window> _window;
+  std::unique_ptr<Camera> _camera;
+  std::unique_ptr<Window> _window;
 
   VulkanApplicationContext *_appContext;
 
