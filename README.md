@@ -77,6 +77,6 @@ Overall, this project provides a comprehensive set of denoising techniques that 
 
 ## References
 
-- https://alain.xyz/blog/ray-tracing-filtering
+- https://alain.xyz/blog/tris-ray-tracing-filtering
 - http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences
 - https://psychopath.io/post/2014_06_28_low_discrepancy_sequences

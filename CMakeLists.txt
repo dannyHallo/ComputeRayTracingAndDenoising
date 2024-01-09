@@ -29,8 +29,8 @@ add_executable(${PROJ_NAME}
 	src/memory/ImageUtils.cpp
 	src/memory/Buffer.cpp
 	src/render-context/RenderSystem.cpp
-	src/ray-tracing/Bvh.cpp
-	src/ray-tracing/RtScene.cpp
+	src/tris-ray-tracing/Bvh.cpp
+	src/tris-ray-tracing/RtScene.cpp
 	src/material/ComputeMaterial.cpp
 	src/material/Material.cpp
 	src/scene/mesh.cpp

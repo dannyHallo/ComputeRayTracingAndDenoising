@@ -287,7 +287,8 @@ void Application::_cleanupSwapchainDimensionRelatedResources() {
 
 void Application::_createSwapchainDimensionRelatedResources() {
   _imagesHolder->onSwapchainResize();
-  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get(), kFramesInFlight);
+  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
+                      kFramesInFlight);
 
   _createRenderCommandBuffers();
   _createFramebuffers();
@@ -754,7 +755,8 @@ void Application::_init() {
 
   _buffersHolder->init(_rtScene.get(), kStratumFilterSize, kATrousSize, kFramesInFlight);
   _imagesHolder->init();
-  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get(), kFramesInFlight);
+  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
+                      kFramesInFlight);
 
   _createRenderCommandBuffers();
   _createGuiCommandBuffers();

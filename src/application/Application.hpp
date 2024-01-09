@@ -10,10 +10,11 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-#include "ray-tracing/RtScene.hpp"
 #include "scene/Mesh.hpp"
+#include "tris-ray-tracing/RtScene.hpp"
 #include "utils/camera/Camera.hpp"
 #include "utils/logger/Logger.hpp"
+
 
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"

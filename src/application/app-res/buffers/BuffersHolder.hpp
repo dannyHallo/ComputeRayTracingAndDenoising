@@ -1,7 +1,7 @@
 #pragma once
 
 #include "memory/Buffer.hpp"
-#include "ray-tracing/RtScene.hpp"
+#include "tris-ray-tracing/RtScene.hpp"
 #include "utils/incl/Glm.hpp"
 
 #include <memory>
