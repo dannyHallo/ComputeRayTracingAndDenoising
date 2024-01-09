@@ -13,8 +13,9 @@
 
 // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
 
-static constexpr int kStratumFilterSize = 6;
-static constexpr int kATrousSize        = 5;
+static int constexpr kStratumFilterSize = 6;
+static int constexpr kATrousSize        = 5;
+static float constexpr kImguiFontSize   = 22.0F;
 static const int kFramesInFlight        = 2;
 static const float kFpsUpdateTime       = 0.5F;
 
@@ -83,15 +84,17 @@ void Application::_updateScene(size_t frameIndex) {
 
   auto currentTime = static_cast<float>(glfwGetTime());
 
-  GlobalUniformBufferObject globalUbo = {_camera->getPosition(),
-                                         _camera->getFront(),
-                                         _camera->getUp(),
-                                         _camera->getRight(),
-                                         _appContext->getSwapchainExtentWidth(),
-                                         _appContext->getSwapchainExtentHeight(),
-                                         _camera->getVFov(),
-                                         currentSample,
-                                         currentTime};
+  GlobalUniformBufferObject globalUbo = {
+      _camera->getPosition(),
+      _camera->getFront(),
+      _camera->getUp(),
+      _camera->getRight(),
+      _appContext->getSwapchainExtentWidth(),
+      _appContext->getSwapchainExtentHeight(),
+      _camera->getVFov(),
+      currentSample,
+      currentTime,
+  };
 
   _buffersHolder->getGlobalBuffer(frameIndex)->fillData(&globalUbo);
 
@@ -99,48 +102,64 @@ void Application::_updateScene(size_t frameIndex) {
       _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
                                    static_cast<float>(_appContext->getSwapchainExtentHeight())) *
       _camera->getViewMatrix();
-  GradientProjectionUniformBufferObject gpUbo = {!_useGradientProjection, thisMvpe};
+  GradientProjectionUniformBufferObject gpUbo = {
+      static_cast<int>(!_useGradientProjection),
+      thisMvpe,
+  };
   _buffersHolder->getGradientProjectionBuffer(frameIndex)->fillData(&gpUbo);
 
   RtxUniformBufferObject rtxUbo = {
-
       static_cast<uint32_t>(_rtScene->triangles.size()),
       static_cast<uint32_t>(_rtScene->lights.size()),
-      _movingLightSource,
+      static_cast<int>(_movingLightSource),
       _outputType,
       _offsetX,
-      _offsetY};
+      _offsetY,
+  };
 
   _buffersHolder->getRtxBuffer(frameIndex)->fillData(&rtxUbo);
 
-  for (int i = 0; i < 6; i++) {
-    StratumFilterUniformBufferObject sfUbo = {i, !_useStratumFiltering};
+  for (int i = 0; i < kStratumFilterSize; i++) {
+    StratumFilterUniformBufferObject sfUbo = {i, static_cast<int>(!_useStratumFiltering)};
     _buffersHolder->getStratumFilterBuffer(frameIndex, i)->fillData(&sfUbo);
   }
 
-  TemporalFilterUniformBufferObject tfUbo = {!_useTemporalBlend, _useNormalTest, _normalThreshold,
-                                             _blendingAlpha, lastMvpe};
+  TemporalFilterUniformBufferObject tfUbo = {
+      static_cast<int>(!_useTemporalBlend),
+      static_cast<int>(_useNormalTest),
+      _normalThreshold,
+      _blendingAlpha,
+      lastMvpe,
+  };
   _buffersHolder->getTemperalFilterBuffer(frameIndex)->fillData(&tfUbo);
   lastMvpe = thisMvpe;
 
-  VarianceUniformBufferObject varianceUbo = {!_useVarianceEstimation, _skipStoppingFunctions,
-                                             _useTemporalVariance,    _varianceKernelSize,
-                                             _variancePhiGaussian,    _variancePhiDepth};
+  VarianceUniformBufferObject varianceUbo = {
+      static_cast<int>(!_useVarianceEstimation),
+      static_cast<int>(_skipStoppingFunctions),
+      static_cast<int>(_useTemporalVariance),
+      _varianceKernelSize,
+      _variancePhiGaussian,
+      _variancePhiDepth,
+  };
+
   _buffersHolder->getVarianceBuffer(frameIndex)->fillData(&varianceUbo);
 
   for (int i = 0; i < kATrousSize; i++) {
     // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {!_useATrous,
-                                           i,
-                                           _iCap,
-                                           _useVarianceGuidedFiltering,
-                                           _useGradientInDepth,
-                                           _phiLuminance,
-                                           _phiDepth,
-                                           _phiNormal,
-                                           _ignoreLuminanceAtFirstIteration,
-                                           _changingLuminancePhi,
-                                           _useJittering};
+    BlurFilterUniformBufferObject bfUbo = {
+        static_cast<int>(!_useATrous),
+        i,
+        _iCap,
+        static_cast<int>(_useVarianceGuidedFiltering),
+        static_cast<int>(_useGradientInDepth),
+        _phiLuminance,
+        _phiDepth,
+        _phiNormal,
+        static_cast<int>(_ignoreLuminanceAtFirstIteration),
+        static_cast<int>(_changingLuminancePhi),
+        static_cast<int>(_useJittering),
+    };
     _buffersHolder->getBlurFilterBuffer(frameIndex, i)->fillData(&bfUbo);
   }
 
@@ -267,7 +286,6 @@ void Application::_createRenderCommandBuffers() {
 
 // these commandbuffers are initially recorded with the models
 void Application::_cleanupRenderCommandBuffers() {
-
   for (auto &commandBuffer : _commandBuffers) {
     vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                          &commandBuffer);
@@ -410,25 +428,28 @@ void Application::_createFramebuffers() {
 }
 
 void Application::_createGuiDescripterPool() {
-  std::vector<VkDescriptorPoolSize> poolSizes = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-                                                 {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+  int constexpr kMaxDescriptorCount           = 1000;
+  std::vector<VkDescriptorPoolSize> poolSizes = {
+      {VK_DESCRIPTOR_TYPE_SAMPLER, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, kMaxDescriptorCount},
+      {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, kMaxDescriptorCount},
+  };
 
   VkDescriptorPoolCreateInfo poolInfo = {};
   poolInfo.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   // this descriptor pool is created only for once, so we can set the flag to allow individual
   // descriptor sets to be de-allocated
   poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-  // actually imgui takes only 1 descriptor set
-  poolInfo.maxSets       = 1000 * poolSizes.size();
+  // imgui actually uses only 1 descriptor set
+  poolInfo.maxSets       = kMaxDescriptorCount * poolSizes.size();
   poolInfo.pPoolSizes    = poolSizes.data();
   poolInfo.poolSizeCount = poolSizes.size();
 
@@ -443,7 +464,7 @@ void Application::_initGui() {
   ImGui::CreateContext();
   ImGuiIO &io = ImGui::GetIO();
   io.Fonts->AddFontFromFileTTF((kPathToResourceFolder + "/fonts/OverpassMono-Medium.ttf").c_str(),
-                               22.0f);
+                               kImguiFontSize);
 
   io.ConfigFlags |= ImGuiWindowFlags_NoNavInputs;
 
@@ -612,10 +633,11 @@ void Application::_prepareGui() {
 
     ImGui::SeparatorText("Rtx");
     ImGui::Checkbox("Moving Light Source", &_movingLightSource);
-    const std::vector<std::string> outputItems{"Combined", "Direct Only", "Indirect Only"};
+    std::vector<std::string> const outputItems{"Combined", "Direct Only", "Indirect Only"};
     comboSelector("Output Type", outputItems, _outputType);
-    ImGui::DragFloat("Offset X", &_offsetX, 0.01F, -1.0F, 1.0F);
-    ImGui::DragFloat("Offset Y", &_offsetY, 0.01F, -1.0F, 1.0F);
+    float constexpr kDragSpeed = 0.01F;
+    ImGui::DragFloat("Offset X", &_offsetX, kDragSpeed, -1.0F, 1.0F);
+    ImGui::DragFloat("Offset Y", &_offsetY, kDragSpeed, -1.0F, 1.0F);
 
     ImGui::SeparatorText("Stratum Filter");
     ImGui::Checkbox("Use Stratum Filter", &_useStratumFiltering);
@@ -630,7 +652,8 @@ void Application::_prepareGui() {
     ImGui::Checkbox("Variance Calculation", &_useVarianceEstimation);
     ImGui::Checkbox("Skip Stopping Functions", &_skipStoppingFunctions);
     ImGui::Checkbox("Use Temporal Variance", &_useTemporalVariance);
-    ImGui::SliderInt("Variance Kernel Size", &_varianceKernelSize, 1, 15);
+    int constexpr kMaxVarianceKernalSize = 15;
+    ImGui::SliderInt("Variance Kernel Size", &_varianceKernelSize, 1, kMaxVarianceKernalSize);
     ImGui::SliderFloat("Variance Phi Gaussian", &_variancePhiGaussian, 0.0F, 1.0F);
     ImGui::SliderFloat("Variance Phi Depth", &_variancePhiDepth, 0.0F, 1.0F);
 
@@ -641,7 +664,8 @@ void Application::_prepareGui() {
     ImGui::Checkbox("Use gradient in depth", &_useGradientInDepth);
     ImGui::SliderFloat("Luminance Phi", &_phiLuminance, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Depth", &_phiDepth, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Normal", &_phiNormal, 0.0F, 200.0F);
+    float constexpr kPhiNormalMax = 200.0F;
+    ImGui::SliderFloat("Phi Normal", &_phiNormal, 0.0F, kPhiNormalMax);
     ImGui::Checkbox("Ignore Luminance For First Iteration", &_ignoreLuminanceAtFirstIteration);
     ImGui::Checkbox("Changing luminance phi", &_changingLuminancePhi);
     ImGui::Checkbox("Use jitter", &_useJittering);
@@ -656,8 +680,7 @@ void Application::_prepareGui() {
   ImGui::EndMainMenuBar();
 
   auto *mainGuiViewPort = ImGui::GetMainViewport();
-  // float width           = mainGuiViewPort->Size.x;
-  float height = mainGuiViewPort->Size.y;
+  float height          = mainGuiViewPort->Size.y;
 
   const float kStatsWindowWidth  = 200.0F;
   const float kStatsWindowHeight = 80.0F;
@@ -672,7 +695,8 @@ void Application::_prepareGui() {
 
   ImGui::SetWindowSize(ImVec2(kStatsWindowWidth, kStatsWindowHeight));
   ImGui::Text("fps : %.2f", _fps);
-  ImGui::Text("mspf: %.2f", 1 / _fps * 1000.F);
+  float constexpr kMsPerSecond = 1000.0F;
+  ImGui::Text("frame t: %.2f", kMsPerSecond / _fps);
 
   ImGui::End();
   ImGui::Render();
@@ -698,7 +722,8 @@ void Application::_mainLoop() {
     auto &io = ImGui::GetIO();
     // the MousePos is problematic when the window is not focused, so we set it
     // manually here
-    io.MousePos = ImVec2(_window->getCursorXPos(), _window->getCursorYPos());
+    io.MousePos = ImVec2(static_cast<float>(_window->getCursorXPos()),
+                         static_cast<float>(_window->getCursorYPos()));
 
     if (glfwGetWindowAttrib(_window->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
       _logger.print("window is not focused");
