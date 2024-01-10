@@ -16,14 +16,10 @@ std::string _makeShaderPath(const std::string &shaderName) {
 } // namespace
 
 static const std::map<std::string, WorkGroupSize> kShaderNameToWorkGroupSizes = {
-    {"gradientProjection", {8, 8, 1}},
-    {"rtx", {8, 8, 1}},
-    {"svo", {8, 8, 1}},
-    {"screenSpaceGradient", {32, 32, 1}},
-    {"stratumFilter", {32, 32, 1}},
-    {"temporalFilter", {32, 32, 1}},
-    {"variance", {32, 32, 1}},
-    {"aTrous", {32, 32, 1}},
+    {"gradientProjection", {8, 8, 1}}, {"trisTracing", {8, 8, 1}},
+    {"svoTracing", {8, 8, 1}},         {"screenSpaceGradient", {32, 32, 1}},
+    {"stratumFilter", {32, 32, 1}},    {"temporalFilter", {32, 32, 1}},
+    {"variance", {32, 32, 1}},         {"aTrous", {32, 32, 1}},
     {"postProcessing", {8, 8, 1}},
 };
 
@@ -59,7 +55,7 @@ void ModelsHolder::_createGradientProjectionModel() {
 // currently unused
 void ModelsHolder::_createRtxModel() {
   // mat creation
-  std::string const shaderName = "rtx";
+  std::string const shaderName = "trisTracing";
   auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
 
   // ubo
@@ -95,7 +91,7 @@ void ModelsHolder::_createRtxModel() {
 
 void ModelsHolder::_createSvoModel() {
   // mat creation
-  std::string const shaderName = "svo";
+  std::string const shaderName = "svoTracing";
   auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
 
   // ubo
@@ -103,6 +99,9 @@ void ModelsHolder::_createSvoModel() {
 
   // image write
   mat->addStorageImage(_imagesHolder->getRawImage());
+
+  // buffers
+  mat->addStorageBufferBundle(_buffersHolder->getSvoBufferBundle());
 
   // model creation
   _svoModel = std::make_unique<ComputeModel>(std::move(mat), _framesInFlight,

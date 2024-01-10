@@ -1,7 +1,8 @@
 #pragma once
 
 #include "memory/Buffer.hpp"
-#include "tris-ray-tracing/RtScene.hpp"
+#include "svo-ray-tracing/SvoScene.hpp"
+#include "tris-ray-tracing/TrisScene.hpp"
 #include "utils/incl/Glm.hpp"
 
 #include <memory>
@@ -78,7 +79,7 @@ class BuffersHolder {
 public:
   BuffersHolder() = default;
 
-  void init(GpuModel::TrisScene *rtScene, int stratumFilterSize, int aTrousSize,
+  void init(GpuModel::TrisScene *rtScene, SvoScene *svoScene, int stratumFilterSize, int aTrousSize,
             size_t framesInFlight);
 
   // buffer bundles getter
@@ -101,6 +102,7 @@ public:
   BufferBundle *getMaterialBufferBundle() { return _materialBufferBundle.get(); }
   BufferBundle *getBvhBufferBundle() { return _bvhBufferBundle.get(); }
   BufferBundle *getLightsBufferBundle() { return _lightsBufferBundle.get(); }
+  BufferBundle *getSvoBufferBundle() { return _svoBufferBundle.get(); }
 
   // buffers getter
   Buffer *getGlobalBuffer(size_t frameIndex) { return _globalBufferBundle->getBuffer(frameIndex); }
@@ -128,6 +130,7 @@ public:
   Buffer *getMaterialBuffer() { return _materialBufferBundle->getBuffer(0); }
   Buffer *getBvhBuffer() { return _bvhBufferBundle->getBuffer(0); }
   Buffer *getLightsBuffer() { return _lightsBufferBundle->getBuffer(0); }
+  Buffer *getSvoBuffer() { return _svoBufferBundle->getBuffer(0); }
 
 private:
   // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
@@ -151,7 +154,9 @@ private:
   std::unique_ptr<BufferBundle> _materialBufferBundle;
   std::unique_ptr<BufferBundle> _bvhBufferBundle;
   std::unique_ptr<BufferBundle> _lightsBufferBundle;
+  //
+  std::unique_ptr<BufferBundle> _svoBufferBundle;
 
   void _createMultiBufferBundles(int stratumFilterSize, int aTrousSize, size_t framesInFlight);
-  void _createSingleBufferBundles(GpuModel::TrisScene *rtScene);
+  void _createSingleBufferBundles(GpuModel::TrisScene *rtScene, SvoScene *svoScene);
 };

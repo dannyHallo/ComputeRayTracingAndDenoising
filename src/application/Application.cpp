@@ -16,15 +16,13 @@
 static int constexpr kStratumFilterSize = 6;
 static int constexpr kATrousSize        = 5;
 static float constexpr kImguiFontSize   = 22.0F;
-static const int kFramesInFlight        = 2;
-static const float kFpsUpdateTime       = 0.5F;
-
-// std::unique_ptr<Camera> Application::_camera = nullptr;
-// std::unique_ptr<Window> Application::_window = nullptr;
+static int constexpr kFramesInFlight    = 2;
+static float constexpr kFpsUpdateTime   = 0.5F;
 
 Camera *Application::getCamera() { return _camera.get(); }
 
-Application::Application() : _appContext(VulkanApplicationContext::getInstance()) {
+Application::Application()
+    : _iCap(kATrousSize), _appContext(VulkanApplicationContext::getInstance()) {
   _window = std::make_unique<Window>(WindowStyle::kFullScreen);
   _appContext->init(&_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
@@ -73,12 +71,14 @@ void check_vk_result(VkResult resultCode) {
   assert(resultCode == VK_SUCCESS && "check_vk_result failed");
 }
 
-void Application::_createScene() {
+void Application::_createTrisScene() {
   // creates material, loads models from files, creates bvh
-  _rtScene = std::make_unique<GpuModel::TrisScene>();
+  _trisScene = std::make_unique<GpuModel::TrisScene>();
 }
 
-void Application::_updateScene(size_t frameIndex) {
+void Application::_createSvoScene() { _svoScene = std::make_unique<SvoScene>(&_logger); }
+
+void Application::_updateUbos(size_t frameIndex) {
   static uint32_t currentSample = 0;
   static glm::mat4 lastMvpe{1.0F};
 
@@ -95,7 +95,6 @@ void Application::_updateScene(size_t frameIndex) {
       currentSample,
       currentTime,
   };
-
   _buffersHolder->getGlobalBuffer(frameIndex)->fillData(&globalUbo);
 
   auto thisMvpe =
@@ -109,8 +108,8 @@ void Application::_updateScene(size_t frameIndex) {
   _buffersHolder->getGradientProjectionBuffer(frameIndex)->fillData(&gpUbo);
 
   RtxUniformBufferObject rtxUbo = {
-      static_cast<uint32_t>(_rtScene->triangles.size()),
-      static_cast<uint32_t>(_rtScene->lights.size()),
+      static_cast<uint32_t>(_trisScene->triangles.size()),
+      static_cast<uint32_t>(_trisScene->lights.size()),
       static_cast<int>(_movingLightSource),
       _outputType,
       _offsetX,
@@ -556,7 +555,7 @@ void Application::_drawFrame() {
     _logger.throwError("resizing is not allowed!");
   }
 
-  _updateScene(currentFrame);
+  _updateUbos(currentFrame);
 
   _recordGuiCommandBuffer(_guiCommandBuffers[currentFrame], imageIndex);
   std::vector<VkCommandBuffer> submitCommandBuffers = {_commandBuffers[imageIndex],
@@ -777,9 +776,11 @@ bool Application::_needToToggleWindowStyle() {
 }
 
 void Application::_init() {
-  _createScene();
+  _createTrisScene();
+  _createSvoScene();
 
-  _buffersHolder->init(_rtScene.get(), kStratumFilterSize, kATrousSize, kFramesInFlight);
+  _buffersHolder->init(_trisScene.get(), _svoScene.get(), kStratumFilterSize, kATrousSize,
+                       kFramesInFlight);
   _imagesHolder->init();
   _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
                       kFramesInFlight);

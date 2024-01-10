@@ -19,8 +19,8 @@ if "%2"=="skipcpp" (
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
 
 set GLSLC_PATH=%GLSLC%
-set SHADERS=svo postProcessing 
-@REM set SHADERS=gradientProjection rtx screenSpaceGradient stratumFilter temporalFilter variance aTrous postProcessing 
+set SHADERS=svoTracing postProcessing 
+@REM set SHADERS=gradientProjection rtxTracing svoTracing screenSpaceGradient stratumFilter temporalFilter variance aTrous postProcessing 
 
 @REM ---------------------------------------------------------------------------------------
 

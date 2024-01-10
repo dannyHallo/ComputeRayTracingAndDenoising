@@ -7,14 +7,19 @@
 #include <memory>
 #include <vector>
 
+class Logger;
 class SvoScene {
 public:
-  SvoScene();
-  void run();
+  SvoScene(Logger *logger);
+
+  [[nodiscard]] const std::vector<uint32_t> &getBuffer() const { return _buffer; }
 
 private:
+  Logger *_logger;
   std::vector<uint32_t> _buffer;
   std::vector<std::unique_ptr<ImageData>> _imageDatas;
+
+  void _run();
 
   void _buildImageDatas();
   void _printImageDatas();

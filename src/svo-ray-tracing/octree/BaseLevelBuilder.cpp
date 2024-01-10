@@ -6,7 +6,7 @@ namespace BaseLevelBuilder {
 
 namespace {
 void _buildVoxel(ImageData *imageData, ImCoor3D const &coor) {
-  uint32_t constexpr kAllChilds = 0x0000FFFF;
+  uint32_t constexpr kAllChilds = 0x00000101;
   imageData->imageStore(coor, kAllChilds);
 }
 
@@ -24,7 +24,9 @@ const std::vector<ImCoor3D> kBuildVoxelCoors{
 };
 
 void build(ImageData *imageData, ImCoor3D const &imageSize) {
-  _buildPlane(imageData, imageSize, 1); // bottom plane
+  for (int y = 0; y < imageSize.y; ++y) {
+    _buildPlane(imageData, imageSize, y);
+  }
   // for (auto const &coor : kBuildVoxelCoors) {
   //   _buildVoxel(imageData, coor);
   // }

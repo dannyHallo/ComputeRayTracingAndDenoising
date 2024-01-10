@@ -1,6 +1,7 @@
 #include "SvoScene.hpp"
 
 #include "svo-ray-tracing/im-data/ImCoor.hpp"
+#include "utils/logger/Logger.hpp"
 
 #include <cassert>
 #include <iomanip> // for advanced cout formatting
@@ -39,26 +40,28 @@ void _printHexFormat(const std::vector<uint32_t> &vec) {
 
 } // namespace
 
-SvoScene::SvoScene() { run(); }
+SvoScene::SvoScene(Logger *logger) : _logger(logger) { _run(); }
 
-void SvoScene::run() {
+void SvoScene::_run() {
   _buildImageDatas();
 
-  std::cout << "\n-------------------\n" << std::endl;
+  _logger->println();
 
-  _printImageDatas();
+  // _printImageDatas();
 
-  std::cout << "\n-------------------\n" << std::endl;
+  _logger->println();
 
   _createBuffer();
 
-  std::cout << "\n-------------------\n" << std::endl;
+  _logger->println();
 
-  _printBuffer();
+  // _printBuffer();
+
+  _logger->print("SvoScene::_run() done!");
 }
 
 void SvoScene::_buildImageDatas() {
-  ImCoor3D const kBaseImageSize = {32, 32, 32};
+  ImCoor3D const kBaseImageSize = {16, 16, 16};
   ImCoor3D const kRootImageSize = {1, 1, 1};
 
   // assert all components in the size should be a power of 2
@@ -75,7 +78,7 @@ void SvoScene::_buildImageDatas() {
   BaseLevelBuilder::build(_imageDatas[imIdx].get(), kBaseImageSize);
 
   while (_imageDatas[imIdx]->getImageSize() != kRootImageSize) {
-    std::cout << "imIdx: " << imIdx << std::endl;
+    // std::cout << "imIdx: " << imIdx << std::endl;
     auto newImageData = std::make_unique<ImageData>(_imageDatas[imIdx]->getImageSize() / 2);
     _imageDatas.push_back(std::move(newImageData));
     UpperLevelBuilder::build(_imageDatas[imIdx].get(), _imageDatas[imIdx + 1].get());
@@ -88,7 +91,6 @@ void SvoScene::_printImageDatas() {
     std::cout << "imageData->getImageSize(): " << imageData->getImageSize().x << " "
               << imageData->getImageSize().y << " " << imageData->getImageSize().z << std::endl;
 
-    std::cout << "notice that the order is irrelevant" << std::endl;
     for (auto const &[coor, data] : imageData->getImageData()) {
       std::cout << "coor: " << coor.x << " " << coor.y << " " << coor.z << std::endl;
       std::cout << "data: " << std::hex << data << std::endl;
@@ -119,8 +121,8 @@ void SvoScene::_createBuffer() {
   accum += bitCount(data & 0x0000FF00); // accum the bit offset
 
   // debug
-  std::cout << "coor: " << coor.x << " " << coor.y << " " << coor.z << std::endl;
-  std::cout << "data: " << std::hex << data << std::endl;
+  // std::cout << "coor: " << coor.x << " " << coor.y << " " << coor.z << std::endl;
+  // std::cout << "data: " << std::hex << data << std::endl;
 
   while (--imIdx >= 0) {
     auto const &imageData = _imageDatas[imIdx];
@@ -143,8 +145,8 @@ void SvoScene::_createBuffer() {
             accum += bitCount(data & 0x0000FF00); // accum the bit offset
 
             // debug
-            std::cout << "coor: " << coor.x << " " << coor.y << " " << coor.z << std::endl;
-            std::cout << "data: " << std::hex << data << std::endl;
+            // std::cout << "coor: " << coor.x << " " << coor.y << " " << coor.z << std::endl;
+            // std::cout << "data: " << std::hex << data << std::endl;
           }
         }
       }

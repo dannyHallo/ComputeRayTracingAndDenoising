@@ -2,9 +2,9 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-void BuffersHolder::init(GpuModel::TrisScene *rtScene, int stratumFilterSize, int aTrousSize,
-                         size_t framesInFlight) {
-  _createSingleBufferBundles(rtScene);
+void BuffersHolder::init(GpuModel::TrisScene *rtScene, SvoScene *svoScene, int stratumFilterSize,
+                         int aTrousSize, size_t framesInFlight) {
+  _createSingleBufferBundles(rtScene, svoScene);
   _createMultiBufferBundles(stratumFilterSize, aTrousSize, framesInFlight);
 }
 
@@ -53,7 +53,7 @@ void BuffersHolder::_createMultiBufferBundles(int stratumFilterSize, int aTrousS
 
 // these buffers only need one copy! because they are not modified by CPU once uploaded to GPU
 // side, and GPU cannot work on multiple frames at the same time
-void BuffersHolder::_createSingleBufferBundles(GpuModel::TrisScene *rtScene) {
+void BuffersHolder::_createSingleBufferBundles(GpuModel::TrisScene *rtScene, SvoScene *svoScene) {
   _triangleBufferBundle = std::make_unique<BufferBundle>(
       1, sizeof(GpuModel::Triangle) * rtScene->triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->triangles.data());
@@ -69,4 +69,8 @@ void BuffersHolder::_createSingleBufferBundles(GpuModel::TrisScene *rtScene) {
   _lightsBufferBundle = std::make_unique<BufferBundle>(
       1, sizeof(GpuModel::Light) * rtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->lights.data());
+
+  _svoBufferBundle = std::make_unique<BufferBundle>(
+      1, sizeof(uint32_t) * svoScene->getBuffer().size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU, svoScene->getBuffer().data());
 }

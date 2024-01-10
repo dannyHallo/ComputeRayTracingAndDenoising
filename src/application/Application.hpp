@@ -11,7 +11,8 @@
 #include "app-context/VulkanApplicationContext.hpp"
 
 #include "scene/Mesh.hpp"
-#include "tris-ray-tracing/RtScene.hpp"
+#include "svo-ray-tracing/SvoScene.hpp"
+#include "tris-ray-tracing/TrisScene.hpp"
 #include "utils/camera/Camera.hpp"
 #include "utils/logger/Logger.hpp"
 
@@ -56,10 +57,10 @@ private:
   // TemporalFilterUniformBufferObject
   bool _useTemporalBlend = true;
   bool _useDepthTest     = false;
-  float _depthThreshold  = 0.07;
+  float _depthThreshold  = 0.07F;
   bool _useNormalTest    = true;
-  float _normalThreshold = 0.99;
-  float _blendingAlpha   = 0.15;
+  float _normalThreshold = 0.99F;
+  float _blendingAlpha   = 0.15F;
 
   // VarianceUniformBufferObject
   bool _useVarianceEstimation = true;
@@ -67,15 +68,15 @@ private:
   bool _useTemporalVariance   = true;
   int _varianceKernelSize     = 4;
   float _variancePhiGaussian  = 1.F;
-  float _variancePhiDepth     = 0.2f;
+  float _variancePhiDepth     = 0.2F;
 
   // BlurFilterUniformBufferObject
   bool _useATrous                       = true;
-  int _iCap                             = 5;
+  int _iCap                             = 0;
   bool _useVarianceGuidedFiltering      = true;
   bool _useGradientInDepth              = true;
-  float _phiLuminance                   = 0.3f;
-  float _phiDepth                       = 0.2f;
+  float _phiLuminance                   = 0.3F;
+  float _phiDepth                       = 0.2F;
   float _phiNormal                      = 128.F;
   bool _ignoreLuminanceAtFirstIteration = true;
   bool _changingLuminancePhi            = true;
@@ -98,9 +99,8 @@ private:
 
   VulkanApplicationContext *_appContext;
 
-  /// the following resources are NOT swapchain dim related
-  // scene for ray tracing
-  std::unique_ptr<GpuModel::TrisScene> _rtScene;
+  std::unique_ptr<GpuModel::TrisScene> _trisScene;
+  std::unique_ptr<SvoScene> _svoScene;
 
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> _commandBuffers;
@@ -124,10 +124,11 @@ private:
   std::unique_ptr<ImagesHolder> _imagesHolder;
   std::unique_ptr<ModelsHolder> _modelsHolder;
 
-  void _createScene();
+  void _createTrisScene(); // currently not used
+  void _createSvoScene();
 
   // update uniform buffer object for each frame and save last mvpe matrix
-  void _updateScene(size_t frameIndex);
+  void _updateUbos(size_t frameIndex);
 
   void _createRenderCommandBuffers();
 

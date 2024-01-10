@@ -1,0 +1,250 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+// layout(binding = 1) uniform UniformBufferObject { uint a; }
+// ubo;
+
+layout(binding = 1, rgba32f) writeonly uniform image2D rawTex;
+layout(std430, binding = 2) readonly buffer SvoBufferObject { uint[] voxel_buffer; };
+
+#include "include/definitions.glsl"
+#include "include/globalUbo.glsl" // defines layout 0
+
+const int MAX_ITER    = 100;
+const uint kMaxLevels = 10u;
+
+struct Ray {
+  vec3 origin;
+  vec3 dir;
+};
+
+const float[] scale_lookup = float[](1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0.0078125,
+                                     0.00390625, 0.001953125, 0.0009765625, 0.00048828125);
+
+// returns t0 and t1, also fills tmid and tmax
+bool isect(out float tcmin, out float tcmax, out vec3 tmid, out vec3 tmax, vec3 pos, float size,
+           Ray camRay) {
+  vec3 halfSize  = vec3(0.5 * size);
+  vec3 minCorner = pos - halfSize;
+  vec3 maxCorner = pos + halfSize;
+
+  // xyz components of t for the ray to get to the 3 planes of minCorner
+  vec3 t1 = (minCorner - camRay.origin) / camRay.dir;
+  // xyz ...
+  vec3 t2   = (maxCorner - camRay.origin) / camRay.dir;
+  vec3 tmin = min(t1, t2);
+  tmax      = max(t1, t2);
+  tmid      = (tmin + tmax) * 0.5;
+
+  tcmin = max(tmin.x, max(tmin.y, tmin.z));
+  tcmax = min(tmax.x, min(tmax.y, tmax.z));
+
+  return tcmin <= tcmax && tcmax > 0.0;
+}
+
+uint countOnesInLastN(uint value, uint n) {
+  uint mask         = 0xFFu >> (8u - n);
+  uint relevantBits = value & mask;
+  // bitCount is introduced after GLSL 4.00 (incl)
+  return bitCount(relevantBits);
+}
+
+void fetch_voxel_buffer(out uint next_byte_offset, out bool has_voxel, out bool is_leaf,
+                        uint byte_offset, uint bit_offset) {
+  uint voxel_node = voxel_buffer[byte_offset];
+  // 16: group offset
+  next_byte_offset = voxel_node >> 16;
+  // 8: child mask
+  uint voxel_child_mask = (voxel_node & 0x0000FF00u) >> 8;
+  // 8: leaf mask
+  uint voxel_leaf_mask = voxel_node & 0x000000FFu;
+
+  has_voxel = (voxel_child_mask & (1u << bit_offset)) != 0u;
+  is_leaf   = (voxel_leaf_mask & (1u << bit_offset)) != 0u;
+
+  if (has_voxel) {
+    // bit_offset range: 0-7, so the last n range is 1-8, so we need to +1
+    // the first bit '1' indicates a delta of 0, so we need to -1
+    next_byte_offset += countOnesInLastN(voxel_child_mask, bit_offset + 1u) - 1u;
+  }
+}
+
+// returns true if hit, false if miss
+vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int iter_used,
+           Ray camRay) {
+  const vec4 kBlack   = vec4(0.0, 0.0, 0.0, 1.0);
+  const vec4 kRed     = vec4(1.0, 0.0, 0.0, 1.0);
+  const vec4 kGreen   = vec4(0.0, 1.0, 0.0, 1.0);
+  const vec4 kBlue    = vec4(0.0, 0.0, 1.0, 1.0);
+  const vec4 kMagenta = vec4(0.5, 0.2, 0.5, 1.0);
+
+  struct ST {
+    vec3 pos;
+    int scale; // size = exp2(float(-scale)), a lookup table is used
+    vec3 idx;
+    uint ptr;
+    float h;
+  } stack[kMaxLevels];
+
+  int stack_ptr = 0;
+  hit           = false;
+
+  // STEP 1: initialize
+  int scale = 0;
+
+  pos = vec3(0);
+  vec3 tmid, tmax;
+  bool can_push               = true;
+  bool is_intersect_with_root = isect(tcmin, tcmax, tmid, tmax, pos, scale_lookup[scale], camRay);
+  if (!is_intersect_with_root) {
+    return kBlack;
+  }
+
+  float h = tcmax;
+
+  // initial [PUSH], determine the first hited child (direct child of root node)
+  // for x component, if tcmin < tmid.x, idx.x reverts the ray dir in x axis,
+  // same for y and z
+  vec3 idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
+
+  uint byte_offset = 0u;
+  scale++;
+
+  // move to first hitted sub-cell center
+  pos += scale_lookup[scale + 1] * idx;
+
+  iter_used = 0;
+  while (iter_used++ < MAX_ITER) {
+    // transform idx from [-1, 1] to [0, 1]
+    vec3 idx01      = idx * .5 + .5;
+    uint bit_offset = uint(dot(idx01, vec3(1., 2., 4.))); // 0-7
+
+    isect(tcmin, tcmax, tmid, tmax, pos, scale_lookup[scale], camRay);
+
+    uint next_byte_offset;
+    bool has_voxel, is_leaf;
+    // TODO: don't fetch if not necessary (store them in stack)
+    fetch_voxel_buffer(next_byte_offset, has_voxel, is_leaf, byte_offset, bit_offset);
+
+    // [PUSH] repeatedly, until empty voxel is found
+    // when pushed layer reached the same level as the smallest voxel, stop
+    // and return (this is temporary solution for finding the leaf)
+    if (can_push && has_voxel) {
+      // hits the leaf
+      if (is_leaf) {
+        hit = true;
+        // return vec4(vec3(exp(-tcmin)), 1.0);
+        return kGreen;
+      }
+
+      // tcmax is current voxel's exist time, h is parent voxel exist time
+      if (tcmax < h) {
+        stack[stack_ptr++] = ST(pos, scale, idx, byte_offset, h);
+      }
+
+      h = tcmax;
+      scale++;
+
+      // step: for element i of the return value, 0.0 is returned if x[i] <
+      // edge[i], and 1.0 is returned otherwise.
+      idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
+
+      byte_offset = next_byte_offset;
+
+      pos += scale_lookup[scale + 1] * idx;
+      continue;
+    }
+
+    // save the previous idx
+    vec3 old = idx;
+
+    // this is genius, for the hitted direction, if hit point is in the
+    // middle, we advance to the other side, because this uses the direction
+    // directly (not increment / bit flipping), if the next bit is outside of
+    // the parent voxel, old will be equal to idx
+    idx = mix(idx, sign(camRay.dir), equal(tmax, vec3(tcmax)));
+
+    // idx has not changed -> [POP]
+    if (idx == old) {
+      // if poped all the way to the root
+      // if (stack_ptr == 0 || scale == 0)
+      if (stack_ptr == 0) {
+        return kMagenta;
+      }
+
+      ST s        = stack[--stack_ptr]; // restore to parent Stack
+      pos         = s.pos;
+      scale       = s.scale;
+      idx         = s.idx;
+      byte_offset = s.ptr;
+      h           = s.h;
+
+      // once stack pop out, avoid pushing it in again
+      can_push = false;
+    }
+    // idx has changed -> [ADVANCE]
+    else {
+      // if old = idx → stay,else → move forward in this stack
+      pos += mix(vec3(0.), sign(camRay.dir), notEqual(old, idx)) * scale_lookup[scale];
+      can_push = true;
+    }
+  }
+  return kBlack;
+}
+
+vec2 rotate2d(vec2 v, float a) {
+  float sinA = sin(a);
+  float cosA = cos(a);
+  return vec2(v.x * cosA - v.y * sinA, v.y * cosA + v.x * sinA);
+}
+
+vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
+  const vec3 origin = globalUbo.camPos;
+  const vec3 front  = globalUbo.camFront;
+  const vec3 up     = globalUbo.camUp;
+  const vec3 right  = globalUbo.camRight;
+
+  const float theta           = globalUbo.vfov * kDeg2Rad;
+  const float h               = tan(theta / 2);
+  const float viewport_height = 2.0 * h;
+  const float viewport_width =
+      float(globalUbo.swapchainWidth) / float(globalUbo.swapchainHeight) * viewport_height;
+
+  vec3 rayPropDir      = viewport_width * right - viewport_height * up;
+  vec3 top_left_corner = front - rayPropDir / 2;
+
+  vec2 uv = (gl_GlobalInvocationID.xy + subpixOffset) /
+            vec2(globalUbo.swapchainWidth, globalUbo.swapchainHeight);
+
+  return top_left_corner + viewport_width * right * uv.x - viewport_height * up * uv.y;
+}
+
+Ray rayGen(vec2 subpixOffset) {
+  vec3 rayDir = normalize(getPixelInScreenPosByDispatch(subpixOffset));
+  return Ray(globalUbo.camPos, rayDir);
+}
+
+void main() {
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+    return;
+  }
+
+  Ray camRay = rayGen(vec2(0.5)); // no hist now
+
+  // step 2: ray march
+  float tcmin, tcmax;
+  bool hit;
+  vec3 pos;
+  int iter_used;
+  vec4 fragColor = trace(hit, tcmin, tcmax, pos, iter_used, camRay);
+
+  // customized shading
+  if (hit) {
+    fragColor = vec4(vec3(float(iter_used) / 10.0), 1.0);
+    // fragColor = vec4(vec3(exp(-tcmin)), 1.0);
+  }
+  imageStore(rawTex, uv, fragColor);
+}

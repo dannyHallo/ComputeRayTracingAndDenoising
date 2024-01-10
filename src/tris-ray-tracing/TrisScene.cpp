@@ -1,4 +1,4 @@
-#include "RtScene.hpp"
+#include "TrisScene.hpp"
 
 namespace GpuModel {
 
