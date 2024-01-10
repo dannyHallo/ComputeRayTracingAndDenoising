@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../utils/incl/Glm.hpp"
-#include "GpuModels.hpp"
+#include "TrisGpuModel.hpp"
 #include <algorithm>
 #include <stack>
 #include <stdlib.h> /* srand, rand */

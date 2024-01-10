@@ -2,12 +2,12 @@
 
 namespace GpuModel {
 
-std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex, glm::vec3 offset,
-                                   glm::vec3 scale) {
+std::vector<Triangle> getTriangles(const std::string &path, uint32_t materialIndex,
+                                   glm::vec3 offset, glm::vec3 scale) {
   Mesh mesh(path);
 
   std::hash<std::string> hasher;
-  uint32_t meshId = static_cast<uint32_t>(hasher(path));
+  auto meshId = static_cast<uint32_t>(hasher(path));
 
   std::vector<Triangle> triangles;
   size_t numTris = mesh.indices.size() / 3;
@@ -25,7 +25,7 @@ std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex, 
   return triangles;
 }
 
-RtScene::RtScene() {
+TrisScene::TrisScene() {
   const std::string path_prefix = std::string(ROOT_DIR) + "resources/";
 
   // struct and classes without default initializer can be inited by this way

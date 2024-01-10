@@ -75,7 +75,7 @@ void check_vk_result(VkResult resultCode) {
 
 void Application::_createScene() {
   // creates material, loads models from files, creates bvh
-  _rtScene = std::make_unique<GpuModel::RtScene>();
+  _rtScene = std::make_unique<GpuModel::TrisScene>();
 }
 
 void Application::_updateScene(size_t frameIndex) {

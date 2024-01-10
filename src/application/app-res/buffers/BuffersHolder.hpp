@@ -78,7 +78,7 @@ class BuffersHolder {
 public:
   BuffersHolder() = default;
 
-  void init(GpuModel::RtScene *rtScene, int stratumFilterSize, int aTrousSize,
+  void init(GpuModel::TrisScene *rtScene, int stratumFilterSize, int aTrousSize,
             size_t framesInFlight);
 
   // buffer bundles getter
@@ -153,5 +153,5 @@ private:
   std::unique_ptr<BufferBundle> _lightsBufferBundle;
 
   void _createMultiBufferBundles(int stratumFilterSize, int aTrousSize, size_t framesInFlight);
-  void _createSingleBufferBundles(GpuModel::RtScene *rtScene);
+  void _createSingleBufferBundles(GpuModel::TrisScene *rtScene);
 };

@@ -2,7 +2,7 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-void BuffersHolder::init(GpuModel::RtScene *rtScene, int stratumFilterSize, int aTrousSize,
+void BuffersHolder::init(GpuModel::TrisScene *rtScene, int stratumFilterSize, int aTrousSize,
                          size_t framesInFlight) {
   _createSingleBufferBundles(rtScene);
   _createMultiBufferBundles(stratumFilterSize, aTrousSize, framesInFlight);
@@ -53,7 +53,7 @@ void BuffersHolder::_createMultiBufferBundles(int stratumFilterSize, int aTrousS
 
 // these buffers only need one copy! because they are not modified by CPU once uploaded to GPU
 // side, and GPU cannot work on multiple frames at the same time
-void BuffersHolder::_createSingleBufferBundles(GpuModel::RtScene *rtScene) {
+void BuffersHolder::_createSingleBufferBundles(GpuModel::TrisScene *rtScene) {
   _triangleBufferBundle = std::make_unique<BufferBundle>(
       1, sizeof(GpuModel::Triangle) * rtScene->triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->triangles.data());

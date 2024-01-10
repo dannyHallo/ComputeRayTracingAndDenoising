@@ -100,7 +100,7 @@ private:
 
   /// the following resources are NOT swapchain dim related
   // scene for ray tracing
-  std::unique_ptr<GpuModel::RtScene> _rtScene;
+  std::unique_ptr<GpuModel::TrisScene> _rtScene;
 
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> _commandBuffers;

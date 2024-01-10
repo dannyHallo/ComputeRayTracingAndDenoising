@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Bvh.hpp"
-#include "GpuModels.hpp"
+#include "TrisGpuModel.hpp"
 #include "scene/Mesh.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/incl/Glm.hpp"
@@ -13,16 +13,16 @@
 glm::vec3 multiplyAccordingly(glm::vec3 v1, glm::vec3 v2);
 
 namespace GpuModel {
-std::vector<Triangle> getTriangles(const std::string &path, uint materialIndex,
+std::vector<Triangle> getTriangles(const std::string &path, uint32_t materialIndex,
                                    glm::vec3 offset = {0, 0, 0}, glm::vec3 scale = {1, 1, 1});
 
-struct RtScene {
+struct TrisScene {
   // triangles contain all triangles from all objects in the scene.
   std::vector<Triangle> triangles;
   std::vector<Material> materials;
   std::vector<Light> lights;
   std::vector<BvhNode> bvhNodes;
 
-  RtScene();
+  TrisScene();
 };
 } // namespace GpuModel
