@@ -44,24 +44,14 @@ SvoScene::SvoScene(Logger *logger) : _logger(logger) { _run(); }
 
 void SvoScene::_run() {
   _buildImageDatas();
-
-  _logger->println();
-
   // _printImageDatas();
-
-  _logger->println();
-
   _createBuffer();
-
-  _logger->println();
-
   // _printBuffer();
-
   _logger->print("SvoScene::_run() done!");
 }
 
 void SvoScene::_buildImageDatas() {
-  ImCoor3D const kBaseImageSize = {16, 16, 16};
+  ImCoor3D const kBaseImageSize = {4, 4, 4};
   ImCoor3D const kRootImageSize = {1, 1, 1};
 
   // assert all components in the size should be a power of 2

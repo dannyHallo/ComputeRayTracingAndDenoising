@@ -71,15 +71,15 @@ void fetch_voxel_buffer(out uint next_byte_offset, out bool has_voxel, out bool 
   }
 }
 
+const vec4 kBlack   = vec4(0.0, 0.0, 0.0, 1.0);
+const vec4 kRed     = vec4(1.0, 0.0, 0.0, 1.0);
+const vec4 kGreen   = vec4(0.0, 1.0, 0.0, 1.0);
+const vec4 kBlue    = vec4(0.0, 0.0, 1.0, 1.0);
+const vec4 kMagenta = vec4(0.5, 0.2, 0.5, 1.0);
+
 // returns true if hit, false if miss
 vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int iter_used,
            Ray camRay) {
-  const vec4 kBlack   = vec4(0.0, 0.0, 0.0, 1.0);
-  const vec4 kRed     = vec4(1.0, 0.0, 0.0, 1.0);
-  const vec4 kGreen   = vec4(0.0, 1.0, 0.0, 1.0);
-  const vec4 kBlue    = vec4(0.0, 0.0, 1.0, 1.0);
-  const vec4 kMagenta = vec4(0.5, 0.2, 0.5, 1.0);
-
   struct ST {
     vec3 pos;
     int scale; // size = exp2(float(-scale)), a lookup table is used
