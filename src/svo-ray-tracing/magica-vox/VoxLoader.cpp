@@ -74,7 +74,7 @@ void _parseModel(ImData *imageData, ogt_vox_scene const *scene, ogt_vox_model co
           //           << static_cast<int>(palette[colorIndex].b) << std::endl;
 
           // TODO: to be changed later to increase efficiency
-          imageData->imageStore(ImCoor3D(x, y, z), 0x0000FFFF);
+          imageData->imageStore(ImCoor3D(x, z, y), 0x0000FFFF);
         }
       }
     }

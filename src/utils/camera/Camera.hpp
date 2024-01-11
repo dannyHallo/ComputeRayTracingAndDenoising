@@ -13,8 +13,8 @@
 class Camera {
 
 public:
-  Camera(Window *window, glm::vec3 camPosition = glm::vec3(0.F, 0.F, 0.F),
-         glm::vec3 wrdUp = glm::vec3(0.F, 1.F, 0.F), float camYaw = 180, float camPitch = 0,
+  Camera(Window *window, glm::vec3 camPosition = glm::vec3(-1.5F, 0.F, 0.F),
+         glm::vec3 wrdUp = glm::vec3(0.F, 1.F, 0.F), float camYaw = 270, float camPitch = 0,
          float vFov = 60.F)
       : _position(camPosition), _worldUp(wrdUp), _yaw(camYaw), _pitch(camPitch), _fov(vFov),
         _window(window) {

@@ -244,7 +244,7 @@ void main() {
 
   // customized shading
   if (hit) {
-    fragColor = vec4(vec3(float(iter_used) / 10.0), 1.0);
+    fragColor = vec4(vec3(float(iter_used) / MAX_ITER), 1.0);
     // fragColor = vec4(vec3(exp(-tcmin)), 1.0);
   }
   imageStore(rawTex, uv, fragColor);
