@@ -51,7 +51,7 @@ void SvoScene::_run() {
 }
 
 void SvoScene::_buildImageDatas() {
-  ImCoor3D const kBaseImageSize = {16, 16, 16};
+  ImCoor3D const kBaseImageSize = {32, 32, 32};
   ImCoor3D const kRootImageSize = {1, 1, 1};
 
   // assert all components in the size should be a power of 2

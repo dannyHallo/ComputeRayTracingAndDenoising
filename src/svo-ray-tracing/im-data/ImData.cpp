@@ -9,11 +9,7 @@ void ImageData::imageStore(ImCoor3D const &coor, uint32_t val) {
 }
 
 uint32_t ImageData::imageLoad(ImCoor3D const &coor) const {
-  // assert(_isInBound(coor) && "ImageData::imageLoad: out of bound");
-  if (!_isInBound(coor)) {
-    std::cout << "ImageData::imageLoad: out of bound" << std::endl;
-    return 0;
-  }
+  assert(_isInBound(coor) && "ImageData::imageLoad: out of bound");
 
   // if key exists, reture val, if not, return 0
   auto it = _imageData.find(coor);
