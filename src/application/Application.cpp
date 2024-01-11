@@ -1,6 +1,7 @@
 #include "application/Application.hpp"
 
 #include "render-context/RenderSystem.hpp"
+#include "utils/config/RootDir.h"
 #include "utils/incl/Glm.hpp"
 #include "utils/logger/Logger.hpp"
 #include "window/Window.hpp"

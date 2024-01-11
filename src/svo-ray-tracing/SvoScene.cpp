@@ -1,6 +1,8 @@
 #include "SvoScene.hpp"
 
 #include "svo-ray-tracing/im-data/ImCoor.hpp"
+#include "svo-ray-tracing/magica-vox/VoxLoader.hpp"
+#include "utils/config/RootDir.h"
 #include "utils/logger/Logger.hpp"
 
 #include <cassert>
@@ -22,6 +24,12 @@ uint32_t bitCount(uint32_t v) {
   return c;
 }
 
+// https://stackoverflow.com/questions/1053582/how-does-this-bitwise-operation-check-for-a-power-of-2
+bool _imageSizeCanBeDividedByTwo(ImCoor3D const &imageSize) {
+  return (imageSize.x & (imageSize.x - 1)) == 0 && (imageSize.y & (imageSize.y - 1)) == 0 &&
+         (imageSize.z & (imageSize.z - 1)) == 0;
+}
+
 void _printHexFormat(const std::vector<uint32_t> &vec) {
   for (size_t i = 0; i < vec.size(); ++i) {
     std::cout << "0x" << std::uppercase << std::setfill('0') << std::setw(8) << std::hex << vec[i]
@@ -38,6 +46,19 @@ void _printHexFormat(const std::vector<uint32_t> &vec) {
   std::cout << std::endl;
 }
 
+std::unique_ptr<ImData> _buildBaseImageDataUsingBuilder() {
+  ImCoor3D const kBaseImageSize = {32, 32, 32};
+  auto imageData                = std::make_unique<ImData>(kBaseImageSize);
+  BaseLevelBuilder::build(imageData.get());
+  return std::move(imageData);
+}
+
+std::unique_ptr<ImData> _buildBaseImageDataUsingVoxLoader(Logger *logger) {
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/chr_knight.vox";
+  auto imageData                   = VoxLoader::loadImg(kPathToVoxFile, logger);
+  return std::move(imageData);
+}
+
 } // namespace
 
 SvoScene::SvoScene(Logger *logger) : _logger(logger) { _run(); }
@@ -51,25 +72,19 @@ void SvoScene::_run() {
 }
 
 void SvoScene::_buildImageDatas() {
-  ImCoor3D const kBaseImageSize = {32, 32, 32};
-  ImCoor3D const kRootImageSize = {1, 1, 1};
+  // auto imageData = _buildBaseImageDataUsingBuilder();
+  auto imageData = _buildBaseImageDataUsingVoxLoader(_logger);
+  assert(_imageSizeCanBeDividedByTwo(imageData->getImageSize()) &&
+         "The base image size should be a power of 2");
 
-  // assert all components in the size should be a power of 2
-  // https://stackoverflow.com/questions/1053582/how-does-this-bitwise-operation-check-for-a-power-of-2
-  assert((kBaseImageSize.x & (kBaseImageSize.x - 1)) == 0);
-  assert((kBaseImageSize.y & (kBaseImageSize.y - 1)) == 0);
-  assert((kBaseImageSize.z & (kBaseImageSize.z - 1)) == 0);
-
-  // create the base iamge data
-  auto imageData = std::make_unique<ImageData>(kBaseImageSize);
   _imageDatas.push_back(std::move(imageData));
 
   int imIdx = 0;
-  BaseLevelBuilder::build(_imageDatas[imIdx].get(), kBaseImageSize);
 
+  ImCoor3D const kRootImageSize = {1, 1, 1};
   while (_imageDatas[imIdx]->getImageSize() != kRootImageSize) {
     // std::cout << "imIdx: " << imIdx << std::endl;
-    auto newImageData = std::make_unique<ImageData>(_imageDatas[imIdx]->getImageSize() / 2);
+    auto newImageData = std::make_unique<ImData>(_imageDatas[imIdx]->getImageSize() / 2);
     _imageDatas.push_back(std::move(newImageData));
     UpperLevelBuilder::build(_imageDatas[imIdx].get(), _imageDatas[imIdx + 1].get());
     imIdx++;

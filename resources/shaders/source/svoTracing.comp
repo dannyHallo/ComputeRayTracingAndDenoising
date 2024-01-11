@@ -81,7 +81,7 @@ const vec4 kMagenta = vec4(0.5, 0.2, 0.5, 1.0);
 // returns true if hit, false if miss
 vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int iter_used,
            Ray camRay) {
-  struct ST {
+  struct LevelStack {
     vec3 pos;
     int scale; // size = exp2(float(-scale)), a lookup table is used
     vec3 idx;
@@ -137,13 +137,12 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
       // hits the leaf
       if (is_leaf) {
         hit = true;
-        // return vec4(vec3(exp(-tcmin)), 1.0);
         return kGreen;
       }
 
       // tcmax is current voxel's exist time, h is parent voxel exist time
       if (tcmax < h) {
-        stack[stack_ptr++] = ST(pos, scale, idx, byte_offset, h);
+        stack[stack_ptr++] = LevelStack(pos, scale, idx, byte_offset, h);
       }
 
       h = tcmax;
@@ -176,7 +175,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
         return kMagenta;
       }
 
-      ST s        = stack[--stack_ptr]; // restore to parent Stack
+      LevelStack s        = stack[--stack_ptr]; // restore to parent Stack
       pos         = s.pos;
       scale       = s.scale;
       idx         = s.idx;

@@ -6,5 +6,5 @@
 #include <memory>
 
 namespace UpperLevelBuilder {
-void build(ImageData const *lowerLevelData, ImageData *thisLevelData);
+void build(ImData const *lowerLevelData, ImData *thisLevelData);
 };

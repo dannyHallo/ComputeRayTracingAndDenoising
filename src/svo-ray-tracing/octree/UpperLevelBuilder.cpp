@@ -12,7 +12,7 @@ uint32_t _offsetId(int x, int y, int z) {
   return x * kXWeight + y * kYWeight + z * kZWeight;
 }
 
-uint32_t _combine8To1(ImageData const *_lowerLevelData, ImCoor3D const &coorCur) {
+uint32_t _combine8To1(ImData const *_lowerLevelData, ImCoor3D const &coorCur) {
   // at this coorCur, we can obtain the 8 lower level coors
   uint32_t dataWrite = 0;
 
@@ -34,7 +34,7 @@ uint32_t _combine8To1(ImageData const *_lowerLevelData, ImCoor3D const &coorCur)
 }
 } // namespace
 
-void build(ImageData const *lowerLevelData, ImageData *thisLevelData) {
+void build(ImData const *lowerLevelData, ImData *thisLevelData) {
   ImCoor3D coorCur{0, 0, 0};
 
   ImCoor3D _lowerLevelImageSize = lowerLevelData->getImageSize();

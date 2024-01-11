@@ -5,16 +5,16 @@
 #include <cstdint>
 #include <map>
 
-class ImageData {
+class ImData {
 public:
-  ImageData(const ImCoor3D &imageSize) : _imageSize(imageSize){};
-  ~ImageData() = default;
+  ImData(const ImCoor3D &imageSize) : _imageSize(imageSize){};
+  ~ImData() = default;
 
   // default copy and move
-  ImageData(const ImageData &)            = default;
-  ImageData(ImageData &&)                 = default;
-  ImageData &operator=(const ImageData &) = default;
-  ImageData &operator=(ImageData &&)      = default;
+  ImData(const ImData &)            = default;
+  ImData(ImData &&)                 = default;
+  ImData &operator=(const ImData &) = default;
+  ImData &operator=(ImData &&)      = default;
 
   [[nodiscard]] ImCoor3D getImageSize() const { return _imageSize; }
   [[nodiscard]] std::map<ImCoor3D, uint32_t> const &getImageData() const { return _imageData; }

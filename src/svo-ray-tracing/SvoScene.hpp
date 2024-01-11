@@ -17,7 +17,7 @@ public:
 private:
   Logger *_logger;
   std::vector<uint32_t> _buffer;
-  std::vector<std::unique_ptr<ImageData>> _imageDatas;
+  std::vector<std::unique_ptr<ImData>> _imageDatas;
 
   void _run();
 

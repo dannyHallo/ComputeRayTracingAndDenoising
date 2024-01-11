@@ -3,12 +3,12 @@
 #include <cassert>
 #include <iostream>
 
-void ImageData::imageStore(ImCoor3D const &coor, uint32_t val) {
+void ImData::imageStore(ImCoor3D const &coor, uint32_t val) {
   assert(_isInBound(coor) && "ImageData::imageStore: out of bound");
   _imageData[coor] = val;
 }
 
-uint32_t ImageData::imageLoad(ImCoor3D const &coor) const {
+uint32_t ImData::imageLoad(ImCoor3D const &coor) const {
   assert(_isInBound(coor) && "ImageData::imageLoad: out of bound");
 
   // if key exists, reture val, if not, return 0
@@ -19,7 +19,7 @@ uint32_t ImageData::imageLoad(ImCoor3D const &coor) const {
   return 0;
 }
 
-bool ImageData::_isInBound(ImCoor3D const &coor) const {
+bool ImData::_isInBound(ImCoor3D const &coor) const {
   if (coor.x < 0 || coor.x >= _imageSize.x) {
     return false;
   }

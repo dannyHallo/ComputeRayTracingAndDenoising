@@ -3,7 +3,6 @@
 #include "Bvh.hpp"
 #include "TrisGpuModel.hpp"
 #include "scene/Mesh.hpp"
-#include "utils/config/RootDir.h"
 #include "utils/incl/Glm.hpp"
 
 #include <functional> // for std::hash

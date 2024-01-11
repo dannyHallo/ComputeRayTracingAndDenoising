@@ -26,7 +26,7 @@ target("main")
     end
     -- add_defines("NDEBUG")
     set_configvar("PROJECT_DIR", (os.projectdir():gsub("\\", "/")))
-    set_configdir("src/utils/")
+    set_configdir("src/utils/config/")
     add_configfiles("src/utils/config/RootDir.h.in")
     -- recursivelly add all cpp files in src, to make compile units
     add_files("src/**.cpp")
@@ -35,12 +35,12 @@ target("main")
         "dep/imgui/backends/imgui_impl_vulkan.cpp"
     )
     add_includedirs(
-        "src",
-        "dep",
-        "dep/spdlog/include",
-        "dep/imgui",
-        "dep/obj-loader",
-        "dep/memory-allocator-hpp"
+        "src/",
+        "dep/",
+        "dep/spdlog/include/",
+        "dep/imgui/",
+        "dep/obj-loader/",
+        "dep/memory-allocator-hpp/"
     )
     add_deps("imgui")
 

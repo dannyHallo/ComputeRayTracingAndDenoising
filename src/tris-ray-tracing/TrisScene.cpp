@@ -1,4 +1,5 @@
 #include "TrisScene.hpp"
+#include "utils/config/RootDir.h"
 
 namespace GpuModel {
 
@@ -26,19 +27,17 @@ std::vector<Triangle> getTriangles(const std::string &path, uint32_t materialInd
 }
 
 TrisScene::TrisScene() {
-  const std::string path_prefix = std::string(ROOT_DIR) + "resources/";
-
   // struct and classes without default initializer can be inited by this way
-  Material gray  = {MaterialType::Lambertian, glm::vec3(1.f, 1.f, 1.f)};
-  Material red   = {MaterialType::Lambertian, glm::vec3(.9f, .1f, .1f)};
-  Material green = {MaterialType::Lambertian, glm::vec3(.1f, .9f, .1f)};
-  Material pink  = {MaterialType::Lambertian, glm::vec3(1.f, .3f, .36f)};
-  Material cyan  = {MaterialType::Lambertian, glm::vec3(.3f, .9f, .6f)};
+  Material gray  = {MaterialType::Lambertian, glm::vec3(1.F, 1.F, 1.F)};
+  Material red   = {MaterialType::Lambertian, glm::vec3(.9F, .1F, .1F)};
+  Material green = {MaterialType::Lambertian, glm::vec3(.1F, .9F, .1F)};
+  Material pink  = {MaterialType::Lambertian, glm::vec3(1.F, .3F, .36F)};
+  Material cyan  = {MaterialType::Lambertian, glm::vec3(.3F, .9F, .6F)};
 
-  Material whiteLight = {MaterialType::LightSource, glm::vec3(1.3f, 1.3f, 1.3f)};
+  Material whiteLight = {MaterialType::LightSource, glm::vec3(1.3F, 1.3F, 1.3F)};
 
-  Material metal = {MaterialType::Metal, glm::vec3(1.0f, 1.0f, 1.0f)};
-  Material glass = {MaterialType::Glass, glm::vec3(1.0f, 1.0f, 1.0f)};
+  Material metal = {MaterialType::Metal, glm::vec3(1.0F, 1.0F, 1.0F)};
+  Material glass = {MaterialType::Glass, glm::vec3(1.0F, 1.0F, 1.0F)};
 
   materials.push_back(whiteLight);
 
@@ -49,22 +48,22 @@ TrisScene::TrisScene() {
   materials.push_back(cyan);
   materials.push_back(metal);
 
-  glm::vec3 cornellBoxScale = {1 / 552.8f, 1 / 548.8f, 1 / 559.2f};
-  glm::vec3 cornellBoxPos   = {-0.5f, -0.5f, 1};
+  glm::vec3 cornellBoxScale = {1 / 552.8F, 1 / 548.8F, 1 / 559.2F};
+  glm::vec3 cornellBoxPos   = {-0.5F, -0.5F, 1};
   // each getTriangles function loads a series of triangles from a file
   // (vector), which shares the same meshId and matId
-  auto floor =
-      getTriangles(path_prefix + "models/cornellbox/floor.obj", 1, cornellBoxPos, cornellBoxScale);
-  auto left =
-      getTriangles(path_prefix + "models/cornellbox/left.obj", 4, cornellBoxPos, cornellBoxScale);
-  auto right =
-      getTriangles(path_prefix + "models/cornellbox/right.obj", 5, cornellBoxPos, cornellBoxScale);
-  auto light =
-      getTriangles(path_prefix + "models/cornellbox/light.obj", 0, cornellBoxPos, cornellBoxScale);
-  auto shortbox = getTriangles(path_prefix + "models/cornellbox/shortbox.obj", 1, cornellBoxPos,
-                               cornellBoxScale);
-  auto tallbox  = getTriangles(path_prefix + "models/cornellbox/tallbox.obj", 1, cornellBoxPos,
-                               cornellBoxScale);
+  auto floor    = getTriangles(kPathToResourceFolder + "models/tris/cornellbox/floor.obj", 1,
+                               cornellBoxPos, cornellBoxScale);
+  auto left     = getTriangles(kPathToResourceFolder + "models/tris/cornellbox/left.obj", 4,
+                               cornellBoxPos, cornellBoxScale);
+  auto right    = getTriangles(kPathToResourceFolder + "models/tris/cornellbox/right.obj", 5,
+                               cornellBoxPos, cornellBoxScale);
+  auto light    = getTriangles(kPathToResourceFolder + "models/tris/cornellbox/light.obj", 0,
+                               cornellBoxPos, cornellBoxScale);
+  auto shortbox = getTriangles(kPathToResourceFolder + "models/tris/cornellbox/shortbox.obj", 1,
+                               cornellBoxPos, cornellBoxScale);
+  auto tallbox  = getTriangles(kPathToResourceFolder + "models/tris/cornellbox/tallbox.obj", 1,
+                               cornellBoxPos, cornellBoxScale);
   // then all triangles are added to a single vector
   triangles.insert(triangles.end(), floor.begin(), floor.end());
   triangles.insert(triangles.end(), left.begin(), left.end());
@@ -80,7 +79,7 @@ TrisScene::TrisScene() {
     if (materials[t.materialIndex].type == MaterialType::LightSource) {
       // add light separatly
       // calculate the area of this lighting triangle
-      float area = glm::length(glm::cross(t.v0, t.v1)) * 0.5f;
+      float area = glm::length(glm::cross(t.v0, t.v1)) * 0.5F;
       lights.emplace_back(Light{i, area});
       objects.emplace_back(Bvh::Object0{i, t, glm::vec3(-0.2F, 0, 0), glm::vec3(0.2F, 0, 0)});
     } else {

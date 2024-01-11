@@ -6,5 +6,5 @@
 #include <memory>
 
 namespace BaseLevelBuilder {
-void build(ImageData *imageData, ImCoor3D const &imageSize);
+void build(ImData *imageData);
 };

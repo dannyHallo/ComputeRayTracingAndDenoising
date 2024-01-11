@@ -2,10 +2,10 @@
 
 This ray tracer is loosely based on the [Ray Tracing in One Weekend series](https://raytracing.github.io), adapted for real-time rendering on GPU, and with some extra features like temporal accumulation, low discrepancy noise, and SVGF filtering.
 
-# Roadmap
+# Todos
 
-2. add normal and depth edge stopping functions to temporal accumulation
-3. tap filter to temporal accumulation
+- [ ] Load magicavoxel files
+- [ ] Implement colors to vox data
 
 # Design Decisions
 
@@ -25,11 +25,6 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 - Implementation of low discrepancy noise
 - A-Trous denoiser
 - SVGF denoiser (without variance)
-
-# Todos
-
-- [ ] Hardware-accelerated ray tracing
-- [ ] Sparse Voxel Octree
 
 # How to run
 
