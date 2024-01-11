@@ -12,7 +12,7 @@ layout(std430, binding = 2) readonly buffer SvoBufferObject { uint[] voxel_buffe
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl" // defines layout 0
 
-const int MAX_ITER    = 100;
+const int MAX_ITER    = 200;
 const uint kMaxLevels = 10u;
 
 struct Ray {
@@ -41,7 +41,8 @@ bool isect(out float tcmin, out float tcmax, out vec3 tmid, out vec3 tmax, vec3 
   tcmin = max(tmin.x, max(tmin.y, tmin.z));
   tcmax = min(tmax.x, min(tmax.y, tmax.z));
 
-  return tcmin <= tcmax && tcmax > 0.0;
+  tcmin = max(tcmin, 0.0);
+  return tcmin <= tcmax;
 }
 
 uint countOnesInLastN(uint value, uint n) {
@@ -108,6 +109,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
   // for x component, if tcmin < tmid.x, idx.x reverts the ray dir in x axis,
   // same for y and z
   vec3 idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
+  // return vec4(idx, 1.0);
 
   uint byte_offset = 0u;
   scale++;
@@ -118,7 +120,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
   iter_used = 0;
   while (iter_used++ < MAX_ITER) {
     // transform idx from [-1, 1] to [0, 1]
-    vec3 idx01      = idx * .5 + .5;
+    vec3 idx01      = (idx + 1.0) * 0.5;
     uint bit_offset = uint(dot(idx01, vec3(1., 2., 4.))); // 0-7
 
     isect(tcmin, tcmax, tmid, tmax, pos, scale_lookup[scale], camRay);

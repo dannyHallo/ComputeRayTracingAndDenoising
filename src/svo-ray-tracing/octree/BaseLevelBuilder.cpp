@@ -19,14 +19,13 @@ void _buildPlane(ImageData *imageData, ImCoor3D const &imageSize, int const y) {
 }
 } // namespace
 
-const std::vector<ImCoor3D> kBuildVoxelCoors{
-    {0, 0, 0}, {0, 0, 7}, {0, 7, 0}, {0, 7, 7}, {7, 0, 0}, {7, 0, 7}, {7, 7, 0}, {7, 7, 7},
-};
+const std::vector<ImCoor3D> kBuildVoxelCoors{{0, 0, 0}};
 
 void build(ImageData *imageData, ImCoor3D const &imageSize) {
   for (int y = 0; y < imageSize.y; ++y) {
     _buildPlane(imageData, imageSize, y);
   }
+
   // for (auto const &coor : kBuildVoxelCoors) {
   //   _buildVoxel(imageData, coor);
   // }
