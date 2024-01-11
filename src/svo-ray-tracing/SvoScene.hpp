@@ -1,7 +1,7 @@
 #pragma once
 
 #include "svo-ray-tracing/im-data/ImData.hpp"
-#include "svo-ray-tracing/octree/BaseLevelBuilder.hpp"
+// #include "svo-ray-tracing/octree/BaseLevelBuilder.hpp"
 #include "svo-ray-tracing/octree/UpperLevelBuilder.hpp"
 
 #include <memory>

@@ -46,13 +46,6 @@ void _printHexFormat(const std::vector<uint32_t> &vec) {
   std::cout << std::endl;
 }
 
-std::unique_ptr<ImData> _buildBaseImageDataUsingBuilder() {
-  ImCoor3D const kBaseImageSize = {32, 32, 32};
-  auto imageData                = std::make_unique<ImData>(kBaseImageSize);
-  BaseLevelBuilder::build(imageData.get());
-  return std::move(imageData);
-}
-
 std::unique_ptr<ImData> _buildBaseImageDataUsingVoxLoader(Logger *logger) {
   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/chr_knight.vox";
   auto imageData                   = VoxLoader::loadImg(kPathToVoxFile, logger);
@@ -66,13 +59,13 @@ SvoScene::SvoScene(Logger *logger) : _logger(logger) { _run(); }
 void SvoScene::_run() {
   _buildImageDatas();
   // _printImageDatas();
+
   _createBuffer();
   // _printBuffer();
   _logger->print("SvoScene::_run() done!");
 }
 
 void SvoScene::_buildImageDatas() {
-  // auto imageData = _buildBaseImageDataUsingBuilder();
   auto imageData = _buildBaseImageDataUsingVoxLoader(_logger);
   assert(_imageSizeCanBeDividedByTwo(imageData->getImageSize()) &&
          "The base image size should be a power of 2");
@@ -82,11 +75,13 @@ void SvoScene::_buildImageDatas() {
   int imIdx = 0;
 
   ImCoor3D const kRootImageSize = {1, 1, 1};
+  bool isBaseLevel              = true;
   while (_imageDatas[imIdx]->getImageSize() != kRootImageSize) {
-    // std::cout << "imIdx: " << imIdx << std::endl;
+    std::cout << "imIdx: " << imIdx << std::endl;
     auto newImageData = std::make_unique<ImData>(_imageDatas[imIdx]->getImageSize() / 2);
     _imageDatas.push_back(std::move(newImageData));
-    UpperLevelBuilder::build(_imageDatas[imIdx].get(), _imageDatas[imIdx + 1].get());
+    UpperLevelBuilder::build(_imageDatas[imIdx].get(), _imageDatas[imIdx + 1].get(), isBaseLevel);
+    isBaseLevel = false;
     imIdx++;
   }
 }
@@ -139,9 +134,11 @@ void SvoScene::_createBuffer() {
           for (int z = 0; z < 2; z++) {
             auto const coor      = remappedOrigin + ImCoor3D{x, y, z};
             uint32_t const &data = imageData->imageLoad(coor);
+
             if (data == 0U) {
               continue;
             }
+
             thisTimeActiveCoors.push_back(coor);
 
             // change the data by filling the first 16 bits with the next bit offset

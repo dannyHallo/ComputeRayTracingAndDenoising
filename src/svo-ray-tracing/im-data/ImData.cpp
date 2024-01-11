@@ -1,7 +1,6 @@
 #include "ImData.hpp"
 
 #include <cassert>
-#include <iostream>
 
 void ImData::imageStore(ImCoor3D const &coor, uint32_t val) {
   assert(_isInBound(coor) && "ImageData::imageStore: out of bound");

@@ -58,7 +58,7 @@ ImCoor3D _getModelSize(ogt_vox_model const *model) {
 // this example just counts the number of solid voxels in this model, but an importer
 // would probably do something like convert the model into a triangle mesh.
 void _parseModel(ImData *imageData, ogt_vox_scene const *scene, ogt_vox_model const *model,
-                 Logger *logger) {
+                 Logger * /*logger*/) {
   auto const &palette = scene->palette.color; // TODO: use color lookup later
 
   uint32_t voxelIndex = 0;
@@ -66,15 +66,12 @@ void _parseModel(ImData *imageData, ogt_vox_scene const *scene, ogt_vox_model co
     for (int y = 0; y < model->size_y; y++) {
       for (int x = 0; x < model->size_x; x++, voxelIndex++) {
         // if color index == 0, this voxel is empty, otherwise it is solid.
-        uint32_t const colorIndex = model->voxel_data[voxelIndex];
-        bool isVoxelValid         = (colorIndex != 0);
+        uint8_t const colorIndex = model->voxel_data[voxelIndex];
+        bool isVoxelValid        = (colorIndex != 0);
         if (isVoxelValid) {
-          // std::cout << "Color: " << static_cast<int>(palette[colorIndex].r) << " "
-          //           << static_cast<int>(palette[colorIndex].g) << " "
-          //           << static_cast<int>(palette[colorIndex].b) << std::endl;
-
-          // TODO: to be changed later to increase efficiency
-          imageData->imageStore(ImCoor3D(x, z, y), 0x0000FFFF);
+          // first bit is set only to indicate that this is a valid leaf voxel
+          uint32_t const kValidMask = 0x80000000;
+          imageData->imageStore(ImCoor3D(x, z, y), kValidMask | static_cast<uint32_t>(colorIndex));
         }
       }
     }

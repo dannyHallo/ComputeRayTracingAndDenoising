@@ -52,7 +52,7 @@ uint countOnesInLastN(uint value, uint n) {
   return bitCount(relevantBits);
 }
 
-void fetch_voxel_buffer(out uint next_byte_offset, out bool has_voxel, out bool is_leaf,
+void fetch_voxel_buffer(out uint next_byte_offset, out bool has_node, out bool has_leaf_node,
                         uint byte_offset, uint bit_offset) {
   uint voxel_node = voxel_buffer[byte_offset];
   // 16: group offset
@@ -62,21 +62,37 @@ void fetch_voxel_buffer(out uint next_byte_offset, out bool has_voxel, out bool 
   // 8: leaf mask
   uint voxel_leaf_mask = voxel_node & 0x000000FFu;
 
-  has_voxel = (voxel_child_mask & (1u << bit_offset)) != 0u;
-  is_leaf   = (voxel_leaf_mask & (1u << bit_offset)) != 0u;
+  has_node      = (voxel_child_mask & (1u << bit_offset)) != 0u;
+  has_leaf_node = (voxel_leaf_mask & (1u << bit_offset)) != 0u;
 
-  if (has_voxel) {
+  if (has_node) {
     // bit_offset range: 0-7, so the last n range is 1-8, so we need to +1
     // the first bit '1' indicates a delta of 0, so we need to -1
     next_byte_offset += countOnesInLastN(voxel_child_mask, bit_offset + 1u) - 1u;
   }
 }
 
+void fetch_leaf_buffer(out uint leafVal, uint byte_offset) { leafVal = voxel_buffer[byte_offset]; }
+
 const vec4 kBlack   = vec4(0.0, 0.0, 0.0, 1.0);
 const vec4 kRed     = vec4(1.0, 0.0, 0.0, 1.0);
 const vec4 kGreen   = vec4(0.0, 1.0, 0.0, 1.0);
 const vec4 kBlue    = vec4(0.0, 0.0, 1.0, 1.0);
 const vec4 kMagenta = vec4(0.5, 0.2, 0.5, 1.0);
+
+vec4 getColor(uint leafVal) {
+leafVal = leafVal & 0x000000FFu;
+
+  // Normalize the extracted bits to range [0, 1]
+  float normalizedValue = float(leafVal) / 255.0;
+
+  // Create a color based on the normalized value
+  // This example creates a gradient from black to red
+  vec4 color = vec4(normalizedValue, 0.0, 0.0, 1.0);
+
+
+  return color;
+}
 
 // returns true if hit, false if miss
 vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int iter_used,
@@ -126,18 +142,21 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     isect(tcmin, tcmax, tmid, tmax, pos, scale_lookup[scale], camRay);
 
     uint next_byte_offset;
-    bool has_voxel, is_leaf;
+    bool has_node, has_leaf_node;
     // TODO: don't fetch if not necessary (store them in stack)
-    fetch_voxel_buffer(next_byte_offset, has_voxel, is_leaf, byte_offset, bit_offset);
+    fetch_voxel_buffer(next_byte_offset, has_node, has_leaf_node, byte_offset, bit_offset);
 
     // [PUSH] repeatedly, until empty voxel is found
     // when pushed layer reached the same level as the smallest voxel, stop
     // and return (this is temporary solution for finding the leaf)
-    if (can_push && has_voxel) {
+    if (can_push && has_node) {
       // hits the leaf
-      if (is_leaf) {
+      if (has_leaf_node) {
         hit = true;
-        return kGreen;
+
+        uint leafVal;
+        fetch_leaf_buffer(leafVal, next_byte_offset);
+        return getColor(leafVal);
       }
 
       // tcmax is current voxel's exist time, h is parent voxel exist time
@@ -175,12 +194,12 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
         return kMagenta;
       }
 
-      LevelStack s        = stack[--stack_ptr]; // restore to parent Stack
-      pos         = s.pos;
-      scale       = s.scale;
-      idx         = s.idx;
-      byte_offset = s.ptr;
-      h           = s.h;
+      LevelStack s = stack[--stack_ptr]; // restore to parent Stack
+      pos          = s.pos;
+      scale        = s.scale;
+      idx          = s.idx;
+      byte_offset  = s.ptr;
+      h            = s.h;
 
       // once stack pop out, avoid pushing it in again
       can_push = false;
@@ -244,7 +263,7 @@ void main() {
 
   // customized shading
   if (hit) {
-    fragColor = vec4(vec3(float(iter_used) / MAX_ITER), 1.0);
+    // fragColor = vec4(vec3(float(iter_used) / MAX_ITER), 1.0);
     // fragColor = vec4(vec3(exp(-tcmin)), 1.0);
   }
   imageStore(rawTex, uv, fragColor);
