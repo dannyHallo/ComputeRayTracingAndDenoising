@@ -102,35 +102,8 @@ public:
   BufferBundle *getMaterialBufferBundle() { return _materialBufferBundle.get(); }
   BufferBundle *getBvhBufferBundle() { return _bvhBufferBundle.get(); }
   BufferBundle *getLightsBufferBundle() { return _lightsBufferBundle.get(); }
-  BufferBundle *getSvoBufferBundle() { return _svoBufferBundle.get(); }
-
-  // buffers getter
-  Buffer *getGlobalBuffer(size_t frameIndex) { return _globalBufferBundle->getBuffer(frameIndex); }
-  Buffer *getGradientProjectionBuffer(size_t frameIndex) {
-    return _gradientProjectionBufferBundle->getBuffer(frameIndex);
-  }
-  Buffer *getRtxBuffer(size_t frameIndex) { return _rtxBufferBundle->getBuffer(frameIndex); }
-  Buffer *getTemperalFilterBuffer(size_t frameIndex) {
-    return _temperalFilterBufferBundle->getBuffer(frameIndex);
-  }
-  Buffer *getStratumFilterBuffer(size_t frameIndex, int index) {
-    return _stratumFilterBufferBundle[index]->getBuffer(frameIndex);
-  }
-  Buffer *getVarianceBuffer(size_t frameIndex) {
-    return _varianceBufferBundle->getBuffer(frameIndex);
-  }
-  Buffer *getBlurFilterBuffer(size_t frameIndex, int index) {
-    return _blurFilterBufferBundles[index]->getBuffer(frameIndex);
-  }
-  Buffer *getPostProcessingBuffer(size_t frameIndex) {
-    return _postProcessingBufferBundle->getBuffer(frameIndex);
-  }
-
-  Buffer *getTriangleBuffer() { return _triangleBufferBundle->getBuffer(0); }
-  Buffer *getMaterialBuffer() { return _materialBufferBundle->getBuffer(0); }
-  Buffer *getBvhBuffer() { return _bvhBufferBundle->getBuffer(0); }
-  Buffer *getLightsBuffer() { return _lightsBufferBundle->getBuffer(0); }
-  Buffer *getSvoBuffer() { return _svoBufferBundle->getBuffer(0); }
+  BufferBundle *getSvoBufferBundle() { return _voxelBufferBundle.get(); }
+  BufferBundle *getPaletteBufferBundle() { return _paletteBufferBundle.get(); }
 
 private:
   // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
@@ -155,7 +128,8 @@ private:
   std::unique_ptr<BufferBundle> _bvhBufferBundle;
   std::unique_ptr<BufferBundle> _lightsBufferBundle;
   //
-  std::unique_ptr<BufferBundle> _svoBufferBundle;
+  std::unique_ptr<BufferBundle> _voxelBufferBundle;
+  std::unique_ptr<BufferBundle> _paletteBufferBundle;
 
   void _createMultiBufferBundles(int stratumFilterSize, int aTrousSize, size_t framesInFlight);
   void _createSingleBufferBundles(GpuModel::TrisScene *rtScene, SvoScene *svoScene);

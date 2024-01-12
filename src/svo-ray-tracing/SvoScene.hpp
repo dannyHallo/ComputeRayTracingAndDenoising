@@ -4,6 +4,7 @@
 // #include "svo-ray-tracing/octree/BaseLevelBuilder.hpp"
 #include "svo-ray-tracing/octree/UpperLevelBuilder.hpp"
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -12,17 +13,21 @@ class SvoScene {
 public:
   SvoScene(Logger *logger);
 
-  [[nodiscard]] const std::vector<uint32_t> &getBuffer() const { return _buffer; }
+  [[nodiscard]] const std::vector<uint32_t> &getVoxelBuffer() const { return _voxelBuffer; }
+  [[nodiscard]] const std::vector<uint32_t> &getPaletteBuffer() const { return _paletteBuffer; }
 
 private:
   Logger *_logger;
-  std::vector<uint32_t> _buffer;
   std::vector<std::unique_ptr<ImData>> _imageDatas;
+
+  std::vector<uint32_t> _voxelBuffer;
+  std::vector<uint32_t> _paletteBuffer;
 
   void _run();
 
   void _buildImageDatas();
   void _printImageDatas();
-  void _createBuffer();
+  void _createVoxelBuffer();
+  void _createPaletteBuffer();
   void _printBuffer();
 };

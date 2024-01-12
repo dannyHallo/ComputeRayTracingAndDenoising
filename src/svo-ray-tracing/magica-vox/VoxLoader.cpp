@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <vector>
 
+#include <iomanip>
 #include <iostream>
 
 // Ref: https://github.com/jpaver/opengametools/blob/master/demo/demo_vox.cpp
@@ -57,10 +58,24 @@ ImCoor3D _getModelSize(ogt_vox_model const *model) {
 
 // this example just counts the number of solid voxels in this model, but an importer
 // would probably do something like convert the model into a triangle mesh.
-void _parseModel(ImData *imageData, ogt_vox_scene const *scene, ogt_vox_model const *model,
-                 Logger * /*logger*/) {
-  auto const &palette = scene->palette.color; // TODO: use color lookup later
+VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model, Logger *logger) {
+  VoxData voxData{};
+  voxData.imageData = std::make_unique<ImData>(_getModelSize(model));
 
+  auto const &palette = scene->palette.color;
+
+  // fill palette data
+  size_t paletteSize = sizeof(palette) / sizeof(palette[0]);
+  for (int i = 0; i < paletteSize; ++i) {
+    uint32_t convertedColor = 0;
+    convertedColor |= static_cast<uint32_t>(palette[i].r) << 24;
+    convertedColor |= static_cast<uint32_t>(palette[i].g) << 16;
+    convertedColor |= static_cast<uint32_t>(palette[i].b) << 8;
+    convertedColor |= static_cast<uint32_t>(palette[i].a);
+    voxData.paletteData.push_back(convertedColor);
+  }
+
+  // fill image data
   uint32_t voxelIndex = 0;
   for (int z = 0; z < model->size_z; z++) {
     for (int y = 0; y < model->size_y; y++) {
@@ -71,30 +86,30 @@ void _parseModel(ImData *imageData, ogt_vox_scene const *scene, ogt_vox_model co
         if (isVoxelValid) {
           // first bit is set only to indicate that this is a valid leaf voxel
           uint32_t const kValidMask = 0x80000000;
-          imageData->imageStore(ImCoor3D(x, z, y), kValidMask | static_cast<uint32_t>(colorIndex));
+          voxData.imageData->imageStore(ImCoor3D(x, z, y),
+                                        kValidMask | static_cast<uint32_t>(colorIndex));
         }
       }
     }
   }
+
+  return voxData;
 }
 
 } // namespace
 
-std::unique_ptr<ImData> loadImg(std::string const &pathToFile, Logger *logger) {
+VoxData fetchDataFromFile(std::string const &pathToFile, Logger *logger) {
   const ogt_vox_scene *scene = _loadVoxelScene(pathToFile);
 
-  // iterate over all models and print basic information about the model.
+  // obtain model
   assert(scene->num_models == 1 && "Only one model is supported");
   size_t constexpr modelIndex = 0;
+  const ogt_vox_model *model  = scene->models[modelIndex];
 
-  auto imData = std::make_unique<ImData>(_getModelSize(scene->models[modelIndex]));
-
-  const ogt_vox_model *model = scene->models[modelIndex];
-
-  _parseModel(imData.get(), scene, model, logger);
+  VoxData voxData = _parseModel(scene, model, logger);
 
   ogt_vox_destroy_scene(scene);
 
-  return std::move(imData);
+  return voxData;
 }
 } // namespace VoxLoader

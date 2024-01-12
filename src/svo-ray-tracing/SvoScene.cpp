@@ -12,7 +12,7 @@
 namespace {
 // the best method for counting digit 1s in a 32 bit uint32_t in parallel
 // https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
-uint32_t bitCount(uint32_t v) {
+uint32_t cpuBitCount(uint32_t v) {
   const std::vector<uint32_t> S{1U, 2U, 4U, 8U, 16U}; // Magic Binary Numbers
   const std::vector<uint32_t> B{0x55555555U, 0x33333333U, 0x0F0F0F0FU, 0x00FF00FFU, 0x0000FFFFU};
 
@@ -46,12 +46,6 @@ void _printHexFormat(const std::vector<uint32_t> &vec) {
   std::cout << std::endl;
 }
 
-std::unique_ptr<ImData> _buildBaseImageDataUsingVoxLoader(Logger *logger) {
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/chr_knight.vox";
-  auto imageData                   = VoxLoader::loadImg(kPathToVoxFile, logger);
-  return std::move(imageData);
-}
-
 } // namespace
 
 SvoScene::SvoScene(Logger *logger) : _logger(logger) { _run(); }
@@ -59,14 +53,19 @@ SvoScene::SvoScene(Logger *logger) : _logger(logger) { _run(); }
 void SvoScene::_run() {
   _buildImageDatas();
   // _printImageDatas();
-
-  _createBuffer();
+  _createVoxelBuffer();
   // _printBuffer();
   _logger->print("SvoScene::_run() done!");
 }
 
 void SvoScene::_buildImageDatas() {
-  auto imageData = _buildBaseImageDataUsingVoxLoader(_logger);
+  std::vector<std::string> const kFileNames = {"chr_knight.vox", "monu1.vox", "monu2.vox"};
+
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[0];
+  auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
+  auto &imageData                  = voxData.imageData;
+  _paletteBuffer                   = voxData.paletteData;
+
   assert(_imageSizeCanBeDividedByTwo(imageData->getImageSize()) &&
          "The base image size should be a power of 2");
 
@@ -98,7 +97,7 @@ void SvoScene::_printImageDatas() {
   }
 }
 
-void SvoScene::_createBuffer() {
+void SvoScene::_createVoxelBuffer() {
   int imIdx = static_cast<int>(_imageDatas.size() - 1); // start with the root image
 
   uint32_t accum = 1;
@@ -117,12 +116,8 @@ void SvoScene::_createBuffer() {
 
   // change the data by filling the first 16 bits with the next bit offset
   uint32_t dataToUse = data | (accum << 16);
-  _buffer.push_back(dataToUse);
-  accum += bitCount(data & 0x0000FF00); // accum the bit offset
-
-  // debug
-  // std::cout << "coor: " << coor.x << " " << coor.y << " " << coor.z << std::endl;
-  // std::cout << "data: " << std::hex << data << std::endl;
+  _voxelBuffer.push_back(dataToUse);
+  accum += cpuBitCount(data & 0x0000FF00); // accum the bit offset
 
   while (--imIdx >= 0) {
     auto const &imageData = _imageDatas[imIdx];
@@ -143,12 +138,8 @@ void SvoScene::_createBuffer() {
 
             // change the data by filling the first 16 bits with the next bit offset
             uint32_t dataToUse = data | (accum << 16);
-            _buffer.push_back(dataToUse);
-            accum += bitCount(data & 0x0000FF00); // accum the bit offset
-
-            // debug
-            // std::cout << "coor: " << coor.x << " " << coor.y << " " << coor.z << std::endl;
-            // std::cout << "data: " << std::hex << data << std::endl;
+            _voxelBuffer.push_back(dataToUse);
+            accum += cpuBitCount(data & 0x0000FF00); // accum the bit offset
           }
         }
       }
@@ -159,5 +150,5 @@ void SvoScene::_createBuffer() {
 
 void SvoScene::_printBuffer() {
   std::cout << "the buffer is: \n" << std::endl;
-  _printHexFormat(_buffer);
+  _printHexFormat(_voxelBuffer);
 }

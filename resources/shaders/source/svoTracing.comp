@@ -7,12 +7,13 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 // ubo;
 
 layout(binding = 1, rgba32f) writeonly uniform image2D rawTex;
-layout(std430, binding = 2) readonly buffer SvoBufferObject { uint[] voxel_buffer; };
+layout(std430, binding = 2) readonly buffer VoxelBufferObject { uint[] voxel_buffer; };
+layout(std430, binding = 3) readonly buffer PaletteBufferObject { uint[] palette_buffer; };
 
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl" // defines layout 0
 
-const int MAX_ITER    = 200;
+const int MAX_ITER    = 100;
 const uint kMaxLevels = 10u;
 
 struct Ray {
@@ -81,17 +82,16 @@ const vec4 kBlue    = vec4(0.0, 0.0, 1.0, 1.0);
 const vec4 kMagenta = vec4(0.5, 0.2, 0.5, 1.0);
 
 vec4 getColor(uint leafVal) {
-leafVal = leafVal & 0x000000FFu;
+  leafVal = leafVal & 0x000000FFu;
 
-  // Normalize the extracted bits to range [0, 1]
-  float normalizedValue = float(leafVal) / 255.0;
+  uint colorFromPalette = palette_buffer[leafVal];
+  float red             = float((colorFromPalette & 0xFF000000u) >> 24u) / 255.0;
+  float green           = float((colorFromPalette & 0x00FF0000u) >> 16u) / 255.0;
+  float blue            = float((colorFromPalette & 0x0000FF00u) >> 8u) / 255.0;
+  // alpha channel is discarded
+  float alpha = float(colorFromPalette & 0x000000FFu) / 255.0;
 
-  // Create a color based on the normalized value
-  // This example creates a gradient from black to red
-  vec4 color = vec4(normalizedValue, 0.0, 0.0, 1.0);
-
-
-  return color;
+  return vec4(red, green, blue, 1.0);
 }
 
 // returns true if hit, false if miss
@@ -107,6 +107,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
 
   int stack_ptr = 0;
   hit           = false;
+  iter_used     = 0;
 
   // STEP 1: initialize
   int scale = 0;
@@ -133,7 +134,6 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
   // move to first hitted sub-cell center
   pos += scale_lookup[scale + 1] * idx;
 
-  iter_used = 0;
   while (iter_used++ < MAX_ITER) {
     // transform idx from [-1, 1] to [0, 1]
     vec3 idx01      = (idx + 1.0) * 0.5;
@@ -261,10 +261,9 @@ void main() {
   int iter_used;
   vec4 fragColor = trace(hit, tcmin, tcmax, pos, iter_used, camRay);
 
+  vec4 overlappingColor = vec4(0.0);
+
   // customized shading
-  if (hit) {
-    // fragColor = vec4(vec3(float(iter_used) / MAX_ITER), 1.0);
-    // fragColor = vec4(vec3(exp(-tcmin)), 1.0);
-  }
-  imageStore(rawTex, uv, fragColor);
+  overlappingColor = vec4(vec3(float(iter_used) / MAX_ITER), 1.0);
+  imageStore(rawTex, uv, fragColor + overlappingColor);
 }

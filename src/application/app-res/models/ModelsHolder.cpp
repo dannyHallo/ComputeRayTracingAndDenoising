@@ -102,7 +102,7 @@ void ModelsHolder::_createSvoModel() {
 
   // buffers
   mat->addStorageBufferBundle(_buffersHolder->getSvoBufferBundle());
-
+  mat->addStorageBufferBundle(_buffersHolder->getPaletteBufferBundle());
   // model creation
   _svoModel = std::make_unique<ComputeModel>(std::move(mat), _framesInFlight,
                                              kShaderNameToWorkGroupSizes.at(shaderName));

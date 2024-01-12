@@ -70,7 +70,11 @@ void BuffersHolder::_createSingleBufferBundles(GpuModel::TrisScene *rtScene, Svo
       1, sizeof(GpuModel::Light) * rtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->lights.data());
 
-  _svoBufferBundle = std::make_unique<BufferBundle>(
-      1, sizeof(uint32_t) * svoScene->getBuffer().size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      VMA_MEMORY_USAGE_CPU_TO_GPU, svoScene->getBuffer().data());
+  _voxelBufferBundle = std::make_unique<BufferBundle>(
+      1, sizeof(uint32_t) * svoScene->getVoxelBuffer().size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU, svoScene->getVoxelBuffer().data());
+
+  _paletteBufferBundle = std::make_unique<BufferBundle>(
+      1, sizeof(uint32_t) * svoScene->getPaletteBuffer().size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VMA_MEMORY_USAGE_CPU_TO_GPU, svoScene->getPaletteBuffer().data());
 }

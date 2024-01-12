@@ -96,7 +96,7 @@ void Application::_updateUbos(size_t frameIndex) {
       currentSample,
       currentTime,
   };
-  _buffersHolder->getGlobalBuffer(frameIndex)->fillData(&globalUbo);
+  _buffersHolder->getGlobalBufferBundle()->getBuffer(frameIndex)->fillData(&globalUbo);
 
   auto thisMvpe =
       _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
@@ -106,7 +106,7 @@ void Application::_updateUbos(size_t frameIndex) {
       static_cast<int>(!_useGradientProjection),
       thisMvpe,
   };
-  _buffersHolder->getGradientProjectionBuffer(frameIndex)->fillData(&gpUbo);
+  _buffersHolder->getGradientProjectionBufferBundle()->getBuffer(frameIndex)->fillData(&gpUbo);
 
   RtxUniformBufferObject rtxUbo = {
       static_cast<uint32_t>(_trisScene->triangles.size()),
@@ -117,11 +117,11 @@ void Application::_updateUbos(size_t frameIndex) {
       _offsetY,
   };
 
-  _buffersHolder->getRtxBuffer(frameIndex)->fillData(&rtxUbo);
+  _buffersHolder->getRtxBufferBundle()->getBuffer(frameIndex)->fillData(&rtxUbo);
 
   for (int i = 0; i < kStratumFilterSize; i++) {
     StratumFilterUniformBufferObject sfUbo = {i, static_cast<int>(!_useStratumFiltering)};
-    _buffersHolder->getStratumFilterBuffer(frameIndex, i)->fillData(&sfUbo);
+    _buffersHolder->getStratumFilterBufferBundle(i)->getBuffer(frameIndex)->fillData(&sfUbo);
   }
 
   TemporalFilterUniformBufferObject tfUbo = {
@@ -131,7 +131,7 @@ void Application::_updateUbos(size_t frameIndex) {
       _blendingAlpha,
       lastMvpe,
   };
-  _buffersHolder->getTemperalFilterBuffer(frameIndex)->fillData(&tfUbo);
+  _buffersHolder->getTemperalFilterBufferBundle()->getBuffer(frameIndex)->fillData(&tfUbo);
   lastMvpe = thisMvpe;
 
   VarianceUniformBufferObject varianceUbo = {
@@ -143,7 +143,7 @@ void Application::_updateUbos(size_t frameIndex) {
       _variancePhiDepth,
   };
 
-  _buffersHolder->getVarianceBuffer(frameIndex)->fillData(&varianceUbo);
+  _buffersHolder->getVarianceBufferBundle()->getBuffer(frameIndex)->fillData(&varianceUbo);
 
   for (int i = 0; i < kATrousSize; i++) {
     // update ubo for the sampleDistance
@@ -160,11 +160,13 @@ void Application::_updateUbos(size_t frameIndex) {
         static_cast<int>(_changingLuminancePhi),
         static_cast<int>(_useJittering),
     };
-    _buffersHolder->getBlurFilterBuffer(frameIndex, i)->fillData(&bfUbo);
+    _buffersHolder->getBlurFilterBufferBundle(i)->getBuffer(frameIndex)->fillData(&bfUbo);
   }
 
   PostProcessingUniformBufferObject postProcessingUbo = {_displayType};
-  _buffersHolder->getPostProcessingBuffer(frameIndex)->fillData(&postProcessingUbo);
+  _buffersHolder->getPostProcessingBufferBundle()
+      ->getBuffer(frameIndex)
+      ->fillData(&postProcessingUbo);
 
   currentSample++;
 }
