@@ -56,20 +56,20 @@ uint countOnesInLastN(uint value, uint n) {
 void fetch_voxel_buffer(out uint next_byte_offset, out bool has_node, out bool has_leaf_node,
                         uint byte_offset, uint bit_offset) {
   uint voxel_node = voxel_buffer[byte_offset];
-  // 16: group offset
-  next_byte_offset = voxel_node >> 16;
+  // 23: group offset
+  next_byte_offset  = voxel_node >> 9;
+  uint next_is_leaf = voxel_node & 0x00000100u;
   // 8: child mask
-  uint voxel_child_mask = (voxel_node & 0x0000FF00u) >> 8;
-  // 8: leaf mask
-  uint voxel_leaf_mask = voxel_node & 0x000000FFu;
+  uint has_child_mask = voxel_node & 0x000000FFu;
 
-  has_node      = (voxel_child_mask & (1u << bit_offset)) != 0u;
-  has_leaf_node = (voxel_leaf_mask & (1u << bit_offset)) != 0u;
+  has_node      = (has_child_mask & (1u << bit_offset)) != 0u;
+  has_leaf_node = next_is_leaf != 0u;
 
+  // only if the node is presented, we need to calculate the pointer offset (absolute offset)
   if (has_node) {
     // bit_offset range: 0-7, so the last n range is 1-8, so we need to +1
     // the first bit '1' indicates a delta of 0, so we need to -1
-    next_byte_offset += countOnesInLastN(voxel_child_mask, bit_offset + 1u) - 1u;
+    next_byte_offset += countOnesInLastN(has_child_mask, bit_offset + 1u) - 1u;
   }
 }
 

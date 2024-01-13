@@ -74,13 +74,10 @@ void SvoScene::_buildImageDatas() {
   int imIdx = 0;
 
   ImCoor3D const kRootImageSize = {1, 1, 1};
-  bool isBaseLevel              = true;
   while (_imageDatas[imIdx]->getImageSize() != kRootImageSize) {
-    std::cout << "imIdx: " << imIdx << std::endl;
     auto newImageData = std::make_unique<ImData>(_imageDatas[imIdx]->getImageSize() / 2);
     _imageDatas.push_back(std::move(newImageData));
-    UpperLevelBuilder::build(_imageDatas[imIdx].get(), _imageDatas[imIdx + 1].get(), isBaseLevel);
-    isBaseLevel = false;
+    UpperLevelBuilder::build(_imageDatas[imIdx].get(), _imageDatas[imIdx + 1].get());
     imIdx++;
   }
 }
@@ -100,7 +97,7 @@ void SvoScene::_printImageDatas() {
 void SvoScene::_createVoxelBuffer() {
   int imIdx = static_cast<int>(_imageDatas.size() - 1); // start with the root image
 
-  uint32_t accum = 1;
+  uint32_t nextNodePtr = 1;
 
   std::vector<ImCoor3D> activeCoorsPrev{};
 
@@ -114,10 +111,14 @@ void SvoScene::_createVoxelBuffer() {
   }
   activeCoorsPrev.push_back(coor);
 
+  uint32_t constexpr kNextNodePtrOffset = 9;
+  uint32_t constexpr kNextIsLeafMask    = 0x00000100;
+  uint32_t constexpr kHasChildMask      = 0x000000FF;
+
   // change the data by filling the first 16 bits with the next bit offset
-  uint32_t dataToUse = data | (accum << 16);
+  uint32_t dataToUse = data | (nextNodePtr << kNextNodePtrOffset);
   _voxelBuffer.push_back(dataToUse);
-  accum += cpuBitCount(data & 0x0000FF00); // accum the bit offset
+  nextNodePtr += cpuBitCount(data & kHasChildMask); // accum the bit offset
 
   while (--imIdx >= 0) {
     auto const &imageData = _imageDatas[imIdx];
@@ -136,10 +137,12 @@ void SvoScene::_createVoxelBuffer() {
 
             thisTimeActiveCoors.push_back(coor);
 
-            // change the data by filling the first 16 bits with the next bit offset
-            uint32_t dataToUse = data | (accum << 16);
-            _voxelBuffer.push_back(dataToUse);
-            accum += cpuBitCount(data & 0x0000FF00); // accum the bit offset
+            uint32_t dataWithPtr = data | (nextNodePtr << kNextNodePtrOffset);
+            if (imIdx == 1) {
+              dataWithPtr |= kNextIsLeafMask;
+            }
+            _voxelBuffer.push_back(dataWithPtr);
+            nextNodePtr += cpuBitCount(data & kHasChildMask); // accum the bit offset
           }
         }
       }

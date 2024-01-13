@@ -12,15 +12,10 @@ uint32_t _offsetId(int x, int y, int z) {
   return x * kXWeight + y * kYWeight + z * kZWeight;
 }
 
-uint32_t _combine8To1(ImData const *_lowerLevelData, ImCoor3D const &coorCur, bool isBaseLevel) {
-  uint32_t shiftingMask = 0;
-
-  uint32_t constexpr kBaseLevelShiftMask  = 0x00000101;
-  uint32_t constexpr kUpperLevelShiftMask = 0x00000100;
-  shiftingMask = isBaseLevel ? kBaseLevelShiftMask : kUpperLevelShiftMask;
+uint32_t _combine8To1(ImData const *_lowerLevelData, ImCoor3D const &coorCur) {
+  uint32_t constexpr shiftingMask = 0x00000001;
 
   uint32_t dataWrite = 0;
-
   for (int x = 0; x < 2; x++) {
     for (int y = 0; y < 2; y++) {
       for (int z = 0; z < 2; z++) {
@@ -37,7 +32,7 @@ uint32_t _combine8To1(ImData const *_lowerLevelData, ImCoor3D const &coorCur, bo
 }
 } // namespace
 
-void build(ImData const *lowerLevelData, ImData *thisLevelData, bool isBaseLevel) {
+void build(ImData const *lowerLevelData, ImData *thisLevelData) {
   ImCoor3D coorCur{0, 0, 0};
 
   ImCoor3D _lowerLevelImageSize = lowerLevelData->getImageSize();
@@ -49,7 +44,7 @@ void build(ImData const *lowerLevelData, ImData *thisLevelData, bool isBaseLevel
       for (int z = 0; z < _lowerLevelImageSize.z / 2; z++) {
         coorCur.z = z;
 
-        uint32_t dataWrite = _combine8To1(lowerLevelData, coorCur, isBaseLevel);
+        uint32_t dataWrite = _combine8To1(lowerLevelData, coorCur);
         // if dataWrite is 0, we don't need to store it, because it means all leaf nodes are 0
         if (dataWrite != 0U) {
           thisLevelData->imageStore(coorCur, dataWrite);
