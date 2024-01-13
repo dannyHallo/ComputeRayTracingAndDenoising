@@ -67,12 +67,13 @@ _chooseSwapPresentMode(Logger *logger, const std::vector<VkPresentModeKHR> &avai
 }
 
 // return the current extent, or create another one
-VkExtent2D _getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities) {
+VkExtent2D _getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, Logger *logger) {
   assert(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max() &&
          "currentExtent.width should be valid!");
 
-  std::cout << "Using resolution: (" << capabilities.currentExtent.width << ", "
-            << capabilities.currentExtent.height << ")" << std::endl;
+  logger->print("using resolution: ({}, {})", capabilities.currentExtent.width,
+                capabilities.currentExtent.height);
+
   return capabilities.currentExtent;
 }
 } // namespace
@@ -88,7 +89,7 @@ void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
   VkSurfaceFormatKHR surfaceFormat = _chooseSwapSurfaceFormat(logger, swapchainSupport.formats);
   swapchainImageFormat             = surfaceFormat.format;
   VkPresentModeKHR presentMode     = _chooseSwapPresentMode(logger, swapchainSupport.presentModes);
-  swapchainExtent                  = _getSwapExtent(swapchainSupport.capabilities);
+  swapchainExtent                  = _getSwapExtent(swapchainSupport.capabilities, logger);
 
   // recommanded: min + 1
   uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;

@@ -46,6 +46,13 @@ void _printHexFormat(const std::vector<uint32_t> &vec) {
   std::cout << std::endl;
 }
 
+bool _checkNextNodeIdxValidaty(uint32_t nextNodeIdx, uint32_t maxLen) {
+  uint32_t constexpr kAllOnes = 0xFFFFFFFF;
+
+  uint32_t mask = kAllOnes >> (32 - maxLen);
+  return (nextNodeIdx & mask) == nextNodeIdx;
+}
+
 } // namespace
 
 SvoScene::SvoScene(Logger *logger) : _logger(logger) { _run(); }
@@ -59,9 +66,10 @@ void SvoScene::_run() {
 }
 
 void SvoScene::_buildImageDatas() {
-  std::vector<std::string> const kFileNames = {"chr_knight.vox", "monu1.vox", "monu2.vox"};
+  std::vector<std::string> const kFileNames = {"32_32_chr_knight.vox", "64_64_monu1.vox",
+                                               "128_128_monu2.vox", "128_128_monu3.vox"};
 
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[0];
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[2];
   auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
   auto &imageData                  = voxData.imageData;
   _paletteBuffer                   = voxData.paletteData;
@@ -97,7 +105,7 @@ void SvoScene::_printImageDatas() {
 void SvoScene::_createVoxelBuffer() {
   int imIdx = static_cast<int>(_imageDatas.size() - 1); // start with the root image
 
-  uint32_t nextNodePtr = 1;
+  uint32_t nextNodeIdxPtr = 1;
 
   std::vector<ImCoor3D> activeCoorsPrev{};
 
@@ -112,13 +120,14 @@ void SvoScene::_createVoxelBuffer() {
   activeCoorsPrev.push_back(coor);
 
   uint32_t constexpr kNextNodePtrOffset = 9;
+  uint32_t constexpr kNextNodePtrMaxLen = 32 - kNextNodePtrOffset;
   uint32_t constexpr kNextIsLeafMask    = 0x00000100;
   uint32_t constexpr kHasChildMask      = 0x000000FF;
 
   // change the data by filling the first 16 bits with the next bit offset
-  uint32_t dataToUse = data | (nextNodePtr << kNextNodePtrOffset);
+  uint32_t dataToUse = data | (nextNodeIdxPtr << kNextNodePtrOffset);
   _voxelBuffer.push_back(dataToUse);
-  nextNodePtr += cpuBitCount(data & kHasChildMask); // accum the bit offset
+  nextNodeIdxPtr += cpuBitCount(data & kHasChildMask); // accum the bit offset
 
   while (--imIdx >= 0) {
     auto const &imageData = _imageDatas[imIdx];
@@ -128,8 +137,8 @@ void SvoScene::_createVoxelBuffer() {
       for (int x = 0; x < 2; x++) {
         for (int y = 0; y < 2; y++) {
           for (int z = 0; z < 2; z++) {
-            auto const coor      = remappedOrigin + ImCoor3D{x, y, z};
-            uint32_t const &data = imageData->imageLoad(coor);
+            auto const coor = remappedOrigin + ImCoor3D{x, y, z};
+            uint32_t data   = imageData->imageLoad(coor);
 
             if (data == 0U) {
               continue;
@@ -137,18 +146,27 @@ void SvoScene::_createVoxelBuffer() {
 
             thisTimeActiveCoors.push_back(coor);
 
-            uint32_t dataWithPtr = data | (nextNodePtr << kNextNodePtrOffset);
-            if (imIdx == 1) {
-              dataWithPtr |= kNextIsLeafMask;
+            // image layer with index 0 is the leaf layer, so we don't need to store the next node
+            if (imIdx != 0) {
+              assert(_checkNextNodeIdxValidaty(nextNodeIdxPtr, kNextNodePtrMaxLen) &&
+                     "nextNodeIdxPtr is too large");
+              data |= nextNodeIdxPtr << kNextNodePtrOffset;
+              nextNodeIdxPtr += cpuBitCount(data & kHasChildMask); // accum the bit offset
             }
-            _voxelBuffer.push_back(dataWithPtr);
-            nextNodePtr += cpuBitCount(data & kHasChildMask); // accum the bit offset
+
+            // image layer with index 1 is the last-to-leaf layer
+            if (imIdx == 1) {
+              data |= kNextIsLeafMask;
+            }
+            _voxelBuffer.push_back(data);
           }
         }
       }
     }
     activeCoorsPrev = thisTimeActiveCoors;
   }
+
+  _logger->print("construction done, next ptr is: {} (0x{:08X})", nextNodeIdxPtr, nextNodeIdxPtr);
 }
 
 void SvoScene::_printBuffer() {
