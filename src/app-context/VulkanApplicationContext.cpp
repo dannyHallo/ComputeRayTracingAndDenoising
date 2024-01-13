@@ -43,9 +43,13 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
 
   // selects physical device, creates logical device from that, decides queues,
   // loads device-related functions too
+  ContextCreator::QueueSelection queueSelection{};
   ContextCreator::createDevice(_logger, _physicalDevice, _device, _queueFamilyIndices,
-                               _graphicsQueue, _presentQueue, _computeQueue, _transferQueue,
-                               _vkInstance, _surface, requiredDeviceExtensions);
+                               queueSelection, _vkInstance, _surface, requiredDeviceExtensions);
+  _graphicsQueue = queueSelection.graphicsQueue;
+  _presentQueue  = queueSelection.presentQueue;
+  _computeQueue  = queueSelection.computeQueue;
+  _transferQueue = queueSelection.transferQueue;
 
   createSwapchainDimensionRelatedResources();
 

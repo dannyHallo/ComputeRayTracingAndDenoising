@@ -195,14 +195,14 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
   std::vector<uint32_t> deviceMarks(physicalDevices.size());
   size_t deviceId = 0;
 
-  logger->print("-------------------------------------------------------");
+  logger->print("-----------------------------------------------------------------------");
 
   for (const auto &physicalDevice : physicalDevices) {
 
     VkPhysicalDeviceProperties deviceProperty;
     vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperty);
 
-    // Discrete GPU will mark better
+    // discrete GPU will mark better
     if (deviceProperty.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
       deviceMarks[deviceId] += kDiscreteGpuMark;
     } else if (deviceProperty.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU) {
@@ -218,7 +218,7 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
 
     size_t deviceMemory = 0;
     for (const auto &heap : heaps) {
-      // At least one heap has this flag
+      // at least one heap has this flag
       if ((heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) != 0) {
         deviceMemory += heap.size;
       }
@@ -227,16 +227,14 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
     // MSAA
     VkSampleCountFlagBits msaaSamples = _getDeviceMaxUsableSampleCount(physicalDevice);
 
-    std::cout << "Device " << deviceId << "    "
-              << static_cast<const char *>(deviceProperty.deviceName)
-              << "    Memory in bytes: " << deviceMemory
-              << "    MSAA max sample count: " << msaaSamples
-              << "    Mark: " << deviceMarks[deviceId] << "\n";
+    int constexpr kDesiredLengthOfDeviceName = 30;
+    logger->print("[{}] {:<{}} memory {} mSAA {} mark {}", deviceId, deviceProperty.deviceName,
+                  kDesiredLengthOfDeviceName, deviceMemory, msaaSamples, deviceMarks[deviceId]);
 
     deviceId++;
   }
 
-  logger->print("-------------------------------------------------------");
+  logger->print("-----------------------------------------------------------------------");
   logger->println();
 
   uint32_t bestMark = 0;
@@ -268,13 +266,11 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
 // pick the most suitable physical device, and create logical device from it
 void ContextCreator::createDevice(Logger *logger, VkPhysicalDevice &physicalDevice,
                                   VkDevice &device, QueueFamilyIndices &indices,
-                                  VkQueue &graphicsQueue, VkQueue &presentQueue,
-                                  VkQueue &computeQueue, VkQueue &transferQueue,
-                                  const VkInstance &instance, VkSurfaceKHR surface,
+                                  QueueSelection &queueSelection, const VkInstance &instance,
+                                  VkSurfaceKHR surface,
                                   const std::vector<const char *> &requiredDeviceExtensions) {
   // pick the physical device with the best performance
   {
-    //           << std::endl;
     physicalDevice = VK_NULL_HANDLE;
 
     uint32_t deviceCount = 0;
@@ -354,10 +350,10 @@ void ContextCreator::createDevice(Logger *logger, VkPhysicalDevice &physicalDevi
     // reduce loading overhead by specifing only one device is used
     volkLoadDevice(device);
 
-    vkGetDeviceQueue(device, indices.graphicsFamily, 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily, 0, &presentQueue);
-    vkGetDeviceQueue(device, indices.computeFamily, 0, &computeQueue);
-    vkGetDeviceQueue(device, indices.transferFamily, 0, &transferQueue);
+    vkGetDeviceQueue(device, indices.graphicsFamily, 0, &queueSelection.graphicsQueue);
+    vkGetDeviceQueue(device, indices.presentFamily, 0, &queueSelection.presentQueue);
+    vkGetDeviceQueue(device, indices.computeFamily, 0, &queueSelection.computeQueue);
+    vkGetDeviceQueue(device, indices.transferFamily, 0, &queueSelection.transferQueue);
 
     // // if raytracing support requested - let's get raytracing properties to
     // // know shader header size and max recursion
