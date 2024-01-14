@@ -96,7 +96,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     vec3 pos;
     int scale; // size = exp2(float(-scale)), a lookup table is used
     vec3 idx;
-    uint ptr;
+    uint voxelData;
     float h;
   } stack[kMaxLevels];
 
@@ -120,9 +120,8 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
   // for x component, if tcmin < tmid.x, idx.x reverts the ray dir in x axis,
   // same for y and z
   vec3 idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
-  // return vec4(idx, 1.0);
 
-  uint byteOffset = 0u;
+  uint voxelData = voxelBuffer[0];
   scale++;
 
   // move to first hitted sub-cell center
@@ -139,7 +138,6 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     bool hasNode, childIsLeaf;
     // TODO: don't fetch if not necessary (store them in stack)
 
-    uint voxelData = voxelBuffer[byteOffset];
     parseParentNodeBuffer(nextByteOffset, hasNode, childIsLeaf, voxelData, bitOffset);
 
     // [PUSH] repeatedly, until empty voxel is found
@@ -157,7 +155,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
 
       // tcmax is current voxel's exist time, h is parent voxel exist time
       if (tcmax < h) {
-        stack[stackPtr++] = LevelStack(pos, scale, idx, byteOffset, h);
+        stack[stackPtr++] = LevelStack(pos, scale, idx, voxelData, h);
       }
 
       h = tcmax;
@@ -167,7 +165,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
       // edge[i], and 1.0 is returned otherwise.
       idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
 
-      byteOffset = nextByteOffset;
+      voxelData = voxelBuffer[nextByteOffset];
 
       pos += scaleLookup[scale + 1] * idx;
       continue;
@@ -194,7 +192,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
       pos          = s.pos;
       scale        = s.scale;
       idx          = s.idx;
-      byteOffset   = s.ptr;
+      voxelData    = s.voxelData;
       h            = s.h;
 
       // once stack pop out, avoid pushing it in again
