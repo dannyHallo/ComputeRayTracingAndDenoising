@@ -7,8 +7,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 // ubo;
 
 layout(binding = 1, rgba32f) writeonly uniform image2D rawTex;
-layout(std430, binding = 2) readonly buffer VoxelBufferObject { uint[] voxel_buffer; };
-layout(std430, binding = 3) readonly buffer PaletteBufferObject { uint[] palette_buffer; };
+layout(std430, binding = 2) readonly buffer VoxelBufferObject { uint[] voxelBuffer; };
+layout(std430, binding = 3) readonly buffer PaletteBufferObject { uint[] paletteBuffer; };
 
 #include "include/definitions.glsl"
 #include "include/globalUbo.glsl" // defines layout 0
@@ -21,8 +21,8 @@ struct Ray {
   vec3 dir;
 };
 
-const float[] scale_lookup = float[](1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0.0078125,
-                                     0.00390625, 0.001953125, 0.0009765625, 0.00048828125);
+const float[] scaleLookup = float[](1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0.0078125,
+                                    0.00390625, 0.001953125, 0.0009765625, 0.00048828125);
 
 // returns t0 and t1, also fills tmid and tmax
 bool isect(out float tcmin, out float tcmax, out vec3 tmid, out vec3 tmax, vec3 pos, float size,
@@ -53,27 +53,23 @@ uint countOnesInLastN(uint value, uint n) {
   return bitCount(relevantBits);
 }
 
-void fetch_voxel_buffer(out uint next_byte_offset, out bool has_node, out bool has_leaf_node,
-                        uint byte_offset, uint bit_offset) {
-  uint voxel_node = voxel_buffer[byte_offset];
-  // 23: group offset
-  next_byte_offset  = voxel_node >> 9;
-  uint next_is_leaf = voxel_node & 0x00000100u;
-  // 8: child mask
+void fetchVoxelBuffer(out uint nextByteOffset, out bool hasNode, out bool childIsLeaf,
+                      uint byteOffset, uint bitOffset) {
+  uint voxel_node     = voxelBuffer[byteOffset];
+  childIsLeaf         = (voxel_node & 0x00000100u) == 0x00000100u;
   uint has_child_mask = voxel_node & 0x000000FFu;
-
-  has_node      = (has_child_mask & (1u << bit_offset)) != 0u;
-  has_leaf_node = next_is_leaf != 0u;
+  hasNode             = (has_child_mask & (1u << bitOffset)) != 0u;
 
   // only if the node is presented, we need to calculate the pointer offset (absolute offset)
-  if (has_node) {
-    // bit_offset range: 0-7, so the last n range is 1-8, so we need to +1
+  if (hasNode) {
+    nextByteOffset = voxel_node >> 9;
+    // bitOffset range: 0-7, so the last n range is 1-8, so we need to +1
     // the first bit '1' indicates a delta of 0, so we need to -1
-    next_byte_offset += countOnesInLastN(has_child_mask, bit_offset + 1u) - 1u;
+    nextByteOffset += countOnesInLastN(has_child_mask, bitOffset + 1u) - 1u;
   }
 }
 
-void fetch_leaf_buffer(out uint leafVal, uint byte_offset) { leafVal = voxel_buffer[byte_offset]; }
+void fetchLeafBuffer(out uint leafVal, uint byteOffset) { leafVal = voxelBuffer[byteOffset]; }
 
 const vec4 kBlack   = vec4(0.0, 0.0, 0.0, 1.0);
 const vec4 kRed     = vec4(1.0, 0.0, 0.0, 1.0);
@@ -84,7 +80,7 @@ const vec4 kMagenta = vec4(0.5, 0.2, 0.5, 1.0);
 vec4 getColor(uint leafVal) {
   leafVal = leafVal & 0x000000FFu;
 
-  uint colorFromPalette = palette_buffer[leafVal];
+  uint colorFromPalette = paletteBuffer[leafVal];
   float red             = float((colorFromPalette & 0xFF000000u) >> 24u) / 255.0;
   float green           = float((colorFromPalette & 0x00FF0000u) >> 16u) / 255.0;
   float blue            = float((colorFromPalette & 0x0000FF00u) >> 8u) / 255.0;
@@ -95,7 +91,7 @@ vec4 getColor(uint leafVal) {
 }
 
 // returns true if hit, false if miss
-vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int iter_used,
+vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int iterUsed,
            Ray camRay) {
   struct LevelStack {
     vec3 pos;
@@ -105,18 +101,17 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     float h;
   } stack[kMaxLevels];
 
-  int stack_ptr = 0;
-  hit           = false;
-  iter_used     = 0;
+  int stackPtr = 0;
+  hit          = false;
+  iterUsed     = 0;
 
   // STEP 1: initialize
   int scale = 0;
 
   pos = vec3(0);
   vec3 tmid, tmax;
-  bool can_push               = true;
-  bool is_intersect_with_root = isect(tcmin, tcmax, tmid, tmax, pos, scale_lookup[scale], camRay);
-  if (!is_intersect_with_root) {
+  bool can_push = true;
+  if (!isect(tcmin, tcmax, tmid, tmax, pos, scaleLookup[scale], camRay)) {
     return kBlack;
   }
 
@@ -128,40 +123,40 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
   vec3 idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
   // return vec4(idx, 1.0);
 
-  uint byte_offset = 0u;
+  uint byteOffset = 0u;
   scale++;
 
   // move to first hitted sub-cell center
-  pos += scale_lookup[scale + 1] * idx;
+  pos += scaleLookup[scale + 1] * idx;
 
-  while (iter_used++ < MAX_ITER) {
+  while (iterUsed++ < MAX_ITER) {
     // transform idx from [-1, 1] to [0, 1]
-    vec3 idx01      = (idx + 1.0) * 0.5;
-    uint bit_offset = uint(dot(idx01, vec3(1., 2., 4.))); // 0-7
+    vec3 idx01     = (idx + 1.0) * 0.5;
+    uint bitOffset = uint(dot(idx01, vec3(1., 2., 4.))); // 0-7
 
-    isect(tcmin, tcmax, tmid, tmax, pos, scale_lookup[scale], camRay);
+    isect(tcmin, tcmax, tmid, tmax, pos, scaleLookup[scale], camRay);
 
-    uint next_byte_offset;
-    bool has_node, has_leaf_node;
+    uint nextByteOffset;
+    bool hasNode, childIsLeaf;
     // TODO: don't fetch if not necessary (store them in stack)
-    fetch_voxel_buffer(next_byte_offset, has_node, has_leaf_node, byte_offset, bit_offset);
+    fetchVoxelBuffer(nextByteOffset, hasNode, childIsLeaf, byteOffset, bitOffset);
 
     // [PUSH] repeatedly, until empty voxel is found
     // when pushed layer reached the same level as the smallest voxel, stop
     // and return (this is temporary solution for finding the leaf)
-    if (can_push && has_node) {
+    if (can_push && hasNode) {
       // hits the leaf
-      if (has_leaf_node) {
+      if (childIsLeaf) {
         hit = true;
 
         uint leafVal;
-        fetch_leaf_buffer(leafVal, next_byte_offset);
+        fetchLeafBuffer(leafVal, nextByteOffset);
         return getColor(leafVal);
       }
 
       // tcmax is current voxel's exist time, h is parent voxel exist time
       if (tcmax < h) {
-        stack[stack_ptr++] = LevelStack(pos, scale, idx, byte_offset, h);
+        stack[stackPtr++] = LevelStack(pos, scale, idx, byteOffset, h);
       }
 
       h = tcmax;
@@ -171,9 +166,9 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
       // edge[i], and 1.0 is returned otherwise.
       idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
 
-      byte_offset = next_byte_offset;
+      byteOffset = nextByteOffset;
 
-      pos += scale_lookup[scale + 1] * idx;
+      pos += scaleLookup[scale + 1] * idx;
       continue;
     }
 
@@ -189,16 +184,16 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     // idx has not changed -> [POP]
     if (idx == old) {
       // if poped all the way to the root
-      // if (stack_ptr == 0 || scale == 0)
-      if (stack_ptr == 0) {
+      // if (stackPtr == 0 || scale == 0)
+      if (stackPtr == 0) {
         return kMagenta;
       }
 
-      LevelStack s = stack[--stack_ptr]; // restore to parent Stack
+      LevelStack s = stack[--stackPtr]; // restore to parent Stack
       pos          = s.pos;
       scale        = s.scale;
       idx          = s.idx;
-      byte_offset  = s.ptr;
+      byteOffset   = s.ptr;
       h            = s.h;
 
       // once stack pop out, avoid pushing it in again
@@ -207,7 +202,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     // idx has changed -> [ADVANCE]
     else {
       // if old = idx → stay,else → move forward in this stack
-      pos += mix(vec3(0.), sign(camRay.dir), notEqual(old, idx)) * scale_lookup[scale];
+      pos += mix(vec3(0.), sign(camRay.dir), notEqual(old, idx)) * scaleLookup[scale];
       can_push = true;
     }
   }
@@ -258,12 +253,12 @@ void main() {
   float tcmin, tcmax;
   bool hit;
   vec3 pos;
-  int iter_used;
-  vec4 fragColor = trace(hit, tcmin, tcmax, pos, iter_used, camRay);
+  int iterUsed;
+  vec4 fragColor = trace(hit, tcmin, tcmax, pos, iterUsed, camRay);
 
   vec4 overlappingColor = vec4(0.0);
 
   // customized shading
-  overlappingColor = vec4(vec3(float(iter_used) / MAX_ITER), 1.0);
+  overlappingColor = vec4(vec3(float(iterUsed) / MAX_ITER), 1.0);
   imageStore(rawTex, uv, fragColor + overlappingColor);
 }
