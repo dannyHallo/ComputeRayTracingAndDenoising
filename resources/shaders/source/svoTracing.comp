@@ -55,17 +55,17 @@ uint countOnesInLastN(uint value, uint n) {
 
 void fetchVoxelBuffer(out uint nextByteOffset, out bool hasNode, out bool childIsLeaf,
                       uint byteOffset, uint bitOffset) {
-  uint voxel_node     = voxelBuffer[byteOffset];
-  childIsLeaf         = (voxel_node & 0x00000100u) == 0x00000100u;
-  uint has_child_mask = voxel_node & 0x000000FFu;
-  hasNode             = (has_child_mask & (1u << bitOffset)) != 0u;
+  uint voxelNode    = voxelBuffer[byteOffset];
+  childIsLeaf       = (voxelNode & 0x00000100u) == 0x00000100u;
+  uint hasChildMask = voxelNode & 0x000000FFu;
+  hasNode           = (hasChildMask & (1u << bitOffset)) != 0u;
 
   // only if the node is presented, we need to calculate the pointer offset (absolute offset)
   if (hasNode) {
-    nextByteOffset = voxel_node >> 9;
+    nextByteOffset = voxelNode >> 9;
     // bitOffset range: 0-7, so the last n range is 1-8, so we need to +1
     // the first bit '1' indicates a delta of 0, so we need to -1
-    nextByteOffset += countOnesInLastN(has_child_mask, bitOffset + 1u) - 1u;
+    nextByteOffset += countOnesInLastN(hasChildMask, bitOffset + 1u) - 1u;
   }
 }
 
@@ -110,7 +110,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
 
   pos = vec3(0);
   vec3 tmid, tmax;
-  bool can_push = true;
+  bool canPush = true;
   if (!isect(tcmin, tcmax, tmid, tmax, pos, scaleLookup[scale], camRay)) {
     return kBlack;
   }
@@ -144,7 +144,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     // [PUSH] repeatedly, until empty voxel is found
     // when pushed layer reached the same level as the smallest voxel, stop
     // and return (this is temporary solution for finding the leaf)
-    if (can_push && hasNode) {
+    if (canPush && hasNode) {
       // hits the leaf
       if (childIsLeaf) {
         hit = true;
@@ -197,13 +197,13 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
       h            = s.h;
 
       // once stack pop out, avoid pushing it in again
-      can_push = false;
+      canPush = false;
     }
     // idx has changed -> [ADVANCE]
     else {
       // if old = idx → stay,else → move forward in this stack
       pos += mix(vec3(0.), sign(camRay.dir), notEqual(old, idx)) * scaleLookup[scale];
-      can_push = true;
+      canPush = true;
     }
   }
   return kBlack;
@@ -221,19 +221,19 @@ vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
   const vec3 up     = globalUbo.camUp;
   const vec3 right  = globalUbo.camRight;
 
-  const float theta           = globalUbo.vfov * kDeg2Rad;
-  const float h               = tan(theta / 2);
-  const float viewport_height = 2.0 * h;
-  const float viewport_width =
-      float(globalUbo.swapchainWidth) / float(globalUbo.swapchainHeight) * viewport_height;
+  const float theta          = globalUbo.vfov * kDeg2Rad;
+  const float h              = tan(theta / 2);
+  const float viewportHeight = 2.0 * h;
+  const float viewportWidth =
+      float(globalUbo.swapchainWidth) / float(globalUbo.swapchainHeight) * viewportHeight;
 
-  vec3 rayPropDir      = viewport_width * right - viewport_height * up;
-  vec3 top_left_corner = front - rayPropDir / 2;
+  vec3 rayPropDir    = viewportWidth * right - viewportHeight * up;
+  vec3 topLeftCorner = front - rayPropDir / 2;
 
   vec2 uv = (gl_GlobalInvocationID.xy + subpixOffset) /
             vec2(globalUbo.swapchainWidth, globalUbo.swapchainHeight);
 
-  return top_left_corner + viewport_width * right * uv.x - viewport_height * up * uv.y;
+  return topLeftCorner + viewportWidth * right * uv.x - viewportHeight * up * uv.y;
 }
 
 Ray rayGen(vec2 subpixOffset) {

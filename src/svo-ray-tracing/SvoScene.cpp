@@ -68,9 +68,9 @@ void SvoScene::_run() {
 void SvoScene::_buildImageDatas() {
   std::vector<std::string> const kFileNames = {"32_chr_knight.vox", "64_monu1.vox",
                                                "128_monu2.vox",     "128_monu3.vox",
-                                               "128_monu4.vox",     "128_monu5.vox"};
+                                               "128_monu4.vox",     "256_monu4.vox"};
 
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[5];
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[4];
   auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
   auto &imageData                  = voxData.imageData;
   _paletteBuffer                   = voxData.paletteData;
@@ -168,6 +168,12 @@ void SvoScene::_createVoxelBuffer() {
   }
 
   _logger->print("construction done, next ptr is: {} (0x{:08X})", nextNodeIdxPtr, nextNodeIdxPtr);
+
+  // print buffer size in mb
+  uint32_t constexpr kBytesInMb = 1024 * 1024;
+  float const kBufferSizeInMb =
+      static_cast<float>(_voxelBuffer.size() * sizeof(uint32_t)) / kBytesInMb;
+  _logger->print("buffer size: {} mb", kBufferSizeInMb);
 }
 
 void SvoScene::_printBuffer() {
