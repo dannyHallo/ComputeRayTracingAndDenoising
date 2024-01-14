@@ -55,14 +55,15 @@ uint countOnesInLastN(uint value, uint n) {
 
 void fetchVoxelBuffer(out uint nextByteOffset, out bool hasNode, out bool childIsLeaf,
                       uint byteOffset, uint bitOffset) {
-  uint voxelNode    = voxelBuffer[byteOffset];
-  childIsLeaf       = (voxelNode & 0x00000100u) == 0x00000100u;
-  uint hasChildMask = voxelNode & 0x000000FFu;
+  uint voxelData = voxelBuffer[byteOffset];
+
+  childIsLeaf       = (voxelData & 0x00000100u) == 0x00000100u;
+  uint hasChildMask = voxelData & 0x000000FFu;
   hasNode           = (hasChildMask & (1u << bitOffset)) != 0u;
 
   // only if the node is presented, we need to calculate the pointer offset (absolute offset)
   if (hasNode) {
-    nextByteOffset = voxelNode >> 9;
+    nextByteOffset = voxelData >> 9;
     // bitOffset range: 0-7, so the last n range is 1-8, so we need to +1
     // the first bit '1' indicates a delta of 0, so we need to -1
     nextByteOffset += countOnesInLastN(hasChildMask, bitOffset + 1u) - 1u;

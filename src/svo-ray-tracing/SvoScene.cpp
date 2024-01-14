@@ -70,7 +70,7 @@ void SvoScene::_buildImageDatas() {
                                                "128_monu2.vox",     "128_monu3.vox",
                                                "128_monu4.vox",     "256_monu4.vox"};
 
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[4];
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[3];
   auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
   auto &imageData                  = voxData.imageData;
   _paletteBuffer                   = voxData.paletteData;
