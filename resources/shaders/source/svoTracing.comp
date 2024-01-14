@@ -53,10 +53,8 @@ uint countOnesInLastN(uint value, uint n) {
   return bitCount(relevantBits);
 }
 
-void fetchVoxelBuffer(out uint nextByteOffset, out bool hasNode, out bool childIsLeaf,
-                      uint byteOffset, uint bitOffset) {
-  uint voxelData = voxelBuffer[byteOffset];
-
+void parseParentNodeBuffer(out uint nextByteOffset, out bool hasNode, out bool childIsLeaf,
+                           uint voxelData, uint bitOffset) {
   childIsLeaf       = (voxelData & 0x00000100u) == 0x00000100u;
   uint hasChildMask = voxelData & 0x000000FFu;
   hasNode           = (hasChildMask & (1u << bitOffset)) != 0u;
@@ -140,7 +138,9 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     uint nextByteOffset;
     bool hasNode, childIsLeaf;
     // TODO: don't fetch if not necessary (store them in stack)
-    fetchVoxelBuffer(nextByteOffset, hasNode, childIsLeaf, byteOffset, bitOffset);
+
+    uint voxelData = voxelBuffer[byteOffset];
+    parseParentNodeBuffer(nextByteOffset, hasNode, childIsLeaf, voxelData, bitOffset);
 
     // [PUSH] repeatedly, until empty voxel is found
     // when pushed layer reached the same level as the smallest voxel, stop
