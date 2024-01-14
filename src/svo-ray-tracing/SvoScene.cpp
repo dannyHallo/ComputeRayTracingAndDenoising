@@ -66,10 +66,11 @@ void SvoScene::_run() {
 }
 
 void SvoScene::_buildImageDatas() {
-  std::vector<std::string> const kFileNames = {"32_32_chr_knight.vox", "64_64_monu1.vox",
-                                               "128_128_monu2.vox", "128_128_monu3.vox"};
+  std::vector<std::string> const kFileNames = {"32_chr_knight.vox", "64_monu1.vox",
+                                               "128_monu2.vox",     "128_monu3.vox",
+                                               "128_monu4.vox",     "128_monu5.vox"};
 
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[2];
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[5];
   auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
   auto &imageData                  = voxData.imageData;
   _paletteBuffer                   = voxData.paletteData;
