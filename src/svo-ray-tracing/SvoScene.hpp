@@ -28,6 +28,6 @@ private:
   void _buildImageDatas();
   void _printImageDatas();
   void _createVoxelBuffer();
-  void _createPaletteBuffer();
-  void _printBuffer();
+
+void _printBuffer();
 };
