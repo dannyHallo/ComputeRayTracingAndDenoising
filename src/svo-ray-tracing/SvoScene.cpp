@@ -217,7 +217,7 @@ void SvoScene::_buildImageDatas() {
   std::vector<std::string> const kFileNames = {
       "4_test", "32_chr_knight", "64_monu1", "128_monu2", "128_monu3", "128_monu4", "256_monu4"};
 
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[6] + ".vox";
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[4] + ".vox";
   auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
   auto &imageData                  = voxData.imageData;
   _paletteBuffer                   = voxData.paletteData;
@@ -254,8 +254,8 @@ void SvoScene::_createVoxelBuffer() {
   // record time
   auto const start = std::chrono::high_resolution_clock::now();
 
-  _voxelBuffer = _createByBfs(_imageDatas);
-  // _voxelBuffer = _createByDfs(_imageDatas);
+  // _voxelBuffer = _createByBfs(_imageDatas);
+  _voxelBuffer = _createByDfs(_imageDatas);
 
   // print elapse using _logger
   auto const end    = std::chrono::high_resolution_clock::now();
