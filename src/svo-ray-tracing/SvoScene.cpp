@@ -120,7 +120,7 @@ std::vector<uint32_t> _createByBfs(std::vector<std::unique_ptr<ImData>> const &i
         if (imIdx != 0) {
           // assert(_checkNextNodeIdxValidaty(nextNodeIdx) && "nextNodeIdxPtr is too large");
           data |= nextNodeIdx << kNextNodePtrOffset;
-          if(_checkNextNodeIdxValidaty(nextNodeIdx)) {
+          if (!_checkNextNodeIdxValidaty(nextNodeIdx)) {
             exceedingCount++;
           }
           nextNodeIdx += bitCount(data & kHasChildMask); // accum the bit offset
@@ -152,7 +152,10 @@ void _visitNode(std::stack<StackContext> &stack, std::vector<uint32_t> &voxelBuf
   // change next pointer
   uint32_t &bufferData = voxelBuffer[bufferIdx];
   bufferData |= nextNodeIdx << kNextNodePtrOffset;
-  if (_checkNextNodeIdxValidaty(nextNodeIdx)) {
+  if (!_checkNextNodeIdxValidaty(nextNodeIdx)) {
+    if (exceedingCount < 10) {
+      std::cout << "nextNodeIdx: " << nextNodeIdx << std::endl;
+    }
     exceedingCount++;
   }
 
@@ -217,10 +220,19 @@ void SvoScene::_buildImageDatas() {
   std::vector<std::string> const kFileNames = {
       "4_test", "32_chr_knight", "64_monu1", "128_monu2", "128_monu3", "128_monu4", "256_monu4"};
 
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[4] + ".vox";
+  // record time
+  auto const start = std::chrono::high_resolution_clock::now();
+
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[5] + ".vox";
   auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
-  auto &imageData                  = voxData.imageData;
-  _paletteBuffer                   = voxData.paletteData;
+
+  // print elapse using _logger
+  auto const end    = std::chrono::high_resolution_clock::now();
+  auto const elapse = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  _logger->print("base image built using {} ms", elapse);
+
+  auto &imageData = voxData.imageData;
+  _paletteBuffer  = voxData.paletteData;
 
   assert(_imageSizeCanBeDividedByTwo(imageData->getImageSize()) &&
          "The base image size should be a power of 2");
@@ -233,7 +245,15 @@ void SvoScene::_buildImageDatas() {
   while (_imageDatas[imIdx]->getImageSize() != kRootImageSize) {
     auto newImageData = std::make_unique<ImData>(_imageDatas[imIdx]->getImageSize() / 2);
     _imageDatas.push_back(std::move(newImageData));
+
+    // record time
+    auto const start = std::chrono::high_resolution_clock::now();
     UpperLevelBuilder::build(_imageDatas[imIdx].get(), _imageDatas[imIdx + 1].get());
+    // print elapse using _logger
+    auto const end    = std::chrono::high_resolution_clock::now();
+    auto const elapse = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    _logger->print("image {} built using {} ms", imIdx + 1, elapse);
+
     imIdx++;
   }
 }
@@ -260,7 +280,7 @@ void SvoScene::_createVoxelBuffer() {
   // print elapse using _logger
   auto const end    = std::chrono::high_resolution_clock::now();
   auto const elapse = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-  _logger->print("elapse: {} ms", elapse);
+  _logger->print("voxel buffer created using {} ms", elapse);
 
   _logger->print("exceedingCount: {}", exceedingCount);
 

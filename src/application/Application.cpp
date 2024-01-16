@@ -10,13 +10,13 @@
 #include "application/app-res/images/ImagesHolder.hpp"
 #include "application/app-res/models/ModelsHolder.hpp"
 
+#include "gui/gui-manager/ImGuiManager.hpp"
+
 #include <cassert>
 
 // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
-
 static int constexpr kStratumFilterSize = 6;
 static int constexpr kATrousSize        = 5;
-static float constexpr kImguiFontSize   = 22.0F;
 static int constexpr kFramesInFlight    = 2;
 static float constexpr kFpsUpdateTime   = 0.5F;
 
@@ -31,12 +31,15 @@ Application::Application()
   _buffersHolder = std::make_unique<BuffersHolder>();
   _imagesHolder  = std::make_unique<ImagesHolder>(_appContext);
   _modelsHolder  = std::make_unique<ModelsHolder>(_appContext, &_logger);
+  _imguiManager =
+      std::make_unique<ImGuiManager>(_appContext, _window.get(), &_logger, kFramesInFlight);
+
+  _init();
 }
 
 Application::~Application() = default;
 
 void Application::run() {
-  _init();
   _mainLoop();
   _cleanup();
 }
@@ -54,22 +57,6 @@ void Application::_cleanup() {
     vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                          &commandBuffer);
   }
-
-  for (auto &guiCommandBuffer : _guiCommandBuffers) {
-    vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getGuiCommandPool(), 1,
-                         &guiCommandBuffer);
-  }
-
-  _cleanupFrameBuffers();
-
-  vkDestroyRenderPass(_appContext->getDevice(), _guiPass, nullptr);
-  vkDestroyDescriptorPool(_appContext->getDevice(), _guiDescriptorPool, nullptr);
-
-  ImGui_ImplVulkan_Shutdown();
-}
-
-void check_vk_result(VkResult resultCode) {
-  assert(resultCode == VK_SUCCESS && "check_vk_result failed");
 }
 
 void Application::_createTrisScene() {
@@ -79,7 +66,7 @@ void Application::_createTrisScene() {
 
 void Application::_createSvoScene() { _svoScene = std::make_unique<SvoScene>(&_logger); }
 
-void Application::_updateUbos(size_t frameIndex) {
+void Application::_updateUbos(size_t currentFrame) {
   static uint32_t currentSample = 0;
   static glm::mat4 lastMvpe{1.0F};
 
@@ -96,7 +83,7 @@ void Application::_updateUbos(size_t frameIndex) {
       currentSample,
       currentTime,
   };
-  _buffersHolder->getGlobalBufferBundle()->getBuffer(frameIndex)->fillData(&globalUbo);
+  _buffersHolder->getGlobalBufferBundle()->getBuffer(currentFrame)->fillData(&globalUbo);
 
   auto thisMvpe =
       _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
@@ -106,7 +93,7 @@ void Application::_updateUbos(size_t frameIndex) {
       static_cast<int>(!_useGradientProjection),
       thisMvpe,
   };
-  _buffersHolder->getGradientProjectionBufferBundle()->getBuffer(frameIndex)->fillData(&gpUbo);
+  _buffersHolder->getGradientProjectionBufferBundle()->getBuffer(currentFrame)->fillData(&gpUbo);
 
   RtxUniformBufferObject rtxUbo = {
       static_cast<uint32_t>(_trisScene->triangles.size()),
@@ -117,11 +104,11 @@ void Application::_updateUbos(size_t frameIndex) {
       _offsetY,
   };
 
-  _buffersHolder->getRtxBufferBundle()->getBuffer(frameIndex)->fillData(&rtxUbo);
+  _buffersHolder->getRtxBufferBundle()->getBuffer(currentFrame)->fillData(&rtxUbo);
 
   for (int i = 0; i < kStratumFilterSize; i++) {
     StratumFilterUniformBufferObject sfUbo = {i, static_cast<int>(!_useStratumFiltering)};
-    _buffersHolder->getStratumFilterBufferBundle(i)->getBuffer(frameIndex)->fillData(&sfUbo);
+    _buffersHolder->getStratumFilterBufferBundle(i)->getBuffer(currentFrame)->fillData(&sfUbo);
   }
 
   TemporalFilterUniformBufferObject tfUbo = {
@@ -131,7 +118,7 @@ void Application::_updateUbos(size_t frameIndex) {
       _blendingAlpha,
       lastMvpe,
   };
-  _buffersHolder->getTemperalFilterBufferBundle()->getBuffer(frameIndex)->fillData(&tfUbo);
+  _buffersHolder->getTemperalFilterBufferBundle()->getBuffer(currentFrame)->fillData(&tfUbo);
   lastMvpe = thisMvpe;
 
   VarianceUniformBufferObject varianceUbo = {
@@ -143,7 +130,7 @@ void Application::_updateUbos(size_t frameIndex) {
       _variancePhiDepth,
   };
 
-  _buffersHolder->getVarianceBufferBundle()->getBuffer(frameIndex)->fillData(&varianceUbo);
+  _buffersHolder->getVarianceBufferBundle()->getBuffer(currentFrame)->fillData(&varianceUbo);
 
   for (int i = 0; i < kATrousSize; i++) {
     // update ubo for the sampleDistance
@@ -160,12 +147,12 @@ void Application::_updateUbos(size_t frameIndex) {
         static_cast<int>(_changingLuminancePhi),
         static_cast<int>(_useJittering),
     };
-    _buffersHolder->getBlurFilterBufferBundle(i)->getBuffer(frameIndex)->fillData(&bfUbo);
+    _buffersHolder->getBlurFilterBufferBundle(i)->getBuffer(currentFrame)->fillData(&bfUbo);
   }
 
   PostProcessingUniformBufferObject postProcessingUbo = {_displayType};
   _buffersHolder->getPostProcessingBufferBundle()
-      ->getBuffer(frameIndex)
+      ->getBuffer(currentFrame)
       ->fillData(&postProcessingUbo);
 
   currentSample++;
@@ -294,15 +281,10 @@ void Application::_cleanupRenderCommandBuffers() {
   }
 }
 
-void Application::_cleanupFrameBuffers() {
-  for (auto &guiFrameBuffer : _guiFrameBuffers) {
-    vkDestroyFramebuffer(_appContext->getDevice(), guiFrameBuffer, nullptr);
-  }
-}
-
 void Application::_cleanupSwapchainDimensionRelatedResources() {
   _cleanupRenderCommandBuffers();
-  _cleanupFrameBuffers();
+  // the frame buffer needs to be cleaned up
+  _imguiManager->cleanupSwapchainDimensionRelatedResources();
 }
 
 void Application::_createSwapchainDimensionRelatedResources() {
@@ -311,7 +293,7 @@ void Application::_createSwapchainDimensionRelatedResources() {
                       kFramesInFlight);
 
   _createRenderCommandBuffers();
-  _createFramebuffers();
+  _imguiManager->createSwapchainDimensionRelatedResources();
 }
 
 void Application::_createSemaphoresAndFences() {
@@ -341,201 +323,6 @@ void Application::_createSemaphoresAndFences() {
   }
 }
 
-void Application::_createGuiCommandBuffers() {
-  _guiCommandBuffers.resize(kFramesInFlight);
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool        = _appContext->getGuiCommandPool();
-  allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = (uint32_t)_guiCommandBuffers.size();
-
-  VkResult result =
-      vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _guiCommandBuffers.data());
-  assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
-}
-
-void Application::_createGuiRenderPass() {
-  // Imgui Pass, right after the main pass
-  VkAttachmentDescription attachment = {};
-  attachment.format                  = _appContext->getSwapchainImageFormat();
-  attachment.samples                 = VK_SAMPLE_COUNT_1_BIT;
-  // Load onto the current render pass
-  attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-  // Store img until display time
-  attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  // No stencil
-  attachment.stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  attachment.initialLayout  = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  // Present image right after this pass
-  attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-  VkAttachmentReference colorAttachment = {};
-  colorAttachment.attachment            = 0;
-  colorAttachment.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-  VkSubpassDescription subpass = {};
-  subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  subpass.colorAttachmentCount = 1;
-  subpass.pColorAttachments    = &colorAttachment;
-
-  VkSubpassDependency dependency = {};
-  dependency.srcSubpass          = VK_SUBPASS_EXTERNAL;
-  dependency.dstSubpass          = 0;
-  dependency.srcStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.dstStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.srcAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  dependency.dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-  VkRenderPassCreateInfo renderPassCreateInfo = {};
-  renderPassCreateInfo.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  renderPassCreateInfo.attachmentCount        = 1;
-  renderPassCreateInfo.pAttachments           = &attachment;
-  renderPassCreateInfo.subpassCount           = 1;
-  renderPassCreateInfo.pSubpasses             = &subpass;
-  renderPassCreateInfo.dependencyCount        = 1;
-  renderPassCreateInfo.pDependencies          = &dependency;
-
-  VkResult result =
-      vkCreateRenderPass(_appContext->getDevice(), &renderPassCreateInfo, nullptr, &_guiPass);
-  assert(result == VK_SUCCESS && "vkCreateRenderPass failed");
-}
-
-void Application::_createFramebuffers() {
-  // Create gui frame buffers for gui pass to use
-  // Each frame buffer will have an attachment of VkImageView, in this case, the
-  // attachments are mSwapchainImageViews
-  _guiFrameBuffers.resize(_appContext->getSwapchainSize());
-
-  uint32_t const w = _appContext->getSwapchainExtentWidth();
-  uint32_t const h = _appContext->getSwapchainExtentHeight();
-
-  // Iterate through image views
-  for (size_t i = 0; i < _appContext->getSwapchainSize(); i++) {
-    VkImageView attachment = _appContext->getSwapchainImageViews()[i];
-
-    VkFramebufferCreateInfo frameBufferCreateInfo{};
-    frameBufferCreateInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    frameBufferCreateInfo.renderPass      = _guiPass;
-    frameBufferCreateInfo.attachmentCount = 1;
-    frameBufferCreateInfo.pAttachments    = &attachment;
-    frameBufferCreateInfo.width           = w;
-    frameBufferCreateInfo.height          = h;
-    frameBufferCreateInfo.layers          = 1;
-
-    VkResult result = vkCreateFramebuffer(_appContext->getDevice(), &frameBufferCreateInfo, nullptr,
-                                          &_guiFrameBuffers[i]);
-    assert(result == VK_SUCCESS && "vkCreateFramebuffer failed");
-  }
-}
-
-void Application::_createGuiDescripterPool() {
-  int constexpr kMaxDescriptorCount           = 1000;
-  std::vector<VkDescriptorPoolSize> poolSizes = {
-      {VK_DESCRIPTOR_TYPE_SAMPLER, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, kMaxDescriptorCount},
-      {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, kMaxDescriptorCount},
-  };
-
-  VkDescriptorPoolCreateInfo poolInfo = {};
-  poolInfo.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  // this descriptor pool is created only for once, so we can set the flag to allow individual
-  // descriptor sets to be de-allocated
-  poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-  // imgui actually uses only 1 descriptor set
-  poolInfo.maxSets       = kMaxDescriptorCount * poolSizes.size();
-  poolInfo.pPoolSizes    = poolSizes.data();
-  poolInfo.poolSizeCount = poolSizes.size();
-
-  VkResult result =
-      vkCreateDescriptorPool(_appContext->getDevice(), &poolInfo, nullptr, &_guiDescriptorPool);
-  assert(result == VK_SUCCESS && "vkCreateDescriptorPool failed");
-}
-
-void Application::_initGui() {
-  // setup Dear ImGui context
-  IMGUI_CHECKVERSION();
-  ImGui::CreateContext();
-  ImGuiIO &io = ImGui::GetIO();
-  io.Fonts->AddFontFromFileTTF((kPathToResourceFolder + "/fonts/OverpassMono-Medium.ttf").c_str(),
-                               kImguiFontSize);
-
-  io.ConfigFlags |= ImGuiWindowFlags_NoNavInputs;
-
-  ImGui::StyleColorsClassic();
-
-  // Setup Platform/Renderer bindings
-  ImGui_ImplGlfw_InitForVulkan(_window->getGlWindow(), true);
-
-  ImGui_ImplVulkan_InitInfo init_info = {};
-  init_info.Instance                  = _appContext->getVkInstance();
-  init_info.PhysicalDevice            = _appContext->getPhysicalDevice();
-  init_info.Device                    = _appContext->getDevice();
-  init_info.QueueFamily               = _appContext->getQueueFamilyIndices().graphicsFamily;
-  init_info.Queue                     = _appContext->getGraphicsQueue();
-  init_info.PipelineCache             = VK_NULL_HANDLE;
-  init_info.DescriptorPool            = _guiDescriptorPool;
-  init_info.Allocator                 = VK_NULL_HANDLE;
-  init_info.MinImageCount             = static_cast<uint32_t>(_appContext->getSwapchainSize());
-  init_info.ImageCount                = static_cast<uint32_t>(_appContext->getSwapchainSize());
-  init_info.CheckVkResultFn           = check_vk_result;
-  if (!ImGui_ImplVulkan_Init(&init_info, _guiPass)) {
-    _logger.print("failed to init impl");
-  }
-
-  // Create fonts texture
-  VkCommandBuffer commandBuffer = RenderSystem::beginSingleTimeCommands(
-      _appContext->getDevice(), _appContext->getCommandPool());
-
-  if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer)) {
-    _logger.print("failed to create fonts texture");
-  }
-  RenderSystem::endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                                      _appContext->getGraphicsQueue(), commandBuffer);
-}
-
-void Application::_recordGuiCommandBuffer(VkCommandBuffer &commandBuffer,
-                                          uint32_t swapchainImageIndex) {
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags            = 0;       // Optional
-  beginInfo.pInheritanceInfo = nullptr; // Optional
-
-  // A call to vkBeginCommandBuffer will implicitly reset the command buffer
-  VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-  assert(result == VK_SUCCESS && "vkBeginCommandBuffer failed");
-
-  VkRenderPassBeginInfo renderPassInfo = {};
-  renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass            = _guiPass;
-  renderPassInfo.framebuffer           = _guiFrameBuffers[swapchainImageIndex];
-  renderPassInfo.renderArea.extent     = _appContext->getSwapchainExtent();
-
-  VkClearValue clearValue{};
-  clearValue.color = {{0.0F, 0.0F, 0.0F, 1.0F}};
-
-  renderPassInfo.clearValueCount = 1;
-  renderPassInfo.pClearValues    = &clearValue;
-
-  vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-  // Record Imgui Draw Data and draw funcs into command buffer
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
-
-  vkCmdEndRenderPass(commandBuffer);
-
-  result = vkEndCommandBuffer(commandBuffer);
-  assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
-}
-
 void Application::_drawFrame() {
   static size_t currentFrame = 0;
   vkWaitForFences(_appContext->getDevice(), 1, &_framesInFlightFences[currentFrame], VK_TRUE,
@@ -543,7 +330,7 @@ void Application::_drawFrame() {
   vkResetFences(_appContext->getDevice(), 1, &_framesInFlightFences[currentFrame]);
 
   uint32_t imageIndex = 0;
-  // this process is fairly quick, but it's still better to trigger for semaphores
+  // this process is fairly quick, but it is related to communicating with the GPU
   // https://stackoverflow.com/questions/60419749/why-does-vkacquirenextimagekhr-never-block-my-thread
   VkResult result =
       vkAcquireNextImageKHR(_appContext->getDevice(), _appContext->getSwapchain(), UINT64_MAX,
@@ -560,9 +347,9 @@ void Application::_drawFrame() {
 
   _updateUbos(currentFrame);
 
-  _recordGuiCommandBuffer(_guiCommandBuffers[currentFrame], imageIndex);
-  std::vector<VkCommandBuffer> submitCommandBuffers = {_commandBuffers[imageIndex],
-                                                       _guiCommandBuffers[currentFrame]};
+  _imguiManager->recordGuiCommandBuffer(currentFrame, imageIndex);
+  std::vector<VkCommandBuffer> submitCommandBuffers = {
+      _commandBuffers[imageIndex], _imguiManager->getCommandBuffer(currentFrame)};
 
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
   // wait until the image is ready
@@ -599,111 +386,6 @@ void Application::_drawFrame() {
   currentFrame = (currentFrame + 1) % kFramesInFlight;
 }
 
-namespace {
-void comboSelector(std::string const &comboLabel, std::vector<std::string> const &outputItems,
-                   uint32_t &selectedIdx) {
-  assert(selectedIdx < outputItems.size() && "selectedIdx is out of range");
-  char const *currentSelectedItem = outputItems[selectedIdx].c_str();
-  if (ImGui::BeginCombo(comboLabel.c_str(), currentSelectedItem)) {
-    for (int n = 0; n < outputItems.size(); n++) {
-      bool isSelected         = n == selectedIdx;
-      std::string const &item = outputItems[n];
-      if (ImGui::Selectable(item.c_str(), isSelected)) {
-        currentSelectedItem = item.c_str();
-        selectedIdx         = n;
-      }
-      if (isSelected) {
-        ImGui::SetItemDefaultFocus();
-      }
-    }
-    ImGui::EndCombo();
-  }
-}
-} // namespace
-
-void Application::_prepareGui() {
-  ImGui_ImplVulkan_NewFrame();
-  // handles the user input, and the resizing of the window
-  ImGui_ImplGlfw_NewFrame();
-
-  ImGui::NewFrame();
-
-  ImGui::BeginMainMenuBar();
-  if (ImGui::BeginMenu("Config")) {
-    ImGui::SeparatorText("Gradient Projection");
-    ImGui::Checkbox("Use Gradient Projection", &_useGradientProjection);
-
-    ImGui::SeparatorText("Rtx");
-    ImGui::Checkbox("Moving Light Source", &_movingLightSource);
-    std::vector<std::string> const outputItems{"Combined", "Direct Only", "Indirect Only"};
-    comboSelector("Output Type", outputItems, _outputType);
-    float constexpr kDragSpeed = 0.01F;
-    ImGui::DragFloat("Offset X", &_offsetX, kDragSpeed, -1.0F, 1.0F);
-    ImGui::DragFloat("Offset Y", &_offsetY, kDragSpeed, -1.0F, 1.0F);
-
-    ImGui::SeparatorText("Stratum Filter");
-    ImGui::Checkbox("Use Stratum Filter", &_useStratumFiltering);
-
-    ImGui::SeparatorText("Temporal Blend");
-    ImGui::Checkbox("Temporal Accumulation", &_useTemporalBlend);
-    ImGui::Checkbox("Use normal test", &_useNormalTest);
-    ImGui::SliderFloat("Normal threhold", &_normalThreshold, 0.0F, 1.0F);
-    ImGui::SliderFloat("Blending Alpha", &_blendingAlpha, 0.0F, 1.0F);
-
-    ImGui::SeparatorText("Variance Estimation");
-    ImGui::Checkbox("Variance Calculation", &_useVarianceEstimation);
-    ImGui::Checkbox("Skip Stopping Functions", &_skipStoppingFunctions);
-    ImGui::Checkbox("Use Temporal Variance", &_useTemporalVariance);
-    int constexpr kMaxVarianceKernalSize = 15;
-    ImGui::SliderInt("Variance Kernel Size", &_varianceKernelSize, 1, kMaxVarianceKernalSize);
-    ImGui::SliderFloat("Variance Phi Gaussian", &_variancePhiGaussian, 0.0F, 1.0F);
-    ImGui::SliderFloat("Variance Phi Depth", &_variancePhiDepth, 0.0F, 1.0F);
-
-    ImGui::SeparatorText("A-Trous");
-    ImGui::Checkbox("A-Trous", &_useATrous);
-    ImGui::SliderInt("A-Trous times", &_iCap, 0, kATrousSize);
-    ImGui::Checkbox("Use variance guided filtering", &_useVarianceGuidedFiltering);
-    ImGui::Checkbox("Use gradient in depth", &_useGradientInDepth);
-    ImGui::SliderFloat("Luminance Phi", &_phiLuminance, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Depth", &_phiDepth, 0.0F, 1.0F);
-    float constexpr kPhiNormalMax = 200.0F;
-    ImGui::SliderFloat("Phi Normal", &_phiNormal, 0.0F, kPhiNormalMax);
-    ImGui::Checkbox("Ignore Luminance For First Iteration", &_ignoreLuminanceAtFirstIteration);
-    ImGui::Checkbox("Changing luminance phi", &_changingLuminancePhi);
-    ImGui::Checkbox("Use jitter", &_useJittering);
-
-    ImGui::SeparatorText("Post Processing");
-    std::vector<std::string> displayItems{"Color",      "Variance", "RawCol", "Stratum",
-                                          "Visibility", "Gradient", "Custom"};
-    comboSelector("Display Type", displayItems, _displayType);
-
-    ImGui::EndMenu();
-  }
-  ImGui::EndMainMenuBar();
-
-  auto *mainGuiViewPort = ImGui::GetMainViewport();
-  float height          = mainGuiViewPort->Size.y;
-
-  const float kStatsWindowWidth  = 200.0F;
-  const float kStatsWindowHeight = 80.0F;
-
-  ImGui::SetNextWindowPos(ImVec2(0, height - kStatsWindowHeight));
-  ImGui::Begin("Stats", nullptr,
-               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
-                   ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
-                   ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing |
-                   ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
-
-  ImGui::SetWindowSize(ImVec2(kStatsWindowWidth, kStatsWindowHeight));
-  ImGui::Text("fps : %.2f", _fps);
-  float constexpr kMsPerSecond = 1000.0F;
-  ImGui::Text("frame t: %.2f", kMsPerSecond / _fps);
-
-  ImGui::End();
-  ImGui::Render();
-}
-
 void Application::_waitForTheWindowToBeResumed() {
   int width  = _window->getFrameBufferWidth();
   int height = _window->getFrameBufferHeight();
@@ -721,11 +403,6 @@ void Application::_mainLoop() {
 
   while (glfwWindowShouldClose(_window->getGlWindow()) == 0) {
     glfwPollEvents();
-    auto &io = ImGui::GetIO();
-    // the MousePos is problematic when the window is not focused, so we set it
-    // manually here
-    io.MousePos = ImVec2(static_cast<float>(_window->getCursorXPos()),
-                         static_cast<float>(_window->getCursorYPos()));
 
     if (glfwGetWindowAttrib(_window->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
       _logger.print("window is not focused");
@@ -746,7 +423,8 @@ void Application::_mainLoop() {
       fpsRecordLastTime = 0;
       continue;
     }
-    _prepareGui();
+
+    _imguiManager->update(_fps);
 
     fpsFrameCount++;
     auto currentTime     = static_cast<float>(glfwGetTime());
@@ -789,17 +467,10 @@ void Application::_init() {
                       kFramesInFlight);
 
   _createRenderCommandBuffers();
-  _createGuiCommandBuffers();
 
   _createSemaphoresAndFences();
 
-  _createGuiRenderPass();
-
-  _createFramebuffers();
-
-  _createGuiDescripterPool();
-
-  _initGui();
+  // _initGui(); // TODO:
 
   // attach camera's mouse handler to the window mouse callback, more handlers can be added in the
   // future

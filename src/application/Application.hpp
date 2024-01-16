@@ -1,13 +1,5 @@
 #pragma once
 
-#include <array>
-#include <cstdint>
-#include <cstdlib>
-#include <iostream>
-#include <memory>
-#include <stdexcept>
-#include <vector>
-
 #include "app-context/VulkanApplicationContext.hpp"
 
 #include "scene/Mesh.hpp"
@@ -16,12 +8,14 @@
 #include "utils/camera/Camera.hpp"
 #include "utils/logger/Logger.hpp"
 
-#include "imgui/backends/imgui_impl_glfw.h"
-#include "imgui/backends/imgui_impl_vulkan.h"
+#include <cstdint>
+#include <memory>
+#include <vector>
 
 class BuffersHolder;
 class ImagesHolder;
 class ModelsHolder;
+class ImGuiManager;
 class Application {
 public:
   Application();
@@ -37,7 +31,6 @@ public:
   void run();
 
 private:
-  // GradientProjectionUniformBufferObject
   bool _useGradientProjection = true;
 
   bool _movingLightSource = false;
@@ -88,6 +81,7 @@ private:
 
   Logger _logger;
 
+  std::unique_ptr<ImGuiManager> _imguiManager;
   std::unique_ptr<Camera> _camera;
   std::unique_ptr<Window> _window;
 
@@ -98,21 +92,11 @@ private:
 
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> _commandBuffers;
-  std::vector<VkCommandBuffer> _guiCommandBuffers;
-
-  // render pass for GUI
-  VkRenderPass _guiPass = VK_NULL_HANDLE;
-
-  // descriptor pool for GUI
-  VkDescriptorPool _guiDescriptorPool = VK_NULL_HANDLE;
 
   // semaphores and fences for synchronization
   std::vector<VkSemaphore> _imageAvailableSemaphores;
   std::vector<VkSemaphore> _renderFinishedSemaphores;
   std::vector<VkFence> _framesInFlightFences;
-
-  // framebuffers for GUI
-  std::vector<VkFramebuffer> _guiFrameBuffers;
 
   std::unique_ptr<BuffersHolder> _buffersHolder;
   std::unique_ptr<ImagesHolder> _imagesHolder;
@@ -122,45 +106,28 @@ private:
   void _createSvoScene();
 
   // update uniform buffer object for each frame and save last mvpe matrix
-  void _updateUbos(size_t frameIndex);
+  void _updateUbos(size_t currentFrame);
 
   void _createRenderCommandBuffers();
 
   void _createSemaphoresAndFences();
 
-  void _createGuiCommandBuffers();
-  void _createGuiRenderPass();
-  void _createFramebuffers();
-  void _createGuiDescripterPool();
-
   void _cleanupSwapchainDimensionRelatedResources();
   void _cleanupBufferBundles();
-  void _cleanupFrameBuffers();
   void _cleanupRenderCommandBuffers();
 
   void _createSwapchainDimensionRelatedResources();
 
-  // initialize GUI
   void _initGui();
-
-  // record command buffer for GUI
-  void _recordGuiCommandBuffer(VkCommandBuffer &commandBuffer, uint32_t swapchainImageIndex);
 
   void _waitForTheWindowToBeResumed();
 
-  // draw a frame
   void _drawFrame();
 
-  // prepare GUI
-  void _prepareGui();
-
-  // main loop
   void _mainLoop();
 
-  // initialize Vulkan
   void _init();
 
-  // cleanup resources
   void _cleanup();
 
   bool _needToToggleWindowStyle();
