@@ -18,7 +18,7 @@
 static int constexpr kStratumFilterSize = 6;
 static int constexpr kATrousSize        = 5;
 static int constexpr kFramesInFlight    = 2;
-static float constexpr kFpsUpdateTime   = 0.5F;
+static float constexpr kFpsUpdateTime   = 0.01F;
 
 Camera *Application::getCamera() { return _camera.get(); }
 

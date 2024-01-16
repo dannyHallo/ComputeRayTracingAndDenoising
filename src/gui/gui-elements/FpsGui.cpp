@@ -1,49 +1,49 @@
 #include "FpsGui.hpp"
 
 #include "imgui.h"
+#include "implot.h"
 
-#include <vector>
+int constexpr kHistSize = 800;
 
-int constexpr kFpsHistorySize = 1000;
+FpsGui::FpsGui() {
+  // create x array
+  _x.resize(kHistSize);
+  for (int i = 0; i < kHistSize; ++i) {
+    _x[i] = static_cast<float>(i);
+  }
 
-FpsGui::FpsGui() = default;
+  // create y array
+  _y.resize(kHistSize, 0);
+}
 
 void FpsGui::setActive(bool active) { _isActive = active; }
 
 void FpsGui::update(float fps) {
   _updateFpsHistData(fps);
 
-  // ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoTitleBar;
-  // ImGui::Begin("FPS", &_isActive, windowFlags);
+  // clear y array, and refill using deque
+  std::fill(_y.begin(), _y.end(), 0);
+  std::copy(_fpsHistory.begin(), _fpsHistory.end(),
+            _y.begin() + static_cast<long long>(kHistSize - _fpsHistory.size()));
 
-  // plot the curve using imgui
-  if (!_fpsHistory.empty()) {
-    // create a temporary vector and copy the data from the deque
-    // numberOfElements, defaultVal
-    std::vector<float> tempFpsHistory(kFpsHistorySize, 0);
-    std::copy(_fpsHistory.begin(), _fpsHistory.end(),
-              tempFpsHistory.begin() +
-                  static_cast<long long>(kFpsHistorySize - _fpsHistory.size()));
+  float constexpr kYMin       = 0;
+  float constexpr kYMax       = 3000.F;
+  float constexpr kGraphSizeX = 0.F; // auto fit
+  float constexpr kGraphSizeY = 120.F;
 
-    float constexpr kScaleMin   = 0;
-    float constexpr kScaleMax   = 1000.F;
-    float constexpr kGraphSizeX = 0.F; // auto fit
-    float constexpr kGraphSizeY = 80.F;
+  ImPlot::SetNextAxisLimits(ImAxis_Y1, kYMin, kYMax);
 
-    ImGui::BeginTooltip();
-    ImGui::EndTooltip();
-    ImGui::PlotLines("##FPSPlotLines", tempFpsHistory.data(),
-                     static_cast<int>(tempFpsHistory.size()), 0, nullptr, kScaleMin, kScaleMax,
-                     ImVec2(kGraphSizeX, kGraphSizeY));
-    ImGui::BeginTooltip();
-  }
-
-  // ImGui::End();
+  ImPlot::BeginPlot("##FpsShadedPlot", ImVec2(kGraphSizeX, kGraphSizeY), ImPlotFlags_NoInputs);
+  ImPlot::SetupAxis(ImAxis_X1, nullptr,
+                    ImPlotAxisFlags_NoDecorations | ImPlotAxisFlags_NoTickLabels);
+  ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
+  ImPlot::PlotShaded("", _x.data(), _y.data(), kHistSize, 0, ImPlotShadedFlags_None);
+  ImPlot::EndPlot();
 }
 
 void FpsGui::_updateFpsHistData(float fps) {
   _fpsHistory.push_back(fps);
-  if (_fpsHistory.size() > kFpsHistorySize) {
+  if (_fpsHistory.size() > kHistSize) {
     _fpsHistory.pop_front();
   }
 }

@@ -7,8 +7,10 @@
 #include "utils/logger/Logger.hpp"
 #include "window/Window.hpp"
 
+#include "imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
+#include "implot.h"
 
 float constexpr kImguiFontSize = 22.0F;
 
@@ -65,6 +67,9 @@ ImGuiManager::~ImGuiManager() {
 
   vkDestroyDescriptorPool(_appContext->getDevice(), _guiDescriptorPool, nullptr);
   ImGui_ImplVulkan_Shutdown();
+
+  ImPlot::DestroyContext();
+  ImGui::DestroyContext();
 }
 
 void ImGuiManager::_cleanupFrameBuffers() {
@@ -81,6 +86,8 @@ void ImGuiManager::_initImgui() {
   // setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
+  ImPlot::CreateContext();
+
   ImGuiIO &io = ImGui::GetIO();
   io.Fonts->AddFontFromFileTTF((kPathToResourceFolder + "/fonts/OverpassMono-Medium.ttf").c_str(),
                                kImguiFontSize);

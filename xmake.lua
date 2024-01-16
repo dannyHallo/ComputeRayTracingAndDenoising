@@ -17,6 +17,21 @@ target("imgui")
         "dep/imgui/imgui_widgets.cpp",
         "dep/imgui/imgui.cpp"
     )
+    add_includedirs(
+        "dep/imgui/"
+    )
+
+target("implot")
+    set_kind("static")
+    add_files(
+        "dep/implot/implot.cpp",
+        "dep/implot/implot_demo.cpp",
+        "dep/implot/implot_items.cpp"
+    )
+    add_includedirs(
+        "dep/implot/",
+        "dep/imgui/" -- implot needs imgui
+    )
 
 target("main")
     -- disable vsprintf warnings in glm lib
@@ -39,10 +54,12 @@ target("main")
         "dep/",
         "dep/spdlog/include/",
         "dep/imgui/",
+        "dep/implot/",
         "dep/obj-loader/",
         "dep/memory-allocator-hpp/"
     )
     add_deps("imgui")
+    add_deps("implot")
 
     add_links( 
     "dep/glfw/Release/glfw3.lib", 
