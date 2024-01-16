@@ -366,6 +366,8 @@ void ImGuiManager::_syncMousePosition() {
 }
 
 void ImGuiManager::update(double fps) {
+  // fps = ImGui::GetIO().Framerate;
+
   _syncMousePosition();
 
   ImGui_ImplVulkan_NewFrame();

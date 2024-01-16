@@ -3,6 +3,8 @@
 #include "imgui.h"
 #include "implot.h"
 
+#include "utils/math/MovingAvg.hpp"
+
 int constexpr kHistSize = 800;
 
 FpsGui::FpsGui() {
@@ -19,7 +21,10 @@ FpsGui::FpsGui() {
 void FpsGui::setActive(bool active) { _isActive = active; }
 
 void FpsGui::update(double fps) {
-  _updateFpsHistData(static_cast<float>(fps));
+  static MovingAvg avg(20);
+  avg.add(static_cast<float>(fps));
+
+  _updateFpsHistData(avg.getAverage());
 
   // clear y array, and refill using deque
   std::fill(_y.begin(), _y.end(), 0);

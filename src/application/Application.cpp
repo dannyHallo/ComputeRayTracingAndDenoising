@@ -398,7 +398,7 @@ void Application::_waitForTheWindowToBeResumed() {
 }
 
 void Application::_mainLoop() {
-  static std::chrono::time_point fpsRecordLastTime = std::chrono::high_resolution_clock::now();
+  static std::chrono::time_point fpsRecordLastTime = std::chrono::steady_clock::now();
 
   while (glfwWindowShouldClose(_window->getGlWindow()) == 0) {
     glfwPollEvents();
@@ -418,11 +418,11 @@ void Application::_mainLoop() {
       _appContext->createSwapchainDimensionRelatedResources();
       _createSwapchainDimensionRelatedResources();
 
-      fpsRecordLastTime = std::chrono::high_resolution_clock::now();
+      fpsRecordLastTime = std::chrono::steady_clock::now();
       continue;
     }
 
-    auto currentTime  = std::chrono::high_resolution_clock::now();
+    auto currentTime  = std::chrono::steady_clock::now();
     auto deltaTime    = currentTime - fpsRecordLastTime;
     fpsRecordLastTime = currentTime;
 
@@ -433,6 +433,7 @@ void Application::_mainLoop() {
 
     _imguiManager->update(fps);
     _camera->processInput(deltaTimeInSec);
+
     _drawFrame();
   }
 
