@@ -18,8 +18,8 @@ FpsGui::FpsGui() {
 
 void FpsGui::setActive(bool active) { _isActive = active; }
 
-void FpsGui::update(float fps) {
-  _updateFpsHistData(fps);
+void FpsGui::update(double fps) {
+  _updateFpsHistData(static_cast<float>(fps));
 
   // clear y array, and refill using deque
   std::fill(_y.begin(), _y.end(), 0);
@@ -41,8 +41,8 @@ void FpsGui::update(float fps) {
   ImPlot::EndPlot();
 }
 
-void FpsGui::_updateFpsHistData(float fps) {
-  _fpsHistory.push_back(fps);
+void FpsGui::_updateFpsHistData(double fps) {
+  _fpsHistory.push_back(static_cast<float>(fps));
   if (_fpsHistory.size() > kHistSize) {
     _fpsHistory.pop_front();
   }

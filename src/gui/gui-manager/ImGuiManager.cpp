@@ -336,7 +336,7 @@ void ImGuiManager::_configMenu() {
   }
 }
 
-void ImGuiManager::_fpsMenu(float fps) {
+void ImGuiManager::_fpsMenu(double fps) {
   std::string const kFpsString = std::to_string(static_cast<int>(fps));
 
   // calculate the right-aligned position for the FPS menu
@@ -365,7 +365,7 @@ void ImGuiManager::_syncMousePosition() {
                        static_cast<float>(_window->getCursorYPos()));
 }
 
-void ImGuiManager::update(float fps) {
+void ImGuiManager::update(double fps) {
   _syncMousePosition();
 
   ImGui_ImplVulkan_NewFrame();

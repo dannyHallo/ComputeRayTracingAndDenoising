@@ -25,12 +25,12 @@ public:
     return glm::lookAt(_position, _position + _front, _up);
   }
 
-  void processInput(float deltaTime);
+  void processInput(double deltaTime);
 
   // processes input received from any keyboard-like input system. Accepts input
   // parameter in the form of camera defined ENUM (to abstract it from windowing
   // systems)
-  void processKeyboard(float deltaTime);
+  void processKeyboard(double deltaTime);
 
   // processes input received from a mouse input system. Expects the offset
   // value in both the x and y direction.

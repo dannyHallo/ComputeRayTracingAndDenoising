@@ -20,7 +20,7 @@ glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear, float zFar
   return projection;
 }
 
-void Camera::processInput(float deltaTime) {
+void Camera::processInput(double deltaTime) {
   if (_window->isInputBitActive(GLFW_KEY_ESCAPE)) {
     glfwSetWindowShouldClose(_window->getGlWindow(), 1);
     return;
@@ -35,14 +35,14 @@ void Camera::processInput(float deltaTime) {
   processKeyboard(deltaTime);
 }
 
-void Camera::processKeyboard(float deltaTime) {
+void Camera::processKeyboard(double deltaTime) {
   if (!canMove()) {
     return;
   }
 
   constexpr float movementSpeedMultiplier = 10.F;
 
-  float velocity = movementSpeedMultiplier * movementSpeed * deltaTime;
+  float velocity = movementSpeedMultiplier * movementSpeed * static_cast<float>(deltaTime);
 
   if (_window->isInputBitActive(GLFW_KEY_W)) {
     _position += _front * velocity;

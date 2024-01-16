@@ -22,7 +22,7 @@ public:
   ImGuiManager(ImGuiManager &&)                 = delete;
   ImGuiManager &operator=(ImGuiManager &&)      = delete;
 
-  void update(float fps);
+  void update(double fps);
 
   [[nodiscard]] VkCommandBuffer getCommandBuffer(size_t currentFrame) {
     return _guiCommandBuffers[currentFrame];
@@ -57,5 +57,5 @@ private:
   void _syncMousePosition();
 
   void _configMenu();
-  void _fpsMenu(float fps);
+  void _fpsMenu(double fps);
 };

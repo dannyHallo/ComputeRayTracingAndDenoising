@@ -72,12 +72,7 @@ private:
   // PostProcessingUniformBufferObject
   uint32_t _displayType = 2;
 
-  float _fps = 0;
-
   // atrous twicking
-
-  // delta time and last recorded frame time
-  float _deltaTime = 0, _frameRecordLastTime = 0;
 
   Logger _logger;
 

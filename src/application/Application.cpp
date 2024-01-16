@@ -13,12 +13,12 @@
 #include "gui/gui-manager/ImGuiManager.hpp"
 
 #include <cassert>
+#include <chrono>
 
 // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
 static int constexpr kStratumFilterSize = 6;
 static int constexpr kATrousSize        = 5;
 static int constexpr kFramesInFlight    = 2;
-static float constexpr kFpsUpdateTime   = 0.01F;
 
 Camera *Application::getCamera() { return _camera.get(); }
 
@@ -398,8 +398,7 @@ void Application::_waitForTheWindowToBeResumed() {
 }
 
 void Application::_mainLoop() {
-  static float fpsFrameCount     = 0;
-  static float fpsRecordLastTime = 0;
+  static std::chrono::time_point fpsRecordLastTime = std::chrono::high_resolution_clock::now();
 
   while (glfwWindowShouldClose(_window->getGlWindow()) == 0) {
     glfwPollEvents();
@@ -419,28 +418,21 @@ void Application::_mainLoop() {
       _appContext->createSwapchainDimensionRelatedResources();
       _createSwapchainDimensionRelatedResources();
 
-      fpsFrameCount     = 0;
-      fpsRecordLastTime = 0;
+      fpsRecordLastTime = std::chrono::high_resolution_clock::now();
       continue;
     }
 
-    _imguiManager->update(_fps);
+    auto currentTime  = std::chrono::high_resolution_clock::now();
+    auto deltaTime    = currentTime - fpsRecordLastTime;
+    fpsRecordLastTime = currentTime;
 
-    fpsFrameCount++;
-    auto currentTime     = static_cast<float>(glfwGetTime());
-    _deltaTime           = currentTime - _frameRecordLastTime;
-    _frameRecordLastTime = currentTime;
+    double deltaTimeInSec =
+        std::chrono::duration<double, std::chrono::seconds::period>(deltaTime).count();
+    double fps        = 1.0 / deltaTimeInSec;
+    fpsRecordLastTime = currentTime;
 
-    if (currentTime - fpsRecordLastTime >= kFpsUpdateTime) {
-      _fps              = fpsFrameCount / kFpsUpdateTime;
-      std::string title = "FPS - " + std::to_string(static_cast<int>(_fps));
-      glfwSetWindowTitle(_window->getGlWindow(), title.c_str());
-      fpsFrameCount = 0;
-
-      fpsRecordLastTime = currentTime;
-    }
-
-    _camera->processInput(_deltaTime);
+    _imguiManager->update(fps);
+    _camera->processInput(deltaTimeInSec);
     _drawFrame();
   }
 

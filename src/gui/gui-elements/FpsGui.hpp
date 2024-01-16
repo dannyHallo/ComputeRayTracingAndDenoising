@@ -6,7 +6,7 @@
 class FpsGui {
 public:
   FpsGui();
-  void update(float fps);
+  void update(double fps);
   void setActive(bool active);
 
 private:
@@ -16,5 +16,5 @@ private:
   std::vector<float> _x{};
   std::vector<float> _y{};
 
-  void _updateFpsHistData(float fps);
+  void _updateFpsHistData(double fps);
 };
