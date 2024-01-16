@@ -16,6 +16,7 @@ class BuffersHolder;
 class ImagesHolder;
 class ModelsHolder;
 class ImGuiManager;
+class FpsSink;
 class Application {
 public:
   Application();
@@ -76,6 +77,7 @@ private:
 
   Logger _logger;
 
+  std::unique_ptr<FpsSink> _fpsSink;
   std::unique_ptr<ImGuiManager> _imguiManager;
   std::unique_ptr<Camera> _camera;
   std::unique_ptr<Window> _window;

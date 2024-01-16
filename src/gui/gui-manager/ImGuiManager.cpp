@@ -4,6 +4,7 @@
 #include "gui/gui-elements/FpsGui.hpp"
 #include "render-context/RenderSystem.hpp"
 #include "utils/config/RootDir.h"
+#include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
 #include "window/Window.hpp"
 
@@ -12,7 +13,7 @@
 #include "imgui/backends/imgui_impl_vulkan.h"
 #include "implot.h"
 
-float constexpr kImguiFontSize = 22.0F;
+float constexpr kImguiFontSize = 20.0F;
 
 namespace {
 void check_vk_result(VkResult resultCode) {
@@ -89,7 +90,7 @@ void ImGuiManager::_initImgui() {
   ImPlot::CreateContext();
 
   ImGuiIO &io = ImGui::GetIO();
-  io.Fonts->AddFontFromFileTTF((kPathToResourceFolder + "/fonts/OverpassMono-Medium.ttf").c_str(),
+  io.Fonts->AddFontFromFileTTF((kPathToResourceFolder + "/fonts/editundo/editundo.ttf").c_str(),
                                kImguiFontSize);
 
   io.ConfigFlags |= ImGuiWindowFlags_NoNavInputs;
@@ -280,7 +281,7 @@ void ImGuiManager::recordGuiCommandBuffer(size_t currentFrame, uint32_t swapchai
   assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
 }
 
-void ImGuiManager::_configMenu() {
+void ImGuiManager::_drawConfigMenuItem() {
 
   if (ImGui::BeginMenu("Config")) {
     // ImGui::SeparatorText("Gradient Projection");
@@ -336,8 +337,8 @@ void ImGuiManager::_configMenu() {
   }
 }
 
-void ImGuiManager::_fpsMenu(double fps) {
-  std::string const kFpsString = std::to_string(static_cast<int>(fps));
+void ImGuiManager::_drawFpsMenuItem(double filteredFps, double fpsInTimeBucket) {
+  std::string const kFpsString = std::to_string(static_cast<int>(fpsInTimeBucket));
 
   // calculate the right-aligned position for the FPS menu
   auto windowWidth      = ImGui::GetWindowContentRegionMax().x;
@@ -348,7 +349,7 @@ void ImGuiManager::_fpsMenu(double fps) {
   ImGui::SetCursorPosX(rightAlignedPosX);
   ImGui::SetNextItemWidth(fpsMenuWidth);
   if (ImGui::BeginMenu("##FpsMenu")) {
-    _fpsGui->update(fps);
+    _fpsGui->update(filteredFps);
     ImGui::EndMenu();
   }
 
@@ -365,8 +366,9 @@ void ImGuiManager::_syncMousePosition() {
                        static_cast<float>(_window->getCursorYPos()));
 }
 
-void ImGuiManager::update(double fps) {
-  // fps = ImGui::GetIO().Framerate;
+void ImGuiManager::draw(FpsSink *fpsSink) {
+  double const filteredFps     = fpsSink->getFilteredFps();
+  double const fpsInTimeBucket = fpsSink->getFpsInTimeBucket();
 
   _syncMousePosition();
 
@@ -377,31 +379,9 @@ void ImGuiManager::update(double fps) {
   ImGui::NewFrame();
 
   ImGui::BeginMainMenuBar();
-  _configMenu();
-
-  _fpsMenu(fps);
+  _drawConfigMenuItem();
+  _drawFpsMenuItem(filteredFps, fpsInTimeBucket);
   ImGui::EndMainMenuBar();
-
-  auto *mainGuiViewPort = ImGui::GetMainViewport();
-  float height          = mainGuiViewPort->Size.y;
-
-  const float kStatsWindowWidth  = 200.0F;
-  const float kStatsWindowHeight = 80.0F;
-
-  ImGui::SetNextWindowPos(ImVec2(0, height - kStatsWindowHeight));
-  ImGui::Begin("Stats", nullptr,
-               ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
-                   ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
-                   ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
-                   ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing |
-                   ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus);
-
-  ImGui::SetWindowSize(ImVec2(kStatsWindowWidth, kStatsWindowHeight));
-  ImGui::Text("fps : %.2f", fps);
-  float constexpr kMsPerSecond = 1000.0F;
-  ImGui::Text("frame t: %.2f", kMsPerSecond / fps);
-
-  ImGui::End();
 
   ImGui::Render();
 }

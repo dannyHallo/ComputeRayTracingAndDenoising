@@ -6,7 +6,7 @@
 class FpsGui {
 public:
   FpsGui();
-  void update(double fps);
+  void update(double filteredFps);
   void setActive(bool active);
 
 private:

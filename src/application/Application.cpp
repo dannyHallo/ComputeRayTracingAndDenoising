@@ -11,6 +11,7 @@
 #include "application/app-res/models/ModelsHolder.hpp"
 
 #include "gui/gui-manager/ImGuiManager.hpp"
+#include "utils/fps-sink/FpsSink.hpp"
 
 #include <cassert>
 #include <chrono>
@@ -33,6 +34,7 @@ Application::Application()
   _modelsHolder  = std::make_unique<ModelsHolder>(_appContext, &_logger);
   _imguiManager =
       std::make_unique<ImGuiManager>(_appContext, _window.get(), &_logger, kFramesInFlight);
+  _fpsSink = std::make_unique<FpsSink>();
 
   _init();
 }
@@ -428,10 +430,11 @@ void Application::_mainLoop() {
 
     double deltaTimeInSec =
         std::chrono::duration<double, std::chrono::seconds::period>(deltaTime).count();
-    double fps        = 1.0 / deltaTimeInSec;
     fpsRecordLastTime = currentTime;
 
-    _imguiManager->update(fps);
+    _fpsSink->addRecord(1.0F / deltaTimeInSec);
+
+    _imguiManager->draw(_fpsSink.get());
     _camera->processInput(deltaTimeInSec);
 
     _drawFrame();

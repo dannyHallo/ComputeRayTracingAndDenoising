@@ -10,6 +10,7 @@ class FpsGui;
 class VulkanApplicationContext;
 class Window;
 class Logger;
+class FpsSink;
 class ImGuiManager {
 public:
   ImGuiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
@@ -22,7 +23,7 @@ public:
   ImGuiManager(ImGuiManager &&)                 = delete;
   ImGuiManager &operator=(ImGuiManager &&)      = delete;
 
-  void update(double fps);
+  void draw(FpsSink *fpsSink);
 
   [[nodiscard]] VkCommandBuffer getCommandBuffer(size_t currentFrame) {
     return _guiCommandBuffers[currentFrame];
@@ -56,6 +57,6 @@ private:
 
   void _syncMousePosition();
 
-  void _configMenu();
-  void _fpsMenu(double fps);
+  void _drawConfigMenuItem();
+  void _drawFpsMenuItem(double filteredFps, double fpsInTimeBucket);
 };

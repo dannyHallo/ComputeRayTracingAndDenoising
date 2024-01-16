@@ -1,4 +1,4 @@
-set_project("vulkan test")
+set_project("Voxel Tracer")
 
 set_arch("x64")
 set_warnings("all")

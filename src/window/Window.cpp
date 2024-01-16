@@ -24,7 +24,7 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
   glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate); // adapt framerate
 
   // create a windowed fullscreen window temporalily, to obtain its property
-  _window = glfwCreateWindow(mode->width, mode->height, "Loading window...", nullptr, nullptr);
+  _window = glfwCreateWindow(mode->width, mode->height, "Voxel Tracer v1.0", nullptr, nullptr);
   glfwMaximizeWindow(_window);
   glfwGetWindowPos(_window, 0, &_titleBarHeight);
   glfwGetFramebufferSize(_window, &_maximizedFullscreenClientWidth,
