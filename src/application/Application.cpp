@@ -10,7 +10,7 @@
 #include "application/app-res/images/ImagesHolder.hpp"
 #include "application/app-res/models/ModelsHolder.hpp"
 
-#include "gui/gui-manager/ImGuiManager.hpp"
+#include "gui/gui-manager/ImguiManager.hpp"
 #include "utils/fps-sink/FpsSink.hpp"
 
 #include <cassert>

@@ -39,11 +39,8 @@ void FpsGui::update(double filteredFps) {
   ImPlot::SetupAxis(ImAxis_X1, nullptr,
                     ImPlotAxisFlags_NoDecorations | ImPlotAxisFlags_NoTickLabels);
   ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
-  float constexpr kColorR = 250.F;
-  float constexpr kColorG = 239.F;
-  float constexpr kColorB = 93.F;
   ImPlot::PushStyleColor(ImPlotCol_Fill,
-                         ImVec4(kColorR / 255.F, kColorG / 255.F, kColorB / 255.F, 1.F));
+                         _colorPalette->getColorByName("DarkPurple").getImVec4()); // fill color
   ImPlot::PlotShaded("", _x.data(), _y.data(), kHistSize, 0, ImPlotShadedFlags_None);
   ImPlot::EndPlot();
 }

@@ -1,4 +1,4 @@
-#include "ImGuiManager.hpp"
+#include "ImguiManager.hpp"
 
 #include "app-context/VulkanApplicationContext.hpp"
 #include "gui/gui-elements/FpsGui.hpp"
@@ -40,7 +40,6 @@ void comboSelector(std::string const &comboLabel, std::vector<std::string> const
     ImGui::EndCombo();
   }
 }
-
 } // namespace
 
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
@@ -79,10 +78,10 @@ ImguiManager::~ImguiManager() {
 }
 
 void ImguiManager::_buildColorPalette() {
-  // https: // colorhunt.co/palette/1d2b537e2553ff004dfaef5d
+  // https:// colorhunt.co/palette/1d2b537e2553ff004dfaef5d
   _colorPalette->addColor("DarkBlue", Color(29, 43, 83));      // NOLINT
   _colorPalette->addColor("DarkPurple", Color(126, 37, 83));   // NOLINT
-  _colorPalette->addColor("Red", Color(255, 0, 77));           // NOLINT
+  _colorPalette->addColor("LightRed", Color(255, 0, 77));      // NOLINT
   _colorPalette->addColor("LightYellow", Color(250, 239, 39)); // NOLINT
 }
 
@@ -108,7 +107,7 @@ void ImguiManager::_initImgui() {
 
   io.ConfigFlags |= ImGuiWindowFlags_NoNavInputs;
 
-  ImGui::StyleColorsClassic();
+  _setImguiPalette();
 
   // Setup Platform/Renderer bindings
   ImGui_ImplGlfw_InitForVulkan(_window->getGlWindow(), true);
@@ -378,6 +377,16 @@ void ImguiManager::_syncMousePosition() {
                        static_cast<float>(_window->getCursorYPos()));
 }
 
+void ImguiManager::_setImguiPalette() {
+  auto const &darkBlue   = _colorPalette->getColorByName("DarkBlue");
+  auto const &darkPurple = _colorPalette->getColorByName("DarkPurple");
+
+  ImGuiStyle &style                = ImGui::GetStyle();
+  style.Colors[ImGuiCol_Text]      = ImVec4(1.0F, 1.0F, 1.0F, 1.0F);
+  style.Colors[ImGuiCol_MenuBarBg] = darkPurple.getImVec4();
+  style.Colors[ImGuiCol_PopupBg]   = darkBlue.getImVec4();
+}
+
 void ImguiManager::draw(FpsSink *fpsSink) {
   double const filteredFps     = fpsSink->getFilteredFps();
   double const fpsInTimeBucket = fpsSink->getFpsInTimeBucket();
@@ -389,14 +398,6 @@ void ImguiManager::draw(FpsSink *fpsSink) {
   ImGui_ImplGlfw_NewFrame();
 
   ImGui::NewFrame();
-
-  ImGuiStyle &style = ImGui::GetStyle();
-
-  auto const &darkBlue   = _colorPalette->getColorByName("DarkBlue");
-  auto const &darkPurple = _colorPalette->getColorByName("DarkPurple");
-
-  style.Colors[ImGuiCol_MenuBarBg] = darkPurple.getImVec4();
-  style.Colors[ImGuiCol_PopupBg]   = darkBlue.getImVec4();
 
   ImGui::BeginMainMenuBar();
   _drawConfigMenuItem();

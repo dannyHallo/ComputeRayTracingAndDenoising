@@ -42,13 +42,12 @@ _chooseSwapSurfaceFormat(Logger *logger, const std::vector<VkSurfaceFormatKHR> &
   for (const auto &availableFormat : availableFormats) {
     // format: VK_FORMAT_B8G8R8A8_SRGB
     // this is actually irretional due to imgui impl
-    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB) {
+    if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM) {
       return availableFormat;
     }
   }
 
-  logger->print("Surface format requirement didn't meet, the first available "
-                "format is chosen!");
+  logger->print("Surface format requirement didn't meet, the first available format is chosen!");
   return availableFormats[0];
 }
 
