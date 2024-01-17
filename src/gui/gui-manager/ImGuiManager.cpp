@@ -3,6 +3,7 @@
 #include "app-context/VulkanApplicationContext.hpp"
 #include "gui/gui-elements/FpsGui.hpp"
 #include "render-context/RenderSystem.hpp"
+#include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
@@ -42,10 +43,14 @@ void comboSelector(std::string const &comboLabel, std::vector<std::string> const
 
 } // namespace
 
-ImGuiManager::ImGuiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
+ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
                            int framesInFlight)
     : _appContext(appContext), _window(window), _logger(logger),
-      _fpsGui(std::make_unique<FpsGui>()) {
+      _colorPalette(std::make_unique<ColorPalette>()) {
+
+  _buildColorPalette();
+
+  _fpsGui = std::make_unique<FpsGui>(_colorPalette.get());
 
   _createGuiCommandBuffers(framesInFlight);
   _createGuiRenderPass();
@@ -55,7 +60,7 @@ ImGuiManager::ImGuiManager(VulkanApplicationContext *appContext, Window *window,
   _initImgui();
 }
 
-ImGuiManager::~ImGuiManager() {
+ImguiManager::~ImguiManager() {
 
   for (auto &guiCommandBuffer : _guiCommandBuffers) {
     vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getGuiCommandPool(), 1,
@@ -73,17 +78,25 @@ ImGuiManager::~ImGuiManager() {
   ImGui::DestroyContext();
 }
 
-void ImGuiManager::_cleanupFrameBuffers() {
+void ImguiManager::_buildColorPalette() {
+  // https: // colorhunt.co/palette/1d2b537e2553ff004dfaef5d
+  _colorPalette->addColor("DarkBlue", Color(29, 43, 83));      // NOLINT
+  _colorPalette->addColor("DarkPurple", Color(126, 37, 83));   // NOLINT
+  _colorPalette->addColor("Red", Color(255, 0, 77));           // NOLINT
+  _colorPalette->addColor("LightYellow", Color(250, 239, 39)); // NOLINT
+}
+
+void ImguiManager::_cleanupFrameBuffers() {
   for (auto &guiFrameBuffer : _guiFrameBuffers) {
     vkDestroyFramebuffer(_appContext->getDevice(), guiFrameBuffer, nullptr);
   }
 }
 
-void ImGuiManager::cleanupSwapchainDimensionRelatedResources() { _cleanupFrameBuffers(); }
+void ImguiManager::cleanupSwapchainDimensionRelatedResources() { _cleanupFrameBuffers(); }
 
-void ImGuiManager::createSwapchainDimensionRelatedResources() { _createFramebuffers(); }
+void ImguiManager::createSwapchainDimensionRelatedResources() { _createFramebuffers(); }
 
-void ImGuiManager::_initImgui() {
+void ImguiManager::_initImgui() {
   // setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -127,7 +140,7 @@ void ImGuiManager::_initImgui() {
                                       _appContext->getGraphicsQueue(), commandBuffer);
 }
 
-void ImGuiManager::_createGuiDescripterPool() {
+void ImguiManager::_createGuiDescripterPool() {
   int constexpr kMaxDescriptorCount           = 1000;
   std::vector<VkDescriptorPoolSize> poolSizes = {
       {VK_DESCRIPTOR_TYPE_SAMPLER, kMaxDescriptorCount},
@@ -158,7 +171,7 @@ void ImGuiManager::_createGuiDescripterPool() {
   assert(result == VK_SUCCESS && "vkCreateDescriptorPool failed");
 }
 
-void ImGuiManager::_createGuiCommandBuffers(int framesInFlight) {
+void ImguiManager::_createGuiCommandBuffers(int framesInFlight) {
   _guiCommandBuffers.resize(framesInFlight);
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -171,7 +184,7 @@ void ImGuiManager::_createGuiCommandBuffers(int framesInFlight) {
   assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
 }
 
-void ImGuiManager::_createGuiRenderPass() {
+void ImguiManager::_createGuiRenderPass() {
   // Imgui Pass, right after the main pass
   VkAttachmentDescription attachment = {};
   attachment.format                  = _appContext->getSwapchainImageFormat();
@@ -218,7 +231,7 @@ void ImGuiManager::_createGuiRenderPass() {
   assert(result == VK_SUCCESS && "vkCreateRenderPass failed");
 }
 
-void ImGuiManager::_createFramebuffers() {
+void ImguiManager::_createFramebuffers() {
   // Create gui frame buffers for gui pass to use
   // Each frame buffer will have an attachment of VkImageView, in this case, the
   // attachments are mSwapchainImageViews
@@ -246,7 +259,7 @@ void ImGuiManager::_createFramebuffers() {
   }
 }
 
-void ImGuiManager::recordGuiCommandBuffer(size_t currentFrame, uint32_t swapchainImageIndex) {
+void ImguiManager::recordGuiCommandBuffer(size_t currentFrame, uint32_t swapchainImageIndex) {
   VkCommandBuffer commandBuffer = _guiCommandBuffers[currentFrame];
 
   VkCommandBufferBeginInfo beginInfo{};
@@ -281,8 +294,7 @@ void ImGuiManager::recordGuiCommandBuffer(size_t currentFrame, uint32_t swapchai
   assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
 }
 
-void ImGuiManager::_drawConfigMenuItem() {
-
+void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
     // ImGui::SeparatorText("Gradient Projection");
     // ImGui::Checkbox("Use Gradient Projection", &_useGradientProjection);
@@ -337,8 +349,8 @@ void ImGuiManager::_drawConfigMenuItem() {
   }
 }
 
-void ImGuiManager::_drawFpsMenuItem(double filteredFps, double fpsInTimeBucket) {
-  std::string const kFpsString = std::to_string(static_cast<int>(fpsInTimeBucket));
+void ImguiManager::_drawFpsMenuItem(double filteredFps, double fpsInTimeBucket) {
+  std::string const kFpsString = std::to_string(static_cast<int>(fpsInTimeBucket)) + " FPS";
 
   // calculate the right-aligned position for the FPS menu
   auto windowWidth      = ImGui::GetWindowContentRegionMax().x;
@@ -358,7 +370,7 @@ void ImGuiManager::_drawFpsMenuItem(double filteredFps, double fpsInTimeBucket) 
   ImGui::Text("%s", kFpsString.c_str());
 }
 
-void ImGuiManager::_syncMousePosition() {
+void ImguiManager::_syncMousePosition() {
   auto &io = ImGui::GetIO();
   // the mousePos is not synced correctly when the window is not focused
   // so we set it manually here
@@ -366,7 +378,7 @@ void ImGuiManager::_syncMousePosition() {
                        static_cast<float>(_window->getCursorYPos()));
 }
 
-void ImGuiManager::draw(FpsSink *fpsSink) {
+void ImguiManager::draw(FpsSink *fpsSink) {
   double const filteredFps     = fpsSink->getFilteredFps();
   double const fpsInTimeBucket = fpsSink->getFpsInTimeBucket();
 
@@ -377,6 +389,14 @@ void ImGuiManager::draw(FpsSink *fpsSink) {
   ImGui_ImplGlfw_NewFrame();
 
   ImGui::NewFrame();
+
+  ImGuiStyle &style = ImGui::GetStyle();
+
+  auto const &darkBlue   = _colorPalette->getColorByName("DarkBlue");
+  auto const &darkPurple = _colorPalette->getColorByName("DarkPurple");
+
+  style.Colors[ImGuiCol_MenuBarBg] = darkPurple.getImVec4();
+  style.Colors[ImGuiCol_PopupBg]   = darkBlue.getImVec4();
 
   ImGui::BeginMainMenuBar();
   _drawConfigMenuItem();

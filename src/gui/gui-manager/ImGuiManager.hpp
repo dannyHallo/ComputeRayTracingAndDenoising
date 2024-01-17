@@ -11,17 +11,18 @@ class VulkanApplicationContext;
 class Window;
 class Logger;
 class FpsSink;
-class ImGuiManager {
+class ColorPalette;
+class ImguiManager {
 public:
-  ImGuiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
+  ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
                int framesInFlight);
-  ~ImGuiManager();
+  ~ImguiManager();
 
   // delete copy and move
-  ImGuiManager(const ImGuiManager &)            = delete;
-  ImGuiManager &operator=(const ImGuiManager &) = delete;
-  ImGuiManager(ImGuiManager &&)                 = delete;
-  ImGuiManager &operator=(ImGuiManager &&)      = delete;
+  ImguiManager(const ImguiManager &)            = delete;
+  ImguiManager &operator=(const ImguiManager &) = delete;
+  ImguiManager(ImguiManager &&)                 = delete;
+  ImguiManager &operator=(ImguiManager &&)      = delete;
 
   void draw(FpsSink *fpsSink);
 
@@ -40,6 +41,7 @@ private:
   Logger *_logger;
 
   std::unique_ptr<FpsGui> _fpsGui;
+  std::unique_ptr<ColorPalette> _colorPalette;
 
   VkDescriptorPool _guiDescriptorPool = VK_NULL_HANDLE;
   VkRenderPass _guiPass               = VK_NULL_HANDLE;
@@ -49,6 +51,9 @@ private:
   void _initImgui();
 
   void _cleanupFrameBuffers();
+
+  void _buildColorPalette();
+  void _setImguiPalette();
 
   void _createGuiDescripterPool();
   void _createGuiCommandBuffers(int framesInFlight);

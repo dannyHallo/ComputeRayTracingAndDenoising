@@ -151,6 +151,8 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
         uint leafVal;
         fetchLeafBuffer(leafVal, nextByteOffset);
         return getColor(leafVal);
+
+        // return kBlue;
       }
 
       // tcmax is current voxel's exist time, h is parent voxel exist time

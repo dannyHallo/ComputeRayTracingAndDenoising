@@ -223,7 +223,7 @@ void SvoScene::_buildImageDatas() {
   // record time
   auto const start = std::chrono::high_resolution_clock::now();
 
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[5] + ".vox";
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[4] + ".vox";
   auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
 
   // print elapse using _logger

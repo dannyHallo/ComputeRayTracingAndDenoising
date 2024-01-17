@@ -1,11 +1,11 @@
 #include "FpsSink.hpp"
 
-#include "utils/math/MovingAvg.hpp"
+#include "MovingAvg.hpp"
 
 #include <chrono>
 
-size_t constexpr kMovingAvgSize              = 20;
-double constexpr kBucketRefreshIntervalInSec = 0.5;
+size_t constexpr kMovingAvgSize              = 100;
+double constexpr kBucketRefreshIntervalInSec = 0.2;
 
 FpsSink::FpsSink() { _avg = std::make_unique<MovingAvg>(kMovingAvgSize); }
 

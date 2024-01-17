@@ -33,7 +33,7 @@ Application::Application()
   _imagesHolder  = std::make_unique<ImagesHolder>(_appContext);
   _modelsHolder  = std::make_unique<ModelsHolder>(_appContext, &_logger);
   _imguiManager =
-      std::make_unique<ImGuiManager>(_appContext, _window.get(), &_logger, kFramesInFlight);
+      std::make_unique<ImguiManager>(_appContext, _window.get(), &_logger, kFramesInFlight);
   _fpsSink = std::make_unique<FpsSink>();
 
   _init();
