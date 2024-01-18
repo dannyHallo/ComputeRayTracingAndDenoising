@@ -63,6 +63,7 @@ void parseParentNodeBuffer(out uint nextByteOffset, out bool hasNode, out bool c
   // only if the node is presented, we need to calculate the pointer offset (absolute offset)
   if (hasNode) {
     nextByteOffset = voxelData >> 9;
+    nextByteOffset += byteOffset;
     // bitOffset range: 0-7, so the last n range is 1-8, so we need to +1
     // the first bit '1' indicates a delta of 0, so we need to -1
     nextByteOffset += countOnesInLastN(hasChildMask, bitOffset + 1u) - 1u;

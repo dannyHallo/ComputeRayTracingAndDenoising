@@ -80,63 +80,6 @@ std::vector<ImCoor3D> _finerLevelCoordinates(ImCoor3D const &fromCourseCoor) {
 }
 
 int exceedingCount = 0;
-std::vector<uint32_t> _createByBfs(std::vector<std::unique_ptr<ImData>> const &imageDatas) {
-  std::vector<uint32_t> voxelBuffer{};
-  int imIdx = static_cast<int>(imageDatas.size() - 1); // start with the root image
-
-  // process the root node
-  auto const &imageData = imageDatas[imIdx];
-
-  ImCoor3D const coor{0, 0, 0};
-  uint32_t const &data = imageData->imageLoad(coor);
-  if (data == 0U) {
-    return voxelBuffer;
-  }
-
-  std::vector<ImCoor3D> activeCoorsPrev{};
-  activeCoorsPrev.push_back(coor);
-
-  uint32_t nextNodeIdx = 1;
-  // change the data by filling the first 16 bits with the next bit offset
-  uint32_t dataToUse = data | (nextNodeIdx << kNextNodePtrOffset);
-  voxelBuffer.push_back(dataToUse);
-  nextNodeIdx += bitCount(data & kHasChildMask); // accum the bit offset
-
-  while (--imIdx >= 0) {
-    auto const &imageData = imageDatas[imIdx];
-    std::vector<ImCoor3D> thisTimeActiveCoors{};
-    for (auto const activeCoor : activeCoorsPrev) {
-      auto const &finerLevelCoordinates = _finerLevelCoordinates(activeCoor);
-      for (auto const &coor : finerLevelCoordinates) {
-        uint32_t data = imageData->imageLoad(coor);
-
-        if (data == 0U) {
-          continue;
-        }
-
-        thisTimeActiveCoors.push_back(coor);
-
-        // image layer with index 0 is the leaf layer, so we don't need to store the next node
-        if (imIdx != 0) {
-          // assert(_checkNextNodeIdxValidaty(nextNodeIdx) && "nextNodeIdxPtr is too large");
-          data |= nextNodeIdx << kNextNodePtrOffset;
-          if (!_checkNextNodeIdxValidaty(nextNodeIdx)) {
-            exceedingCount++;
-          }
-          nextNodeIdx += bitCount(data & kHasChildMask); // accum the bit offset
-        }
-
-        // image layer with index 1 is the last-to-leaf layer
-        if (imIdx == 1) {
-          data |= kNextIsLeafMask;
-        }
-        voxelBuffer.push_back(data);
-      }
-    }
-    activeCoorsPrev = thisTimeActiveCoors;
-  }
-  return voxelBuffer;
-}
 
 struct StackContext {
   uint32_t bufferIndex;
@@ -150,9 +93,10 @@ void _visitNode(std::stack<StackContext> &stack, std::vector<uint32_t> &voxelBuf
   stack.pop();
 
   // change next pointer
-  uint32_t &bufferData = voxelBuffer[bufferIdx];
-  bufferData |= (nextNodeIdx - 0) << kNextNodePtrOffset;
-  if (!_checkNextNodeIdxValidaty(nextNodeIdx)) {
+  uint32_t &bufferData         = voxelBuffer[bufferIdx];
+  uint32_t const writingOffset = nextNodeIdx - bufferIdx;
+  bufferData |= writingOffset << kNextNodePtrOffset;
+  if (!_checkNextNodeIdxValidaty(writingOffset)) {
     exceedingCount++;
   }
 
@@ -221,7 +165,7 @@ void SvoScene::_buildImageDatas() {
   // record time
   auto const start = std::chrono::high_resolution_clock::now();
 
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[4] + ".vox";
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[6] + ".vox";
   auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
 
   // print elapse using _logger
@@ -272,7 +216,7 @@ void SvoScene::_createVoxelBuffer() {
   // record time
   auto const start = std::chrono::high_resolution_clock::now();
 
-  // _voxelBuffer = _createByBfs(_imageDatas);
+  // building using bfs will cause the relative pointer to jump dramatically in the last few layers
   _voxelBuffer = _createByDfs(_imageDatas);
 
   // print elapse using _logger
