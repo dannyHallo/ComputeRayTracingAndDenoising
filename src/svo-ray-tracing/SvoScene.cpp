@@ -151,11 +151,8 @@ void _visitNode(std::stack<StackContext> &stack, std::vector<uint32_t> &voxelBuf
 
   // change next pointer
   uint32_t &bufferData = voxelBuffer[bufferIdx];
-  bufferData |= nextNodeIdx << kNextNodePtrOffset;
+  bufferData |= (nextNodeIdx - 0) << kNextNodePtrOffset;
   if (!_checkNextNodeIdxValidaty(nextNodeIdx)) {
-    if (exceedingCount < 10) {
-      std::cout << "nextNodeIdx: " << nextNodeIdx << std::endl;
-    }
     exceedingCount++;
   }
 
@@ -163,6 +160,7 @@ void _visitNode(std::stack<StackContext> &stack, std::vector<uint32_t> &voxelBuf
     bufferData |= kNextIsLeafMask;
   }
 
+  // f = fine
   auto const &fCoors = _finerLevelCoordinates(coor);
   uint32_t fImDix    = imIdx - 1;
   for (auto const &fCoor : fCoors) {

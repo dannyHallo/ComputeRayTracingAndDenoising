@@ -54,7 +54,8 @@ uint countOnesInLastN(uint value, uint n) {
 }
 
 void parseParentNodeBuffer(out uint nextByteOffset, out bool hasNode, out bool childIsLeaf,
-                           uint voxelData, uint bitOffset) {
+                           uint byteOffset, uint bitOffset) {
+  uint voxelData    = voxelBuffer[byteOffset];
   childIsLeaf       = (voxelData & 0x00000100u) == 0x00000100u;
   uint hasChildMask = voxelData & 0x000000FFu;
   hasNode           = (hasChildMask & (1u << bitOffset)) != 0u;
@@ -96,7 +97,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     vec3 pos;
     int scale; // size = exp2(float(-scale)), a lookup table is used
     vec3 idx;
-    uint voxelData;
+    uint byteOffset;
     float h;
   } stack[kMaxLevels];
 
@@ -121,7 +122,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
   // same for y and z
   vec3 idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
 
-  uint voxelData = voxelBuffer[0];
+  uint byteOffset = 0;
   scale++;
 
   // move to first hitted sub-cell center
@@ -138,7 +139,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     bool hasNode, childIsLeaf;
     // TODO: don't fetch if not necessary (store them in stack)
 
-    parseParentNodeBuffer(nextByteOffset, hasNode, childIsLeaf, voxelData, bitOffset);
+    parseParentNodeBuffer(nextByteOffset, hasNode, childIsLeaf, byteOffset, bitOffset);
 
     // [PUSH] repeatedly, until empty voxel is found
     // when pushed layer reached the same level as the smallest voxel, stop
@@ -151,13 +152,11 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
         uint leafVal;
         fetchLeafBuffer(leafVal, nextByteOffset);
         return getColor(leafVal);
-
-        // return kBlue;
       }
 
       // tcmax is current voxel's exist time, h is parent voxel exist time
       if (tcmax < h) {
-        stack[stackPtr++] = LevelStack(pos, scale, idx, voxelData, h);
+        stack[stackPtr++] = LevelStack(pos, scale, idx, byteOffset, h);
       }
 
       h = tcmax;
@@ -167,7 +166,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
       // edge[i], and 1.0 is returned otherwise.
       idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
 
-      voxelData = voxelBuffer[nextByteOffset];
+      byteOffset = nextByteOffset;
 
       pos += scaleLookup[scale + 1] * idx;
       continue;
@@ -194,7 +193,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
       pos          = s.pos;
       scale        = s.scale;
       idx          = s.idx;
-      voxelData    = s.voxelData;
+      byteOffset   = s.byteOffset;
       h            = s.h;
 
       // once stack pop out, avoid pushing it in again
