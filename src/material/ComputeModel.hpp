@@ -20,7 +20,7 @@ public:
   ComputeModel(std::unique_ptr<ComputeMaterial> material, size_t framesInFlight,
                WorkGroupSize workGroupSize)
       : _workGroupSize(workGroupSize), _computeMaterial(std::move(material)) {
-    _computeMaterial->init(framesInFlight);
+    _computeMaterial->init();
   }
 
   ComputeMaterial *getMaterial() { return _computeMaterial.get(); }

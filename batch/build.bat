@@ -21,12 +21,13 @@ set SHADERS=svoTracing postProcessing
 
 @REM ---------------------------------------------------------------------------------------
 
+@REM https://chromium.googlesource.com/external/github.com/google/shaderc/+/HEAD/glslc/README.asciidoc
 echo compiling shaders...
 rd /s /q "shaders/generated"
 mkdir "shaders/generated"
 for %%s in (%SHADERS%) do (
    echo compiling shaders/source/%%s.comp to shaders/generated/%%s.spv
-    "%GLSLC%" shaders/source/%%s.comp -o shaders/generated/%%s.spv -mfmt=num
+    "%GLSLC%" shaders/source/%%s.comp -o shaders/generated/%%s.spv -mfmt=num --target-env=vulkan1.1
     if !errorlevel! neq 0 (
         echo Build failed with error %errorlevel%. Exiting... 
         goto :eof

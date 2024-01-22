@@ -51,10 +51,11 @@ private:
 // every swapchain image
 class BufferBundle {
 public:
-  BufferBundle(size_t bufferCount, VkDeviceSize size, VkBufferUsageFlags usage,
+  BufferBundle(size_t bundleSize, VkDeviceSize perBufferSize, VkBufferUsageFlags usage,
                VmaMemoryUsage memoryUsage, const void *data = nullptr) {
-    for (size_t i = 0; i < bufferCount; i++) {
-      _buffers.emplace_back(std::make_unique<Buffer>(size, usage, memoryUsage, data));
+    _buffers.reserve(bundleSize);
+    for (size_t i = 0; i < bundleSize; i++) {
+      _buffers.emplace_back(std::make_unique<Buffer>(perBufferSize, usage, memoryUsage, data));
     }
   }
 
@@ -66,10 +67,9 @@ public:
   BufferBundle(BufferBundle &&)                 = delete;
   BufferBundle &operator=(BufferBundle &&)      = delete;
 
-  // get buffer by index
-  Buffer *getBuffer(size_t index);
+  [[nodiscard]] size_t getBundleSize() const { return _buffers.size(); }
 
-  // get buffer by index (operator)
+  Buffer *getBuffer(size_t index);
   Buffer *operator[](size_t index);
 
   // fill every buffer in bundle with the same data, if left as nullptr, every

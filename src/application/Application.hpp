@@ -71,7 +71,7 @@ private:
   bool _useJittering                    = true;
 
   // PostProcessingUniformBufferObject
-  uint32_t _displayType = 2;
+  uint32_t _displayType = 0;
 
   // atrous twicking
 

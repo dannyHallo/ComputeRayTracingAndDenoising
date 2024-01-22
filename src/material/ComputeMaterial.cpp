@@ -1,4 +1,5 @@
 #include "ComputeMaterial.hpp"
+#include "material/DescriptorSetBundle.hpp"
 #include "utils/logger/Logger.hpp"
 
 #include <cassert>
@@ -10,13 +11,13 @@ void ComputeMaterial::_createPipeline() {
   pipelineLayoutInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
   // this is why the compute pipeline requires the descriptor set layout to be specified
-  pipelineLayoutInfo.pSetLayouts = &_descriptorSetLayout;
+  pipelineLayoutInfo.pSetLayouts = &_descriptorSetBundle->getDescriptorSetLayout();
 
   VkResult result = vkCreatePipelineLayout(_appContext->getDevice(), &pipelineLayoutInfo, nullptr,
                                            &_pipelineLayout);
   assert(result == VK_SUCCESS && "failed to create pipeline layout");
 
-  VkShaderModule shaderModule = _createShaderModule(_code);
+  VkShaderModule shaderModule = _createShaderModule(_shaderCode);
 
   VkPipelineShaderStageCreateInfo shaderStageInfo{};
   shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

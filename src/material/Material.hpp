@@ -4,16 +4,21 @@
 #include "memory/Image.hpp"
 #include "utils/incl/Vulkan.hpp"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
 class Logger;
 class VulkanApplicationContext;
+class DescriptorSetBundle;
 class Material {
 protected:
 public:
-  Material(VulkanApplicationContext *appContext, Logger *logger,
-           VkShaderStageFlags shaderStageFlags);
+  Material(VulkanApplicationContext *appContext, Logger *logger, std::vector<uint32_t> &&shaderCode,
+           DescriptorSetBundle *descriptorSetBundle, VkShaderStageFlags shaderStageFlags)
+      : _appContext(appContext), _logger(logger), _descriptorSetBundle(descriptorSetBundle),
+        _shaderCode(std::move(shaderCode)), _shaderStageFlags(shaderStageFlags) {}
+
   virtual ~Material();
 
   // disable copy and move
@@ -27,37 +32,24 @@ public:
   void addStorageBufferBundle(BufferBundle *storageBufferBundle);
 
   // late initialization during model creation, must be overridden
-  void init(size_t framesInFlight);
+  void init();
 
   void bind(VkCommandBuffer commandBuffer, size_t currentFrame);
 
 protected:
-  VulkanApplicationContext *_appContext = nullptr;
-  Logger *_logger                       = nullptr;
+  VulkanApplicationContext *_appContext;
+  Logger *_logger;
+  DescriptorSetBundle *_descriptorSetBundle;
+  std::vector<uint32_t> _shaderCode;
 
   std::vector<BufferBundle *> _uniformBufferBundles; // buffer bundles for uniform data
   std::vector<BufferBundle *> _storageBufferBundles; // buffer bundles for storage data
   std::vector<Image *> _storageImages;               // images for storage data
 
-  std::string _vertexShaderPath;
-  std::string _fragmentShaderPath;
-
   VkShaderStageFlags _shaderStageFlags;
-  VkPipelineBindPoint _pipelineBindPoint; // deducted from _shaderStageFlags
 
-  VkPipeline _pipeline                       = VK_NULL_HANDLE;
-  VkPipelineLayout _pipelineLayout           = VK_NULL_HANDLE;
-  VkDescriptorPool _descriptorPool           = VK_NULL_HANDLE;
-  VkDescriptorSetLayout _descriptorSetLayout = VK_NULL_HANDLE;
-
-  std::vector<VkDescriptorSet> _descriptorSets;
-
-  void _createDescriptorSetLayout();
-
-  // allocates pool sizes and creates mDescriptorPool
-  void _createDescriptorPool(size_t framesInFlight);
-
-  void _createDescriptorSets(size_t framesInFlight);
+  VkPipeline _pipeline             = VK_NULL_HANDLE;
+  VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
 
   virtual void _createPipeline() = 0;
 

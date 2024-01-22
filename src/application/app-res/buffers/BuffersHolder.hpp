@@ -98,12 +98,12 @@ public:
   }
   BufferBundle *getPostProcessingBufferBundle() { return _postProcessingBufferBundle.get(); }
 
-  BufferBundle *getTriangleBufferBundle() { return _triangleBufferBundle.get(); }
-  BufferBundle *getMaterialBufferBundle() { return _materialBufferBundle.get(); }
-  BufferBundle *getBvhBufferBundle() { return _bvhBufferBundle.get(); }
-  BufferBundle *getLightsBufferBundle() { return _lightsBufferBundle.get(); }
-  BufferBundle *getSvoBufferBundle() { return _voxelBufferBundle.get(); }
-  BufferBundle *getPaletteBufferBundle() { return _paletteBufferBundle.get(); }
+  Buffer *getTriangleBuffer() { return _triangleBuffer.get(); }
+  Buffer *getMaterialBuffer() { return _materialBuffer.get(); }
+  Buffer *getBvhBuffer() { return _bvhBuffer.get(); }
+  Buffer *getLightsBuffer() { return _lightsBuffer.get(); }
+  Buffer *getVoxelBuffer() { return _voxelBuffer.get(); }
+  Buffer *getPaletteBuffer() { return _paletteBuffer.get(); }
 
 private:
   // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
@@ -123,14 +123,13 @@ private:
   std::unique_ptr<BufferBundle> _postProcessingBufferBundle;
 
   // buffers that are updated by CPU and sent to GPU only once
-  std::unique_ptr<BufferBundle> _triangleBufferBundle;
-  std::unique_ptr<BufferBundle> _materialBufferBundle;
-  std::unique_ptr<BufferBundle> _bvhBufferBundle;
-  std::unique_ptr<BufferBundle> _lightsBufferBundle;
-  //
-  std::unique_ptr<BufferBundle> _voxelBufferBundle;
-  std::unique_ptr<BufferBundle> _paletteBufferBundle;
+  std::unique_ptr<Buffer> _triangleBuffer;
+  std::unique_ptr<Buffer> _materialBuffer;
+  std::unique_ptr<Buffer> _bvhBuffer;
+  std::unique_ptr<Buffer> _lightsBuffer;
+  std::unique_ptr<Buffer> _voxelBuffer;
+  std::unique_ptr<Buffer> _paletteBuffer;
 
-  void _createMultiBufferBundles(int stratumFilterSize, int aTrousSize, size_t framesInFlight);
-  void _createSingleBufferBundles(GpuModel::TrisScene *rtScene, SvoScene *svoScene);
+  void _createBufferBundles(int stratumFilterSize, int aTrousSize, size_t framesInFlight);
+  void _createBuffers(GpuModel::TrisScene *rtScene, SvoScene *svoScene);
 };

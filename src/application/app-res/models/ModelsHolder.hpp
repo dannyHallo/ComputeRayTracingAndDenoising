@@ -1,65 +1,46 @@
 #pragma once
 
-#include "material/ComputeModel.hpp"
-
 #include <cassert>
 #include <memory>
+#include <vector>
 
+class ComputeModel;
 class ImagesHolder;
 class BuffersHolder;
 class Logger;
 class VulkanApplicationContext;
-// should be initialized after ImagesHolder and BuffersHolder
+class DescriptorSetBundle;
 class ModelsHolder {
 public:
   ModelsHolder(VulkanApplicationContext *appContext, Logger *logger)
       : _appContext(appContext), _logger(logger) {}
 
+  ~ModelsHolder();
+
+  // disable copy and move
+  ModelsHolder(const ModelsHolder &)            = delete;
+  ModelsHolder &operator=(const ModelsHolder &) = delete;
+  ModelsHolder(ModelsHolder &&)                 = delete;
+  ModelsHolder &operator=(ModelsHolder &&)      = delete;
+
   // the image holder is required to be initialized first
   void init(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder, int stratumFilterSize,
             int aTrousSize, size_t framesInFlight);
 
-  ComputeModel *getGradientProjectionModel() {
-    assert(_gradientProjectionModel != nullptr && "Gradient projection model is not initialized");
-    return _gradientProjectionModel.get();
-  }
+  ComputeModel *getGradientProjectionModel() { return _gradientProjectionModel.get(); }
 
-  ComputeModel *getRtxModel() {
-    assert(_rtxModel != nullptr && "RTX model is not initialized");
-    return _rtxModel.get();
-  }
-  ComputeModel *getSvoModel() {
-    assert(_svoModel != nullptr && "SVO model is not initialized");
-    return _svoModel.get();
-  }
+  ComputeModel *getRtxModel() { return _rtxModel.get(); }
+  ComputeModel *getSvoModel() { return _svoModel.get(); }
 
-  ComputeModel *getGradientModel() {
-    assert(_gradientModel != nullptr && "Gradient model is not initialized");
-    return _gradientModel.get();
-  }
-  ComputeModel *getStratumFilterModel(int index) {
-    assert(_stratumFilterModels[index] != nullptr && "Stratum filter model is not initialized");
-    return _stratumFilterModels[index].get();
-  }
+  ComputeModel *getGradientModel() { return _gradientModel.get(); }
+  ComputeModel *getStratumFilterModel(int index) { return _stratumFilterModels[index].get(); }
 
-  ComputeModel *getTemporalFilterModel() {
-    assert(_temporalFilterModel != nullptr && "Temporal filter model is not initialized");
-    return _temporalFilterModel.get();
-  }
-  ComputeModel *getVarianceModel() {
-    assert(_varianceModel != nullptr && "Variance model is not initialized");
-    return _varianceModel.get();
-  }
+  ComputeModel *getTemporalFilterModel() { return _temporalFilterModel.get(); }
+  ComputeModel *getVarianceModel() { return _varianceModel.get(); }
 
-  ComputeModel *getATrousModel(int index) {
-    assert(_aTrousModels[index] != nullptr && "A-Trous model is not initialized");
-    return _aTrousModels[index].get();
-  }
+  ComputeModel *getATrousModel(int index) { return _aTrousModels[index].get(); }
 
-  ComputeModel *getPostProcessingModel() {
-    assert(_postProcessingModel != nullptr && "Post processing model is not initialized");
-    return _postProcessingModel.get();
-  }
+  ComputeModel *getPostProcessingModel() { return _postProcessingModel.get(); }
 
 private:
   VulkanApplicationContext *_appContext;
@@ -72,6 +53,7 @@ private:
   int _stratumFilterSize = 0;
   int _aTrousSize        = 0;
 
+  std::unique_ptr<DescriptorSetBundle> _dsb;
   std::unique_ptr<ComputeModel> _gradientProjectionModel;
   std::unique_ptr<ComputeModel> _rtxModel;
   std::unique_ptr<ComputeModel> _svoModel;
@@ -81,6 +63,8 @@ private:
   std::unique_ptr<ComputeModel> _varianceModel;
   std::vector<std::unique_ptr<ComputeModel>> _aTrousModels;
   std::unique_ptr<ComputeModel> _postProcessingModel;
+
+  void _createDescriptorSetBundle();
 
   void _createGradientProjectionModel();
   void _createRtxModel();

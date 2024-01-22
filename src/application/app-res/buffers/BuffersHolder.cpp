@@ -4,14 +4,14 @@
 
 void BuffersHolder::init(GpuModel::TrisScene *rtScene, SvoScene *svoScene, int stratumFilterSize,
                          int aTrousSize, size_t framesInFlight) {
-  _createSingleBufferBundles(rtScene, svoScene);
-  _createMultiBufferBundles(stratumFilterSize, aTrousSize, framesInFlight);
+  _createBuffers(rtScene, svoScene);
+  _createBufferBundles(stratumFilterSize, aTrousSize, framesInFlight);
 }
 
 // these buffers are modified by the CPU side every frame, and we have multiple frames in flight,
 // so we need to create multiple copies of them, they are fairly small though
-void BuffersHolder::_createMultiBufferBundles(int stratumFilterSize, int aTrousSize,
-                                              size_t framesInFlight) {
+void BuffersHolder::_createBufferBundles(int stratumFilterSize, int aTrousSize,
+                                         size_t framesInFlight) {
   _globalBufferBundle = std::make_unique<BufferBundle>(
       framesInFlight, sizeof(GlobalUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -53,28 +53,28 @@ void BuffersHolder::_createMultiBufferBundles(int stratumFilterSize, int aTrousS
 
 // these buffers only need one copy! because they are not modified by CPU once uploaded to GPU
 // side, and GPU cannot work on multiple frames at the same time
-void BuffersHolder::_createSingleBufferBundles(GpuModel::TrisScene *rtScene, SvoScene *svoScene) {
-  _triangleBufferBundle = std::make_unique<BufferBundle>(
-      1, sizeof(GpuModel::Triangle) * rtScene->triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+void BuffersHolder::_createBuffers(GpuModel::TrisScene *rtScene, SvoScene *svoScene) {
+  _triangleBuffer = std::make_unique<Buffer>(
+      sizeof(GpuModel::Triangle) * rtScene->triangles.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->triangles.data());
 
-  _materialBufferBundle = std::make_unique<BufferBundle>(
-      1, sizeof(GpuModel::Material) * rtScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+  _materialBuffer = std::make_unique<Buffer>(
+      sizeof(GpuModel::Material) * rtScene->materials.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->materials.data());
 
-  _bvhBufferBundle = std::make_unique<BufferBundle>(
-      1, sizeof(GpuModel::BvhNode) * rtScene->bvhNodes.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->bvhNodes.data());
+  _bvhBuffer = std::make_unique<Buffer>(sizeof(GpuModel::BvhNode) * rtScene->bvhNodes.size(),
+                                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                        VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->bvhNodes.data());
 
-  _lightsBufferBundle = std::make_unique<BufferBundle>(
-      1, sizeof(GpuModel::Light) * rtScene->lights.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->lights.data());
+  _lightsBuffer = std::make_unique<Buffer>(sizeof(GpuModel::Light) * rtScene->lights.size(),
+                                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                           VMA_MEMORY_USAGE_CPU_TO_GPU, rtScene->lights.data());
 
-  _voxelBufferBundle = std::make_unique<BufferBundle>(
-      1, sizeof(uint32_t) * svoScene->getVoxelBuffer().size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+  _voxelBuffer = std::make_unique<Buffer>(
+      sizeof(uint32_t) * svoScene->getVoxelBuffer().size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, svoScene->getVoxelBuffer().data());
 
-  _paletteBufferBundle = std::make_unique<BufferBundle>(
-      1, sizeof(uint32_t) * svoScene->getPaletteBuffer().size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+  _paletteBuffer = std::make_unique<Buffer>(
+      sizeof(uint32_t) * svoScene->getPaletteBuffer().size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VMA_MEMORY_USAGE_CPU_TO_GPU, svoScene->getPaletteBuffer().data());
 }
