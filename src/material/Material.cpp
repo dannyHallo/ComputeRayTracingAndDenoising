@@ -19,7 +19,6 @@ void Material::init(size_t framesInFlight) {
 }
 
 VkShaderModule Material::_createShaderModule(const std::vector<uint32_t> &code) {
-  std::cout << "creating shader module with size: " << code.size() << std::endl;
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   createInfo.pCode    = code.data();
