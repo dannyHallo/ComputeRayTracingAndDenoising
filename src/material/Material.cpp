@@ -1,7 +1,7 @@
 #include "Material.hpp"
-#include "utils/io/Readfile.hpp"
 
 #include <cassert>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <vector>
@@ -18,11 +18,12 @@ void Material::init(size_t framesInFlight) {
   _createPipeline();
 }
 
-VkShaderModule Material::_createShaderModule(const std::vector<char> &code) {
+VkShaderModule Material::_createShaderModule(const std::vector<uint32_t> &code) {
+  std::cout << "creating shader module with size: " << code.size() << std::endl;
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.codeSize = code.size();
-  createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
+  createInfo.pCode    = code.data();
+  createInfo.codeSize = sizeof(uint32_t) * code.size(); // size in BYTES
 
   VkShaderModule shaderModule = VK_NULL_HANDLE;
   VkResult result =

@@ -17,20 +17,16 @@ if "%2"=="skipcpp" (
 )
 
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
-
-set GLSLC_PATH=%GLSLC%
 set SHADERS=svoTracing postProcessing 
-@REM set SHADERS=gradientProjection rtxTracing svoTracing screenSpaceGradient stratumFilter temporalFilter variance aTrous postProcessing 
 
 @REM ---------------------------------------------------------------------------------------
 
 echo compiling shaders...
-@REM wiping out the generated shaders
-rd /s /q "resources/shaders/generated"
-mkdir "resources/shaders/generated"
+rd /s /q "shaders/generated"
+mkdir "shaders/generated"
 for %%s in (%SHADERS%) do (
-   echo compiling resources/shaders/source/%%s.comp to resources/shaders/generated/%%s.spv
-    "%GLSLC_PATH%" resources/shaders/source/%%s.comp -o resources/shaders/generated/%%s.spv
+   echo compiling shaders/source/%%s.comp to shaders/generated/%%s.spv
+    "%GLSLC%" shaders/source/%%s.comp -o shaders/generated/%%s.spv -mfmt=num
     if !errorlevel! neq 0 (
         echo Build failed with error %errorlevel%. Exiting... 
         goto :eof
@@ -59,12 +55,10 @@ if %SKIP_CPP%==0 (
 
 echo:
 echo copy resources ...
-@REM Create the directory if it doesn't exist
-if not exist "build/windows/x64/%BUILD_TYPE%/resources" mkdir "build/windows/x64/%BUILD_TYPE%/resources"
+rd /s /q "build/windows/x64/%BUILD_TYPE%/resources"
+mkdir "build/windows/x64/%BUILD_TYPE%/resources"
 @REM Use robocopy instead of xcopy for better performance
 robocopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /E /IS /NFL /NDL /NJH /NJS /nc /ns /np
-@REM wiping out the source shaders
-rd /s /q "build/windows/x64/%BUILD_TYPE%/resources/shaders/source"
 
 @REM ---------------------------------------------------------------------------------------
 

@@ -56,7 +56,8 @@ target("main")
         "dep/imgui/",
         "dep/implot/",
         "dep/obj-loader/",
-        "dep/memory-allocator-hpp/"
+        "dep/memory-allocator-hpp/",
+        "shaders/generated"
     )
     add_deps("imgui")
     add_deps("implot")

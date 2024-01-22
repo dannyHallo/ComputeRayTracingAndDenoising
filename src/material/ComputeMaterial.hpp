@@ -6,16 +6,16 @@
 #include "utils/incl/Vulkan.hpp"
 
 #include <string>
+#include <vector>
 
 class ComputeMaterial : public Material {
 public:
   ComputeMaterial(VulkanApplicationContext *appContext, Logger *logger,
-                  std::string computeShaderPath)
-      : Material(appContext, logger, VK_SHADER_STAGE_COMPUTE_BIT),
-        _computeShaderPath(std::move(computeShaderPath)) {}
+                  std::vector<uint32_t> &&code)
+      : Material(appContext, logger, VK_SHADER_STAGE_COMPUTE_BIT), _code(std::move(code)) {}
 
 private:
-  std::string _computeShaderPath;
+  std::vector<uint32_t> _code;
 
   void _createPipeline() override;
 };

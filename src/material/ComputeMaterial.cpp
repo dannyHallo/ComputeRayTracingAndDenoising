@@ -1,5 +1,4 @@
 #include "ComputeMaterial.hpp"
-#include "utils/io/Readfile.hpp"
 #include "utils/logger/Logger.hpp"
 
 #include <cassert>
@@ -17,7 +16,7 @@ void ComputeMaterial::_createPipeline() {
                                            &_pipelineLayout);
   assert(result == VK_SUCCESS && "failed to create pipeline layout");
 
-  VkShaderModule shaderModule = _createShaderModule(readFile(_computeShaderPath));
+  VkShaderModule shaderModule = _createShaderModule(_code);
 
   VkPipelineShaderStageCreateInfo shaderStageInfo{};
   shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

@@ -26,8 +26,10 @@ static const std::map<std::string, WorkGroupSize> kShaderNameToWorkGroupSizes = 
 // currently unused
 void ModelsHolder::_createGradientProjectionModel() {
   // mat creation
-  std::string const shaderName = "gradientProjection";
-  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+  std::vector<uint32_t> shaderCode{
+      // #include "shaders/generated/gradientProjection.spv"
+  };
+  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, std::move(shaderCode));
 
   // ubo
   mat->addUniformBufferBundle(_buffersHolder->getGlobalBufferBundle());
@@ -48,15 +50,17 @@ void ModelsHolder::_createGradientProjectionModel() {
   mat->addStorageImage(_imagesHolder->getSeedVisibilityImage());
 
   // model creation
-  _gradientProjectionModel = std::make_unique<ComputeModel>(
-      std::move(mat), _framesInFlight, kShaderNameToWorkGroupSizes.at(shaderName));
+  _gradientProjectionModel =
+      std::make_unique<ComputeModel>(std::move(mat), _framesInFlight, WorkGroupSize{8, 8, 1});
 }
 
 // currently unused
 void ModelsHolder::_createRtxModel() {
   // mat creation
-  std::string const shaderName = "trisTracing";
-  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+  std::vector<uint32_t> shaderCode{
+      // #include "shaders/generated/trisTracing.spv"
+  };
+  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, std::move(shaderCode));
 
   // ubo
   mat->addUniformBufferBundle(_buffersHolder->getGlobalBufferBundle());
@@ -85,14 +89,16 @@ void ModelsHolder::_createRtxModel() {
   mat->addStorageBufferBundle(_buffersHolder->getLightsBufferBundle());
 
   // model creation
-  _rtxModel = std::make_unique<ComputeModel>(std::move(mat), _framesInFlight,
-                                             kShaderNameToWorkGroupSizes.at(shaderName));
+  _rtxModel =
+      std::make_unique<ComputeModel>(std::move(mat), _framesInFlight, WorkGroupSize{8, 8, 1});
 }
 
 void ModelsHolder::_createSvoModel() {
   // mat creation
-  std::string const shaderName = "svoTracing";
-  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+  std::vector<uint32_t> shaderCode{
+#include "svoTracing.spv"
+  };
+  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, std::move(shaderCode));
 
   // ubo
   mat->addUniformBufferBundle(_buffersHolder->getGlobalBufferBundle());
@@ -104,15 +110,17 @@ void ModelsHolder::_createSvoModel() {
   mat->addStorageBufferBundle(_buffersHolder->getSvoBufferBundle());
   mat->addStorageBufferBundle(_buffersHolder->getPaletteBufferBundle());
   // model creation
-  _svoModel = std::make_unique<ComputeModel>(std::move(mat), _framesInFlight,
-                                             kShaderNameToWorkGroupSizes.at(shaderName));
+  _svoModel =
+      std::make_unique<ComputeModel>(std::move(mat), _framesInFlight, WorkGroupSize{8, 8, 1});
 }
 
 // currently unused
 void ModelsHolder::_createGradientModel() {
   // mat creation
-  std::string const shaderName = "screenSpaceGradient";
-  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+  std::vector<uint32_t> shaderCode{
+      // #include "shaders/generated/screenSpaceGradient.spv"
+  };
+  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, std::move(shaderCode));
 
   // ubo
   mat->addUniformBufferBundle(_buffersHolder->getGlobalBufferBundle());
@@ -124,8 +132,8 @@ void ModelsHolder::_createGradientModel() {
   mat->addStorageImage(_imagesHolder->getGradientImage());
 
   // model creation
-  _gradientModel = std::make_unique<ComputeModel>(std::move(mat), _framesInFlight,
-                                                  kShaderNameToWorkGroupSizes.at(shaderName));
+  _gradientModel =
+      std::make_unique<ComputeModel>(std::move(mat), _framesInFlight, WorkGroupSize{8, 8, 1});
 }
 
 // currently unused
@@ -133,8 +141,10 @@ void ModelsHolder::_createStratumFilterModels() {
   _stratumFilterModels.clear();
   for (int i = 0; i < _stratumFilterSize; i++) {
     // mat creation
-    std::string const shaderName = "stratumFilter";
-    auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+    std::vector<uint32_t> shaderCode{
+        // #include "shaders/generated/stratumFilter.spv"
+    };
+    auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, std::move(shaderCode));
 
     // ubo
     mat->addUniformBufferBundle(_buffersHolder->getGlobalBufferBundle());
@@ -153,16 +163,18 @@ void ModelsHolder::_createStratumFilterModels() {
     mat->addStorageImage(_imagesHolder->getTemporalGradientNormalizationImagePong());
 
     // model creation
-    _stratumFilterModels.emplace_back(std::make_unique<ComputeModel>(
-        std::move(mat), _framesInFlight, kShaderNameToWorkGroupSizes.at(shaderName)));
+    _stratumFilterModels.emplace_back(
+        std::make_unique<ComputeModel>(std::move(mat), _framesInFlight, WorkGroupSize{8, 8, 1}));
   }
 }
 
 // currently unused
 void ModelsHolder::_createTemporalFilterModel() {
   // mat creation
-  std::string const shaderName = "temporalFilter";
-  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+  std::vector<uint32_t> shaderCode{
+      // #include "shaders/generated/temporalFilter.spv"
+  };
+  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, std::move(shaderCode));
 
   // ubo
   mat->addUniformBufferBundle(_buffersHolder->getGlobalBufferBundle());
@@ -187,15 +199,17 @@ void ModelsHolder::_createTemporalFilterModel() {
   mat->addStorageImage(_imagesHolder->getVarianceHistImage());
 
   // model creation
-  _temporalFilterModel = std::make_unique<ComputeModel>(std::move(mat), _framesInFlight,
-                                                        kShaderNameToWorkGroupSizes.at(shaderName));
+  _temporalFilterModel =
+      std::make_unique<ComputeModel>(std::move(mat), _framesInFlight, WorkGroupSize{8, 8, 1});
 }
 
 // currently unused
 void ModelsHolder::_createVarianceModel() {
   // mat creation
-  std::string const shaderName = "variance";
-  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+  std::vector<uint32_t> shaderCode{
+      // #include "shaders/generated/variance.spv"
+  };
+  auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, std::move(shaderCode));
 
   // ubo
   mat->addUniformBufferBundle(_buffersHolder->getGlobalBufferBundle());
@@ -212,8 +226,8 @@ void ModelsHolder::_createVarianceModel() {
   mat->addStorageImage(_imagesHolder->getVarianceHistImage());
 
   // model creation
-  _varianceModel = std::make_unique<ComputeModel>(std::move(mat), _framesInFlight,
-                                                  kShaderNameToWorkGroupSizes.at(shaderName));
+  _varianceModel =
+      std::make_unique<ComputeModel>(std::move(mat), _framesInFlight, WorkGroupSize{8, 8, 1});
 }
 
 // currently unused
@@ -221,8 +235,10 @@ void ModelsHolder::_createATrousModels() {
   _aTrousModels.clear();
   for (int i = 0; i < _aTrousSize; i++) {
     // mat creation
-    std::string const shaderName = "aTrous";
-    auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+    std::vector<uint32_t> shaderCode{
+        // #include "shaders/generated/aTrous.spv"
+    };
+    auto mat = std::make_unique<ComputeMaterial>(_appContext, _logger, std::move(shaderCode));
 
     // ubo
     mat->addUniformBufferBundle(_buffersHolder->getGlobalBufferBundle());
@@ -242,16 +258,18 @@ void ModelsHolder::_createATrousModels() {
     mat->addStorageImage(_imagesHolder->getATrousOutputImage());
 
     // model creation
-    _aTrousModels.emplace_back(std::make_unique<ComputeModel>(
-        std::move(mat), _framesInFlight, kShaderNameToWorkGroupSizes.at(shaderName)));
+    _aTrousModels.emplace_back(
+        std::make_unique<ComputeModel>(std::move(mat), _framesInFlight, WorkGroupSize{8, 8, 1}));
   }
 }
 
 void ModelsHolder::_createPostProcessingModel() {
   // mat creation
-  std::string const shaderName = "postProcessing";
+  std::vector<uint32_t> shaderCode{
+#include "postProcessing.spv"
+  };
   auto postProcessingMat =
-      std::make_unique<ComputeMaterial>(_appContext, _logger, _makeShaderPath(shaderName));
+      std::make_unique<ComputeMaterial>(_appContext, _logger, std::move(shaderCode));
 
   // ubo
   postProcessingMat->addUniformBufferBundle(_buffersHolder->getGlobalBufferBundle());
@@ -270,8 +288,8 @@ void ModelsHolder::_createPostProcessingModel() {
   postProcessingMat->addStorageImage(_imagesHolder->getTargetImage());
 
   // model creation
-  _postProcessingModel = std::make_unique<ComputeModel>(
-      std::move(postProcessingMat), _framesInFlight, kShaderNameToWorkGroupSizes.at(shaderName));
+  _postProcessingModel = std::make_unique<ComputeModel>(std::move(postProcessingMat),
+                                                        _framesInFlight, WorkGroupSize{8, 8, 1});
 }
 
 void ModelsHolder::init(ImagesHolder *imagesHolder, BuffersHolder *buffersHolder,

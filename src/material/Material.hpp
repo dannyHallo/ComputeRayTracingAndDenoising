@@ -61,7 +61,7 @@ protected:
 
   virtual void _createPipeline() = 0;
 
-  VkShaderModule _createShaderModule(const std::vector<char> &code);
+  VkShaderModule _createShaderModule(const std::vector<uint32_t> &code);
 
   void _bind(VkPipelineBindPoint pipelineBindPoint, VkCommandBuffer commandBuffer,
              size_t currentFrame);
