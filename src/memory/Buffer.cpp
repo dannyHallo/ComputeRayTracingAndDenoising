@@ -1,13 +1,13 @@
 #include "Buffer.hpp"
 #include "utils/logger/Logger.hpp"
 
-#include <cassert>
-
-Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage,
+Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags,
                const void *data)
-    : _vkBuffer(VK_NULL_HANDLE), _allocation(VK_NULL_HANDLE), _size(size) {
-  _allocate(size, usage, memoryUsage);
-  fillData(data);
+    : _size(size) {
+  _allocate(size, usage, flags);
+  if (data != nullptr) {
+    fillData(data);
+  }
 }
 
 Buffer::~Buffer() {
@@ -18,45 +18,28 @@ Buffer::~Buffer() {
   }
 }
 
-void Buffer::_allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
+void Buffer::_allocate(VkDeviceSize size, VkBufferUsageFlags usage,
+                       VmaAllocationCreateFlags flags) {
   _size = size;
 
   VkBufferCreateInfo bufferInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
   bufferInfo.size        = size;
   bufferInfo.usage       = usage;
-  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // used in only one queue family
+  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE; // exclusive for one queue family only
 
-  VmaAllocationCreateInfo vmaallocInfo = {};
-  vmaallocInfo.usage                   = memoryUsage;
+  VmaAllocationCreateInfo vmaallocInfo{};
+  // VMA_MEMORY_USAGE_AUTO can be used here because VkBufferCreateInfo is provided
+  vmaallocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+  vmaallocInfo.flags = flags;
 
-  VkResult result = vmaCreateBuffer(VulkanApplicationContext::getInstance()->getAllocator(),
-                                    &bufferInfo, &vmaallocInfo, &_vkBuffer, &_allocation, nullptr);
-  assert(result == VK_SUCCESS && "Buffer::allocate: failed to allocate buffer");
+  vmaCreateBuffer(VulkanApplicationContext::getInstance()->getAllocator(), &bufferInfo,
+                  &vmaallocInfo, &_vkBuffer, &_allocation, nullptr);
 }
 
 void Buffer::fillData(const void *data) {
   // a pointer to the first byte of the allocated memory
   void *mappedData = nullptr;
   vmaMapMemory(VulkanApplicationContext::getInstance()->getAllocator(), _allocation, &mappedData);
-
-  if (data != nullptr) {
-    memcpy(mappedData, data, _size);
-  } else {
-    memset(mappedData, 0, _size);
-  }
-
+  memcpy(mappedData, data, _size);
   vmaUnmapMemory(VulkanApplicationContext::getInstance()->getAllocator(), _allocation);
-}
-
-Buffer *BufferBundle::getBuffer(size_t index) {
-  assert((index >= 0 && index < _buffers.size()) && "BufferBundle::getBuffer: index out of range");
-  return _buffers[index].get();
-}
-
-Buffer *BufferBundle::operator[](size_t index) { return getBuffer(index); }
-
-void BufferBundle::fillData(const void *data) {
-  for (auto &buffer : _buffers) {
-    buffer->fillData(data);
-  }
 }

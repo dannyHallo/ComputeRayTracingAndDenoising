@@ -1,6 +1,5 @@
 #pragma once
 
-#include "memory/Buffer.hpp"
 #include "svo-ray-tracing/SvoScene.hpp"
 #include "tris-ray-tracing/TrisScene.hpp"
 #include "utils/incl/Glm.hpp"
@@ -9,6 +8,8 @@
 
 constexpr int kGpuVecPackingSize = 4;
 
+class Buffer;
+class BufferBundle;
 struct GlobalUniformBufferObject {
   alignas(sizeof(glm::vec3::x) * kGpuVecPackingSize) glm::vec3 camPosition;
   alignas(sizeof(glm::vec3::x) * kGpuVecPackingSize) glm::vec3 camFront;
