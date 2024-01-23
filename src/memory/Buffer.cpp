@@ -97,11 +97,12 @@ void Buffer::_allocateStorageBuffer() {
 
   VmaAllocationCreateInfo allocCreateInfo{};
   // VMA_MEMORY_USAGE_AUTO can be used here because VkBufferCreateInfo is provided
-  allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+  allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
   allocCreateInfo.flags =
-      // so we can use vkMapMemory and memcpy(), random access is unoptimized, use
-      // VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT instead
+      // so we can use vkMapMemory and memcpy() for sequential writes
       VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+
+  // further optimization: use VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT
 
   VmaAllocationInfo allocInfo{};
   vmaCreateBuffer(allocator, &bufferCreateInfo, &allocCreateInfo, &_vkBuffer, &_allocation,
@@ -109,7 +110,13 @@ void Buffer::_allocateStorageBuffer() {
 }
 
 void Buffer::fillData(const void *data) {
-  // a pointer to the first byte of the allocated memory
+  // fixed pointer to the mapped memory
+  if (_mappedData != nullptr) {
+    memcpy(_mappedData, data, _size);
+    return;
+  }
+
+  // map memory, copy data, unmap memory
   void *mappedData = nullptr;
   vmaMapMemory(VulkanApplicationContext::getInstance()->getAllocator(), _allocation, &mappedData);
   memcpy(mappedData, data, _size);

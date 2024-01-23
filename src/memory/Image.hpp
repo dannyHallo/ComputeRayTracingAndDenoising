@@ -11,15 +11,13 @@
 // the wrapper class of VkImage and its corresponding VkImageView, handles
 // memory allocation
 class Image {
-
 public:
   // create a blank image
   Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
         VkImageLayout initialImageLayout = VK_IMAGE_LAYOUT_GENERAL,
         VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT,
         VkImageTiling tiling             = VK_IMAGE_TILING_OPTIMAL,
-        VkImageAspectFlags aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT,
-        VmaMemoryUsage memoryUsage       = VMA_MEMORY_USAGE_GPU_ONLY);
+        VkImageAspectFlags aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT);
 
   // create an image from a file, VK_FORMAT_R8G8B8A8_UNORM is the format way
   // stb_image supports, so the created image format is fixed
@@ -27,8 +25,7 @@ public:
         VkImageLayout initialImageLayout = VK_IMAGE_LAYOUT_GENERAL,
         VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT,
         VkImageTiling tiling             = VK_IMAGE_TILING_OPTIMAL,
-        VkImageAspectFlags aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT,
-        VmaMemoryUsage memoryUsage       = VMA_MEMORY_USAGE_GPU_ONLY);
+        VkImageAspectFlags aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT);
 
   // create a texture array from a set of image files, all images should be in
   // the same dimension and the same format..
@@ -36,8 +33,7 @@ public:
         VkImageLayout initialImageLayout = VK_IMAGE_LAYOUT_GENERAL,
         VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT,
         VkImageTiling tiling             = VK_IMAGE_TILING_OPTIMAL,
-        VkImageAspectFlags aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT,
-        VmaMemoryUsage memoryUsage       = VMA_MEMORY_USAGE_GPU_ONLY);
+        VkImageAspectFlags aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT);
 
   ~Image();
 
@@ -73,7 +69,7 @@ private:
 
   // creates an image with VK_IMAGE_LAYOUT_UNDEFINED initially
   VkResult _createImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
-                        VkImageUsageFlags usage, VmaMemoryUsage memoryUsage);
+                        VkImageUsageFlags usage);
 
   void _transitionImageLayout(VkImageLayout newLayout);
 };

@@ -43,7 +43,6 @@ static const std::unordered_map<VkFormat, int> kVkFormatBytesPerPixelMap{
 };
 
 namespace {
-
 unsigned char *_loadImageFromPath(const std::string &path, int &width, int &height, int &channels) {
   unsigned char *imageData = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
   assert(imageData != nullptr && "Failed to load texture image");
@@ -51,16 +50,14 @@ unsigned char *_loadImageFromPath(const std::string &path, int &width, int &heig
 }
 
 void _freeImageData(unsigned char *imageData) { stbi_image_free(imageData); }
-
 } // namespace
 
 Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
              VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
-             VkImageTiling tiling, VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage)
+             VkImageTiling tiling, VkImageAspectFlags aspectFlags)
     : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1), _format(format),
       _width(width), _height(height) {
-  VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
-  assert(result == VK_SUCCESS && "failed to create image!");
+  _createImage(numSamples, tiling, usage);
 
   if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
     _transitionImageLayout(initialImageLayout);
@@ -70,8 +67,7 @@ Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags
 }
 
 Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout initialImageLayout,
-             VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags,
-             VmaMemoryUsage memoryUsage)
+             VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags)
     : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1),
       _format(VK_FORMAT_R8G8B8A8_UNORM) {
   // load image from path
@@ -82,8 +78,7 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout
   _width          = static_cast<uint32_t>(width);
   _height         = static_cast<uint32_t>(height);
 
-  VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
-  assert(result == VK_SUCCESS && "failed to create image!");
+  _createImage(numSamples, tiling, usage);
 
   // make it pastable
   if (initialImageLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
@@ -106,7 +101,7 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout
 
 Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
              VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
-             VkImageTiling tiling, VkImageAspectFlags aspectFlags, VmaMemoryUsage memoryUsage)
+             VkImageTiling tiling, VkImageAspectFlags aspectFlags)
     : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(filenames.size()),
       _format(VK_FORMAT_R8G8B8A8_UNORM) {
   std::vector<unsigned char *> imageDatas{};
@@ -122,8 +117,7 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
   _width  = static_cast<uint32_t>(width);
   _height = static_cast<uint32_t>(height);
 
-  VkResult result = _createImage(numSamples, tiling, usage, memoryUsage);
-  assert(result == VK_SUCCESS && "failed to create image!");
+  _createImage(numSamples, tiling, usage);
 
   // make it pastable
   if (initialImageLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
@@ -217,7 +211,7 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
 }
 
 VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
-                             VkImageUsageFlags usage, VmaMemoryUsage memoryUsage) {
+                             VkImageUsageFlags usage) {
   VkImageCreateInfo imageInfo{};
   imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType     = VK_IMAGE_TYPE_2D;
@@ -234,7 +228,11 @@ VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling til
   imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
 
   VmaAllocationCreateInfo vmaallocInfo = {};
-  vmaallocInfo.usage                   = memoryUsage;
+  vmaallocInfo.usage                   = VMA_MEMORY_USAGE_AUTO;
+  vmaallocInfo.flags =
+      // especially if they are large or if you plan to destroy and recreate them with different
+      // sizes
+      VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
   return vmaCreateImage(VulkanApplicationContext::getInstance()->getAllocator(), &imageInfo,
                         &vmaallocInfo, &_vkImage, &_allocation, nullptr);
@@ -256,8 +254,7 @@ VkImageView Image::createImageView(VkDevice device, const VkImage &image, VkForm
   viewInfo.subresourceRange.baseArrayLayer = 0;
   viewInfo.subresourceRange.layerCount     = layerCount;
 
-  VkResult result = vkCreateImageView(device, &viewInfo, nullptr, &imageView);
-  assert(result == VK_SUCCESS && "failed to create texture image view!");
+  vkCreateImageView(device, &viewInfo, nullptr, &imageView);
 
   return imageView;
 }
