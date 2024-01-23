@@ -1,5 +1,8 @@
 #include "DescriptorSetBundle.hpp"
 
+#include "memory/Buffer.hpp"
+#include "memory/BufferBundle.hpp"
+
 #include <cassert>
 
 DescriptorSetBundle::~DescriptorSetBundle() {

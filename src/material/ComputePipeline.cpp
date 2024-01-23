@@ -1,4 +1,5 @@
 #include "ComputePipeline.hpp"
+#include "app-context/VulkanApplicationContext.hpp"
 #include "material/DescriptorSetBundle.hpp"
 #include "utils/logger/Logger.hpp"
 

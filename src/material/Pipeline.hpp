@@ -1,7 +1,5 @@
 #pragma once
 
-#include "memory/Buffer.hpp"
-#include "memory/Image.hpp"
 #include "utils/incl/Vulkan.hpp"
 
 #include <cstdint>
@@ -9,6 +7,8 @@
 #include <vector>
 
 class Logger;
+class Image;
+class BufferBundle;
 class VulkanApplicationContext;
 class DescriptorSetBundle;
 class Pipeline {
@@ -25,10 +25,6 @@ public:
   Pipeline &operator=(const Pipeline &) = delete;
   Pipeline(Pipeline &&)                 = delete;
   Pipeline &operator=(Pipeline &&)      = delete;
-
-  void addStorageImage(Image *storageImage);
-  void addUniformBufferBundle(BufferBundle *uniformBufferBundle);
-  void addStorageBufferBundle(BufferBundle *storageBufferBundle);
 
   virtual void create() = 0;
 

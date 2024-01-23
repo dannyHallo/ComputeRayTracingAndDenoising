@@ -1,4 +1,5 @@
 #include "Pipeline.hpp"
+#include "app-context/VulkanApplicationContext.hpp"
 #include "material/DescriptorSetBundle.hpp"
 
 #include <cassert>
@@ -28,16 +29,6 @@ VkShaderModule Pipeline::_createShaderModule(const std::vector<uint32_t> &code) 
 Pipeline::~Pipeline() {
   vkDestroyPipeline(_appContext->getDevice(), _pipeline, nullptr);
   vkDestroyPipelineLayout(_appContext->getDevice(), _pipelineLayout, nullptr);
-}
-
-void Pipeline::addStorageImage(Image *storageImage) { _storageImages.emplace_back(storageImage); }
-
-void Pipeline::addUniformBufferBundle(BufferBundle *uniformBufferBundle) {
-  _uniformBufferBundles.emplace_back(uniformBufferBundle);
-}
-
-void Pipeline::addStorageBufferBundle(BufferBundle *storageBufferBundle) {
-  _storageBufferBundles.emplace_back(storageBufferBundle);
 }
 
 void Pipeline::_bind(VkCommandBuffer commandBuffer, size_t currentFrame) {

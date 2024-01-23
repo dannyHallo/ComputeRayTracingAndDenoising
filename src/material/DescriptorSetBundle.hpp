@@ -1,6 +1,5 @@
 #pragma once
 
-#include "memory/Buffer.hpp"
 #include "memory/Image.hpp"
 
 #include "utils/incl/Vulkan.hpp"
@@ -9,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+class Buffer;
+class BufferBundle;
 class VulkanApplicationContext;
 class Logger;
 // for easy management of descriptor sets, auto resource management

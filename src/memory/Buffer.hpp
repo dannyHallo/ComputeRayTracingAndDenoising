@@ -10,8 +10,7 @@ enum class BufferType {
 // the wrapper class of VkBuffer, handles memory allocation and data filling
 class Buffer {
 public:
-  Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags,
-         const void *data = nullptr);
+  Buffer(VkDeviceSize size, BufferType bufferType);
   ~Buffer();
 
   // default copy and move
@@ -39,10 +38,13 @@ public:
   }
 
 private:
+  VkDeviceSize _size;                         // total size of buffer
   VkBuffer _vkBuffer        = VK_NULL_HANDLE; // native vulkan buffer
   VmaAllocation _allocation = VK_NULL_HANDLE; // buffer allocation info
-  VkDeviceSize _size;                         // total size of buffer
+  void *_mappedData = nullptr; // mapped data pointer, it might be persistent, so store it here
 
   // buffer allocation is only allowed during construction
-  void _allocate(VkDeviceSize size, VkBufferUsageFlags usage, VmaAllocationCreateFlags flags);
+  void _allocate(BufferType bufferType);
+  void _allocateUniformBuffer();
+  void _allocateStorageBuffer();
 };
