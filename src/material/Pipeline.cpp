@@ -1,4 +1,4 @@
-#include "Material.hpp"
+#include "Pipeline.hpp"
 #include "material/DescriptorSetBundle.hpp"
 
 #include <cassert>
@@ -11,9 +11,7 @@ static const std::map<VkShaderStageFlags, VkPipelineBindPoint> kShaderStageFlags
     {VK_SHADER_STAGE_FRAGMENT_BIT, VK_PIPELINE_BIND_POINT_GRAPHICS},
     {VK_SHADER_STAGE_COMPUTE_BIT, VK_PIPELINE_BIND_POINT_COMPUTE}};
 
-void Material::init() { _createPipeline(); }
-
-VkShaderModule Material::_createShaderModule(const std::vector<uint32_t> &code) {
+VkShaderModule Pipeline::_createShaderModule(const std::vector<uint32_t> &code) {
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   createInfo.pCode    = code.data();
@@ -27,28 +25,24 @@ VkShaderModule Material::_createShaderModule(const std::vector<uint32_t> &code) 
   return shaderModule;
 }
 
-Material::~Material() {
+Pipeline::~Pipeline() {
   vkDestroyPipeline(_appContext->getDevice(), _pipeline, nullptr);
   vkDestroyPipelineLayout(_appContext->getDevice(), _pipelineLayout, nullptr);
 }
 
-void Material::addStorageImage(Image *storageImage) { _storageImages.emplace_back(storageImage); }
+void Pipeline::addStorageImage(Image *storageImage) { _storageImages.emplace_back(storageImage); }
 
-void Material::addUniformBufferBundle(BufferBundle *uniformBufferBundle) {
+void Pipeline::addUniformBufferBundle(BufferBundle *uniformBufferBundle) {
   _uniformBufferBundles.emplace_back(uniformBufferBundle);
 }
 
-void Material::addStorageBufferBundle(BufferBundle *storageBufferBundle) {
+void Pipeline::addStorageBufferBundle(BufferBundle *storageBufferBundle) {
   _storageBufferBundles.emplace_back(storageBufferBundle);
 }
 
-void Material::bind(VkCommandBuffer commandBuffer, size_t currentFrame) {
-  _bind(kShaderStageFlagsToBindPoint.at(_shaderStageFlags), commandBuffer, currentFrame);
-}
-
-void Material::_bind(VkPipelineBindPoint pipelineBindPoint, VkCommandBuffer commandBuffer,
-                     size_t currentFrame) {
-  vkCmdBindDescriptorSets(commandBuffer, pipelineBindPoint, _pipelineLayout, 0, 1,
+void Pipeline::_bind(VkCommandBuffer commandBuffer, size_t currentFrame) {
+  vkCmdBindDescriptorSets(commandBuffer, kShaderStageFlagsToBindPoint.at(_shaderStageFlags),
+                          _pipelineLayout, 0, 1,
                           &_descriptorSetBundle->getDescriptorSet(currentFrame), 0, nullptr);
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, _pipeline);
 }

@@ -1,4 +1,4 @@
-#include "ComputeMaterial.hpp"
+#include "ComputePipeline.hpp"
 #include "material/DescriptorSetBundle.hpp"
 #include "utils/logger/Logger.hpp"
 
@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-void ComputeMaterial::_createPipeline() {
+void ComputePipeline::create() {
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;
@@ -37,4 +37,13 @@ void ComputeMaterial::_createPipeline() {
 
   // the shader module can be destroyed after the pipeline has been created
   vkDestroyShaderModule(_appContext->getDevice(), shaderModule, nullptr);
+}
+
+void ComputePipeline::recordCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame,
+                                    uint32_t threadCountX, uint32_t threadCountY,
+                                    uint32_t threadCountZ) {
+  _bind(commandBuffer, currentFrame);
+  vkCmdDispatch(commandBuffer, std::ceil((float)threadCountX / (float)_workGroupSize.x),
+                std::ceil((float)threadCountY / (float)_workGroupSize.y),
+                std::ceil((float)threadCountZ / (float)_workGroupSize.z));
 }

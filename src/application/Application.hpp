@@ -14,7 +14,7 @@
 
 class BuffersHolder;
 class ImagesHolder;
-class ModelsHolder;
+class PipelinesHolder;
 class ImguiManager;
 class FpsSink;
 class Application {
@@ -97,7 +97,7 @@ private:
 
   std::unique_ptr<BuffersHolder> _buffersHolder;
   std::unique_ptr<ImagesHolder> _imagesHolder;
-  std::unique_ptr<ModelsHolder> _modelsHolder;
+  std::unique_ptr<PipelinesHolder> _pipelinesHolder;
 
   void _createTrisScene(); // currently not used
   void _createSvoScene();

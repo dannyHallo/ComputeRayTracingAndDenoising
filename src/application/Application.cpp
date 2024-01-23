@@ -2,9 +2,9 @@
 
 #include "application/app-res/buffers/BuffersHolder.hpp"
 #include "application/app-res/images/ImagesHolder.hpp"
-#include "application/app-res/models/ModelsHolder.hpp"
+#include "application/app-res/models/PipelinesHolder.hpp"
 #include "gui/gui-manager/ImguiManager.hpp"
-#include "material/ComputeModel.hpp"
+#include "material/ComputePipeline.hpp"
 #include "material/DescriptorSetBundle.hpp"
 #include "render-context/RenderSystem.hpp"
 #include "utils/config/RootDir.h"
@@ -12,7 +12,6 @@
 #include "utils/incl/Glm.hpp"
 #include "utils/logger/Logger.hpp"
 #include "window/Window.hpp"
-
 
 #include <cassert>
 #include <chrono>
@@ -30,9 +29,9 @@ Application::Application()
   _appContext->init(&_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 
-  _buffersHolder = std::make_unique<BuffersHolder>();
-  _imagesHolder  = std::make_unique<ImagesHolder>(_appContext);
-  _modelsHolder  = std::make_unique<ModelsHolder>(_appContext, &_logger);
+  _buffersHolder   = std::make_unique<BuffersHolder>();
+  _imagesHolder    = std::make_unique<ImagesHolder>(_appContext);
+  _pipelinesHolder = std::make_unique<PipelinesHolder>(_appContext, &_logger);
   _imguiManager =
       std::make_unique<ImguiManager>(_appContext, _window.get(), &_logger, kFramesInFlight);
   _fpsSink = std::make_unique<FpsSink>();
@@ -199,15 +198,14 @@ void Application::_createRenderCommandBuffers() {
     uint32_t w = _appContext->getSwapchainExtentWidth();
     uint32_t h = _appContext->getSwapchainExtentHeight();
 
-    // _modelsHolder->getGradientProjectionModel()->computeCommand(cmdBuffer, imageIndex, w, h,
+    // _PipelinesHolder->getGradientProjectionModel()->computeCommand(cmdBuffer, imageIndex, w, h,
     // 1);
 
     // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                      nullptr);
 
-    // _modelsHolder->getRtxModel()->computeCommand(cmdBuffer, 0, w, h, 1);
-    _modelsHolder->getSvoModel()->computeCommand(cmdBuffer, 0, w, h, 1);
+    _pipelinesHolder->getSvoPipeline()->recordCommand(cmdBuffer, 0, w, h, 1);
 
     VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
     memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
@@ -217,27 +215,27 @@ void Application::_createRenderCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    // _modelsHolder->getGradientModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
+    // _PipelinesHolder->getGradientModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
 
     // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                      nullptr);
 
     // for (int j = 0; j < 6; j++) {
-    //   _modelsHolder->getStratumFilterModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
+    //   _PipelinesHolder->getStratumFilterModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
 
     //   vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                        nullptr);
     // }
 
-    // _modelsHolder->getTemporalFilterModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
+    // _PipelinesHolder->getTemporalFilterModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
 
     // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                      nullptr);
 
-    // _modelsHolder->getVarianceModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
+    // _PipelinesHolder->getVarianceModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
 
     // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
@@ -247,7 +245,7 @@ void Application::_createRenderCommandBuffers() {
 
     // for (int j = 0; j < kATrousSize; j++) {
     //   // dispatch filter shader
-    //   _modelsHolder->getATrousModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
+    //   _PipelinesHolder->getATrousModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
     //   vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
     //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                        nullptr);
@@ -260,7 +258,7 @@ void Application::_createRenderCommandBuffers() {
 
     /////////////////////////////////////////////
 
-    _modelsHolder->getPostProcessingModel()->computeCommand(cmdBuffer, 0, w, h, 1);
+    _pipelinesHolder->getPostProcessingPipeline()->recordCommand(cmdBuffer, 0, w, h, 1);
 
     _imagesHolder->getTargetForwardingPair(imageIndex)->forwardCopy(cmdBuffer);
 
@@ -286,15 +284,13 @@ void Application::_cleanupRenderCommandBuffers() {
 
 void Application::_cleanupSwapchainDimensionRelatedResources() {
   _cleanupRenderCommandBuffers();
-  // the frame buffer needs to be cleaned up
   _imguiManager->cleanupSwapchainDimensionRelatedResources();
 }
 
 void Application::_createSwapchainDimensionRelatedResources() {
   _imagesHolder->onSwapchainResize();
-  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
-                      kFramesInFlight);
-
+  _pipelinesHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
+                         kFramesInFlight);
   _createRenderCommandBuffers();
   _imguiManager->createSwapchainDimensionRelatedResources();
 }
@@ -460,8 +456,8 @@ void Application::_init() {
   _buffersHolder->init(_trisScene.get(), _svoScene.get(), kStratumFilterSize, kATrousSize,
                        kFramesInFlight);
   _imagesHolder->init();
-  _modelsHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
-                      kFramesInFlight);
+  _pipelinesHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
+                         kFramesInFlight);
 
   _createRenderCommandBuffers();
 
