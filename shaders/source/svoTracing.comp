@@ -13,25 +13,20 @@ layout(std430, binding = 6) readonly buffer PaletteBufferObject { uint[] palette
 const int MAX_ITER    = 100;
 const uint kMaxLevels = 10u;
 
-struct Ray {
-  vec3 origin;
-  vec3 dir;
-};
-
 const float[] scaleLookup = float[](1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625, 0.0078125,
                                     0.00390625, 0.001953125, 0.0009765625, 0.00048828125);
 
 // returns t0 and t1, also fills tmid and tmax
 bool isect(out float tcmin, out float tcmax, out vec3 tmid, out vec3 tmax, vec3 pos, float size,
-           Ray camRay) {
+           vec3 o, vec3 d) {
   vec3 halfSize  = vec3(0.5 * size);
   vec3 minCorner = pos - halfSize;
   vec3 maxCorner = pos + halfSize;
 
   // xyz components of t for the ray to get to the 3 planes of minCorner
-  vec3 t1 = (minCorner - camRay.origin) / camRay.dir;
+  vec3 t1 = (minCorner - o) / d;
   // xyz ...
-  vec3 t2   = (maxCorner - camRay.origin) / camRay.dir;
+  vec3 t2   = (maxCorner - o) / d;
   vec3 tmin = min(t1, t2);
   tmax      = max(t1, t2);
   tmid      = (tmin + tmax) * 0.5;
@@ -89,8 +84,8 @@ vec4 getColor(uint leafVal) {
 }
 
 // returns true if hit, false if miss
-vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int iterUsed,
-           Ray camRay) {
+vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int iterUsed, vec3 o,
+           vec3 d) {
   struct LevelStack {
     vec3 pos;
     int scale; // size = exp2(float(-scale)), a lookup table is used
@@ -98,6 +93,10 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     uint byteOffset;
     float h;
   } stack[kMaxLevels];
+
+  d.x = abs(d.x) > kEpsilon ? d.x : (d.x >= 0 ? kEpsilon : -kEpsilon);
+  d.y = abs(d.y) > kEpsilon ? d.y : (d.y >= 0 ? kEpsilon : -kEpsilon);
+  d.z = abs(d.z) > kEpsilon ? d.z : (d.z >= 0 ? kEpsilon : -kEpsilon);
 
   int stackPtr = 0;
   hit          = false;
@@ -109,7 +108,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
   pos = vec3(0);
   vec3 tmid, tmax;
   bool canPush = true;
-  if (!isect(tcmin, tcmax, tmid, tmax, pos, scaleLookup[scale], camRay)) {
+  if (!isect(tcmin, tcmax, tmid, tmax, pos, scaleLookup[scale], o, d)) {
     return kBlack;
   }
 
@@ -118,7 +117,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
   // initial [PUSH], determine the first hited child (direct child of root node)
   // for x component, if tcmin < tmid.x, idx.x reverts the ray dir in x axis,
   // same for y and z
-  vec3 idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
+  vec3 idx = mix(-sign(d), sign(d), step(tmid, vec3(tcmin)));
 
   uint byteOffset = 0;
   scale++;
@@ -131,7 +130,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     vec3 idx01     = (idx + 1.0) * 0.5;
     uint bitOffset = uint(dot(idx01, vec3(1., 2., 4.))); // 0-7
 
-    isect(tcmin, tcmax, tmid, tmax, pos, scaleLookup[scale], camRay);
+    isect(tcmin, tcmax, tmid, tmax, pos, scaleLookup[scale], o, d);
 
     uint nextByteOffset;
     bool hasNode, childIsLeaf;
@@ -162,7 +161,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
 
       // step: for element i of the return value, 0.0 is returned if x[i] <
       // edge[i], and 1.0 is returned otherwise.
-      idx = mix(-sign(camRay.dir), sign(camRay.dir), step(tmid, vec3(tcmin)));
+      idx = mix(-sign(d), sign(d), step(tmid, vec3(tcmin)));
 
       byteOffset = nextByteOffset;
 
@@ -177,7 +176,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     // middle, we advance to the other side, because this uses the direction
     // directly (not increment / bit flipping), if the next bit is outside of
     // the parent voxel, old will be equal to idx
-    idx = mix(idx, sign(camRay.dir), equal(tmax, vec3(tcmax)));
+    idx = mix(idx, sign(d), equal(tmax, vec3(tcmax)));
 
     // idx has not changed -> [POP]
     if (idx == old) {
@@ -200,7 +199,7 @@ vec4 trace(out bool hit, out float tcmin, out float tcmax, out vec3 pos, out int
     // idx has changed -> [ADVANCE]
     else {
       // if old = idx → stay,else → move forward in this stack
-      pos += mix(vec3(0.), sign(camRay.dir), notEqual(old, idx)) * scaleLookup[scale];
+      pos += mix(vec3(0.), sign(d), notEqual(old, idx)) * scaleLookup[scale];
       canPush = true;
     }
   }
@@ -234,9 +233,9 @@ vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
   return topLeftCorner + viewportWidth * right * uv.x - viewportHeight * up * uv.y;
 }
 
-Ray rayGen(vec2 subpixOffset) {
-  vec3 rayDir = normalize(getPixelInScreenPosByDispatch(subpixOffset));
-  return Ray(globalUbo.camPos, rayDir);
+void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
+  o = globalUbo.camPos;
+  d = normalize(getPixelInScreenPosByDispatch(subpixOffset));
 }
 
 void main() {
@@ -245,18 +244,22 @@ void main() {
     return;
   }
 
-  Ray camRay = rayGen(vec2(0.5)); // no hist now
+  vec3 o, d;
+  // rayGen(o, d, vec2(0.5)); // no hist now
 
-  // step 2: ray march
-  float tcmin, tcmax;
-  bool hit;
-  vec3 pos;
-  int iterUsed;
-  vec4 fragColor = trace(hit, tcmin, tcmax, pos, iterUsed, camRay);
+  // // step 2: ray march
+  // float tcmin, tcmax;
+  // bool hit;
+  // vec3 pos;
+  // int iterUsed;
+  // vec4 fragColor = trace(hit, tcmin, tcmax, pos, iterUsed, o, d);
 
-  vec4 overlappingColor = vec4(0.0);
+  // vec4 overlappingColor = vec4(0.0);
 
-  // customized shading
-  overlappingColor = vec4(vec3(float(iterUsed) / MAX_ITER), 1.0);
-  imageStore(rawTex, uv, fragColor + overlappingColor);
+  // // customized shading
+  // overlappingColor = vec4(vec3(float(iterUsed) / MAX_ITER), 1.0);
+  // imageStore(rawTex, uv, fragColor + overlappingColor);
+
+  // store ray dir
+  imageStore(rawTex, uv, vec4(1, 1, 1, 1.0));
 }
