@@ -61,6 +61,7 @@ bool Octree_RayMarchLeaf(out vec3 o_pos, out vec3 o_color, out vec3 o_normal, ou
   while (scale < STACK_SIZE) {
     ++iter;
     if (cur == 0u) {
+      // parent pointer means the first pointer of the child node (8 in total)
       cur = voxelBuffer[parent + (idx ^ oct_mask)];
     }
     // Determine maximum t-value of the cube by evaluating
@@ -220,7 +221,7 @@ void main() {
   vec3 pos, color, normal;
   uint iterUsed;
   bool hit = Octree_RayMarchLeaf(pos, color, normal, iterUsed, o, d);
-  // color    = hit ? exp(-pos * 0.3) : vec3(0.0);
+  // color    = hit ? pos * 0.5 : vec3(0.0);
   color = hit ? color : vec3(0.0);
 
   vec4 overlappingColor = vec4(0.0);

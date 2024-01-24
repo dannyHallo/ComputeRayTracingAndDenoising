@@ -1,7 +1,6 @@
 #pragma once
 
-#include "svo-ray-tracing/SvoScene.hpp"
-#include "tris-ray-tracing/TrisScene.hpp"
+#include "svo-ray-tracing/SvoBuilder.hpp"
 #include "utils/incl/Glm.hpp"
 
 #include <memory>
@@ -25,15 +24,6 @@ struct GlobalUniformBufferObject {
 struct GradientProjectionUniformBufferObject {
   int bypassGradientProjection;
   alignas(sizeof(glm::vec3::x) * kGpuVecPackingSize) glm::mat4 thisMvpe;
-};
-
-struct RtxUniformBufferObject {
-  uint32_t numTriangles;
-  uint32_t numLights;
-  int movingLightSource;
-  uint32_t outputType;
-  float offsetX;
-  float offsetY;
 };
 
 struct StratumFilterUniformBufferObject {
@@ -80,15 +70,13 @@ class BuffersHolder {
 public:
   BuffersHolder() = default;
 
-  void init(GpuModel::TrisScene *rtScene, SvoScene *svoScene, int stratumFilterSize, int aTrousSize,
-            size_t framesInFlight);
+  void init(SvoBuilder *svoScene, int stratumFilterSize, int aTrousSize, size_t framesInFlight);
 
   // buffer bundles getter
   BufferBundle *getGlobalBufferBundle() { return _globalBufferBundle.get(); }
   BufferBundle *getGradientProjectionBufferBundle() {
     return _gradientProjectionBufferBundle.get();
   }
-  BufferBundle *getRtxBufferBundle() { return _rtxBufferBundle.get(); }
   BufferBundle *getTemperalFilterBufferBundle() { return _temperalFilterBufferBundle.get(); }
   BufferBundle *getStratumFilterBufferBundle(int index) {
     return _stratumFilterBufferBundle[index].get();
@@ -99,10 +87,6 @@ public:
   }
   BufferBundle *getPostProcessingBufferBundle() { return _postProcessingBufferBundle.get(); }
 
-  Buffer *getTriangleBuffer() { return _triangleBuffer.get(); }
-  Buffer *getMaterialBuffer() { return _materialBuffer.get(); }
-  Buffer *getBvhBuffer() { return _bvhBuffer.get(); }
-  Buffer *getLightsBuffer() { return _lightsBuffer.get(); }
   Buffer *getVoxelBuffer() { return _voxelBuffer.get(); }
   Buffer *getPaletteBuffer() { return _paletteBuffer.get(); }
 
@@ -116,7 +100,6 @@ private:
   // buffers that are updated by CPU and sent to GPU every frame
   std::unique_ptr<BufferBundle> _globalBufferBundle;
   std::unique_ptr<BufferBundle> _gradientProjectionBufferBundle;
-  std::unique_ptr<BufferBundle> _rtxBufferBundle;
   std::unique_ptr<BufferBundle> _temperalFilterBufferBundle;
   std::vector<std::unique_ptr<BufferBundle>> _stratumFilterBufferBundle;
   std::unique_ptr<BufferBundle> _varianceBufferBundle;
@@ -124,13 +107,9 @@ private:
   std::unique_ptr<BufferBundle> _postProcessingBufferBundle;
 
   // buffers that are updated by CPU and sent to GPU only once
-  std::unique_ptr<Buffer> _triangleBuffer;
-  std::unique_ptr<Buffer> _materialBuffer;
-  std::unique_ptr<Buffer> _bvhBuffer;
-  std::unique_ptr<Buffer> _lightsBuffer;
   std::unique_ptr<Buffer> _voxelBuffer;
   std::unique_ptr<Buffer> _paletteBuffer;
 
   void _createBufferBundles(int stratumFilterSize, int aTrousSize, size_t framesInFlight);
-  void _createBuffers(GpuModel::TrisScene *rtScene, SvoScene *svoScene);
+  void _createBuffers(SvoBuilder *svoScene);
 };

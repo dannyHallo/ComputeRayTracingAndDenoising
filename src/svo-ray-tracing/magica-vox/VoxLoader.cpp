@@ -7,22 +7,18 @@
 #include "ogt-tools/ogt_vox.h"
 #pragma GCC diagnostic pop
 
-#include "svo-ray-tracing/im-data/ImCoor.hpp"
-#include "svo-ray-tracing/im-data/ImData.hpp"
 #include "utils/logger/Logger.hpp"
 
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
-#include <vector>
-
 #include <iomanip>
 #include <iostream>
+#include <vector>
 
-// Ref: https://github.com/jpaver/opengametools/blob/master/demo/demo_vox.cpp
+// https://github.com/jpaver/opengametools/blob/master/demo/demo_vox.cpp
 
 namespace VoxLoader {
-
 namespace {
 // a helper function to load a magica voxel scene given a filename.
 ogt_vox_scene const *_loadVoxelScene(std::string const &pathToFile, uint32_t sceneReadFlags = 0) {
@@ -47,32 +43,34 @@ ogt_vox_scene const *_loadVoxelScene(std::string const &pathToFile, uint32_t sce
   ogt_vox_scene const *scene =
       ogt_vox_read_scene_with_flags(voxBuffer.data(), bufferSize, sceneReadFlags);
 
-  assert(scene != nullptr && "Failed to load vox scene");
+  assert(scene != nullptr && "failed to load vox scene");
   return scene;
 }
 
-ImCoor3D _getModelSize(ogt_vox_model const *model) {
-  return ImCoor3D(static_cast<int>(model->size_x), static_cast<int>(model->size_y),
-                  static_cast<int>(model->size_z));
+uint32_t _getVoxelResolution(ogt_vox_model const *model) {
+  assert(model->size_x == model->size_y && model->size_y == model->size_z &&
+         "only cubic models are supported");
+  assert((model->size_x & (model->size_x - 1)) == 0 && "model size must be a power of 2");
+  return model->size_x;
 }
 
 // this example just counts the number of solid voxels in this model, but an importer
 // would probably do something like convert the model into a triangle mesh.
-VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model, Logger *logger) {
+VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model) {
   VoxData voxData{};
-  voxData.imageData = std::make_unique<ImData>(_getModelSize(model));
+  voxData.voxelResolution = _getVoxelResolution(model);
 
   auto const &palette = scene->palette.color;
 
-  // fill palette data
-  size_t paletteSize = sizeof(palette) / sizeof(palette[0]);
-  for (int i = 0; i < paletteSize; ++i) {
+  // fill palette
+  for (int i = 0; i < 256; i++) { // NOLINT
+    auto const &color       = palette[i];
     uint32_t convertedColor = 0;
-    convertedColor |= static_cast<uint32_t>(palette[i].r) << 24;
-    convertedColor |= static_cast<uint32_t>(palette[i].g) << 16;
-    convertedColor |= static_cast<uint32_t>(palette[i].b) << 8;
-    convertedColor |= static_cast<uint32_t>(palette[i].a);
-    voxData.paletteData.push_back(convertedColor);
+    convertedColor |= static_cast<uint32_t>(color.r) << 24; // NOLINT
+    convertedColor |= static_cast<uint32_t>(color.g) << 16;
+    convertedColor |= static_cast<uint32_t>(color.b) << 8;
+    convertedColor |= static_cast<uint32_t>(color.a);
+    voxData.paletteData[i] = convertedColor;
   }
 
   // fill image data
@@ -83,22 +81,21 @@ VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model, Logg
         // if color index == 0, this voxel is empty, otherwise it is solid.
         uint8_t const colorIndex = model->voxel_data[voxelIndex];
         bool isVoxelValid        = (colorIndex != 0);
+
         if (isVoxelValid) {
-          // first bit is set only to indicate that this is a valid leaf voxel
-          uint32_t const kValidMask = 0xC0000000;
-          voxData.imageData->imageStore(ImCoor3D(x, z, y),
-                                        kValidMask | static_cast<uint32_t>(colorIndex));
+          // in this way we can ensure these arrays use the same entry
+          voxData.coordinates.push_back(x);
+          voxData.properties.push_back(static_cast<uint32_t>(colorIndex));
         }
       }
     }
   }
-
   return voxData;
 }
 
 } // namespace
 
-VoxData fetchDataFromFile(std::string const &pathToFile, Logger *logger) {
+VoxData fetchDataFromFile(std::string const &pathToFile) {
   const ogt_vox_scene *scene = _loadVoxelScene(pathToFile);
 
   // obtain model
@@ -106,7 +103,7 @@ VoxData fetchDataFromFile(std::string const &pathToFile, Logger *logger) {
   size_t constexpr modelIndex = 0;
   const ogt_vox_model *model  = scene->models[modelIndex];
 
-  VoxData voxData = _parseModel(scene, model, logger);
+  VoxData voxData = _parseModel(scene, model);
 
   ogt_vox_destroy_scene(scene);
 

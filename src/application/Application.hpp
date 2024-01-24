@@ -2,20 +2,19 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-#include "scene/Mesh.hpp"
-#include "svo-ray-tracing/SvoScene.hpp"
-#include "tris-ray-tracing/TrisScene.hpp"
-#include "utils/camera/Camera.hpp"
 #include "utils/logger/Logger.hpp"
 
 #include <cstdint>
 #include <memory>
 #include <vector>
 
+class Window;
+class SvoBuilder;
 class BuffersHolder;
 class ImagesHolder;
 class PipelinesHolder;
 class ImguiManager;
+class Camera;
 class FpsSink;
 class Application {
 public:
@@ -84,8 +83,7 @@ private:
 
   VulkanApplicationContext *_appContext;
 
-  std::unique_ptr<GpuModel::TrisScene> _trisScene;
-  std::unique_ptr<SvoScene> _svoScene;
+  std::unique_ptr<SvoBuilder> _svoScene;
 
   // command buffers for rendering and GUI
   std::vector<VkCommandBuffer> _commandBuffers;
@@ -99,7 +97,6 @@ private:
   std::unique_ptr<ImagesHolder> _imagesHolder;
   std::unique_ptr<PipelinesHolder> _pipelinesHolder;
 
-  void _createTrisScene(); // currently not used
   void _createSvoScene();
 
   // update uniform buffer object for each frame and save last mvpe matrix

@@ -10,6 +10,8 @@
 #include "memory/BufferBundle.hpp"
 #include "memory/Image.hpp"
 #include "render-context/RenderSystem.hpp"
+#include "svo-ray-tracing/SvoBuilder.hpp"
+#include "utils/camera/Camera.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/incl/Glm.hpp"
@@ -64,12 +66,7 @@ void Application::_cleanup() {
   }
 }
 
-void Application::_createTrisScene() {
-  // creates material, loads models from files, creates bvh
-  _trisScene = std::make_unique<GpuModel::TrisScene>();
-}
-
-void Application::_createSvoScene() { _svoScene = std::make_unique<SvoScene>(&_logger); }
+void Application::_createSvoScene() { _svoScene = std::make_unique<SvoBuilder>(&_logger); }
 
 void Application::_updateUbos(size_t currentFrame) {
   static uint32_t currentSample = 0;
@@ -99,17 +96,6 @@ void Application::_updateUbos(size_t currentFrame) {
       thisMvpe,
   };
   _buffersHolder->getGradientProjectionBufferBundle()->getBuffer(currentFrame)->fillData(&gpUbo);
-
-  RtxUniformBufferObject rtxUbo = {
-      static_cast<uint32_t>(_trisScene->triangles.size()),
-      static_cast<uint32_t>(_trisScene->lights.size()),
-      static_cast<int>(_movingLightSource),
-      _outputType,
-      _offsetX,
-      _offsetY,
-  };
-
-  _buffersHolder->getRtxBufferBundle()->getBuffer(currentFrame)->fillData(&rtxUbo);
 
   for (int i = 0; i < kStratumFilterSize; i++) {
     StratumFilterUniformBufferObject sfUbo = {i, static_cast<int>(!_useStratumFiltering)};
@@ -453,11 +439,9 @@ bool Application::_needToToggleWindowStyle() {
 }
 
 void Application::_init() {
-  _createTrisScene();
   _createSvoScene();
 
-  _buffersHolder->init(_trisScene.get(), _svoScene.get(), kStratumFilterSize, kATrousSize,
-                       kFramesInFlight);
+  _buffersHolder->init(_svoScene.get(), kStratumFilterSize, kATrousSize, kFramesInFlight);
   _imagesHolder->init();
   _pipelinesHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
                          kFramesInFlight);
