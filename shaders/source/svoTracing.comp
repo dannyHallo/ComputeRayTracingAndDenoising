@@ -245,21 +245,21 @@ void main() {
   }
 
   vec3 o, d;
-  // rayGen(o, d, vec2(0.5)); // no hist now
+  rayGen(o, d, vec2(0.5)); // no hist now
 
-  // // step 2: ray march
-  // float tcmin, tcmax;
-  // bool hit;
-  // vec3 pos;
-  // int iterUsed;
-  // vec4 fragColor = trace(hit, tcmin, tcmax, pos, iterUsed, o, d);
+  // step 2: ray march
+  float tcmin, tcmax;
+  bool hit;
+  vec3 pos;
+  int iterUsed;
+  vec4 fragColor = trace(hit, tcmin, tcmax, pos, iterUsed, o, d);
 
-  // vec4 overlappingColor = vec4(0.0);
+  vec4 overlappingColor = vec4(0.0);
 
-  // // customized shading
-  // overlappingColor = vec4(vec3(float(iterUsed) / MAX_ITER), 1.0);
-  // imageStore(rawTex, uv, fragColor + overlappingColor);
+  // customized shading
+  overlappingColor = vec4(vec3(float(iterUsed) / MAX_ITER), 1.0);
+  imageStore(rawTex, uv, fragColor + overlappingColor);
 
   // store ray dir
-  imageStore(rawTex, uv, vec4(1, 1, 1, 1.0));
+  // imageStore(rawTex, uv, vec4(1, 1, 1, 1.0));
 }
