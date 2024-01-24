@@ -12,10 +12,7 @@ uint32_t _offsetId(int x, int y, int z) {
   return x * kXWeight + y * kYWeight + z * kZWeight;
 }
 
-uint32_t _combine8To1(ImData const *_lowerLevelData, ImCoor3D const &coorCur) {
-  uint32_t constexpr shiftingMask = 0x00000001;
-
-  uint32_t dataWrite = 0;
+bool _hasVal(ImData const *_lowerLevelData, ImCoor3D const &coorCur) {
   for (int x = 0; x < 2; x++) {
     for (int y = 0; y < 2; y++) {
       for (int z = 0; z < 2; z++) {
@@ -23,12 +20,12 @@ uint32_t _combine8To1(ImData const *_lowerLevelData, ImCoor3D const &coorCur) {
         uint32_t dataRead       = _lowerLevelData->imageLoad(coorLowerLevel);
 
         if (dataRead != 0U) {
-          dataWrite |= shiftingMask << _offsetId(x, y, z);
+          return true;
         }
       }
     }
   }
-  return dataWrite;
+  return false;
 }
 } // namespace
 
@@ -44,10 +41,8 @@ void build(ImData const *lowerLevelData, ImData *thisLevelData) {
       for (int z = 0; z < _lowerLevelImageSize.z / 2; z++) {
         coorCur.z = z;
 
-        uint32_t dataWrite = _combine8To1(lowerLevelData, coorCur);
-        // if dataWrite is 0, we don't need to store it, because it means all leaf nodes are 0
-        if (dataWrite != 0U) {
-          thisLevelData->imageStore(coorCur, dataWrite);
+        if (_hasVal(lowerLevelData, coorCur)) {
+          thisLevelData->imageStore(coorCur, 0x80000000U);
         }
       }
     }

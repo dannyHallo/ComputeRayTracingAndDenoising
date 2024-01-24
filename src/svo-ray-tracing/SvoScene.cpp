@@ -1,7 +1,9 @@
 #include "SvoScene.hpp"
 
 #include "svo-ray-tracing/im-data/ImCoor.hpp"
+#include "svo-ray-tracing/im-data/ImData.hpp"
 #include "svo-ray-tracing/magica-vox/VoxLoader.hpp"
+#include "svo-ray-tracing/octree/UpperLevelBuilder.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/logger/Logger.hpp"
 
@@ -12,25 +14,6 @@
 #include <stack>
 
 namespace {
-
-uint32_t constexpr kNextNodePtrOffset = 9;
-uint32_t constexpr kNextIsLeafMask    = 0x00000100;
-uint32_t constexpr kHasChildMask      = 0x000000FF;
-
-// the best method for counting digit 1s in a 32 bit uint32_t in parallel
-// https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
-uint32_t bitCount(uint32_t v) {
-  const std::vector<uint32_t> S{1U, 2U, 4U, 8U, 16U}; // Magic Binary Numbers
-  const std::vector<uint32_t> B{0x55555555U, 0x33333333U, 0x0F0F0F0FU, 0x00FF00FFU, 0x0000FFFFU};
-
-  uint32_t c = v - ((v >> 1) & B[0]);
-  c          = ((c >> S[1]) & B[1]) + (c & B[1]);
-  c          = ((c >> S[2]) + c) & B[2];
-  c          = ((c >> S[3]) + c) & B[3];
-  c          = ((c >> S[4]) + c) & B[4];
-  return c;
-}
-
 // https://stackoverflow.com/questions/1053582/how-does-this-bitwise-operation-check-for-a-power-of-2
 bool _imageSizeCanBeDividedByTwo(ImCoor3D const &imageSize) {
   return (imageSize.x & (imageSize.x - 1)) == 0 && (imageSize.y & (imageSize.y - 1)) == 0 &&
@@ -51,13 +34,6 @@ void _printHexFormat(const std::vector<uint32_t> &vec) {
     }
   }
   std::cout << std::endl;
-}
-
-bool _checkNextNodeIdxValidaty(uint32_t nextNodeIdx) {
-  uint32_t constexpr kAllOnes = 0xFFFFFFFF;
-
-  uint32_t mask = kAllOnes >> kNextNodePtrOffset;
-  return (nextNodeIdx & mask) == nextNodeIdx;
 }
 
 template <class T> void _printBufferSizeInMb(std::vector<T> const &voxelBuffer, Logger *logger) {
@@ -93,16 +69,9 @@ void _visitNode(std::stack<StackContext> &stack, std::vector<uint32_t> &voxelBuf
   stack.pop();
 
   // change next pointer
-  uint32_t &bufferData         = voxelBuffer[bufferIdx];
-  uint32_t const writingOffset = nextNodeIdx - bufferIdx;
-  bufferData |= writingOffset << kNextNodePtrOffset;
-  if (!_checkNextNodeIdxValidaty(writingOffset)) {
-    exceedingCount++;
-  }
-
-  if (imIdx == 1) {
-    bufferData |= kNextIsLeafMask;
-  }
+  uint32_t &bufferData     = voxelBuffer[bufferIdx];
+  uint32_t const ptrOffset = nextNodeIdx - bufferIdx;
+  bufferData |= ptrOffset;
 
   // f = fine
   auto const &fCoors = _finerLevelCoordinates(coor);
@@ -146,15 +115,26 @@ std::vector<uint32_t> _createByDfs(std::vector<std::unique_ptr<ImData>> const &i
   }
   return voxelBuffer;
 }
+
+std::vector<uint32_t> _createByDev() {
+  std::vector<uint32_t> voxelBuffer{0x80000008, 0x80000008, 0x80000008, 0x80000008,
+                                    0x80000008, 0x80000008, 0x80000008, 0x80000008,
+                                    0xC0000024, 0xC0000024, 0xC0000024, 0xC0000024,
+                                    0xC0000024, 0xC0000024, 0x00000000, 0x00000000};
+
+  return voxelBuffer;
+}
 } // namespace
 
 SvoScene::SvoScene(Logger *logger) : _logger(logger) { _run(); }
+
+SvoScene::~SvoScene() = default;
 
 void SvoScene::_run() {
   _buildImageDatas();
   // _printImageDatas();
   _createVoxelBuffer();
-  // _printBuffer();
+  _printBuffer();
   _logger->print("SvoScene::_run() done!");
 }
 
@@ -165,7 +145,7 @@ void SvoScene::_buildImageDatas() {
   // record time
   auto const start = std::chrono::high_resolution_clock::now();
 
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[5] + ".vox";
+  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileNames[0] + ".vox";
   auto voxData                     = VoxLoader::fetchDataFromFile(kPathToVoxFile, _logger);
 
   // print elapse using _logger
@@ -217,7 +197,8 @@ void SvoScene::_createVoxelBuffer() {
   auto const start = std::chrono::high_resolution_clock::now();
 
   // building using bfs will cause the relative pointer to jump dramatically in the last few layers
-  _voxelBuffer = _createByDfs(_imageDatas);
+  // _voxelBuffer = _createByDfs(_imageDatas);
+  _voxelBuffer = _createByDev();
 
   // print elapse using _logger
   auto const end    = std::chrono::high_resolution_clock::now();

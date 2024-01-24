@@ -1,17 +1,21 @@
 #pragma once
 
-#include "svo-ray-tracing/im-data/ImData.hpp"
-// #include "svo-ray-tracing/octree/BaseLevelBuilder.hpp"
-#include "svo-ray-tracing/octree/UpperLevelBuilder.hpp"
-
 #include <array>
 #include <memory>
 #include <vector>
 
 class Logger;
+class ImData;
 class SvoScene {
 public:
   SvoScene(Logger *logger);
+  ~SvoScene();
+
+  // disable copy and move
+  SvoScene(SvoScene const &)            = delete;
+  SvoScene(SvoScene &&)                 = delete;
+  SvoScene &operator=(SvoScene const &) = delete;
+  SvoScene &operator=(SvoScene &&)      = delete;
 
   [[nodiscard]] const std::vector<uint32_t> &getVoxelBuffer() const { return _voxelBuffer; }
   [[nodiscard]] const std::vector<uint32_t> &getPaletteBuffer() const { return _paletteBuffer; }
@@ -29,5 +33,5 @@ private:
   void _printImageDatas();
   void _createVoxelBuffer();
 
-void _printBuffer();
+  void _printBuffer();
 };

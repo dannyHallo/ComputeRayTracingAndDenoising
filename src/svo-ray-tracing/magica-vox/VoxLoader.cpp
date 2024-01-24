@@ -85,7 +85,7 @@ VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model, Logg
         bool isVoxelValid        = (colorIndex != 0);
         if (isVoxelValid) {
           // first bit is set only to indicate that this is a valid leaf voxel
-          uint32_t const kValidMask = 0x80000000;
+          uint32_t const kValidMask = 0xC0000000;
           voxData.imageData->imageStore(ImCoor3D(x, z, y),
                                         kValidMask | static_cast<uint32_t>(colorIndex));
         }
