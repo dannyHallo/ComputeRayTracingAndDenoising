@@ -225,7 +225,6 @@ VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling til
   imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
   imageInfo.usage         = usage;
   imageInfo.samples       = numSamples;
-  imageInfo.sharingMode   = VK_SHARING_MODE_EXCLUSIVE;
 
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage                   = VMA_MEMORY_USAGE_AUTO;

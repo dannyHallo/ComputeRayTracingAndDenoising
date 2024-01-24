@@ -23,7 +23,7 @@ set SHADERS=svoTracing postProcessing
 
 @REM https://chromium.googlesource.com/external/github.com/google/shaderc/+/HEAD/glslc/README.asciidoc
 echo compiling shaders...
-rd /s /q "shaders/generated"
+if exist "shaders/generated" rd /s /q "shaders/generated"
 mkdir "shaders/generated"
 for %%s in (%SHADERS%) do (
    echo compiling shaders/source/%%s.comp to shaders/generated/%%s.spv
@@ -56,7 +56,7 @@ if %SKIP_CPP%==0 (
 
 echo:
 echo copy resources ...
-rd /s /q "build/windows/x64/%BUILD_TYPE%/resources"
+if exist "build/windows/x64/%BUILD_TYPE%/resources" rd /s /q "build/windows/x64/%BUILD_TYPE%/resources"
 mkdir "build/windows/x64/%BUILD_TYPE%/resources"
 @REM Use robocopy instead of xcopy for better performance
 robocopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /E /IS /NFL /NDL /NJH /NJS /nc /ns /np
