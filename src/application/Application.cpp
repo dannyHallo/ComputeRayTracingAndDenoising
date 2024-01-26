@@ -9,11 +9,9 @@
 #include "memory/Image.hpp"
 #include "pipelines/ComputePipeline.hpp"
 #include "pipelines/DescriptorSetBundle.hpp"
-#include "render-context/RenderSystem.hpp"
 #include "utils/camera/Camera.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
-#include "utils/incl/Glm.hpp"
 #include "utils/logger/Logger.hpp"
 #include "window/Window.hpp"
 

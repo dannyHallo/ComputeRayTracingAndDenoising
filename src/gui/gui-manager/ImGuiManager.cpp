@@ -2,12 +2,13 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 #include "gui/gui-elements/FpsGui.hpp"
-#include "render-context/RenderSystem.hpp"
 #include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
+#include "utils/vulkan/SimpleCommands.hpp"
 #include "window/Window.hpp"
+
 
 #include "imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
@@ -127,14 +128,14 @@ void ImguiManager::init() {
   }
 
   // Create fonts texture
-  VkCommandBuffer commandBuffer = RenderSystem::beginSingleTimeCommands(
-      _appContext->getDevice(), _appContext->getCommandPool());
+  VkCommandBuffer commandBuffer =
+      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
 
   if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer)) {
     _logger->print("failed to create fonts texture");
   }
-  RenderSystem::endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                                      _appContext->getGraphicsQueue(), commandBuffer);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), commandBuffer);
 }
 
 void ImguiManager::_createGuiDescripterPool() {

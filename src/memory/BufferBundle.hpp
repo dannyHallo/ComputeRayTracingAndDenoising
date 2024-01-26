@@ -8,10 +8,12 @@
 
 class BufferBundle {
 public:
-  BufferBundle(size_t bundleSize, VkDeviceSize perBufferSize, BufferType bufferType) {
+  BufferBundle(size_t bundleSize, VkDeviceSize perBufferSize, BufferType bufferType,
+               MemoryAccessingStyle memoryAccessingStyle) {
     _buffers.reserve(bundleSize);
     for (size_t i = 0; i < bundleSize; i++) {
-      _buffers.emplace_back(std::make_unique<Buffer>(perBufferSize, bufferType));
+      _buffers.emplace_back(
+          std::make_unique<Buffer>(perBufferSize, bufferType, memoryAccessingStyle));
     }
   }
 

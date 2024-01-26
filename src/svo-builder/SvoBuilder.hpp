@@ -39,7 +39,10 @@ private:
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
-  std::unique_ptr<ComputePipeline> _octreeInitNodePipeline;
+  std::unique_ptr<ComputePipeline> _initNodePipeline;
+  std::unique_ptr<ComputePipeline> _tagNodePipeline;
+  std::unique_ptr<ComputePipeline> _allocNodePipeline;
+  std::unique_ptr<ComputePipeline> _modifyArgPipeline;
 
   std::unique_ptr<Buffer> _voxelBuffer;
   std::unique_ptr<Buffer> _paletteBuffer;

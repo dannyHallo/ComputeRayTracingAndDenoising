@@ -235,31 +235,38 @@ void SvoTracer::_createImageForwardingPairs() {
 // so we need to create multiple copies of them, they are fairly small though
 void SvoTracer::_createBufferBundles() {
   _globalBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(GlobalUniformBufferObject), BufferType::kUniform);
+      _framesInFlight, sizeof(GlobalUniformBufferObject), BufferType::kUniform,
+      MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
   _gradientProjectionBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(GradientProjectionUniformBufferObject), BufferType::kUniform);
+      _framesInFlight, sizeof(GradientProjectionUniformBufferObject), BufferType::kUniform,
+      MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
   for (int i = 0; i < kStratumFilterSize; i++) {
     auto stratumFilterBufferBundle = std::make_unique<BufferBundle>(
-        _framesInFlight, sizeof(StratumFilterUniformBufferObject), BufferType::kUniform);
+        _framesInFlight, sizeof(StratumFilterUniformBufferObject), BufferType::kUniform,
+        MemoryAccessingStyle::kCpuToGpuEveryFrame);
     _stratumFilterBufferBundle.emplace_back(std::move(stratumFilterBufferBundle));
   }
 
   _temperalFilterBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(TemporalFilterUniformBufferObject), BufferType::kUniform);
+      _framesInFlight, sizeof(TemporalFilterUniformBufferObject), BufferType::kUniform,
+      MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
   _varianceBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(VarianceUniformBufferObject), BufferType::kUniform);
+      _framesInFlight, sizeof(VarianceUniformBufferObject), BufferType::kUniform,
+      MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
   for (int i = 0; i < kATrousSize; i++) {
     auto blurFilterBufferBundle = std::make_unique<BufferBundle>(
-        _framesInFlight, sizeof(BlurFilterUniformBufferObject), BufferType::kUniform);
+        _framesInFlight, sizeof(BlurFilterUniformBufferObject), BufferType::kUniform,
+        MemoryAccessingStyle::kCpuToGpuEveryFrame);
     _blurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle));
   }
 
   _postProcessingBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(PostProcessingUniformBufferObject), BufferType::kUniform);
+      _framesInFlight, sizeof(PostProcessingUniformBufferObject), BufferType::kUniform,
+      MemoryAccessingStyle::kCpuToGpuEveryFrame);
 }
 
 void SvoTracer::_recordCommandBuffers() {

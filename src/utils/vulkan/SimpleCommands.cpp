@@ -1,18 +1,16 @@
 #include <memory>
 #include <vector>
 
-#include "RenderSystem.hpp"
+#include "SimpleCommands.hpp"
 
-VkCommandBuffer
-RenderSystem::beginSingleTimeCommands(VkDevice device,
-                                      VkCommandPool commandPool) {
+VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool) {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandPool        = commandPool;
   allocInfo.commandBufferCount = 1;
 
-  VkCommandBuffer commandBuffer;
+  VkCommandBuffer commandBuffer = VK_NULL_HANDLE;
   vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
 
   VkCommandBufferBeginInfo beginInfo{};
@@ -24,10 +22,8 @@ RenderSystem::beginSingleTimeCommands(VkDevice device,
   return commandBuffer;
 }
 
-void RenderSystem::endSingleTimeCommands(VkDevice device,
-                                         VkCommandPool commandPool,
-                                         VkQueue queue,
-                                         VkCommandBuffer commandBuffer) {
+void endSingleTimeCommands(VkDevice device, VkCommandPool commandPool, VkQueue queue,
+                           VkCommandBuffer commandBuffer) {
   vkEndCommandBuffer(commandBuffer);
 
   VkSubmitInfo submitInfo{};

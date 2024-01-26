@@ -84,11 +84,13 @@ void SvoBuilder::_createVoxelData() {
 // side, and GPU cannot work on multiple frames at the same time
 void SvoBuilder::_createBuffers() {
   _voxelBuffer =
-      std::make_unique<Buffer>(sizeof(uint32_t) * _voxelData.size(), BufferType::kStorage);
+      std::make_unique<Buffer>(sizeof(uint32_t) * _voxelData.size(), BufferType::kStorage,
+                               MemoryAccessingStyle::kCpuToGpuOnce);
   _voxelBuffer->fillData(_voxelData.data());
 
   _paletteBuffer =
-      std::make_unique<Buffer>(sizeof(uint32_t) * _paletteData.size(), BufferType::kStorage);
+      std::make_unique<Buffer>(sizeof(uint32_t) * _paletteData.size(), BufferType::kStorage,
+                               MemoryAccessingStyle::kCpuToGpuOnce);
   _paletteBuffer->fillData(_paletteData.data());
 }
 

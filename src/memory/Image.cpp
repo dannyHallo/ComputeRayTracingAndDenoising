@@ -3,9 +3,9 @@
 #include "app-context/VulkanApplicationContext.hpp"
 
 #include "Buffer.hpp"
-#include "render-context/RenderSystem.hpp"
 #include "utils/incl/Vulkan.hpp"
 #include "utils/logger/Logger.hpp"
+#include "utils/vulkan/SimpleCommands.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 // disable all warnings from stb_image (gcc & clang)
@@ -184,9 +184,7 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   vmaUnmapMemory(allocator, stagingBufferAllocation);
 
   // record a command to copy the buffer to the image
-  VkCommandBuffer commandBuffer = RenderSystem::beginSingleTimeCommands(
-      VulkanApplicationContext::getInstance()->getDevice(),
-      VulkanApplicationContext::getInstance()->getCommandPool());
+  VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
 
   VkBufferImageCopy region{};
   region.bufferOffset                = 0;
@@ -203,7 +201,7 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, _vkImage,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-  RenderSystem::endSingleTimeCommands(device, commandPool, queue, commandBuffer);
+  endSingleTimeCommands(device, commandPool, queue, commandBuffer);
 
   // Clean up the staging buffer
   vmaDestroyBuffer(VulkanApplicationContext::getInstance()->getAllocator(), stagingBuffer,
@@ -270,7 +268,7 @@ void Image::_transitionImageLayout(VkImageLayout newLayout) {
   auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
   auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
 
-  VkCommandBuffer commandBuffer = RenderSystem::beginSingleTimeCommands(device, commandPool);
+  VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
 
   VkImageMemoryBarrier barrier{};
   barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -326,7 +324,7 @@ void Image::_transitionImageLayout(VkImageLayout newLayout) {
   vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1,
                        &barrier);
 
-  RenderSystem::endSingleTimeCommands(device, commandPool, queue, commandBuffer);
+  endSingleTimeCommands(device, commandPool, queue, commandBuffer);
 
   _currentImageLayout = newLayout;
 }
