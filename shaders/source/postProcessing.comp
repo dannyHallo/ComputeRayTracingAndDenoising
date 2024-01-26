@@ -9,7 +9,7 @@ layout(binding = 1) uniform UniformBufferObject { uint displayType; }
 ubo;
 
 layout(binding = 2, r32f) readonly uniform image2D rawTex;
-layout(binding = 4, rgba8) writeonly uniform image2D targetTex;
+layout(binding = 3, rgba8) writeonly uniform image2D targetTex;
 
 #include "include/globalUbo.glsl"
 

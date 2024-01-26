@@ -1,16 +1,15 @@
 #include "application/Application.hpp"
 
-#include "application/app-res/buffers/BuffersHolder.hpp"
-#include "application/app-res/images/ImagesHolder.hpp"
-#include "application/app-res/models/PipelinesHolder.hpp"
+#include "svo-builder/SvoBuilder.hpp"
+#include "svo-tracer/SvoTracer.hpp"
+
 #include "gui/gui-manager/ImguiManager.hpp"
-#include "material/ComputePipeline.hpp"
-#include "material/DescriptorSetBundle.hpp"
 #include "memory/Buffer.hpp"
 #include "memory/BufferBundle.hpp"
 #include "memory/Image.hpp"
+#include "pipelines/ComputePipeline.hpp"
+#include "pipelines/DescriptorSetBundle.hpp"
 #include "render-context/RenderSystem.hpp"
-#include "svo-ray-tracing/SvoBuilder.hpp"
 #include "utils/camera/Camera.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
@@ -22,21 +21,19 @@
 #include <chrono>
 
 // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
-static int constexpr kStratumFilterSize = 6;
-static int constexpr kATrousSize        = 5;
-static int constexpr kFramesInFlight    = 2;
+
+static int constexpr kFramesInFlight = 2;
 
 Camera *Application::getCamera() { return _camera.get(); }
 
-Application::Application()
-    : _iCap(kATrousSize), _appContext(VulkanApplicationContext::getInstance()) {
+Application::Application() : _appContext(VulkanApplicationContext::getInstance()) {
   _window = std::make_unique<Window>(WindowStyle::kFullScreen);
   _appContext->init(&_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 
-  _buffersHolder   = std::make_unique<BuffersHolder>();
-  _imagesHolder    = std::make_unique<ImagesHolder>(_appContext);
-  _pipelinesHolder = std::make_unique<PipelinesHolder>(_appContext, &_logger);
+  _svoBuilder = std::make_unique<SvoBuilder>(_appContext, &_logger);
+  _svoTracer  = std::make_unique<SvoTracer>(_appContext, &_logger, kFramesInFlight, _camera.get());
+
   _imguiManager =
       std::make_unique<ImguiManager>(_appContext, _window.get(), &_logger, kFramesInFlight);
   _fpsSink = std::make_unique<FpsSink>();
@@ -59,229 +56,13 @@ void Application::_cleanup() {
     vkDestroySemaphore(_appContext->getDevice(), _imageAvailableSemaphores[i], nullptr);
     vkDestroyFence(_appContext->getDevice(), _framesInFlightFences[i], nullptr);
   }
-
-  for (auto &commandBuffer : _commandBuffers) {
-    vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
-                         &commandBuffer);
-  }
 }
 
-void Application::_createSvoScene() { _svoScene = std::make_unique<SvoBuilder>(&_logger); }
-
-void Application::_updateUbos(size_t currentFrame) {
-  static uint32_t currentSample = 0;
-  static glm::mat4 lastMvpe{1.0F};
-
-  auto currentTime = static_cast<float>(glfwGetTime());
-
-  GlobalUniformBufferObject globalUbo = {
-      _camera->getPosition(),
-      _camera->getFront(),
-      _camera->getUp(),
-      _camera->getRight(),
-      _appContext->getSwapchainExtentWidth(),
-      _appContext->getSwapchainExtentHeight(),
-      _camera->getVFov(),
-      currentSample,
-      currentTime,
-  };
-  _buffersHolder->getGlobalBufferBundle()->getBuffer(currentFrame)->fillData(&globalUbo);
-
-  auto thisMvpe =
-      _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
-                                   static_cast<float>(_appContext->getSwapchainExtentHeight())) *
-      _camera->getViewMatrix();
-  GradientProjectionUniformBufferObject gpUbo = {
-      static_cast<int>(!_useGradientProjection),
-      thisMvpe,
-  };
-  _buffersHolder->getGradientProjectionBufferBundle()->getBuffer(currentFrame)->fillData(&gpUbo);
-
-  for (int i = 0; i < kStratumFilterSize; i++) {
-    StratumFilterUniformBufferObject sfUbo = {i, static_cast<int>(!_useStratumFiltering)};
-    _buffersHolder->getStratumFilterBufferBundle(i)->getBuffer(currentFrame)->fillData(&sfUbo);
-  }
-
-  TemporalFilterUniformBufferObject tfUbo = {
-      static_cast<int>(!_useTemporalBlend),
-      static_cast<int>(_useNormalTest),
-      _normalThreshold,
-      _blendingAlpha,
-      lastMvpe,
-  };
-  _buffersHolder->getTemperalFilterBufferBundle()->getBuffer(currentFrame)->fillData(&tfUbo);
-  lastMvpe = thisMvpe;
-
-  VarianceUniformBufferObject varianceUbo = {
-      static_cast<int>(!_useVarianceEstimation),
-      static_cast<int>(_skipStoppingFunctions),
-      static_cast<int>(_useTemporalVariance),
-      _varianceKernelSize,
-      _variancePhiGaussian,
-      _variancePhiDepth,
-  };
-
-  _buffersHolder->getVarianceBufferBundle()->getBuffer(currentFrame)->fillData(&varianceUbo);
-
-  for (int i = 0; i < kATrousSize; i++) {
-    // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {
-        static_cast<int>(!_useATrous),
-        i,
-        _iCap,
-        static_cast<int>(_useVarianceGuidedFiltering),
-        static_cast<int>(_useGradientInDepth),
-        _phiLuminance,
-        _phiDepth,
-        _phiNormal,
-        static_cast<int>(_ignoreLuminanceAtFirstIteration),
-        static_cast<int>(_changingLuminancePhi),
-        static_cast<int>(_useJittering),
-    };
-    _buffersHolder->getBlurFilterBufferBundle(i)->getBuffer(currentFrame)->fillData(&bfUbo);
-  }
-
-  PostProcessingUniformBufferObject postProcessingUbo = {_displayType};
-  _buffersHolder->getPostProcessingBufferBundle()
-      ->getBuffer(currentFrame)
-      ->fillData(&postProcessingUbo);
-
-  currentSample++;
-}
-
-void Application::_createRenderCommandBuffers() {
-  // create command buffers per swapchain image
-  _commandBuffers.resize(_appContext->getSwapchainSize()); //  change this later on, because it is
-                                                           //  bounded to the swapchain image
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool        = _appContext->getCommandPool();
-  allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = (uint32_t)_commandBuffers.size();
-
-  VkResult result =
-      vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _commandBuffers.data());
-  assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
-
-  for (size_t imageIndex = 0; imageIndex < _commandBuffers.size(); imageIndex++) {
-    VkCommandBuffer &cmdBuffer = _commandBuffers[imageIndex];
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags            = 0;       // Optional
-    beginInfo.pInheritanceInfo = nullptr; // Optional
-
-    VkResult result = vkBeginCommandBuffer(cmdBuffer, &beginInfo);
-    assert(result == VK_SUCCESS && "vkBeginCommandBuffer failed");
-
-    _imagesHolder->getTargetImage()->clearImage(cmdBuffer);
-    _imagesHolder->getATrousInputImage()->clearImage(cmdBuffer);
-    _imagesHolder->getATrousOutputImage()->clearImage(cmdBuffer);
-    _imagesHolder->getStratumOffsetImage()->clearImage(cmdBuffer);
-    _imagesHolder->getPerStratumLockingImage()->clearImage(cmdBuffer);
-    _imagesHolder->getVisibilityImage()->clearImage(cmdBuffer);
-    _imagesHolder->getSeedVisibilityImage()->clearImage(cmdBuffer);
-    _imagesHolder->getTemporalGradientNormalizationImagePing()->clearImage(cmdBuffer);
-    _imagesHolder->getTemporalGradientNormalizationImagePong()->clearImage(cmdBuffer);
-
-    uint32_t w = _appContext->getSwapchainExtentWidth();
-    uint32_t h = _appContext->getSwapchainExtentHeight();
-
-    // _PipelinesHolder->getGradientProjectionModel()->computeCommand(cmdBuffer, imageIndex, w, h,
-    // 1);
-
-    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                      nullptr);
-
-    _pipelinesHolder->getSvoPipeline()->recordCommand(cmdBuffer, 0, w, h, 1);
-
-    VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-    memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-    memoryBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT;
-
-    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
-                         nullptr);
-
-    // _PipelinesHolder->getGradientModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-
-    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                      nullptr);
-
-    // for (int j = 0; j < 6; j++) {
-    //   _PipelinesHolder->getStratumFilterModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-
-    //   vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                        nullptr);
-    // }
-
-    // _PipelinesHolder->getTemporalFilterModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-
-    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                      nullptr);
-
-    // _PipelinesHolder->getVarianceModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-
-    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                      nullptr);
-
-    // /////////////////////////////////////////////
-
-    // for (int j = 0; j < kATrousSize; j++) {
-    //   // dispatch filter shader
-    //   _PipelinesHolder->getATrousModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-    //   vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                        nullptr);
-
-    //   // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
-    //   if (j != kATrousSize - 1) {
-    //     _imagesHolder->getATrousForwardingPair()->forwardCopy(cmdBuffer);
-    //   }
-    // }
-
-    /////////////////////////////////////////////
-
-    _pipelinesHolder->getPostProcessingPipeline()->recordCommand(cmdBuffer, 0, w, h, 1);
-
-    _imagesHolder->getTargetForwardingPair(imageIndex)->forwardCopy(cmdBuffer);
-
-    // copy to history images
-    _imagesHolder->getDepthForwardingPair()->forwardCopy(cmdBuffer);
-    _imagesHolder->getNormalForwardingPair()->forwardCopy(cmdBuffer);
-    _imagesHolder->getGradientForwardingPair()->forwardCopy(cmdBuffer);
-    _imagesHolder->getVarianceHistForwardingPair()->forwardCopy(cmdBuffer);
-    _imagesHolder->getMeshHashForwardingPair()->forwardCopy(cmdBuffer);
-
-    result = vkEndCommandBuffer(cmdBuffer);
-    assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
-  }
-}
-
-// these commandbuffers are initially recorded with the models
-void Application::_cleanupRenderCommandBuffers() {
-  for (auto &commandBuffer : _commandBuffers) {
-    vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
-                         &commandBuffer);
-  }
-}
-
-void Application::_cleanupSwapchainDimensionRelatedResources() {
-  _cleanupRenderCommandBuffers();
-  _imguiManager->cleanupSwapchainDimensionRelatedResources();
-}
-
-void Application::_createSwapchainDimensionRelatedResources() {
-  _imagesHolder->onSwapchainResize();
-  _pipelinesHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
-                         kFramesInFlight);
-  _createRenderCommandBuffers();
-  _imguiManager->createSwapchainDimensionRelatedResources();
+void Application::_onSwapchainResize() {
+  _appContext->onSwapchainResize();
+  _imguiManager->onSwapchainResize();
+  _svoTracer->onSwapchainResize();
+  _imguiManager->onSwapchainResize();
 }
 
 void Application::_createSemaphoresAndFences() {
@@ -333,11 +114,12 @@ void Application::_drawFrame() {
     _logger.throwError("resizing is not allowed!");
   }
 
-  _updateUbos(currentFrame);
+  _svoTracer->updateUboData(currentFrame);
 
-  _imguiManager->recordGuiCommandBuffer(currentFrame, imageIndex);
+  _imguiManager->recordCommandBuffer(currentFrame, imageIndex);
+  // be cautious here! the imageIndex is not the same as the currentFrame
   std::vector<VkCommandBuffer> submitCommandBuffers = {
-      _commandBuffers[imageIndex], _imguiManager->getCommandBuffer(currentFrame)};
+      _svoTracer->getCommandBuffer(imageIndex), _imguiManager->getCommandBuffer(currentFrame)};
 
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
   // wait until the image is ready
@@ -401,10 +183,7 @@ void Application::_mainLoop() {
       vkDeviceWaitIdle(_appContext->getDevice());
       _waitForTheWindowToBeResumed();
 
-      _cleanupSwapchainDimensionRelatedResources();
-      _appContext->cleanupSwapchainDimensionRelatedResources();
-      _appContext->createSwapchainDimensionRelatedResources();
-      _createSwapchainDimensionRelatedResources();
+      _onSwapchainResize();
 
       fpsRecordLastTime = std::chrono::steady_clock::now();
       continue;
@@ -439,22 +218,18 @@ bool Application::_needToToggleWindowStyle() {
 }
 
 void Application::_init() {
-  _createSvoScene();
-
-  _buffersHolder->init(_svoScene.get(), kStratumFilterSize, kATrousSize, kFramesInFlight);
-  _imagesHolder->init();
-  _pipelinesHolder->init(_imagesHolder.get(), _buffersHolder.get(), kStratumFilterSize, kATrousSize,
-                         kFramesInFlight);
-
-  _createRenderCommandBuffers();
+  _svoBuilder->init();
+  _svoTracer->init(_svoBuilder.get());
+  _imguiManager->init();
 
   _createSemaphoresAndFences();
-
-  // _initGui(); // TODO:
+  _logger.print("Application is initialized");
 
   // attach camera's mouse handler to the window mouse callback, more handlers can be added in the
   // future
   _window->addMouseCallback([this](float mouseDeltaX, float mouseDeltaY) {
     _camera->handleMouseMovement(mouseDeltaX, mouseDeltaY);
   });
+
+  _logger.print("Application is ready to run");
 }

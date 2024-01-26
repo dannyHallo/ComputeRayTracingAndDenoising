@@ -44,20 +44,8 @@ void comboSelector(std::string const &comboLabel, std::vector<std::string> const
 
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
                            int framesInFlight)
-    : _appContext(appContext), _window(window), _logger(logger),
-      _colorPalette(std::make_unique<ColorPalette>()) {
-
-  _buildColorPalette();
-
-  _fpsGui = std::make_unique<FpsGui>(_colorPalette.get());
-
-  _createGuiCommandBuffers(framesInFlight);
-  _createGuiRenderPass();
-  _createFramebuffers();
-  _createGuiDescripterPool();
-
-  _initImgui();
-}
+    : _appContext(appContext), _window(window), _logger(logger), _framesInFlight(framesInFlight),
+      _colorPalette(std::make_unique<ColorPalette>()) {}
 
 ImguiManager::~ImguiManager() {
 
@@ -91,11 +79,21 @@ void ImguiManager::_cleanupFrameBuffers() {
   }
 }
 
-void ImguiManager::cleanupSwapchainDimensionRelatedResources() { _cleanupFrameBuffers(); }
+void ImguiManager::onSwapchainResize() {
+  _cleanupFrameBuffers();
+  _createFramebuffers();
+}
 
-void ImguiManager::createSwapchainDimensionRelatedResources() { _createFramebuffers(); }
+void ImguiManager::init() {
+  _buildColorPalette();
 
-void ImguiManager::_initImgui() {
+  _fpsGui = std::make_unique<FpsGui>(_colorPalette.get());
+
+  _createGuiCommandBuffers(_framesInFlight);
+  _createGuiRenderPass();
+  _createFramebuffers();
+  _createGuiDescripterPool();
+
   // setup Dear ImGui context
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -258,7 +256,7 @@ void ImguiManager::_createFramebuffers() {
   }
 }
 
-void ImguiManager::recordGuiCommandBuffer(size_t currentFrame, uint32_t swapchainImageIndex) {
+void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t swapchainImageIndex) {
   VkCommandBuffer commandBuffer = _guiCommandBuffers[currentFrame];
 
   VkCommandBufferBeginInfo beginInfo{};

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "material/Pipeline.hpp"
+#include "pipelines/Pipeline.hpp"
 
 #include <vector>
 

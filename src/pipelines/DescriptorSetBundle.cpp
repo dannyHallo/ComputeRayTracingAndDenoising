@@ -10,30 +10,31 @@ DescriptorSetBundle::~DescriptorSetBundle() {
   vkDestroyDescriptorPool(_appContext->getDevice(), _descriptorPool, nullptr);
 }
 
-void DescriptorSetBundle::bindUniformBufferBundle(uint32_t bindingNo, BufferBundle *bufferBundle) {
-  assert(_boundedSlots.find(bindingNo) == _boundedSlots.end() && "binding socket duplicated");
+void DescriptorSetBundle::bindUniformBufferBundle(uint32_t bindingSlot,
+                                                  BufferBundle *bufferBundle) {
+  assert(_boundedSlots.find(bindingSlot) == _boundedSlots.end() && "binding socket duplicated");
   assert(bufferBundle->getBundleSize() == _bundleSize &&
          "the size of the uniform buffer bundle must be the same as the descriptor set bundle");
 
-  _boundedSlots.insert(bindingNo);
-  _uniformBufferBundles.emplace_back(bindingNo, bufferBundle);
+  _boundedSlots.insert(bindingSlot);
+  _uniformBufferBundles.emplace_back(bindingSlot, bufferBundle);
 }
 
-void DescriptorSetBundle::bindStorageImage(uint32_t bindingNo, Image *storageImage) {
+void DescriptorSetBundle::bindStorageImage(uint32_t bindingSlot, Image *storageImage) {
   // just like the func above
-  assert(_boundedSlots.find(bindingNo) == _boundedSlots.end() && "binding socket duplicated");
+  assert(_boundedSlots.find(bindingSlot) == _boundedSlots.end() && "binding socket duplicated");
 
-  _boundedSlots.insert(bindingNo);
-  _storageImages.emplace_back(bindingNo, storageImage);
+  _boundedSlots.insert(bindingSlot);
+  _storageImages.emplace_back(bindingSlot, storageImage);
 }
 
 // storage buffers are only changed by GPU rather than CPU, and their size is big, they cannot be
 // bundled
-void DescriptorSetBundle::bindStorageBuffer(uint32_t bindingNo, Buffer *buffer) {
-  assert(_boundedSlots.find(bindingNo) == _boundedSlots.end() && "binding socket duplicated");
+void DescriptorSetBundle::bindStorageBuffer(uint32_t bindingSlot, Buffer *buffer) {
+  assert(_boundedSlots.find(bindingSlot) == _boundedSlots.end() && "binding socket duplicated");
 
-  _boundedSlots.insert(bindingNo);
-  _storageBuffers.emplace_back(bindingNo, buffer);
+  _boundedSlots.insert(bindingSlot);
+  _storageBuffers.emplace_back(bindingSlot, buffer);
 }
 
 void DescriptorSetBundle::create() {
@@ -117,10 +118,8 @@ void DescriptorSetBundle::_createDescriptorSetLayout() {
   layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
   layoutInfo.pBindings    = bindings.data();
 
-  VkResult result = vkCreateDescriptorSetLayout(_appContext->getDevice(), &layoutInfo, nullptr,
-                                                &_descriptorSetLayout);
-  assert(result == VK_SUCCESS &&
-         "Material::initDescriptorSetLayout: failed to create descriptor set layout");
+  vkCreateDescriptorSetLayout(_appContext->getDevice(), &layoutInfo, nullptr,
+                              &_descriptorSetLayout);
 }
 
 void DescriptorSetBundle::_createDescriptorSet(uint32_t descriptorSetIndex) {
@@ -135,7 +134,7 @@ void DescriptorSetBundle::_createDescriptorSet(uint32_t descriptorSetIndex) {
     uniformBufferInfos.push_back(bufferBundle->getBuffer(descriptorSetIndex)->getDescriptorInfo());
   }
   for (uint32_t i = 0; i < _uniformBufferBundles.size(); i++) {
-    auto const &[bindingNo, bufferBundle] = _uniformBufferBundles[i];
+    auto const &[bindingNo, _] = _uniformBufferBundles[i];
     VkWriteDescriptorSet descriptorWrite{};
     descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrite.dstSet          = dstSet;
@@ -186,6 +185,7 @@ void DescriptorSetBundle::_createDescriptorSet(uint32_t descriptorSetIndex) {
   vkUpdateDescriptorSets(_appContext->getDevice(), static_cast<uint32_t>(descriptorWrites.size()),
                          descriptorWrites.data(), 0, nullptr);
 }
+
 
 void DescriptorSetBundle::_createDescriptorSets() {
   // set bundle uses identical layout, but with different data

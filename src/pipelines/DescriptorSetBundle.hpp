@@ -31,9 +31,9 @@ public:
   [[nodiscard]] VkDescriptorSet &getDescriptorSet(size_t index) { return _descriptorSets[index]; }
   [[nodiscard]] VkDescriptorSetLayout &getDescriptorSetLayout() { return _descriptorSetLayout; }
 
-  void bindUniformBufferBundle(uint32_t bindingNo, BufferBundle *bufferBundle);
-  void bindStorageImage(uint32_t bindingNo, Image *storageImage);
-  void bindStorageBuffer(uint32_t bindingNo, Buffer *buffer);
+  void bindUniformBufferBundle(uint32_t bindingSlot, BufferBundle *bufferBundle);
+  void bindStorageImage(uint32_t bindingSlot, Image *storageImage);
+  void bindStorageBuffer(uint32_t bindingSlot, Buffer *buffer);
 
   void create();
 

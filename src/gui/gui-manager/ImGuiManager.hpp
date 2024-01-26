@@ -24,21 +24,23 @@ public:
   ImguiManager(ImguiManager &&)                 = delete;
   ImguiManager &operator=(ImguiManager &&)      = delete;
 
+  void init();
+
   void draw(FpsSink *fpsSink);
 
   [[nodiscard]] VkCommandBuffer getCommandBuffer(size_t currentFrame) {
     return _guiCommandBuffers[currentFrame];
   }
 
-  void cleanupSwapchainDimensionRelatedResources();
-  void createSwapchainDimensionRelatedResources();
+  void onSwapchainResize();
 
-  void recordGuiCommandBuffer(size_t currentFrame, uint32_t swapchainImageIndex);
+  void recordCommandBuffer(size_t currentFrame, uint32_t swapchainImageIndex);
 
 private:
   VulkanApplicationContext *_appContext;
   Window *_window;
   Logger *_logger;
+  int _framesInFlight;
 
   std::unique_ptr<FpsGui> _fpsGui;
   std::unique_ptr<ColorPalette> _colorPalette;
@@ -47,8 +49,6 @@ private:
   VkRenderPass _guiPass               = VK_NULL_HANDLE;
   std::vector<VkFramebuffer> _guiFrameBuffers;
   std::vector<VkCommandBuffer> _guiCommandBuffers;
-
-  void _initImgui();
 
   void _cleanupFrameBuffers();
 

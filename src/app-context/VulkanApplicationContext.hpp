@@ -39,8 +39,7 @@ public:
   VulkanApplicationContext(VulkanApplicationContext &&)                 = delete;
   VulkanApplicationContext &operator=(VulkanApplicationContext &&)      = delete;
 
-  void cleanupSwapchainDimensionRelatedResources();
-  void createSwapchainDimensionRelatedResources();
+  void onSwapchainResize();
 
   [[nodiscard]] inline const VkInstance &getVkInstance() const { return _vkInstance; }
   [[nodiscard]] inline const VkDevice &getDevice() const { return _device; }

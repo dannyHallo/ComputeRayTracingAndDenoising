@@ -1,6 +1,6 @@
 #include "Pipeline.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
-#include "material/DescriptorSetBundle.hpp"
+#include "pipelines/DescriptorSetBundle.hpp"
 
 #include <cassert>
 #include <map>

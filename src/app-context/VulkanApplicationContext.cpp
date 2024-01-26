@@ -51,7 +51,7 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
   _computeQueue  = queueSelection.computeQueue;
   _transferQueue = queueSelection.transferQueue;
 
-  createSwapchainDimensionRelatedResources();
+  onSwapchainResize();
 
   _createAllocator();
   _createCommandPool();
@@ -62,15 +62,12 @@ VulkanApplicationContext *VulkanApplicationContext::getInstance() {
   return &instance;
 }
 
-void VulkanApplicationContext::cleanupSwapchainDimensionRelatedResources() {
+void VulkanApplicationContext::onSwapchainResize() {
   for (auto &swapchainImageView : _swapchainImageViews) {
     vkDestroyImageView(_device, swapchainImageView, nullptr);
   }
-
   vkDestroySwapchainKHR(_device, _swapchain, nullptr);
-}
 
-void VulkanApplicationContext::createSwapchainDimensionRelatedResources() {
   ContextCreator::createSwapchain(_logger, _swapchain, _swapchainImages, _swapchainImageViews,
                                   _swapchainImageFormat, _swapchainExtent, _surface, _device,
                                   _physicalDevice, _queueFamilyIndices);
