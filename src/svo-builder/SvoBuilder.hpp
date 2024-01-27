@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SvoBuilderBufferStructs.hpp"
+
 #include <array>
 #include <memory>
 #include <vector>
@@ -25,17 +27,12 @@ public:
 
   void init();
 
-  Buffer *getVoxelBuffer() { return _voxelBuffer.get(); }
+  Buffer *getOctreeBuffer() { return _octreeBuffer.get(); }
   Buffer *getPaletteBuffer() { return _paletteBuffer.get(); }
 
 private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
-
-  std::vector<uint32_t> _voxelData;
-  std::array<uint32_t, 256> _paletteData{}; // NOLINT
-
-  std::unique_ptr<VoxData> _voxData;
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
@@ -44,13 +41,19 @@ private:
   std::unique_ptr<ComputePipeline> _allocNodePipeline;
   std::unique_ptr<ComputePipeline> _modifyArgPipeline;
 
-  std::unique_ptr<Buffer> _voxelBuffer;
-  std::unique_ptr<Buffer> _paletteBuffer;
-
-  void _fetchRawVoxelData(size_t index);
-  void _createVoxelData();
-  void _createBuffers();
-
   void _createDescriptorSetBundle();
   void _createPipelines();
+
+  // BUFFERS
+
+  std::unique_ptr<Buffer> _paletteBuffer; // filled initially
+
+  std::unique_ptr<Buffer> _atomicCounterBuffer;
+  std::unique_ptr<Buffer> _octreeBuffer;
+  std::unique_ptr<Buffer> _fragmentListBuffer; // filled initially
+  std::unique_ptr<Buffer> _buildInfoBuffer;
+  std::unique_ptr<Buffer> _indirectBuffer;
+
+  void _createBuffers(VoxData const &voxData);
+  void _initBufferData(VoxData const &voxData);
 };

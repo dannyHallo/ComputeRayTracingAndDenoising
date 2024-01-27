@@ -235,38 +235,38 @@ void SvoTracer::_createImageForwardingPairs() {
 // so we need to create multiple copies of them, they are fairly small though
 void SvoTracer::_createBufferBundles() {
   _globalBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(GlobalUniformBufferObject), BufferType::kUniform,
+      _framesInFlight, sizeof(GlobalUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
   _gradientProjectionBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(GradientProjectionUniformBufferObject), BufferType::kUniform,
-      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+      _framesInFlight, sizeof(GradientProjectionUniformBufferObject),
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
   for (int i = 0; i < kStratumFilterSize; i++) {
     auto stratumFilterBufferBundle = std::make_unique<BufferBundle>(
-        _framesInFlight, sizeof(StratumFilterUniformBufferObject), BufferType::kUniform,
-        MemoryAccessingStyle::kCpuToGpuEveryFrame);
+        _framesInFlight, sizeof(StratumFilterUniformBufferObject),
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
     _stratumFilterBufferBundle.emplace_back(std::move(stratumFilterBufferBundle));
   }
 
   _temperalFilterBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(TemporalFilterUniformBufferObject), BufferType::kUniform,
-      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+      _framesInFlight, sizeof(TemporalFilterUniformBufferObject),
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
   _varianceBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(VarianceUniformBufferObject), BufferType::kUniform,
+      _framesInFlight, sizeof(VarianceUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
   for (int i = 0; i < kATrousSize; i++) {
     auto blurFilterBufferBundle = std::make_unique<BufferBundle>(
-        _framesInFlight, sizeof(BlurFilterUniformBufferObject), BufferType::kUniform,
+        _framesInFlight, sizeof(BlurFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         MemoryAccessingStyle::kCpuToGpuEveryFrame);
     _blurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle));
   }
 
   _postProcessingBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(PostProcessingUniformBufferObject), BufferType::kUniform,
-      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+      _framesInFlight, sizeof(PostProcessingUniformBufferObject),
+      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
 }
 
 void SvoTracer::_recordCommandBuffers() {
@@ -471,10 +471,10 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindUniformBufferBundle(1, _postProcessingBufferBundle.get());
 
   _descriptorSetBundle->bindStorageImage(2, _rawImage.get());
-  _descriptorSetBundle->bindStorageImage(3, _targetImage.get()); // NOLINT
+  _descriptorSetBundle->bindStorageImage(3, _targetImage.get());
 
-  _descriptorSetBundle->bindStorageBuffer(4, _svoBuilder->getVoxelBuffer());
-  _descriptorSetBundle->bindStorageBuffer(5, _svoBuilder->getPaletteBuffer()); // NOLINT
+  _descriptorSetBundle->bindStorageBuffer(4, _svoBuilder->getOctreeBuffer());
+  _descriptorSetBundle->bindStorageBuffer(5, _svoBuilder->getPaletteBuffer());
 
   _descriptorSetBundle->create();
 }
@@ -487,7 +487,7 @@ void SvoTracer::_createPipelines() {
     _svoPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
-    _svoPipeline->create();
+    _svoPipeline->init();
   }
   {
     std::vector<uint32_t> shaderCode{
@@ -496,6 +496,6 @@ void SvoTracer::_createPipelines() {
     _postProcessingPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
-    _postProcessingPipeline->create();
+    _postProcessingPipeline->init();
   }
 }

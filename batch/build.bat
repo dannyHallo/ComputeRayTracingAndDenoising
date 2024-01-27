@@ -17,7 +17,7 @@ if "%2"=="skipcpp" (
 )
 
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
-set SHADERS=svoTracing postProcessing 
+set SHADERS=octreeInitNode octreeTagNode octreeAllocNode octreeModifyArg svoTracing postProcessing 
 
 @REM ---------------------------------------------------------------------------------------
 

@@ -8,20 +8,9 @@
 // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html
 
 namespace {
-const std::unordered_map<BufferType, VkBufferUsageFlags> kBufferTypeToVkBufferUsageFlags = {
-    {BufferType::kUniform, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT},
-    {BufferType::kStorage, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT},
-};
+VmaAllocationCreateFlags _decideAllocationCreateFlags(MemoryAccessingStyle memoryAccessingStyle) {
 
-void _decideFlags(BufferType bufferType, MemoryAccessingStyle memoryAccessingStyle,
-                  VkBufferUsageFlags &usageFlags, VmaAllocationCreateFlags &allocFlags) {
-  usageFlags = kBufferTypeToVkBufferUsageFlags.at(bufferType);
-  // this kind of buffer should be optimized to be copied by staging buffer
-  if (memoryAccessingStyle == MemoryAccessingStyle::kCpuToGpuOnce) {
-    usageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-  }
-
-  allocFlags = 0;
+  VmaAllocationCreateFlags allocFlags = 0;
   switch (memoryAccessingStyle) {
   case MemoryAccessingStyle::kGpuOnly:
   case MemoryAccessingStyle::kCpuToGpuOnce:
@@ -32,12 +21,15 @@ void _decideFlags(BufferType bufferType, MemoryAccessingStyle memoryAccessingSty
     allocFlags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
     break;
   }
+  return allocFlags;
 }
+
 } // namespace
 
-Buffer::Buffer(VkDeviceSize size, BufferType bufferType, MemoryAccessingStyle memoryAccessingStyle)
+Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags bufferUsageFlags,
+               MemoryAccessingStyle memoryAccessingStyle)
     : _size(size) {
-  _allocate(bufferType, memoryAccessingStyle);
+  _allocate(bufferUsageFlags, memoryAccessingStyle);
 }
 
 Buffer::~Buffer() {
@@ -54,31 +46,30 @@ Buffer::~Buffer() {
   }
 }
 
-void Buffer::_allocate(BufferType bufferType, MemoryAccessingStyle memoryAccessingStyle) {
-  if (bufferType == BufferType::kUniform) {
-    assert(memoryAccessingStyle == MemoryAccessingStyle::kCpuToGpuEveryFrame &&
-           "uniform buffer should only be written by CPU every frame");
-  }
-
+void Buffer::_allocate(VkBufferUsageFlags bufferUsageFlags,
+                       MemoryAccessingStyle memoryAccessingStyle) {
   VmaAllocator allocator = VulkanApplicationContext::getInstance()->getAllocator();
 
-  VkBufferUsageFlags usageFlags       = 0;
-  VmaAllocationCreateFlags allocFlags = 0;
-  _decideFlags(bufferType, memoryAccessingStyle, usageFlags, allocFlags);
+  // this kind of buffer should be optimized to be copied by staging buffer
+  if (memoryAccessingStyle == MemoryAccessingStyle::kCpuToGpuOnce) {
+    bufferUsageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+  }
+
+  auto vmaAlloationCreateFlags = _decideAllocationCreateFlags(memoryAccessingStyle);
 
   VkBufferCreateInfo bufferCreateInfo{VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
   bufferCreateInfo.size  = _size;
-  bufferCreateInfo.usage = usageFlags;
+  bufferCreateInfo.usage = bufferUsageFlags;
 
   VmaAllocationCreateInfo allocCreateInfo{};
   allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
-  allocCreateInfo.flags = allocFlags;
+  allocCreateInfo.flags = vmaAlloationCreateFlags;
 
   VmaAllocationInfo allocInfo{};
   vmaCreateBuffer(allocator, &bufferCreateInfo, &allocCreateInfo, &_mainVkBuffer,
                   &_mainBufferAllocation, &allocInfo);
 
-  if ((allocFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT) != 0U) {
+  if ((vmaAlloationCreateFlags & VMA_ALLOCATION_CREATE_MAPPED_BIT) != 0U) {
     _mainBufferMappedAddr = allocInfo.pMappedData;
   }
 

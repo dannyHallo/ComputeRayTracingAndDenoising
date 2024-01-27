@@ -2,11 +2,6 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-enum class BufferType {
-  kUniform,
-  kStorage,
-};
-
 enum class MemoryAccessingStyle {
   kGpuOnly,
   kCpuToGpuOnce,
@@ -16,7 +11,8 @@ enum class MemoryAccessingStyle {
 // the wrapper class of VkBuffer, handles memory allocation and data filling
 class Buffer {
 public:
-  Buffer(VkDeviceSize size, BufferType bufferType, MemoryAccessingStyle memoryAccessingStyle);
+  Buffer(VkDeviceSize size, VkBufferUsageFlags bufferUsageFlags,
+         MemoryAccessingStyle memoryAccessingStyle);
   ~Buffer();
 
   // default copy and move
@@ -55,5 +51,5 @@ private:
   void *_stagingBufferMappedAddr         = nullptr;
 
   // buffer allocation is only allowed during construction
-  void _allocate(BufferType bufferType, MemoryAccessingStyle memoryAccessingStyle);
+  void _allocate(VkBufferUsageFlags bufferUsageFlagse, MemoryAccessingStyle memoryAccessingStyle);
 };

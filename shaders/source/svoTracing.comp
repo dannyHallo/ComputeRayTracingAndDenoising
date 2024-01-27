@@ -4,7 +4,7 @@
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(binding = 2, rgba32f) writeonly uniform image2D rawTex;
-layout(std430, binding = 4) readonly buffer VoxelBufferObject { uint[] voxelBuffer; };
+layout(std430, binding = 4) readonly buffer octreeBufferObject { uint[] octreeBuffer; };
 layout(std430, binding = 5) readonly buffer PaletteBufferObject { uint[] paletteBuffer; };
 
 #include "include/definitions.glsl"
@@ -62,7 +62,7 @@ bool Octree_RayMarchLeaf(out vec3 o_pos, out vec3 o_color, out vec3 o_normal, ou
     ++iter;
     if (cur == 0u) {
       // parent pointer means the first pointer of the child node (8 in total)
-      cur = voxelBuffer[parent + (idx ^ oct_mask)];
+      cur = octreeBuffer[parent + (idx ^ oct_mask)];
     }
     // Determine maximum t-value of the cube by evaluating
     // tx(), ty(), and tz() at its corner.

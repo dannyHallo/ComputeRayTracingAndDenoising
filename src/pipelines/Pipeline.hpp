@@ -26,7 +26,7 @@ public:
   Pipeline(Pipeline &&)                 = delete;
   Pipeline &operator=(Pipeline &&)      = delete;
 
-  virtual void create() = 0;
+  virtual void init() = 0;
 
 protected:
   VulkanApplicationContext *_appContext;

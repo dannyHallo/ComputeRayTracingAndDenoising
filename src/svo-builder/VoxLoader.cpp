@@ -63,10 +63,10 @@ VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model) {
   auto const &palette = scene->palette.color;
 
   // fill palette
-  for (int i = 0; i < 256; i++) { // NOLINT
+  for (int i = 0; i < 256; i++) {
     auto const &color       = palette[i];
     uint32_t convertedColor = 0;
-    convertedColor |= static_cast<uint32_t>(color.r) << 24; // NOLINT
+    convertedColor |= static_cast<uint32_t>(color.r) << 24;
     convertedColor |= static_cast<uint32_t>(color.g) << 16;
     convertedColor |= static_cast<uint32_t>(color.b) << 8;
     convertedColor |= static_cast<uint32_t>(color.a);
@@ -84,8 +84,17 @@ VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model) {
 
         if (isVoxelValid) {
           // in this way we can ensure these arrays use the same entry
-          voxData.coordinates.push_back(x);
-          voxData.properties.push_back(static_cast<uint32_t>(colorIndex));
+          // voxData.coordinates.push_back(x);
+          // voxData.properties.push_back(static_cast<uint32_t>(colorIndex));
+          uint32_t coordinatesData = 0;
+          coordinatesData |= static_cast<uint32_t>(x) << 20;
+          coordinatesData |= static_cast<uint32_t>(y) << 10;
+          coordinatesData |= static_cast<uint32_t>(z);
+
+          uint32_t propertiesData = 0;
+          propertiesData |= static_cast<uint32_t>(colorIndex);
+
+          voxData.fragmentList.emplace_back(G_FragmentListEntry{coordinatesData, propertiesData});
         }
       }
     }

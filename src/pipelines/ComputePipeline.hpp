@@ -19,7 +19,7 @@ public:
                  VK_SHADER_STAGE_COMPUTE_BIT),
         _workGroupSize(workGroupSize) {}
 
-  void create() override;
+  void init() override;
 
   void recordCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t threadCountX,
                      uint32_t threadCountY, uint32_t threadCountZ);

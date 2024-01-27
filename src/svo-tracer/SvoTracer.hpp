@@ -124,7 +124,6 @@ private:
   // the memory increase should be small and solves your problem with uploading data:
   // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
 
-  // CPU to GPU every frame, so UBO are used
   std::unique_ptr<BufferBundle> _globalBufferBundle;
   std::unique_ptr<BufferBundle> _gradientProjectionBufferBundle;
   std::unique_ptr<BufferBundle> _temperalFilterBufferBundle;

@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-void ComputePipeline::create() {
+void ComputePipeline::init() {
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = 1;

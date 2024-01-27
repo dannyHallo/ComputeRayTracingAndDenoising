@@ -9,7 +9,6 @@
 #include "utils/vulkan/SimpleCommands.hpp"
 #include "window/Window.hpp"
 
-
 #include "imgui.h"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
@@ -68,9 +67,9 @@ ImguiManager::~ImguiManager() {
 
 void ImguiManager::_buildColorPalette() {
   // https:// colorhunt.co/palette/1d2b537e2553ff004dfaef5d
-  _colorPalette->addColor("DarkBlue", Color(29, 43, 83));      // NOLINT
-  _colorPalette->addColor("DarkPurple", Color(126, 37, 83));   // NOLINT
-  _colorPalette->addColor("LightRed", Color(255, 0, 77));      // NOLINT
+  _colorPalette->addColor("DarkBlue", Color(29, 43, 83));
+  _colorPalette->addColor("DarkPurple", Color(126, 37, 83));
+  _colorPalette->addColor("LightRed", Color(255, 0, 77));
   _colorPalette->addColor("LightYellow", Color(250, 239, 39)); // NOLINT
 }
 

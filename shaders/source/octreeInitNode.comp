@@ -6,6 +6,7 @@ layout(std140, binding = 3) readonly buffer uuBuildInfo { uint uAllocBegin, uAll
 
 // initialize all buffers to zero
 void main() {
-  if (gl_GlobalInvocationID.x >= uAllocNum) return;
-  uOctree[gl_GlobalInvocationID.x + uAllocBegin] = 0u;
+	if (gl_GlobalInvocationID.x >= uAllocNum)
+		return;
+	uOctree[gl_GlobalInvocationID.x + uAllocBegin] = 0u;
 }

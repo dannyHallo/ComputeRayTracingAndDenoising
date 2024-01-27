@@ -8,6 +8,7 @@ bugprone-*,
 performance-*,
 readability-*,
 -readability-simplify-boolean-expr,
+-readability-magic-numbers,
 
 misc-*,
 -misc-non-private-member-variables-in-classes,
@@ -17,6 +18,7 @@ modernize-*,
 
 cppcoreguidelines-*,
 -cppcoreguidelines-pro-type-vararg,
+-cppcoreguidelines-avoid-magic-numbers,
 -cppcoreguidelines-avoid-non-const-global-variables,
 -cppcoreguidelines-non-private-member-variables-in-classes,
 -cppcoreguidelines-pro-type-reinterpret-cast,
@@ -34,7 +36,3 @@ AnalyzeTemporaryDtors: false
 FormatStyle: none
 CheckOptions:
   bugprone-easily-swappable-parameters.MinimumLength: 4
-  cppcoreguidelines-avoid-magic-numbers.IgnoredFloatingPointValues: "0.5;1.0;2.0;4.0;8.0;16.0;32.0;100.0;255.0"
-  readability-magic-numbers.IgnoredFloatingPointValues: "0.5;1.0;2.0;4.0;8.0;16.0;32.0;100.0;255.0"
-  cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues: "0;1;2;4;8;16;32;100;255"
-  readability-magic-numbers.IgnoredIntegerValues: "0;1;2;4;8;16;32;100;255"
