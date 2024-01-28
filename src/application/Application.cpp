@@ -47,8 +47,9 @@ void Application::run() {
 }
 
 void Application::_cleanup() {
-  _logger.print("Application is cleaning up resources...");
+  _logger.print("application is cleaning up resources...");
 
+  vkDestroyFence(_appContext->getDevice(), _svoBuildingDoneFence, nullptr);
   for (size_t i = 0; i < kFramesInFlight; i++) {
     vkDestroySemaphore(_appContext->getDevice(), _renderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(_appContext->getDevice(), _imageAvailableSemaphores[i], nullptr);
@@ -162,7 +163,6 @@ void Application::_waitForTheWindowToBeResumed() {
 }
 
 void Application::_mainLoop() {
-  vkWaitForFences(_appContext->getDevice(), 1, &_svoBuildingDoneFence, VK_TRUE, UINT64_MAX);
 
   static std::chrono::time_point fpsRecordLastTime = std::chrono::steady_clock::now();
 
@@ -214,12 +214,20 @@ bool Application::_needToToggleWindowStyle() {
 }
 
 void Application::_init() {
-  _svoBuilder->init();
+  {
+    auto startTime = std::chrono::steady_clock::now();
+    _svoBuilder->init();
+    auto endTime = std::chrono::steady_clock::now();
+    auto duration =
+        std::chrono::duration<double, std::chrono::seconds::period>(endTime - startTime).count();
+    _logger.print("SVO init time: " + std::to_string(duration) + " seconds");
+  }
+
   _svoTracer->init(_svoBuilder.get());
   _imguiManager->init();
 
   _createSemaphoresAndFences();
-  _logger.print("Application is initialized");
+  _logger.print("application is initialized");
 
   // attach camera's mouse handler to the window mouse callback, more handlers can be added in the
   // future
@@ -227,7 +235,13 @@ void Application::_init() {
     _camera->handleMouseMovement(mouseDeltaX, mouseDeltaY);
   });
 
-  _logger.print("building octree...");
-  _svoBuilder->build(_svoBuildingDoneFence);
-  _logger.print("application is ready to run");
+  {
+    auto startTime = std::chrono::steady_clock::now();
+    _svoBuilder->build(_svoBuildingDoneFence);
+    vkWaitForFences(_appContext->getDevice(), 1, &_svoBuildingDoneFence, VK_TRUE, UINT64_MAX);
+    auto endTime = std::chrono::steady_clock::now();
+    auto duration =
+        std::chrono::duration<double, std::chrono::seconds::period>(endTime - startTime).count();
+    _logger.print("SVO building time: " + std::to_string(duration) + " seconds");
+  }
 }
