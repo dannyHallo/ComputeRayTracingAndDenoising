@@ -60,7 +60,7 @@ namespace {
 // 256_monu4
 
 VoxData _fetchVoxData() {
-  std::string constexpr kFileName = "256_monu4";
+  std::string constexpr kFileName = "128_monu4";
 
   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
   return VoxLoader::fetchDataFromFile(kPathToVoxFile);
@@ -240,52 +240,41 @@ void SvoBuilder::_recordCommandBuffer(uint32_t voxelFragmentCount, uint32_t octr
   vkBeginCommandBuffer(_commandBuffer, &beginInfo);
 
   // create the standard memory barrier
-  VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-  memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-  memoryBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+  VkMemoryBarrier memoryBarrier1 = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  memoryBarrier1.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
+  memoryBarrier1.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
-  auto octreeMemoryBarrier = _octreeBuffer->getMemoryBarrier(
-      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
-
-  auto indirectMemoryBarrier = _indirectBuffer->getMemoryBarrier(
-      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
-
-  auto buildInfoMemoryBarrier =
-      _buildInfoBuffer->getMemoryBarrier(VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+  VkMemoryBarrier memoryBarrier2 = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  memoryBarrier2.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
+  memoryBarrier2.dstAccessMask =
+      VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
   for (uint32_t level = 0; level < octreeLevelCount; level++) {
-    // _postProcessingPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
     _initNodePipeline->recordIndirectCommand(_commandBuffer, 0, _indirectBuffer->getVkBuffer());
     vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1,
-                         &octreeMemoryBarrier, 0, nullptr);
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier1, 0, nullptr, 0,
+                         nullptr);
 
     _tagNodePipeline->recordCommand(_commandBuffer, 0, voxelFragmentCount, 1, 1);
 
     if (level != octreeLevelCount - 1) {
       vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1,
-                           &octreeMemoryBarrier, 0, nullptr);
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier1, 0, nullptr,
+                           0, nullptr);
 
       _allocNodePipeline->recordIndirectCommand(_commandBuffer, 0, _indirectBuffer->getVkBuffer());
       vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr,
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier1, 0, nullptr,
                            0, nullptr);
-
-      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1,
-                           &octreeMemoryBarrier, 0, nullptr);
 
       _modifyArgPipeline->recordCommand(_commandBuffer, 0, 1, 1, 1);
 
+      // be cautious! the indirect buffer is modified in the modifyArg pipeline, so we need to
+      // make sure it is prepared for the next indirect dispatch too
       vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT |
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                           0, 0, nullptr, 1, &indirectMemoryBarrier, 0, nullptr);
-
-      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1,
-                           &buildInfoMemoryBarrier, 0, nullptr);
+                           0, 1, &memoryBarrier2, 0, nullptr, 0, nullptr);
     }
   }
 
