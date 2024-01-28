@@ -46,6 +46,11 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
   ContextCreator::QueueSelection queueSelection{};
   ContextCreator::createDevice(_logger, _physicalDevice, _device, _queueFamilyIndices,
                                queueSelection, _vkInstance, _surface, requiredDeviceExtensions);
+  _graphicsQueueIndex = queueSelection.graphicsQueueIndex;
+  _presentQueueIndex  = queueSelection.presentQueueIndex;
+  _computeQueueIndex  = queueSelection.computeQueueIndex;
+  _transferQueueIndex = queueSelection.transferQueueIndex;
+
   _graphicsQueue = queueSelection.graphicsQueue;
   _presentQueue  = queueSelection.presentQueue;
   _computeQueue  = queueSelection.computeQueue;

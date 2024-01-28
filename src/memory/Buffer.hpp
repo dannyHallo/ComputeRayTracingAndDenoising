@@ -31,6 +31,9 @@ public:
 
   [[nodiscard]] inline VkDeviceSize getSize() const { return _size; }
 
+   VkBufferMemoryBarrier getMemoryBarrier(VkAccessFlags srcAccessMask,
+                                                VkAccessFlags dstAccessMask);
+
   inline VkDescriptorBufferInfo getDescriptorInfo() {
     VkDescriptorBufferInfo descriptorInfo{};
     descriptorInfo.buffer = _mainVkBuffer;

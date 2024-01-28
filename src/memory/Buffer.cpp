@@ -1,4 +1,5 @@
 #include "Buffer.hpp"
+#include "app-context/VulkanApplicationContext.hpp"
 #include "utils/logger/Logger.hpp"
 #include "utils/vulkan/SimpleCommands.hpp"
 
@@ -89,6 +90,21 @@ void Buffer::_allocate(VkBufferUsageFlags bufferUsageFlags,
                     &_stagingBufferAllocation, &stagingAllocInfo);
     _stagingBufferMappedAddr = stagingAllocInfo.pMappedData;
   }
+}
+
+VkBufferMemoryBarrier Buffer::getMemoryBarrier(VkAccessFlags srcAccessMask,
+                                               VkAccessFlags dstAccessMask) {
+  VkBufferMemoryBarrier memoryBarrier{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
+  memoryBarrier.srcAccessMask = srcAccessMask;
+  memoryBarrier.dstAccessMask = dstAccessMask;
+  memoryBarrier.buffer        = _mainVkBuffer;
+  memoryBarrier.size          = _size;
+  memoryBarrier.offset        = 0;
+  memoryBarrier.srcQueueFamilyIndex =
+      VulkanApplicationContext::getInstance()->getGraphicsQueueIndex();
+  memoryBarrier.dstQueueFamilyIndex =
+      VulkanApplicationContext::getInstance()->getGraphicsQueueIndex();
+  return memoryBarrier;
 }
 
 void Buffer::fillData(const void *data) {

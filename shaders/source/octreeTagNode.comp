@@ -55,6 +55,7 @@ void main() {
   // TODO: the leaf condition needs to be inspected later
   if (is_leaf) {
     uint properties = ufragment.properties;
+    // uOctree[idx]    = 0xC0000000u | 0x00000024;
     uOctree[idx]    = 0xC0000000u | properties;
 
     // atomic moving average

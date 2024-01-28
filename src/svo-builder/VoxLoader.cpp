@@ -54,6 +54,8 @@ uint32_t _getVoxelResolution(ogt_vox_model const *model) {
   return model->size_x;
 }
 
+// #include <iostream>
+
 // this example just counts the number of solid voxels in this model, but an importer
 // would probably do something like convert the model into a triangle mesh.
 VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model) {
@@ -75,9 +77,9 @@ VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model) {
 
   // fill image data
   uint32_t voxelIndex = 0;
-  for (int z = 0; z < model->size_z; z++) {
-    for (int y = 0; y < model->size_y; y++) {
-      for (int x = 0; x < model->size_x; x++, voxelIndex++) {
+  for (int y = 0; y < model->size_y; y++) {
+    for (int x = 0; x < model->size_x; x++) {
+      for (int z = 0; z < model->size_z; z++) {
         // if color index == 0, this voxel is empty, otherwise it is solid.
         uint8_t const colorIndex = model->voxel_data[voxelIndex];
         bool isVoxelValid        = (colorIndex != 0);
@@ -95,7 +97,13 @@ VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model) {
           propertiesData |= static_cast<uint32_t>(colorIndex);
 
           voxData.fragmentList.emplace_back(G_FragmentListEntry{coordinatesData, propertiesData});
+
+          //   std::cout << "coor: " << std::setw(3) << x << " " << std::setw(3) << y << " "
+          //             << std::setw(3) << z;
+          //   std::cout << " prop: " << std::setw(3) << static_cast<uint32_t>(colorIndex) <<
+          //   std::endl;
         }
+        voxelIndex++;
       }
     }
   }

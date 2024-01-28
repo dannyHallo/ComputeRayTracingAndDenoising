@@ -350,6 +350,11 @@ void ContextCreator::createDevice(Logger *logger, VkPhysicalDevice &physicalDevi
     // reduce loading overhead by specifing only one device is used
     volkLoadDevice(device);
 
+    queueSelection.graphicsQueueIndex = indices.graphicsFamily;
+    queueSelection.presentQueueIndex  = indices.presentFamily;
+    queueSelection.computeQueueIndex  = indices.computeFamily;
+    queueSelection.transferQueueIndex = indices.transferFamily;
+
     vkGetDeviceQueue(device, indices.graphicsFamily, 0, &queueSelection.graphicsQueue);
     vkGetDeviceQueue(device, indices.presentFamily, 0, &queueSelection.presentQueue);
     vkGetDeviceQueue(device, indices.computeFamily, 0, &queueSelection.computeQueue);

@@ -9,6 +9,11 @@ class Logger;
 namespace ContextCreator {
 
 struct QueueSelection {
+  uint32_t graphicsQueueIndex;
+  uint32_t presentQueueIndex;
+  uint32_t computeQueueIndex;
+  uint32_t transferQueueIndex;
+
   VkQueue graphicsQueue;
   VkQueue presentQueue;
   VkQueue computeQueue;

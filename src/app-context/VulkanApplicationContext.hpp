@@ -64,6 +64,11 @@ public:
   [[nodiscard]] inline uint32_t getSwapchainExtentHeight() const { return _swapchainExtent.height; }
   [[nodiscard]] inline const VkSwapchainKHR &getSwapchain() const { return _swapchain; }
 
+  [[nodiscard]] uint32_t getGraphicsQueueIndex() const { return _graphicsQueueIndex; }
+  [[nodiscard]] uint32_t getPresentQueueIndex() const { return _presentQueueIndex; }
+  [[nodiscard]] uint32_t getComputeQueueIndex() const { return _computeQueueIndex; }
+  [[nodiscard]] uint32_t getTransferQueueIndex() const { return _transferQueueIndex; }
+
   [[nodiscard]] const VkQueue &getGraphicsQueue() const { return _graphicsQueue; }
   [[nodiscard]] const VkQueue &getPresentQueue() const { return _presentQueue; }
   [[nodiscard]] const VkQueue &getComputeQueue() const { return _computeQueue; }
@@ -89,10 +94,14 @@ private:
   VmaAllocator _allocator          = VK_NULL_HANDLE;
 
   // These queues are implicitly cleaned up when the device is destroyed
-  VkQueue _graphicsQueue = VK_NULL_HANDLE;
-  VkQueue _presentQueue  = VK_NULL_HANDLE;
-  VkQueue _computeQueue  = VK_NULL_HANDLE;
-  VkQueue _transferQueue = VK_NULL_HANDLE;
+  uint32_t _graphicsQueueIndex = 0;
+  uint32_t _presentQueueIndex  = 0;
+  uint32_t _computeQueueIndex  = 0;
+  uint32_t _transferQueueIndex = 0;
+  VkQueue _graphicsQueue       = VK_NULL_HANDLE;
+  VkQueue _presentQueue        = VK_NULL_HANDLE;
+  VkQueue _computeQueue        = VK_NULL_HANDLE;
+  VkQueue _transferQueue       = VK_NULL_HANDLE;
 
   VkCommandPool _commandPool    = VK_NULL_HANDLE;
   VkCommandPool _guiCommandPool = VK_NULL_HANDLE;
