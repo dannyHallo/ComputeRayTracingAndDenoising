@@ -24,6 +24,9 @@ public:
   void recordCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t threadCountX,
                      uint32_t threadCountY, uint32_t threadCountZ);
 
+  void recordIndirectCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame,
+                             VkBuffer indirectBuffer);
+
 private:
   WorkGroupSize _workGroupSize;
 };

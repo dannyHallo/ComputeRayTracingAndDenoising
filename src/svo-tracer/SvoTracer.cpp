@@ -292,13 +292,8 @@ void SvoTracer::_recordCommandBuffers() {
   for (size_t imageIndex = 0; imageIndex < _commandBuffers.size(); imageIndex++) {
     auto &cmdBuffer = _commandBuffers[imageIndex];
 
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags            = 0;       // Optional
-    beginInfo.pInheritanceInfo = nullptr; // Optional
-
-    VkResult result = vkBeginCommandBuffer(cmdBuffer, &beginInfo);
-    assert(result == VK_SUCCESS && "vkBeginCommandBuffer failed");
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    vkBeginCommandBuffer(cmdBuffer, &beginInfo);
 
     _targetImage->clearImage(cmdBuffer);
     _aTrousInputImage->clearImage(cmdBuffer);
@@ -324,7 +319,7 @@ void SvoTracer::_recordCommandBuffers() {
 
     VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
     memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-    memoryBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT;
+    memoryBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
@@ -380,8 +375,7 @@ void SvoTracer::_recordCommandBuffers() {
     _varianceHistForwardingPair->forwardCopy(cmdBuffer);
     _meshHashForwardingPair->forwardCopy(cmdBuffer);
 
-    result = vkEndCommandBuffer(cmdBuffer);
-    assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
+    vkEndCommandBuffer(cmdBuffer);
   }
 }
 

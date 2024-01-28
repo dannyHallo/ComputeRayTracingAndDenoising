@@ -42,23 +42,17 @@ private:
   std::unique_ptr<SvoTracer> _svoTracer;
 
   // semaphores and fences for synchronization
+  VkFence _svoBuildingDoneFence = VK_NULL_HANDLE;
   std::vector<VkSemaphore> _imageAvailableSemaphores;
   std::vector<VkSemaphore> _renderFinishedSemaphores;
   std::vector<VkFence> _framesInFlightFences;
 
   void _createSemaphoresAndFences();
-
   void _onSwapchainResize();
-
   void _waitForTheWindowToBeResumed();
-
   void _drawFrame();
-
   void _mainLoop();
-
   void _init();
-
   void _cleanup();
-
   bool _needToToggleWindowStyle();
 };

@@ -48,3 +48,9 @@ void ComputePipeline::recordCommand(VkCommandBuffer commandBuffer, uint32_t curr
                 std::ceil((float)threadCountY / (float)_workGroupSize.y),
                 std::ceil((float)threadCountZ / (float)_workGroupSize.z));
 }
+
+void ComputePipeline::recordIndirectCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame,
+                                            VkBuffer indirectBuffer) {
+  _bind(commandBuffer, currentFrame);
+  vkCmdDispatchIndirect(commandBuffer, indirectBuffer, 0);
+}

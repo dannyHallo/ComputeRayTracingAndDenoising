@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SvoBuilderBufferStructs.hpp"
+#include "utils/incl/Vulkan.hpp"
 
 #include <array>
 #include <memory>
@@ -26,6 +27,7 @@ public:
   SvoBuilder &operator=(SvoBuilder &&)      = delete;
 
   void init();
+  void build(VkFence svoBuildingDoneFence);
 
   Buffer *getOctreeBuffer() { return _octreeBuffer.get(); }
   Buffer *getPaletteBuffer() { return _paletteBuffer.get(); }
@@ -41,19 +43,25 @@ private:
   std::unique_ptr<ComputePipeline> _allocNodePipeline;
   std::unique_ptr<ComputePipeline> _modifyArgPipeline;
 
-  void _createDescriptorSetBundle();
-  void _createPipelines();
+  VkCommandBuffer _commandBuffer = VK_NULL_HANDLE; // only one command buffer is needed
+  void _recordCommandBuffer(uint32_t voxelFragmentCount, uint32_t octreeLevelCount);
 
-  // BUFFERS
+  /// BUFFERS
 
   std::unique_ptr<Buffer> _paletteBuffer; // filled initially
 
   std::unique_ptr<Buffer> _atomicCounterBuffer;
   std::unique_ptr<Buffer> _octreeBuffer;
-  std::unique_ptr<Buffer> _fragmentListBuffer; // filled initially
+  std::unique_ptr<Buffer> _fragmentListBuffer;
   std::unique_ptr<Buffer> _buildInfoBuffer;
   std::unique_ptr<Buffer> _indirectBuffer;
+  std::unique_ptr<Buffer> _fragmentDataBuffer;
 
   void _createBuffers(VoxData const &voxData);
   void _initBufferData(VoxData const &voxData);
+
+  /// PIPELINES
+
+  void _createDescriptorSetBundle();
+  void _createPipelines();
 };

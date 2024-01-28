@@ -2,10 +2,6 @@
 
 #include <cstdint>
 
-struct G_AtomicCounter {
-  uint32_t counter;
-};
-
 struct G_FragmentListEntry {
   uint32_t coordinates;
   uint32_t properties;
@@ -20,4 +16,9 @@ struct G_IndirectData {
   uint32_t dispatchX;
   uint32_t dispatchY;
   uint32_t dispatchZ;
+};
+
+struct G_FragmentListData {
+  uint32_t voxelResolution;
+  uint32_t voxelFragmentCount;
 };

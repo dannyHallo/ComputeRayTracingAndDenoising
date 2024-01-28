@@ -68,25 +68,23 @@ void Application::_createSemaphoresAndFences() {
   _renderFinishedSemaphores.resize(kFramesInFlight);
   _framesInFlightFences.resize(kFramesInFlight);
 
-  VkSemaphoreCreateInfo semaphoreInfo{};
-  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  VkSemaphoreCreateInfo semaphoreInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
-  VkFenceCreateInfo fenceInfo{};
-  // the first call to vkWaitForFences() returns immediately since the fence is
-  // already signaled
-  fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+  VkFenceCreateInfo fenceCreateInfoNotSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+  vkCreateFence(_appContext->getDevice(), &fenceCreateInfoNotSignalled, nullptr,
+                &_svoBuildingDoneFence);
+
+  // make sure the fences are ready for the first frames of execution
+  VkFenceCreateInfo fenceCreateInfoPreSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+  fenceCreateInfoPreSignalled.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
   for (size_t i = 0; i < kFramesInFlight; i++) {
-    VkResult result = vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
-                                        &_imageAvailableSemaphores[i]);
-    assert(result == VK_SUCCESS && "vkCreateSemaphore failed");
-    result = vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
-                               &_renderFinishedSemaphores[i]);
-    assert(result == VK_SUCCESS && "vkCreateSemaphore failed");
-    result =
-        vkCreateFence(_appContext->getDevice(), &fenceInfo, nullptr, &_framesInFlightFences[i]);
-    assert(result == VK_SUCCESS && "vkCreateFence failed");
+    vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
+                      &_imageAvailableSemaphores[i]);
+    vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
+                      &_renderFinishedSemaphores[i]);
+    vkCreateFence(_appContext->getDevice(), &fenceCreateInfoPreSignalled, nullptr,
+                  &_framesInFlightFences[i]);
   }
 }
 
@@ -133,9 +131,8 @@ void Application::_drawFrame() {
   submitInfo.commandBufferCount = static_cast<uint32_t>(submitCommandBuffers.size());
   submitInfo.pCommandBuffers    = submitCommandBuffers.data();
 
-  result = vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo,
-                         _framesInFlightFences[currentFrame]);
-  assert(result == VK_SUCCESS && "vkQueueSubmit failed");
+  vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo,
+                _framesInFlightFences[currentFrame]);
 
   VkPresentInfoKHR presentInfo{};
   presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -146,8 +143,7 @@ void Application::_drawFrame() {
   presentInfo.pImageIndices      = &imageIndex;
   presentInfo.pResults           = nullptr;
 
-  result = vkQueuePresentKHR(_appContext->getPresentQueue(), &presentInfo);
-  assert(result == VK_SUCCESS && "vkQueuePresentKHR failed");
+  vkQueuePresentKHR(_appContext->getPresentQueue(), &presentInfo);
 
   // Commented this out for playing around with it later :)
   // vkQueueWaitIdle(context.getPresentQueue());
@@ -166,6 +162,8 @@ void Application::_waitForTheWindowToBeResumed() {
 }
 
 void Application::_mainLoop() {
+  vkWaitForFences(_appContext->getDevice(), 1, &_svoBuildingDoneFence, VK_TRUE, UINT64_MAX);
+
   static std::chrono::time_point fpsRecordLastTime = std::chrono::steady_clock::now();
 
   while (glfwWindowShouldClose(_window->getGlWindow()) == 0) {
@@ -229,5 +227,7 @@ void Application::_init() {
     _camera->handleMouseMovement(mouseDeltaX, mouseDeltaY);
   });
 
-  _logger.print("Application is ready to run");
+  _logger.print("building octree...");
+  _svoBuilder->build(_svoBuildingDoneFence);
+  _logger.print("application is ready to run");
 }

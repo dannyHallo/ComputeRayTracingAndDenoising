@@ -1,12 +1,16 @@
 #version 450
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-layout(constant_id = 0) const uint kVoxelResolution = 1;
-layout(constant_id = 1) const uint kFragmentCount = 1;
+struct FragmentListEntry {
+  uint coordinates;
+  uint properties;
+};
 
 layout(std430, binding = 1) buffer uuOctree { uint uOctree[]; };
-layout(std430, binding = 2) readonly buffer uuFragmentList {
-  uvec2 uFragmentList[];
+layout(std430, binding = 2) readonly buffer uuFragmentList { FragmentListEntry uFragmentList[]; };
+// layout(std430, binding = 2) readonly buffer uuFragmentList { uvec2 uFragmentList[]; };
+layout(std430, binding = 5) readonly buffer uuFragmentData {
+  uint voxelResolution, voxelFragmentCount;
 };
 
 uvec4 LeafToUvec4(uint val) {
@@ -14,22 +18,22 @@ uvec4 LeafToUvec4(uint val) {
                ((val >> 24u) & 0x3fu));
 }
 uint Uvec4ToLeaf(uvec4 vec) {
-  return (min(vec.w, 0x3fu) << 24u) | (vec.x & 0xffu) |
-         ((vec.y & 0xffu) << 8u) | ((vec.z & 0xffu) << 16u) | 0xC0000000u;
+  return (min(vec.w, 0x3fu) << 24u) | (vec.x & 0xffu) | ((vec.y & 0xffu) << 8u) |
+         ((vec.z & 0xffu) << 16u) | 0xC0000000u;
 }
 
 // returns the index of the node to be tagged (it has just been initialized to
 // 0)
 uint TraverseOctree(in const uvec3 voxel_pos, out bool is_leaf) {
-  uint level_dim = kVoxelResolution;
+  uint level_dim  = voxelResolution;
   uvec3 level_pos = voxel_pos;
 
   uint idx = 0u, cur = 0u;
   do {
     // fast division by 2, level_dim is always 2^n, n >= 0
     bvec3 cmp = greaterThanEqual(level_pos, uvec3(level_dim >>= 1));
-    idx = cur | uint(cmp.x) | (uint(cmp.y) << 1u) | (uint(cmp.z) << 2u);
-    cur = uOctree[idx] & 0x3fffffffu; // read node pointer
+    idx       = cur | uint(cmp.x) | (uint(cmp.y) << 1u) | (uint(cmp.z) << 2u);
+    cur       = uOctree[idx] & 0x3fffffffu; // read node pointer
     level_pos -= uvec3(cmp) * level_dim;
   } while (cur != 0 && level_dim > 1u);
   is_leaf = level_dim == 1u;
@@ -37,34 +41,33 @@ uint TraverseOctree(in const uvec3 voxel_pos, out bool is_leaf) {
 }
 
 void main() {
-  if (gl_GlobalInvocationID.x >= kFragmentCount)
-    return;
-  uvec2 ufragment = uFragmentList[gl_GlobalInvocationID.x];
+  if (gl_GlobalInvocationID.x >= voxelFragmentCount) return;
+  FragmentListEntry ufragment = uFragmentList[gl_GlobalInvocationID.x];
 
-  uvec3 voxel_pos = uvec3(ufragment.x & 0xfffu, (ufragment.x >> 12u) & 0xfffu,
-                          (ufragment.x >> 24u) | ((ufragment.y >> 28u) << 8u));
+  uint coordinates = ufragment.coordinates;
+  uvec3 voxel_pos  = uvec3((coordinates & 0x3FF00000u) >> 20u, (coordinates & 0x000FFC00u) >> 10u,
+                           (coordinates & 0x000003FFu));
+
   bool is_leaf;
   // is_leaf is only true when the leaf node is allocated
   uint idx = TraverseOctree(voxel_pos, is_leaf);
 
   // TODO: the leaf condition needs to be inspected later
   if (is_leaf) {
-    // uOctree[idx] = 0xC0000000u | (ufragment.y & 0xffffffu); // termination
-    // tag and color data
+    uint properties = ufragment.properties;
+    uOctree[idx]    = 0xC0000000u | properties;
 
     // atomic moving average
-    uint prev_val = 0, cur_val,
-         new_val = 0xC1000000u | (ufragment.y & 0xffffffu);
-    uvec4 rgba = LeafToUvec4(new_val);
-    while ((cur_val = atomicCompSwap(uOctree[idx], prev_val, new_val)) !=
-           prev_val) {
-      prev_val = cur_val;
-      uvec4 prev_rgba = LeafToUvec4(prev_val);
-      prev_rgba.xyz *= prev_rgba.w;
-      uvec4 cur_rgba = prev_rgba + rgba;
-      cur_rgba.xyz /= cur_rgba.w;
-      new_val = Uvec4ToLeaf(cur_rgba);
-    }
+    // uint prev_val = 0, cur_val, new_val = 0xC1000000u | (ufragment.y & 0xffffffu);
+    // uvec4 rgba = LeafToUvec4(new_val);
+    // while ((cur_val = atomicCompSwap(uOctree[idx], prev_val, new_val)) != prev_val) {
+    //   prev_val        = cur_val;
+    //   uvec4 prev_rgba = LeafToUvec4(prev_val);
+    //   prev_rgba.xyz *= prev_rgba.w;
+    //   uvec4 cur_rgba = prev_rgba + rgba;
+    //   cur_rgba.xyz /= cur_rgba.w;
+    //   new_val = Uvec4ToLeaf(cur_rgba);
+    // }
   } else
     // flag the node so it can be subdivided (using msb)
     uOctree[idx] = 0x80000000u;
