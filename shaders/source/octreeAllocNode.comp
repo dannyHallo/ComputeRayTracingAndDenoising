@@ -35,7 +35,6 @@ void main() {
     uint cur = cur_base + subgroupBallotExclusiveBitCount(ballot);
 
     // << 3u is equivalent to * 8u, which is the size of each node
-    // TODO: uuCounter should start from 1, not 0
-    uOctree[idx] = ((cur + 1u) << 3u) | 0x80000000u;
+    uOctree[idx] = (cur << 3u) | 0x80000000u;
   }
 }

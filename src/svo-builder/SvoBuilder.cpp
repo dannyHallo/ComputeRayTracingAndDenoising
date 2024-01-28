@@ -10,42 +10,12 @@
 
 #include <cassert>
 #include <chrono>
+#include <cmath>
 #include <iomanip> // for advanced cout formatting
 #include <iostream>
 #include <stack>
 
 namespace {
-// void _logBuffer(const std::vector<uint32_t> &vec) {
-//   for (size_t i = 0; i < vec.size(); ++i) {
-//     std::cout << "0x" << std::uppercase << std::setfill('0') << std::setw(8) << std::hex <<
-//     vec[i]
-//               << "u";
-
-//     if (i != vec.size() - 1) {
-//       std::cout << ", ";
-//     }
-
-//     if ((i + 1) % 8 == 0) {
-//       std::cout << std::endl;
-//     }
-//   }
-//   std::cout << std::endl;
-// }
-
-// template <class T> void _printBufferSizeInMb(std::vector<T> const &voxelBuffer, Logger *logger) {
-//   // print buffer size in mb
-//   uint32_t constexpr kBytesInMb = 1024 * 1024;
-//   float const kBufferSizeInMb   = static_cast<float>(voxelBuffer.size() * sizeof(T)) /
-//   kBytesInMb; logger->print("buffer size: {} mb", kBufferSizeInMb);
-// }
-
-// std::vector<uint32_t> _createByHand() {
-//   std::vector<uint32_t> voxelBuffer{0x80000008, 0x80000008, 0x80000008, 0x80000008,
-//                                     0x80000008, 0x80000008, 0x80000008, 0x80000008,
-//                                     0xC0000024, 0xC0000024, 0xC0000024, 0xC0000024,
-//                                     0xC0000024, 0xC0000024, 0x00000000, 0x00000000};
-//   return voxelBuffer;
-// }
 
 // 4_test
 // 8_chr_knight
@@ -64,6 +34,29 @@ VoxData _fetchVoxData() {
 
   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
   return VoxLoader::fetchDataFromFile(kPathToVoxFile);
+}
+
+// the worst case: for every fragment, we assume they all reside in different parents, in the
+// current building algorithm, a non-leaf node's children must be initialized (to zero if empty at
+// last), however, when the estimated amount of nodes exceeds the actual amount, the size of the
+// octree is fixed.
+// https://eisenwave.github.io/voxel-compression-docs/svo/svo.html
+
+uint32_t _getMaximumNodeCountOfOctree(VoxData const &voxData) {
+  uint32_t maximumSize = 0;
+
+  uint32_t res                     = voxData.voxelResolution;
+  uint32_t elementCount            = voxData.fragmentList.size();
+  uint32_t maximumNodeCountAtLevel = 0;
+
+  while (res != 1) {
+    maximumNodeCountAtLevel = std::min(elementCount * 8, res * res * res);
+    maximumSize += maximumNodeCountAtLevel;
+    res          = res >> 1;
+    elementCount = std::ceil(static_cast<float>(elementCount) / 8);
+  }
+
+  return maximumSize;
 }
 } // namespace
 
@@ -119,10 +112,12 @@ void SvoBuilder::_createBuffers(const VoxData &voxData) {
   _atomicCounterBuffer = std::make_unique<Buffer>(
       sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
 
-  uint32_t megabytes = 1024 * 1024;
+  uint32_t estimatedOctreeBufferSize = sizeof(uint32_t) * _getMaximumNodeCountOfOctree(voxData);
+  _logger->print("estimated octree buffer size: {} mb",
+                 static_cast<float>(estimatedOctreeBufferSize) / (1024 * 1024));
+
   _octreeBuffer =
-      std::make_unique<Buffer>(100 * megabytes,
-                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, // TODO: adaptive size
+      std::make_unique<Buffer>(estimatedOctreeBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                MemoryAccessingStyle::kGpuOnly);
 
   _fragmentListBuffer = std::make_unique<Buffer>(
@@ -145,7 +140,7 @@ void SvoBuilder::_createBuffers(const VoxData &voxData) {
 void SvoBuilder::_initBufferData(VoxData const &voxData) {
   _paletteBuffer->fillData(voxData.paletteData.data());
 
-  uint32_t atomicCounterInitData = 0;
+  uint32_t atomicCounterInitData = 1;
   _atomicCounterBuffer->fillData(&atomicCounterInitData);
 
   // octree buffer is left uninitialized

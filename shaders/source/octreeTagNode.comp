@@ -52,11 +52,10 @@ void main() {
   // is_leaf is only true when the leaf node is allocated
   uint idx = TraverseOctree(voxel_pos, is_leaf);
 
-  // TODO: the leaf condition needs to be inspected later
   if (is_leaf) {
     uint properties = ufragment.properties;
     // uOctree[idx]    = 0xC0000000u | 0x00000024;
-    uOctree[idx]    = 0xC0000000u | properties;
+    uOctree[idx] = 0xC0000000u | properties;
 
     // atomic moving average
     // uint prev_val = 0, cur_val, new_val = 0xC1000000u | (ufragment.y & 0xffffffu);

@@ -13,6 +13,6 @@ uint group_x_64(uint x) { return (x >> 6u) + (((x & 0x3fu) > 0u) ? 1u : 0u); }
 void main() {
   uAllocBegin += uAllocNum;
   // uCounter stores accumulated tagged node count
-  uAllocNum  = (uCounter << 3u) - uAllocBegin + 8u;
+  uAllocNum  = (uCounter << 3u) - uAllocBegin;
   uNumGroupX = group_x_64(uAllocNum);
 }
