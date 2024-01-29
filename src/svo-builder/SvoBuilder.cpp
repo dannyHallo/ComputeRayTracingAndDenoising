@@ -28,10 +28,12 @@ namespace {
 // 128_monu3
 // 128_monu4
 // 256_monu4
+// 512x112x193_formula
+// 512x112x193_minor_formula
+// 1024x224x385_formula
 
 VoxData _fetchVoxData() {
-  std::string constexpr kFileName = "256_monu4";
-
+  std::string const kFileName      = "512x112x193_formula";
   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
   return VoxLoader::fetchDataFromFile(kPathToVoxFile);
 }
