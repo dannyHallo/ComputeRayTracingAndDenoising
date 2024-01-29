@@ -38,3 +38,14 @@ void main() {
     uOctree[idx] = (cur << 3u) | 0x80000000u;
   }
 }
+
+// void main() {
+//   if (gl_GlobalInvocationID.x >= uAllocNum) return;
+
+//   uint idx = gl_GlobalInvocationID.x + uAllocBegin;
+
+//   // if being tagged
+//   if ((uOctree[idx] & 0x80000000u) > 0u) {
+//     uOctree[idx] = ((atomicAdd(uCounter, 1u)) << 3u) | 0x80000000u;
+//   }
+// }
