@@ -170,13 +170,9 @@ bool Octree_RayMarchLeaf(out vec3 o_pos, out vec3 o_color, out vec3 o_normal, ou
 
   // color:
 
-  // o_color  = unpackUnorm4x8(cur).xyz; // the unpack is reversed (x uses the last byte), but it
-  // might be device related, so use it along with the packing function to avoid confusion
+  // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
   uint colorFromPalette = paletteBuffer[cur & 0x000000FFu];
-  float red             = float((colorFromPalette & 0xFF000000u) >> 24u) / 255.0;
-  float green           = float((colorFromPalette & 0x00FF0000u) >> 16u) / 255.0;
-  float blue            = float((colorFromPalette & 0x0000FF00u) >> 8u) / 255.0;
-  o_color               = vec3(red, green, blue);
+  o_color               = unpackUnorm4x8(colorFromPalette).xyz;
 
   o_iter = iter;
 
@@ -221,8 +217,7 @@ void main() {
   vec3 pos, color, normal;
   uint iterUsed;
   bool hit = Octree_RayMarchLeaf(pos, color, normal, iterUsed, o, d);
-  // color    = hit ? pos * 0.5 : vec3(0.0);
-  color = hit ? color : vec3(0.0);
+  color    = hit ? color : vec3(0.0);
 
   vec4 overlappingColor = vec4(0.0);
   overlappingColor      = vec4(vec3(float(iterUsed) / 100), 1.0);

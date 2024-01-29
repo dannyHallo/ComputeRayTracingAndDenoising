@@ -227,7 +227,6 @@ void Application::_init() {
   _imguiManager->init();
 
   _createSemaphoresAndFences();
-  _logger.print("application is initialized");
 
   // attach camera's mouse handler to the window mouse callback, more handlers can be added in the
   // future

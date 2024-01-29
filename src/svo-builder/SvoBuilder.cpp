@@ -30,7 +30,7 @@ namespace {
 // 256_monu4
 
 VoxData _fetchVoxData() {
-  std::string constexpr kFileName = "128_monu4";
+  std::string constexpr kFileName = "256_monu4";
 
   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
   return VoxLoader::fetchDataFromFile(kPathToVoxFile);

@@ -64,14 +64,17 @@ VoxData _parseModel(ogt_vox_scene const *scene, ogt_vox_model const *model) {
 
   auto const &palette = scene->palette.color;
 
-  // fill palette
+  // fill palette data
   for (int i = 0; i < 256; i++) {
     auto const &color       = palette[i];
     uint32_t convertedColor = 0;
-    convertedColor |= static_cast<uint32_t>(color.r) << 24;
-    convertedColor |= static_cast<uint32_t>(color.g) << 16;
-    convertedColor |= static_cast<uint32_t>(color.b) << 8;
-    convertedColor |= static_cast<uint32_t>(color.a);
+
+    // reverse the order of rgba
+    // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
+    convertedColor |= static_cast<uint32_t>(color.r);
+    convertedColor |= static_cast<uint32_t>(color.g) << 8;
+    convertedColor |= static_cast<uint32_t>(color.b) << 16;
+    convertedColor |= static_cast<uint32_t>(color.a) << 24;
     voxData.paletteData[i] = convertedColor;
   }
 
