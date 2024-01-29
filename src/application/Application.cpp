@@ -32,9 +32,9 @@ Application::Application() : _appContext(VulkanApplicationContext::getInstance()
   _svoBuilder = std::make_unique<SvoBuilder>(_appContext, &_logger);
   _svoTracer  = std::make_unique<SvoTracer>(_appContext, &_logger, kFramesInFlight, _camera.get());
 
-  _imguiManager =
-      std::make_unique<ImguiManager>(_appContext, _window.get(), &_logger, kFramesInFlight);
-  _fpsSink = std::make_unique<FpsSink>();
+  _imguiManager = std::make_unique<ImguiManager>(_appContext, _window.get(), &_logger,
+                                                 kFramesInFlight, &_svoTracer->getUboData());
+  _fpsSink      = std::make_unique<FpsSink>();
 
   _init();
 }

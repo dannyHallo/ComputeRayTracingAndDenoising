@@ -1,5 +1,5 @@
-layout(binding = 0) uniform GlobalUniformBufferObject {
-  vec3 camPos;
+struct G_RenderInfo {
+  vec3 camPosition;
   vec3 camFront;
   vec3 camUp;
   vec3 camRight;
@@ -8,5 +8,8 @@ layout(binding = 0) uniform GlobalUniformBufferObject {
   float vfov;
   uint currentSample;
   float time;
-}
-globalUbo;
+};
+
+struct G_TwickableParameters {
+  uint magicButton;
+};

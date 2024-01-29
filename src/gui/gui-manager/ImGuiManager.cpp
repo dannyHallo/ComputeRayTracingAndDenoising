@@ -2,6 +2,7 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 #include "gui/gui-elements/FpsGui.hpp"
+#include "svo-tracer/SvoTracerUboData.hpp"
 #include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
@@ -43,9 +44,9 @@ void comboSelector(std::string const &comboLabel, std::vector<std::string> const
 } // namespace
 
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
-                           int framesInFlight)
+                           int framesInFlight, SvoTracerUboData *svoTracerUboData)
     : _appContext(appContext), _window(window), _logger(logger), _framesInFlight(framesInFlight),
-      _colorPalette(std::make_unique<ColorPalette>()) {}
+      _svoTracerUboData(svoTracerUboData), _colorPalette(std::make_unique<ColorPalette>()) {}
 
 ImguiManager::~ImguiManager() {
 
@@ -66,7 +67,7 @@ ImguiManager::~ImguiManager() {
 }
 
 void ImguiManager::_buildColorPalette() {
-  // https:// colorhunt.co/palette/1d2b537e2553ff004dfaef5d
+  // https://colorhunt.co/palette/1d2b537e2553ff004dfaef5d
   _colorPalette->addColor("DarkBlue", Color(29, 43, 83));
   _colorPalette->addColor("DarkPurple", Color(126, 37, 83));
   _colorPalette->addColor("LightRed", Color(255, 0, 77));
@@ -293,6 +294,10 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t swapchainIm
 
 void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
+    ImGui::SeparatorText("Svo Tracing");
+
+    ImGui::Checkbox("Magic Button", &_svoTracerUboData->magicButton);
+
     // ImGui::SeparatorText("Gradient Projection");
     // ImGui::Checkbox("Use Gradient Projection", &_useGradientProjection);
 
@@ -339,8 +344,6 @@ void ImguiManager::_drawConfigMenuItem() {
     // std::vector<std::string> displayItems{"Color",      "Variance", "RawCol", "Stratum",
     //                                       "Visibility", "Gradient", "Custom"};
     // comboSelector("Display Type", displayItems, _displayType);
-
-    ImGui::Text("nothing is here");
 
     ImGui::EndMenu();
   }

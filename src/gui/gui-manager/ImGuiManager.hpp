@@ -6,6 +6,8 @@
 #include <memory>
 #include <vector>
 
+struct SvoTracerUboData;
+
 class FpsGui;
 class VulkanApplicationContext;
 class Window;
@@ -15,7 +17,7 @@ class ColorPalette;
 class ImguiManager {
 public:
   ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
-               int framesInFlight);
+               int framesInFlight, SvoTracerUboData *svoTracerUboData);
   ~ImguiManager();
 
   // delete copy and move
@@ -41,6 +43,8 @@ private:
   Window *_window;
   Logger *_logger;
   int _framesInFlight;
+
+  SvoTracerUboData *_svoTracerUboData;
 
   std::unique_ptr<FpsGui> _fpsGui;
   std::unique_ptr<ColorPalette> _colorPalette;

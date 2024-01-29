@@ -234,39 +234,13 @@ void SvoTracer::_createImageForwardingPairs() {
 // these buffers are modified by the CPU side every frame, and we have multiple frames in flight,
 // so we need to create multiple copies of them, they are fairly small though
 void SvoTracer::_createBufferBundles() {
-  _globalBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(GlobalUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+  _renderInfoUniformBuffers = std::make_unique<BufferBundle>(
+      _framesInFlight, sizeof(G_RenderInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
-  _gradientProjectionBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(GradientProjectionUniformBufferObject),
-      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
-
-  for (int i = 0; i < kStratumFilterSize; i++) {
-    auto stratumFilterBufferBundle = std::make_unique<BufferBundle>(
-        _framesInFlight, sizeof(StratumFilterUniformBufferObject),
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
-    _stratumFilterBufferBundle.emplace_back(std::move(stratumFilterBufferBundle));
-  }
-
-  _temperalFilterBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(TemporalFilterUniformBufferObject),
-      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
-
-  _varianceBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(VarianceUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+  _twickableParametersUniformBuffers = std::make_unique<BufferBundle>(
+      _framesInFlight, sizeof(G_TwickableParameters), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
-
-  for (int i = 0; i < kATrousSize; i++) {
-    auto blurFilterBufferBundle = std::make_unique<BufferBundle>(
-        _framesInFlight, sizeof(BlurFilterUniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        MemoryAccessingStyle::kCpuToGpuEveryFrame);
-    _blurFilterBufferBundles.emplace_back(std::move(blurFilterBufferBundle));
-  }
-
-  _postProcessingBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(PostProcessingUniformBufferObject),
-      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
 }
 
 void SvoTracer::_recordCommandBuffers() {
@@ -385,7 +359,7 @@ void SvoTracer::updateUboData(size_t currentFrame) {
 
   auto currentTime = static_cast<float>(glfwGetTime());
 
-  GlobalUniformBufferObject globalUbo = {
+  G_RenderInfo renderInfoData = {
       _camera->getPosition(),
       _camera->getFront(),
       _camera->getUp(),
@@ -396,63 +370,65 @@ void SvoTracer::updateUboData(size_t currentFrame) {
       currentSample,
       currentTime,
   };
-  _globalBufferBundle->getBuffer(currentFrame)->fillData(&globalUbo);
+  _renderInfoUniformBuffers->getBuffer(currentFrame)->fillData(&renderInfoData);
 
-  auto thisMvpe =
-      _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
-                                   static_cast<float>(_appContext->getSwapchainExtentHeight())) *
-      _camera->getViewMatrix();
-  GradientProjectionUniformBufferObject gpUbo = {
-      static_cast<int>(!_uboData._useGradientProjection),
-      thisMvpe,
-  };
-  _gradientProjectionBufferBundle->getBuffer(currentFrame)->fillData(&gpUbo);
+  // auto thisMvpe =
+  //     _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
+  //                                  static_cast<float>(_appContext->getSwapchainExtentHeight())) *
+  //     _camera->getViewMatrix();
 
-  for (int i = 0; i < kStratumFilterSize; i++) {
-    StratumFilterUniformBufferObject sfUbo = {i, static_cast<int>(!_uboData._useStratumFiltering)};
-    _stratumFilterBufferBundle[i]->getBuffer(currentFrame)->fillData(&sfUbo);
-  }
+  G_TwickableParameters gpUbo{};
+  gpUbo.magicButton = static_cast<uint32_t>(_uboData.magicButton);
+  _twickableParametersUniformBuffers->getBuffer(currentFrame)->fillData(&gpUbo);
 
-  TemporalFilterUniformBufferObject tfUbo = {
-      static_cast<int>(!_uboData._useTemporalBlend),
-      static_cast<int>(_uboData._useNormalTest),
-      _uboData._normalThreshold,
-      _uboData._blendingAlpha,
-      lastMvpe,
-  };
-  _temperalFilterBufferBundle->getBuffer(currentFrame)->fillData(&tfUbo);
-  lastMvpe = thisMvpe;
+  // _gradientProjectionBufferBundle->getBuffer(currentFrame)->fillData(&gpUbo);
 
-  VarianceUniformBufferObject varianceUbo = {
-      static_cast<int>(!_uboData._useVarianceEstimation),
-      static_cast<int>(_uboData._skipStoppingFunctions),
-      static_cast<int>(_uboData._useTemporalVariance),
-      _uboData._varianceKernelSize,
-      _uboData._variancePhiGaussian,
-      _uboData._variancePhiDepth,
-  };
-  _varianceBufferBundle->getBuffer(currentFrame)->fillData(&varianceUbo);
+  // for (int i = 0; i < kStratumFilterSize; i++) {
+  //   StratumFilterUniformBufferObject sfUbo = {i,
+  //   static_cast<int>(!_uboData._useStratumFiltering)};
+  //   _stratumFilterBufferBundle[i]->getBuffer(currentFrame)->fillData(&sfUbo);
+  // }
 
-  for (int i = 0; i < kATrousSize; i++) {
-    // update ubo for the sampleDistance
-    BlurFilterUniformBufferObject bfUbo = {
-        static_cast<int>(!_uboData._useATrous),
-        i,
-        _uboData._iCap,
-        static_cast<int>(_uboData._useVarianceGuidedFiltering),
-        static_cast<int>(_uboData._useGradientInDepth),
-        _uboData._phiLuminance,
-        _uboData._phiDepth,
-        _uboData._phiNormal,
-        static_cast<int>(_uboData._ignoreLuminanceAtFirstIteration),
-        static_cast<int>(_uboData._changingLuminancePhi),
-        static_cast<int>(_uboData._useJittering),
-    };
-    _blurFilterBufferBundles[i]->getBuffer(currentFrame)->fillData(&bfUbo);
-  }
+  // TemporalFilterUniformBufferObject tfUbo = {
+  //     static_cast<int>(!_uboData._useTemporalBlend),
+  //     static_cast<int>(_uboData._useNormalTest),
+  //     _uboData._normalThreshold,
+  //     _uboData._blendingAlpha,
+  //     lastMvpe,
+  // };
+  // _temperalFilterBufferBundle->getBuffer(currentFrame)->fillData(&tfUbo);
+  // lastMvpe = thisMvpe;
 
-  PostProcessingUniformBufferObject postProcessingUbo = {_uboData._displayType};
-  _postProcessingBufferBundle->getBuffer(currentFrame)->fillData(&postProcessingUbo);
+  // VarianceUniformBufferObject varianceUbo = {
+  //     static_cast<int>(!_uboData._useVarianceEstimation),
+  //     static_cast<int>(_uboData._skipStoppingFunctions),
+  //     static_cast<int>(_uboData._useTemporalVariance),
+  //     _uboData._varianceKernelSize,
+  //     _uboData._variancePhiGaussian,
+  //     _uboData._variancePhiDepth,
+  // };
+  // _varianceBufferBundle->getBuffer(currentFrame)->fillData(&varianceUbo);
+
+  // for (int i = 0; i < kATrousSize; i++) {
+  //   // update ubo for the sampleDistance
+  //   BlurFilterUniformBufferObject bfUbo = {
+  //       static_cast<int>(!_uboData._useATrous),
+  //       i,
+  //       _uboData._iCap,
+  //       static_cast<int>(_uboData._useVarianceGuidedFiltering),
+  //       static_cast<int>(_uboData._useGradientInDepth),
+  //       _uboData._phiLuminance,
+  //       _uboData._phiDepth,
+  //       _uboData._phiNormal,
+  //       static_cast<int>(_uboData._ignoreLuminanceAtFirstIteration),
+  //       static_cast<int>(_uboData._changingLuminancePhi),
+  //       static_cast<int>(_uboData._useJittering),
+  //   };
+  //   _blurFilterBufferBundles[i]->getBuffer(currentFrame)->fillData(&bfUbo);
+  // }
+
+  // PostProcessingUniformBufferObject postProcessingUbo = {_uboData._displayType};
+  // _postProcessingBufferBundle->getBuffer(currentFrame)->fillData(&postProcessingUbo);
 
   currentSample++;
 }
@@ -461,8 +437,8 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle = std::make_unique<DescriptorSetBundle>(
       _appContext, _logger, _framesInFlight, VK_SHADER_STAGE_COMPUTE_BIT);
 
-  _descriptorSetBundle->bindUniformBufferBundle(0, _globalBufferBundle.get());
-  _descriptorSetBundle->bindUniformBufferBundle(1, _postProcessingBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoUniformBuffers.get());
+  _descriptorSetBundle->bindUniformBufferBundle(1, _twickableParametersUniformBuffers.get());
 
   _descriptorSetBundle->bindStorageImage(2, _rawImage.get());
   _descriptorSetBundle->bindStorageImage(3, _targetImage.get());

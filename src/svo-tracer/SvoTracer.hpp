@@ -124,13 +124,8 @@ private:
   // the memory increase should be small and solves your problem with uploading data:
   // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
 
-  std::unique_ptr<BufferBundle> _globalBufferBundle;
-  std::unique_ptr<BufferBundle> _gradientProjectionBufferBundle;
-  std::unique_ptr<BufferBundle> _temperalFilterBufferBundle;
-  std::vector<std::unique_ptr<BufferBundle>> _stratumFilterBufferBundle;
-  std::unique_ptr<BufferBundle> _varianceBufferBundle;
-  std::vector<std::unique_ptr<BufferBundle>> _blurFilterBufferBundles;
-  std::unique_ptr<BufferBundle> _postProcessingBufferBundle;
+  std::unique_ptr<BufferBundle> _renderInfoUniformBuffers;
+  std::unique_ptr<BufferBundle> _twickableParametersUniformBuffers;
 
   void _createBufferBundles();
 

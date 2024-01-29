@@ -3,12 +3,19 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
+#include "include/svoTracerData.glsl"
+
+layout(binding = 0) uniform RenderInfoUbo { G_RenderInfo renderInfo; }
+renderInfoUbo;
+
+layout(binding = 1) uniform TwickableParametersUbo { G_TwickableParameters twickableParameters; }
+twickableParametersUbo;
+
 layout(binding = 2, rgba32f) writeonly uniform image2D rawTex;
 layout(std430, binding = 4) readonly buffer octreeBufferObject { uint[] octreeBuffer; };
 layout(std430, binding = 5) readonly buffer PaletteBufferObject { uint[] paletteBuffer; };
 
 #include "include/definitions.glsl"
-#include "include/globalUbo.glsl" // defines layout 0
 
 const uint STACK_SIZE = 23;
 struct StackItem {
@@ -19,6 +26,8 @@ struct StackItem {
 bool Octree_RayMarchLeaf(out vec3 o_pos, out vec3 o_color, out vec3 o_normal, out uint o_iter,
                          vec3 o, vec3 d) {
   uint iter = 0;
+
+  // d = max(abs(d), vec3(kEpsilon)) * sign(d);
 
   d.x = abs(d.x) > kEpsilon ? d.x : (d.x >= 0 ? kEpsilon : -kEpsilon);
   d.y = abs(d.y) > kEpsilon ? d.y : (d.y >= 0 ? kEpsilon : -kEpsilon);
@@ -180,34 +189,35 @@ bool Octree_RayMarchLeaf(out vec3 o_pos, out vec3 o_color, out vec3 o_normal, ou
 }
 
 vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
-  const vec3 origin = globalUbo.camPos;
-  const vec3 front  = globalUbo.camFront;
-  const vec3 up     = globalUbo.camUp;
-  const vec3 right  = globalUbo.camRight;
+  const vec3 origin = renderInfoUbo.renderInfo.camPosition;
+  const vec3 front  = renderInfoUbo.renderInfo.camFront;
+  const vec3 up     = renderInfoUbo.renderInfo.camUp;
+  const vec3 right  = renderInfoUbo.renderInfo.camRight;
 
-  const float theta          = globalUbo.vfov * kDeg2Rad;
+  const float theta          = renderInfoUbo.renderInfo.vfov * kDeg2Rad;
   const float h              = tan(theta / 2);
   const float viewportHeight = 2.0 * h;
-  const float viewportWidth =
-      float(globalUbo.swapchainWidth) / float(globalUbo.swapchainHeight) * viewportHeight;
+  const float viewportWidth  = float(renderInfoUbo.renderInfo.swapchainWidth) /
+                              float(renderInfoUbo.renderInfo.swapchainHeight) * viewportHeight;
 
   vec3 rayPropDir    = viewportWidth * right - viewportHeight * up;
   vec3 topLeftCorner = front - rayPropDir / 2;
 
   vec2 uv = (gl_GlobalInvocationID.xy + subpixOffset) /
-            vec2(globalUbo.swapchainWidth, globalUbo.swapchainHeight);
+            vec2(renderInfoUbo.renderInfo.swapchainWidth, renderInfoUbo.renderInfo.swapchainHeight);
 
   return topLeftCorner + viewportWidth * right * uv.x - viewportHeight * up * uv.y;
 }
 
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
-  o = globalUbo.camPos;
+  o = renderInfoUbo.renderInfo.camPosition;
   d = normalize(getPixelInScreenPosByDispatch(subpixOffset));
 }
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) {
+  if (uv.x >= renderInfoUbo.renderInfo.swapchainWidth ||
+      uv.y >= renderInfoUbo.renderInfo.swapchainHeight) {
     return;
   }
 

@@ -1,6 +1,8 @@
 #include "utils/incl/Glm.hpp"
 
-struct GlobalUniformBufferObject {
+#include <cstdint>
+
+struct G_RenderInfo {
   alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camPosition;
   alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
   alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
@@ -12,52 +14,53 @@ struct GlobalUniformBufferObject {
   float time;
 };
 
-struct GradientProjectionUniformBufferObject {
-  int bypassGradientProjection;
-  alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
-};
+struct G_TwickableParameters {
+  uint32_t magicButton;
 
-struct StratumFilterUniformBufferObject {
-  int i;
-  int bypassStratumFiltering;
-};
+  // // gradient projection
+  // int bypassGradientProjection;
+  // alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
 
-struct TemporalFilterUniformBufferObject {
-  int bypassTemporalFiltering;
-  int useNormalTest;
-  float normalThrehold;
-  float blendingAlpha;
-  alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
-};
-struct VarianceUniformBufferObject {
-  int bypassVarianceEstimation;
-  int skipStoppingFunctions;
-  int useTemporalVariance;
-  int kernelSize;
-  float phiGaussian;
-  float phiDepth;
-};
+  // // stratified filtering
+  // int i;
+  // int bypassStratumFiltering;
 
-struct BlurFilterUniformBufferObject {
-  int bypassBluring;
-  int i;
-  int iCap;
-  int useVarianceGuidedFiltering;
-  int useGradientInDepth;
-  float phiLuminance;
-  float phiDepth;
-  float phiNormal;
-  int ignoreLuminanceAtFirstIteration;
-  int changingLuminancePhi;
-  int useJittering;
-};
+  // // temporal filtering
+  // int bypassTemporalFiltering;
+  // int useNormalTest;
+  // float normalThrehold;
+  // float blendingAlpha;
+  // alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
 
-struct PostProcessingUniformBufferObject {
-  uint32_t displayType;
+  // // variance estimation
+  // int bypassVarianceEstimation;
+  // int skipStoppingFunctions;
+  // int useTemporalVariance;
+  // int kernelSize;
+  // float phiGaussian;
+  // float phiDepth;
+
+  // // blur filter
+  // int bypassBluring;
+  // int i2;
+  // int iCap;
+  // int useVarianceGuidedFiltering;
+  // int useGradientInDepth;
+  // float phiLuminance2;
+  // float phiDepth2;
+  // float phiNormal2;
+  // int ignoreLuminanceAtFirstIteration;
+  // int changingLuminancePhi;
+  // int useJittering;
+
+  // // post processing
+  // uint32_t displayType;
 };
 
 struct SvoTracerUboData {
-  SvoTracerUboData(size_t framesInFlight) : _iCap(framesInFlight) {}
+  SvoTracerUboData(size_t framesInFlight) : _iCap(static_cast<int>(framesInFlight)) {}
+
+  bool magicButton = true;
 
   bool _useGradientProjection = true;
 
