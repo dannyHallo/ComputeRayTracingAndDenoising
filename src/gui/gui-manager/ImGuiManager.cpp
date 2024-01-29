@@ -349,7 +349,7 @@ void ImguiManager::_drawConfigMenuItem() {
   }
 }
 
-void ImguiManager::_drawFpsMenuItem(double filteredFps, double fpsInTimeBucket) {
+void ImguiManager::_drawFpsMenuItem(double fpsInTimeBucket) {
   std::string const kFpsString = std::to_string(static_cast<int>(fpsInTimeBucket)) + " FPS";
 
   // calculate the right-aligned position for the FPS menu
@@ -361,7 +361,7 @@ void ImguiManager::_drawFpsMenuItem(double filteredFps, double fpsInTimeBucket) 
   ImGui::SetCursorPosX(rightAlignedPosX);
   ImGui::SetNextItemWidth(fpsMenuWidth);
   if (ImGui::BeginMenu("##FpsMenu")) {
-    _fpsGui->update(filteredFps);
+    ImGui::Checkbox("Show Fps", &_showFpsGraph);
     ImGui::EndMenu();
   }
 
@@ -402,8 +402,12 @@ void ImguiManager::draw(FpsSink *fpsSink) {
 
   ImGui::BeginMainMenuBar();
   _drawConfigMenuItem();
-  _drawFpsMenuItem(filteredFps, fpsInTimeBucket);
+  _drawFpsMenuItem(fpsInTimeBucket);
   ImGui::EndMainMenuBar();
+
+  if (_showFpsGraph) {
+    _fpsGui->update(_appContext, filteredFps);
+  }
 
   ImGui::Render();
 }

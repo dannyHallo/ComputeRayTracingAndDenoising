@@ -1,5 +1,6 @@
 #include "FpsGui.hpp"
 
+#include "app-context/VulkanApplicationContext.hpp"
 #include "utils/color-palette/ColorPalette.hpp"
 
 #include "imgui.h"
@@ -18,9 +19,24 @@ FpsGui::FpsGui(ColorPalette *colorPalette) : _colorPalette(colorPalette) {
   _y.resize(kHistSize, 0);
 }
 
-void FpsGui::setActive(bool active) { _isActive = active; }
+void FpsGui::update(VulkanApplicationContext *appContext, double filteredFps) {
+  auto const kScreenWidth  = static_cast<float>(appContext->getSwapchainExtent().width);
+  auto const kScreenHeight = static_cast<float>(appContext->getSwapchainExtent().height);
 
-void FpsGui::update(double filteredFps) {
+  float constexpr kHoriRatio = 0.3F;
+  float constexpr kVertRatio = 0.2F;
+
+  float constexpr kGraphPadding = 10.F;
+  float const kWindowWidth      = kScreenWidth * kHoriRatio;
+  float const kWindowHeight     = kScreenHeight * kVertRatio;
+
+  ImGui::SetNextWindowSize(ImVec2(kWindowWidth, kWindowHeight));
+  ImGui::SetNextWindowPos(ImVec2(kScreenWidth - kWindowWidth, kScreenHeight - kWindowHeight));
+
+  ImGui::Begin("Fps", nullptr,
+               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+                   ImGuiWindowFlags_NoTitleBar);
+
   _updateFpsHistData(filteredFps);
 
   // clear y array, and refill using deque
@@ -28,13 +44,15 @@ void FpsGui::update(double filteredFps) {
   std::copy(_fpsHistory.begin(), _fpsHistory.end(),
             _y.begin() + static_cast<long long>(kHistSize - _fpsHistory.size()));
 
-  float constexpr kYMin       = 0;
-  float constexpr kYMax       = 3000.F;
-  float constexpr kGraphSizeX = 0.F; // auto fit
-  float constexpr kGraphSizeY = 120.F;
+  float constexpr kYMin   = 0;
+  float constexpr kYMax   = 3000.F;
+  float const kGraphSizeX = kWindowWidth - 2 * kGraphPadding;
+  float const kGraphSizeY = kWindowHeight - 2 * kGraphPadding;
 
   ImPlot::SetNextAxisLimits(ImAxis_Y1, kYMin, kYMax);
 
+  ImGui::SetCursorPosX(kGraphPadding);
+  ImGui::SetCursorPosY(kGraphPadding);
   ImPlot::BeginPlot("##FpsShadedPlot", ImVec2(kGraphSizeX, kGraphSizeY), ImPlotFlags_NoInputs);
   ImPlot::SetupAxis(ImAxis_X1, nullptr,
                     ImPlotAxisFlags_NoDecorations | ImPlotAxisFlags_NoTickLabels);
@@ -43,6 +61,8 @@ void FpsGui::update(double filteredFps) {
                          _colorPalette->getColorByName("DarkPurple").getImVec4()); // fill color
   ImPlot::PlotShaded("", _x.data(), _y.data(), kHistSize, 0, ImPlotShadedFlags_None);
   ImPlot::EndPlot();
+
+  ImGui::End();
 }
 
 void FpsGui::_updateFpsHistData(double fps) {

@@ -43,6 +43,7 @@ private:
   Window *_window;
   Logger *_logger;
   int _framesInFlight;
+  bool _showFpsGraph = true;
 
   SvoTracerUboData *_svoTracerUboData;
 
@@ -67,5 +68,5 @@ private:
   void _syncMousePosition();
 
   void _drawConfigMenuItem();
-  void _drawFpsMenuItem(double filteredFps, double fpsInTimeBucket);
+  void _drawFpsMenuItem(double fpsInTimeBucket);
 };

@@ -3,16 +3,15 @@
 #include <deque>
 #include <vector>
 
+class VulkanApplicationContext;
 class ColorPalette;
+
 class FpsGui {
 public:
   FpsGui(ColorPalette *colorPalette);
-  void update(double filteredFps);
-  void setActive(bool active);
+  void update(VulkanApplicationContext *appContext, double filteredFps);
 
 private:
-  bool _isActive = true;
-
   ColorPalette *_colorPalette;
   std::deque<float> _fpsHistory;
 
