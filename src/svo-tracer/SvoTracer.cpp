@@ -343,11 +343,11 @@ void SvoTracer::_recordCommandBuffers() {
     _targetForwardingPairs[imageIndex]->forwardCopy(cmdBuffer);
 
     // copy to history images
-    _depthForwardingPair->forwardCopy(cmdBuffer);
-    _normalForwardingPair->forwardCopy(cmdBuffer);
-    _gradientForwardingPair->forwardCopy(cmdBuffer);
-    _varianceHistForwardingPair->forwardCopy(cmdBuffer);
-    _meshHashForwardingPair->forwardCopy(cmdBuffer);
+    // _depthForwardingPair->forwardCopy(cmdBuffer);
+    // _normalForwardingPair->forwardCopy(cmdBuffer);
+    // _gradientForwardingPair->forwardCopy(cmdBuffer);
+    // _varianceHistForwardingPair->forwardCopy(cmdBuffer);
+    // _meshHashForwardingPair->forwardCopy(cmdBuffer);
 
     vkEndCommandBuffer(cmdBuffer);
   }

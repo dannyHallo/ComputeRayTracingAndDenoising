@@ -57,10 +57,10 @@ void Camera::processKeyboard(double deltaTime) {
     _position += _right * velocity;
   }
   if (_window->isInputBitActive(GLFW_KEY_SPACE)) {
-    _position += _up * velocity;
+    _position += _worldUp * velocity;
   }
-  if (_window->isInputBitActive(GLFW_KEY_LEFT_SHIFT)) {
-    _position -= _up * velocity;
+  if (_window->isInputBitActive(GLFW_KEY_LEFT_CONTROL)) {
+    _position -= _worldUp * velocity;
   }
 }
 

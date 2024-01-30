@@ -39,37 +39,43 @@ public:
   // be careful to use these two functions, you might want to query the
   // framebuffer size, not the window size
   [[nodiscard]] int getWindowWidth() const {
-    int width, height;
+    int width  = 0;
+    int height = 0;
     glfwGetWindowSize(_window, &width, &height);
     return width;
   }
 
   [[nodiscard]] int getWindowHeight() const {
-    int width, height;
+    int width  = 0;
+    int height = 0;
     glfwGetWindowSize(_window, &width, &height);
     return height;
   }
 
   [[nodiscard]] int getFrameBufferWidth() const {
-    int width, height;
+    int width  = 0;
+    int height = 0;
     glfwGetFramebufferSize(_window, &width, &height);
     return width;
   }
 
   [[nodiscard]] int getFrameBufferHeight() const {
-    int width, height;
+    int width  = 0;
+    int height = 0;
     glfwGetFramebufferSize(_window, &width, &height);
     return height;
   }
 
   [[nodiscard]] int getCursorXPos() const {
-    double xPos, yPos;
+    double xPos = NAN;
+    double yPos = NAN;
     glfwGetCursorPos(_window, &xPos, &yPos);
     return static_cast<int>(xPos);
   }
 
   [[nodiscard]] int getCursorYPos() const {
-    double xPos, yPos;
+    double xPos = NAN;
+    double yPos = NAN;
     glfwGetCursorPos(_window, &xPos, &yPos);
     return static_cast<int>(yPos);
   }
