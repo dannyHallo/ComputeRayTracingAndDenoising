@@ -243,7 +243,7 @@ void SvoTracer::_createImageForwardingPairs() {
 void SvoTracer::_createBuffersAndBufferBundles() {
   // buffers
   _sceneDataBuffer = std::make_unique<Buffer>(
-      sizeof(G_SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
+      sizeof(G_SceneData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
 
   // buffer bundles
   _renderInfoUniformBuffers = std::make_unique<BufferBundle>(
