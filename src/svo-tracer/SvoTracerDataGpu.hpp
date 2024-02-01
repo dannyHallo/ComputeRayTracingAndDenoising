@@ -57,8 +57,13 @@ struct G_TwickableParameters {
   // uint32_t displayType;
 };
 
-struct SvoTracerUboData {
-  SvoTracerUboData(size_t framesInFlight) : _iCap(static_cast<int>(framesInFlight)) {}
+struct G_SceneData {
+  uint32_t beamResolution;
+  uint32_t voxelLevelCount;
+};
+
+struct SvoTracerDataGpu {
+  SvoTracerDataGpu(size_t framesInFlight) : _iCap(static_cast<int>(framesInFlight)) {}
 
   bool magicButton = true;
 

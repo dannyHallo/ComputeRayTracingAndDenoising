@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SvoBuilderBufferStructs.hpp"
+#include "SvoBuilderDataGpu.hpp"
 #include "utils/incl/Vulkan.hpp"
 
 #include <array>
@@ -32,9 +32,13 @@ public:
   Buffer *getOctreeBuffer() { return _octreeBuffer.get(); }
   Buffer *getPaletteBuffer() { return _paletteBuffer.get(); }
 
+  [[nodiscard]] uint32_t getVoxelLevelCount() const { return _voxelLevelCount; }
+
 private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
+
+  uint32_t _voxelLevelCount = 0;
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SvoTracerUboData.hpp"
+#include "SvoTracerDataGpu.hpp"
 #include "utils/incl/Glm.hpp"
 #include "utils/incl/Vulkan.hpp"
 
@@ -38,18 +38,18 @@ public:
   void updateUboData(size_t currentFrame);
 
   // this getter will be used for imguiManager
-  SvoTracerUboData &getUboData() { return _uboData; }
+  SvoTracerDataGpu &getUboData() { return _uboData; }
 
 private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
   Camera *_camera;
-  SvoBuilder *_svoBuilder = nullptr;
+  SvoBuilder*_svoBuilder = nullptr;
 
   size_t _framesInFlight;
   std::vector<VkCommandBuffer> _commandBuffers{};
 
-  SvoTracerUboData _uboData;
+  SvoTracerDataGpu _uboData;
 
   void _recordCommandBuffers();
 
@@ -128,15 +128,18 @@ private:
   std::unique_ptr<BufferBundle> _renderInfoUniformBuffers;
   std::unique_ptr<BufferBundle> _twickableParametersUniformBuffers;
 
-  void _createBufferBundles();
+  std::unique_ptr<Buffer> _sceneDataBuffer;
+
+  void _createBuffersAndBufferBundles();
+  void _initBufferData();
 
   /// PIPELINES
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
   // std::unique_ptr<ComputePipeline> _gradientProjectionPipeline;
-  std::unique_ptr<ComputePipeline> _beamOptiPipeline;
-  std::unique_ptr<ComputePipeline> _svoPipeline;
+  std::unique_ptr<ComputePipeline> _svoCourseBeamPipeline;
+  std::unique_ptr<ComputePipeline> _svoTracingPipeline;
   // std::unique_ptr<ComputePipeline> _gradientPipeline;
   // std::vector<std::unique_ptr<ComputePipeline>> _stratumFilterPipelines;
   // std::unique_ptr<ComputePipeline> _temporalFilterPipeline;

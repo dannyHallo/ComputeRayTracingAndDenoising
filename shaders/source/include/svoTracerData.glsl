@@ -17,4 +17,9 @@ struct G_TwickableParameters {
   uint magicButton;
 };
 
-#endif
+struct G_SceneData {
+  uint beamResolution;
+  uint voxelLevelCount;
+};
+
+#endif // SVO_TRACER_DATA_H

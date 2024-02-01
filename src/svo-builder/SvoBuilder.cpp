@@ -1,6 +1,6 @@
 #include "SvoBuilder.hpp"
 
-#include "SvoBuilderBufferStructs.hpp"
+#include "SvoBuilderDataGpu.hpp"
 #include "memory/Buffer.hpp"
 #include "pipelines/ComputePipeline.hpp"
 #include "pipelines/DescriptorSetBundle.hpp"
@@ -62,16 +62,16 @@ void SvoBuilder::init() {
   _createBuffers(voxData);
   _initBufferData(voxData);
   uint32_t octreeVoxelResolution = voxData.voxelResolution;
-  auto octreeVoxelLevel          = static_cast<uint32_t>(std::log2(octreeVoxelResolution));
+  _voxelLevelCount               = static_cast<uint32_t>(std::log2(octreeVoxelResolution));
   uint32_t voxelFragmentCount    = voxData.fragmentList.size();
-  _logger->print("octree voxel resolution: {}", octreeVoxelResolution);
-  _logger->print("octree voxel level: {}", octreeVoxelLevel);
+  _logger->print("voxel resolution: {}", octreeVoxelResolution);
+  _logger->print("voxel level count: {}", _voxelLevelCount);
   _logger->print("voxel fragment count: {}", voxelFragmentCount);
 
   // pipelines
   _createDescriptorSetBundle();
   _createPipelines();
-  _recordCommandBuffer(voxelFragmentCount, octreeVoxelLevel);
+  _recordCommandBuffer(voxelFragmentCount, _voxelLevelCount);
 }
 
 void SvoBuilder::build(VkFence svoBuildingDoneFence) {

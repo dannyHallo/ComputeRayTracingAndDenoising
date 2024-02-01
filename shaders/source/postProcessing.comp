@@ -10,11 +10,15 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(binding = 0) uniform RenderInfoUbo { G_RenderInfo data; }
 renderInfoUbo;
 
-layout(binding = 1) uniform TwickableParametersUbo { G_TwickableParameters twickableParameters; }
+layout(binding = 1) uniform TwickableParametersUbo { G_TwickableParameters data; }
 twickableParametersUbo;
 
-layout(binding = 3, r32f) readonly uniform image2D rawTex;
+layout(binding = 2, r32f) readonly uniform image2D beamDepthTex;
+layout(binding = 3, rgba32f) readonly uniform image2D rawTex;
+
 layout(binding = 4, rgba8) writeonly uniform image2D targetTex;
+layout(std430, binding = 5) readonly buffer SceneDataBufferObject { G_SceneData data; }
+sceneDataBufferObject;
 
 #define DISPLAY_TYPE_RAW 0
 
@@ -45,16 +49,21 @@ uvec2 decodeOffsetInStratum(uint offset) {
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight)
+  if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight) {
     return;
+  }
 
   vec3 writingCol = vec3(0);
-  switch (0) {
-  case DISPLAY_TYPE_RAW: {
-    writingCol = imageLoad(rawTex, uv).xyz;
-    break;
-  }
-  }
+  // if (twickableParametersUbo.data.magicButton == 0) {
+  writingCol = imageLoad(rawTex, uv).xyz;
+  // }
+  // else {
+  //   // writingCol
+  //   uint beamResolution = sceneDataBufferObject.data.beamResolution;
+  //   ivec2 accessingUv   = ivec2(vec2(uv) / beamResolution);
+  //   float dist          = imageLoad(beamDepthTex, accessingUv).x;
+  //   writingCol          = exp(-dist) * vec3(1, 0, 1);
+  // }
 
   // rgb to bgr
   imageStore(targetTex, uv, vec4(writingCol.zyx, 1));

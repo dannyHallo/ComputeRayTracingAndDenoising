@@ -13,4 +13,4 @@ vec3 getRayDir(G_RenderInfo rInfo, vec2 uv) {
                    rInfo.camUp * viewportHalfHeight * uv.y);
 }
 
-#endif
+#endif // RAY_GEN_H

@@ -2,7 +2,7 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 #include "gui/gui-elements/FpsGui.hpp"
-#include "svo-tracer/SvoTracerUboData.hpp"
+#include "svo-tracer/SvoTracerDataGpu.hpp"
 #include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
@@ -44,9 +44,9 @@ void comboSelector(std::string const &comboLabel, std::vector<std::string> const
 } // namespace
 
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
-                           int framesInFlight, SvoTracerUboData *svoTracerUboData)
+                           int framesInFlight, SvoTracerDataGpu *SvoTracerDataGpu)
     : _appContext(appContext), _window(window), _logger(logger), _framesInFlight(framesInFlight),
-      _svoTracerUboData(svoTracerUboData), _colorPalette(std::make_unique<ColorPalette>()) {}
+      _SvoTracerDataGpu(SvoTracerDataGpu), _colorPalette(std::make_unique<ColorPalette>()) {}
 
 ImguiManager::~ImguiManager() {
 
@@ -296,7 +296,7 @@ void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
     ImGui::SeparatorText("Svo Tracing");
 
-    ImGui::Checkbox("Magic Button", &_svoTracerUboData->magicButton);
+    ImGui::Checkbox("Magic Button", &_SvoTracerDataGpu->magicButton);
 
     // ImGui::SeparatorText("Gradient Projection");
     // ImGui::Checkbox("Use Gradient Projection", &_useGradientProjection);

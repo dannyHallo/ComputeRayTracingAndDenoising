@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SvoBuilderBufferStructs.hpp"
+#include "SvoBuilderDataGpu.hpp"
 
 #include <array>
 #include <cstdint>

@@ -10,8 +10,9 @@
 #include "utils/camera/Camera.hpp"
 #include "utils/config/RootDir.h"
 
-static int constexpr kStratumFilterSize = 6;
-static int constexpr kATrousSize        = 5;
+static int constexpr kStratumFilterSize   = 6;
+static int constexpr kATrousSize          = 5;
+static uint32_t constexpr kBeamResolution = 8;
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
                      Camera *camera)
@@ -33,7 +34,8 @@ void SvoTracer::init(SvoBuilder *svoBuilder) {
   _createImageForwardingPairs();
 
   // buffers
-  _createBufferBundles();
+  _createBuffersAndBufferBundles();
+  _initBufferData();
 
   // pipelines
   _createDescriptorSetBundle();
@@ -103,8 +105,10 @@ void SvoTracer::_createFullSizedImages() {
       VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
           VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
-  _beamDepthImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT); // TODO: change the dimention
+  // w = 16 -> 3, w = 17 -> 4
+  _beamDepthImage = std::make_unique<Image>(std::ceil(static_cast<float>(w) / kBeamResolution) + 1,
+                                            std::ceil(static_cast<float>(h) / kBeamResolution) + 1,
+                                            VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _rawImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
@@ -236,7 +240,12 @@ void SvoTracer::_createImageForwardingPairs() {
 
 // these buffers are modified by the CPU side every frame, and we have multiple frames in flight,
 // so we need to create multiple copies of them, they are fairly small though
-void SvoTracer::_createBufferBundles() {
+void SvoTracer::_createBuffersAndBufferBundles() {
+  // buffers
+  _sceneDataBuffer = std::make_unique<Buffer>(
+      sizeof(G_SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
+
+  // buffer bundles
   _renderInfoUniformBuffers = std::make_unique<BufferBundle>(
       _framesInFlight, sizeof(G_RenderInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
@@ -244,6 +253,11 @@ void SvoTracer::_createBufferBundles() {
   _twickableParametersUniformBuffers = std::make_unique<BufferBundle>(
       _framesInFlight, sizeof(G_TwickableParameters), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
+}
+
+void SvoTracer::_initBufferData() {
+  G_SceneData sceneData = {kBeamResolution, _svoBuilder->getVoxelLevelCount()};
+  _sceneDataBuffer->fillData(&sceneData);
 }
 
 void SvoTracer::_recordCommandBuffers() {
@@ -265,6 +279,11 @@ void SvoTracer::_recordCommandBuffers() {
   VkResult result =
       vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _commandBuffers.data());
   assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
+
+  // create the general memory barrier
+  VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
+  memoryBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
   for (size_t imageIndex = 0; imageIndex < _commandBuffers.size(); imageIndex++) {
     auto &cmdBuffer = _commandBuffers[imageIndex];
@@ -292,11 +311,15 @@ void SvoTracer::_recordCommandBuffers() {
     //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
     //                      nullptr);
 
-    _svoPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
+    _svoCourseBeamPipeline->recordCommand(
+        cmdBuffer, 0, static_cast<uint32_t>(std::ceil(static_cast<float>(w) / kBeamResolution)) + 1,
+        static_cast<uint32_t>(std::ceil(static_cast<float>(h) / kBeamResolution)) + 1, 1);
 
-    VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-    memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-    memoryBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
+                         nullptr);
+
+    _svoTracingPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
@@ -447,8 +470,9 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(3, _rawImage.get());
   _descriptorSetBundle->bindStorageImage(4, _renderTargetImage.get());
 
-  _descriptorSetBundle->bindStorageBuffer(5, _svoBuilder->getOctreeBuffer());
-  _descriptorSetBundle->bindStorageBuffer(6, _svoBuilder->getPaletteBuffer());
+  _descriptorSetBundle->bindStorageBuffer(5, _sceneDataBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(6, _svoBuilder->getOctreeBuffer());
+  _descriptorSetBundle->bindStorageBuffer(7, _svoBuilder->getPaletteBuffer());
 
   _descriptorSetBundle->create();
 }
@@ -456,12 +480,21 @@ void SvoTracer::_createDescriptorSetBundle() {
 void SvoTracer::_createPipelines() {
   {
     std::vector<uint32_t> shaderCode{
-#include "svoTracing.spv"
+#include "svoCoarseBeam.spv"
     };
-    _svoPipeline =
+    _svoCourseBeamPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
-    _svoPipeline->init();
+    _svoCourseBeamPipeline->init();
+  }
+  {
+    std::vector<uint32_t> shaderCode{
+#include "svoTracing.spv"
+    };
+    _svoTracingPipeline =
+        std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
+                                          WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
+    _svoTracingPipeline->init();
   }
   {
     std::vector<uint32_t> shaderCode{
