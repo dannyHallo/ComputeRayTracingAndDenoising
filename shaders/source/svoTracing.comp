@@ -222,13 +222,13 @@ void main() {
   }
 
   vec3 o, d;
-  rayGen(o, d, vec2(0.5)); // no hist now
+  rayGen(o, d, vec2(0.5));
 
   vec3 pos, color, normal;
   uint iterUsed;
   bool hit = octreeMarching(pos, color, normal, iterUsed, o, d);
-  // color    = hit ? color : vec3(0.0);
-  color = hit ? pos - vec3(1) : vec3(0.0);
+  color    = hit ? color : vec3(0.0);
+  // color = hit ? pos - vec3(1) : vec3(0.0);
 
   vec4 overlappingColor = vec4(0.0);
   overlappingColor      = vec4(vec3(1, 0.4, 0.2) * float(iterUsed) / 100, 1.0);

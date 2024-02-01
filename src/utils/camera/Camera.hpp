@@ -49,7 +49,6 @@ public:
   [[nodiscard]] glm::vec3 getUp() const { return _up; }
   [[nodiscard]] glm::vec3 getRight() const { return _right; }
   [[nodiscard]] float getVFov() const { return _fov; }
-
 private:
   glm::vec3 _position;
   glm::vec3 _worldUp;
