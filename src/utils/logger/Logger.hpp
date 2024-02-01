@@ -1,6 +1,7 @@
 #pragma once
 
 #include "glm/glm.hpp"
+
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "spdlog/spdlog.h"
 
@@ -54,6 +55,5 @@ public:
     exit(1);
   }
 
-  // check a step's result code
-  void checkStep(const std::string stepName, const int resultCode);
+  // void checkStep(const std::string stepName, const int resultCode);
 };

@@ -184,6 +184,9 @@
         #define OGT_VOX_IMPLEMENTATION
         #include "path/to/ogt_vox.h"
 */
+
+#pragma GCC system_header
+
 #ifndef OGT_VOX_H__
 #define OGT_VOX_H__
 

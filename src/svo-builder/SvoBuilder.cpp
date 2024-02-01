@@ -154,7 +154,7 @@ void SvoBuilder::_initBufferData(VoxData const &voxData) {
 
 void SvoBuilder::_createDescriptorSetBundle() {
   _descriptorSetBundle =
-      std::make_unique<DescriptorSetBundle>(_appContext, _logger, 1, VK_SHADER_STAGE_COMPUTE_BIT);
+      std::make_unique<DescriptorSetBundle>(_appContext, 1, VK_SHADER_STAGE_COMPUTE_BIT);
 
   // the palette buffer is left for the svo tracer to use
   _descriptorSetBundle->bindStorageBuffer(0, _atomicCounterBuffer.get());

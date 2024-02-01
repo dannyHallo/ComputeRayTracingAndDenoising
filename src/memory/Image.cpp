@@ -8,11 +8,7 @@
 #include "utils/vulkan/SimpleCommands.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
-// disable all warnings from stb_image (gcc & clang)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
 #include "stb-image/stb_image.h"
-#pragma GCC diagnostic pop
 
 #include <cassert>
 #include <cmath>

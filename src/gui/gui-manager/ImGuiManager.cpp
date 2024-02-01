@@ -22,25 +22,25 @@ void check_vk_result(VkResult resultCode) {
   assert(resultCode == VK_SUCCESS && "check_vk_result failed");
 }
 
-void comboSelector(std::string const &comboLabel, std::vector<std::string> const &outputItems,
-                   uint32_t &selectedIdx) {
-  assert(selectedIdx < outputItems.size() && "selectedIdx is out of range");
-  char const *currentSelectedItem = outputItems[selectedIdx].c_str();
-  if (ImGui::BeginCombo(comboLabel.c_str(), currentSelectedItem)) {
-    for (int n = 0; n < outputItems.size(); n++) {
-      bool isSelected         = n == selectedIdx;
-      std::string const &item = outputItems[n];
-      if (ImGui::Selectable(item.c_str(), isSelected)) {
-        currentSelectedItem = item.c_str();
-        selectedIdx         = n;
-      }
-      if (isSelected) {
-        ImGui::SetItemDefaultFocus();
-      }
-    }
-    ImGui::EndCombo();
-  }
-}
+// void comboSelector(std::string const &comboLabel, std::vector<std::string> const &outputItems,
+//                    uint32_t &selectedIdx) {
+//   assert(selectedIdx < outputItems.size() && "selectedIdx is out of range");
+//   char const *currentSelectedItem = outputItems[selectedIdx].c_str();
+//   if (ImGui::BeginCombo(comboLabel.c_str(), currentSelectedItem)) {
+//     for (int n = 0; n < outputItems.size(); n++) {
+//       bool isSelected         = n == selectedIdx;
+//       std::string const &item = outputItems[n];
+//       if (ImGui::Selectable(item.c_str(), isSelected)) {
+//         currentSelectedItem = item.c_str();
+//         selectedIdx         = n;
+//       }
+//       if (isSelected) {
+//         ImGui::SetItemDefaultFocus();
+//       }
+//     }
+//     ImGui::EndCombo();
+//   }
+// }
 } // namespace
 
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,

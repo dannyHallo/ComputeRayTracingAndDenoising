@@ -26,6 +26,7 @@ cppcoreguidelines-*,
 -cppcoreguidelines-pro-bounds-constant-array-index,
 -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
 -cppcoreguidelines-owning-memory,
+-cppcoreguidelines-pro-type-union-access,
 
 -readability-identifier-length,
 "

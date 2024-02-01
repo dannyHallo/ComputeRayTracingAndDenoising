@@ -15,10 +15,9 @@ class Logger;
 // for easy management of descriptor sets, auto resource management
 class DescriptorSetBundle {
 public:
-  DescriptorSetBundle(VulkanApplicationContext *appContext, Logger *logger, size_t bundleSize,
+  DescriptorSetBundle(VulkanApplicationContext *appContext, size_t bundleSize,
                       VkShaderStageFlags shaderStageFlags)
-      : _appContext(appContext), _logger(logger), _bundleSize(bundleSize),
-        _shaderStageFlags(shaderStageFlags) {}
+      : _appContext(appContext), _bundleSize(bundleSize), _shaderStageFlags(shaderStageFlags) {}
   ~DescriptorSetBundle();
 
   // default copy and move
@@ -39,7 +38,6 @@ public:
 
 private:
   VulkanApplicationContext *_appContext;
-  Logger *_logger;
   size_t _bundleSize;
   VkShaderStageFlags _shaderStageFlags;
 

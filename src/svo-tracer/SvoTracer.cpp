@@ -10,8 +10,8 @@
 #include "utils/camera/Camera.hpp"
 #include "utils/config/RootDir.h"
 
-static int constexpr kStratumFilterSize   = 6;
-static int constexpr kATrousSize          = 5;
+// static int constexpr kStratumFilterSize   = 6;
+// static int constexpr kATrousSize          = 5;
 static uint32_t constexpr kBeamResolution = 8;
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
@@ -381,7 +381,7 @@ void SvoTracer::_recordCommandBuffers() {
 
 void SvoTracer::updateUboData(size_t currentFrame) {
   static uint32_t currentSample = 0;
-  static glm::mat4 lastMvpe{1.0F};
+  // static glm::mat4 lastMvpe{1.0F};
 
   auto currentTime = static_cast<float>(glfwGetTime());
 
@@ -460,8 +460,8 @@ void SvoTracer::updateUboData(size_t currentFrame) {
 }
 
 void SvoTracer::_createDescriptorSetBundle() {
-  _descriptorSetBundle = std::make_unique<DescriptorSetBundle>(
-      _appContext, _logger, _framesInFlight, VK_SHADER_STAGE_COMPUTE_BIT);
+  _descriptorSetBundle = std::make_unique<DescriptorSetBundle>(_appContext, _framesInFlight,
+                                                               VK_SHADER_STAGE_COMPUTE_BIT);
 
   _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoUniformBuffers.get());
   _descriptorSetBundle->bindUniformBufferBundle(1, _twickableParametersUniformBuffers.get());

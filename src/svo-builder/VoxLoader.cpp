@@ -1,11 +1,7 @@
 #include "VoxLoader.hpp"
 
 #define OGT_VOX_IMPLEMENTATION
-// disable all warnings from ogt_vox (gcc & clang)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wall"
 #include "ogt-tools/ogt_vox.h"
-#pragma GCC diagnostic pop
 
 #include <cassert>
 #include <cmath>
