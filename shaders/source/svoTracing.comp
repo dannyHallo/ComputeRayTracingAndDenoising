@@ -11,9 +11,10 @@ renderInfoUbo;
 layout(binding = 1) uniform TwickableParametersUbo { G_TwickableParameters data; }
 twickableParametersUbo;
 
-layout(binding = 2, rgba32f) writeonly uniform image2D rawTex;
-layout(std430, binding = 4) readonly buffer octreeBufferObject { uint[] octreeBuffer; };
-layout(std430, binding = 5) readonly buffer PaletteBufferObject { uint[] paletteBuffer; };
+layout(binding = 2, r32f) writeonly uniform image2D beamDepthTex;
+layout(binding = 3, rgba32f) writeonly uniform image2D rawTex;
+layout(std430, binding = 5) readonly buffer octreeBufferObject { uint[] octreeBuffer; };
+layout(std430, binding = 6) readonly buffer PaletteBufferObject { uint[] paletteBuffer; };
 
 #include "include/definitions.glsl"
 
@@ -189,30 +190,14 @@ bool octreeMarching(out vec3 oPos, out vec3 oColor, out vec3 oNormal, out uint o
   return scale < STACK_SIZE && t_min <= t_max;
 }
 
-vec3 getPixelInScreenPosByDispatch(vec2 subpixOffset) {
-  const vec3 origin = renderInfoUbo.data.camPosition;
-  const vec3 front  = renderInfoUbo.data.camFront;
-  const vec3 up     = renderInfoUbo.data.camUp;
-  const vec3 right  = renderInfoUbo.data.camRight;
-
-  const float theta          = renderInfoUbo.data.vfov * kDeg2Rad;
-  const float h              = tan(theta / 2);
-  const float viewportHeight = 2.0 * h;
-  const float viewportWidth  = float(renderInfoUbo.data.swapchainWidth) /
-                              float(renderInfoUbo.data.swapchainHeight) * viewportHeight;
-
-  vec3 rayPropDir    = viewportWidth * right - viewportHeight * up;
-  vec3 topLeftCorner = front - rayPropDir / 2;
-
-  vec2 uv = (gl_GlobalInvocationID.xy + subpixOffset) /
-            vec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
-
-  return topLeftCorner + viewportWidth * right * uv.x - viewportHeight * up * uv.y;
-}
+#include "include/rayGen.glsl"
 
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
+  vec2 uv = (vec2(gl_GlobalInvocationID.xy) + subpixOffset) /
+            vec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+
   o = renderInfoUbo.data.camPosition;
-  d = normalize(getPixelInScreenPosByDispatch(subpixOffset));
+  d = getRayDir(renderInfoUbo.data, uv);
 }
 
 void main() {

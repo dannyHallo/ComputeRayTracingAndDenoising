@@ -59,12 +59,13 @@ private:
   std::unique_ptr<Image> _vec2BlueNoise;
   std::unique_ptr<Image> _weightedCosineBlueNoise;
 
-  /// the following resources ARE swapchain dim related
-  // images for ray tracing and post-processing
+  // following resources are swapchain dim related
+  std::unique_ptr<Image> _beamDepthImage;
+
   std::unique_ptr<Image> _positionImage;
   std::unique_ptr<Image> _rawImage;
 
-  std::unique_ptr<Image> _targetImage;
+  std::unique_ptr<Image> _renderTargetImage;
   std::vector<std::unique_ptr<ImageForwardingPair>> _targetForwardingPairs;
 
   std::unique_ptr<Image> _lastFrameAccumImage;
@@ -133,14 +134,14 @@ private:
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
-  std::unique_ptr<ComputePipeline> _gradientProjectionPipeline;
-  std::unique_ptr<ComputePipeline> _rtxPipeline;
+  // std::unique_ptr<ComputePipeline> _gradientProjectionPipeline;
+  std::unique_ptr<ComputePipeline> _beamOptiPipeline;
   std::unique_ptr<ComputePipeline> _svoPipeline;
-  std::unique_ptr<ComputePipeline> _gradientPipeline;
-  std::vector<std::unique_ptr<ComputePipeline>> _stratumFilterPipelines;
-  std::unique_ptr<ComputePipeline> _temporalFilterPipeline;
-  std::unique_ptr<ComputePipeline> _variancePipeline;
-  std::vector<std::unique_ptr<ComputePipeline>> _aTrousPipelines;
+  // std::unique_ptr<ComputePipeline> _gradientPipeline;
+  // std::vector<std::unique_ptr<ComputePipeline>> _stratumFilterPipelines;
+  // std::unique_ptr<ComputePipeline> _temporalFilterPipeline;
+  // std::unique_ptr<ComputePipeline> _variancePipeline;
+  // std::vector<std::unique_ptr<ComputePipeline>> _aTrousPipelines;
   std::unique_ptr<ComputePipeline> _postProcessingPipeline;
 
   void _createDescriptorSetBundle();

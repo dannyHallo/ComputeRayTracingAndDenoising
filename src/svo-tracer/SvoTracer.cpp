@@ -98,10 +98,13 @@ void SvoTracer::_createFullSizedImages() {
   auto w = _appContext->getSwapchainExtentWidth();
   auto h = _appContext->getSwapchainExtentHeight();
 
-  _targetImage = std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM,
-                                         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT |
-                                             VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                             VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _renderTargetImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R8G8B8A8_UNORM,
+      VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+          VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+
+  _beamDepthImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT); // TODO: change the dimention
 
   _rawImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
@@ -200,8 +203,8 @@ void SvoTracer::_createImageForwardingPairs() {
   _targetForwardingPairs.clear();
   for (int i = 0; i < _appContext->getSwapchainSize(); i++) {
     _targetForwardingPairs.emplace_back(std::make_unique<ImageForwardingPair>(
-        _targetImage->getVkImage(), _appContext->getSwapchainImages()[i], VK_IMAGE_LAYOUT_GENERAL,
-        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+        _renderTargetImage->getVkImage(), _appContext->getSwapchainImages()[i],
+        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
   }
 
@@ -269,7 +272,7 @@ void SvoTracer::_recordCommandBuffers() {
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     vkBeginCommandBuffer(cmdBuffer, &beginInfo);
 
-    _targetImage->clearImage(cmdBuffer);
+    _renderTargetImage->clearImage(cmdBuffer);
     _aTrousInputImage->clearImage(cmdBuffer);
     _aTrousOutputImage->clearImage(cmdBuffer);
     _stratumOffsetImage->clearImage(cmdBuffer);
@@ -440,11 +443,12 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoUniformBuffers.get());
   _descriptorSetBundle->bindUniformBufferBundle(1, _twickableParametersUniformBuffers.get());
 
-  _descriptorSetBundle->bindStorageImage(2, _rawImage.get());
-  _descriptorSetBundle->bindStorageImage(3, _targetImage.get());
+  _descriptorSetBundle->bindStorageImage(2, _beamDepthImage.get());
+  _descriptorSetBundle->bindStorageImage(3, _rawImage.get());
+  _descriptorSetBundle->bindStorageImage(4, _renderTargetImage.get());
 
-  _descriptorSetBundle->bindStorageBuffer(4, _svoBuilder->getOctreeBuffer());
-  _descriptorSetBundle->bindStorageBuffer(5, _svoBuilder->getPaletteBuffer());
+  _descriptorSetBundle->bindStorageBuffer(5, _svoBuilder->getOctreeBuffer());
+  _descriptorSetBundle->bindStorageBuffer(6, _svoBuilder->getPaletteBuffer());
 
   _descriptorSetBundle->create();
 }

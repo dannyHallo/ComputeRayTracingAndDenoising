@@ -13,8 +13,8 @@ renderInfoUbo;
 layout(binding = 1) uniform TwickableParametersUbo { G_TwickableParameters twickableParameters; }
 twickableParametersUbo;
 
-layout(binding = 2, r32f) readonly uniform image2D rawTex;
-layout(binding = 3, rgba8) writeonly uniform image2D targetTex;
+layout(binding = 3, r32f) readonly uniform image2D rawTex;
+layout(binding = 4, rgba8) writeonly uniform image2D targetTex;
 
 #define DISPLAY_TYPE_RAW 0
 

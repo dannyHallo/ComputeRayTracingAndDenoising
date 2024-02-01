@@ -1,3 +1,6 @@
+#ifndef SVO_TRACER_DATA_H
+#define SVO_TRACER_DATA_H
+
 struct G_RenderInfo {
   vec3 camPosition;
   vec3 camFront;
@@ -13,3 +16,5 @@ struct G_RenderInfo {
 struct G_TwickableParameters {
   uint magicButton;
 };
+
+#endif
