@@ -18,7 +18,7 @@
 namespace {
 
 VoxData _fetchVoxData() {
-  std::string const kFileName      = "sponza_1000x419x615_1_color";
+  std::string const kFileName      = "128_monu3";
   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
   return VoxLoader::fetchDataFromFile(kPathToVoxFile);
 }
