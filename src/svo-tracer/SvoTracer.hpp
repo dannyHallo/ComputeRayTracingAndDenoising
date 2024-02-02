@@ -55,12 +55,13 @@ private:
 
   /// IMAGES
 
-  // spatial-temporal blue noise
+  // spatial-temporal blue noise (arrays of images)
   std::unique_ptr<Image> _vec2BlueNoise;
   std::unique_ptr<Image> _weightedCosineBlueNoise;
 
   // following resources are swapchain dim related
   std::unique_ptr<Image> _beamDepthImage;
+  std::unique_ptr<Image> _octreeVisualizationImage;
 
   std::unique_ptr<Image> _positionImage;
   std::unique_ptr<Image> _rawImage;

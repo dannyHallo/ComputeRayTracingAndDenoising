@@ -297,6 +297,8 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SeparatorText("Svo Tracing");
 
     ImGui::Checkbox("Magic Button", &_SvoTracerDataGpu->magicButton);
+    ImGui::Checkbox("Visualize Octree", &_SvoTracerDataGpu->visualizeOctree);
+    ImGui::Checkbox("Beam Optimization", &_SvoTracerDataGpu->beamOptimization);
 
     // ImGui::SeparatorText("Gradient Projection");
     // ImGui::Checkbox("Use Gradient Projection", &_useGradientProjection);

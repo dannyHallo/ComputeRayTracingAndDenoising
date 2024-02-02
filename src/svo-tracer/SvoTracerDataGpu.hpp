@@ -16,6 +16,8 @@ struct G_RenderInfo {
 
 struct G_TwickableParameters {
   uint32_t magicButton;
+  uint32_t visualizeOctree;
+  uint32_t beamOptimization;
 
   // // gradient projection
   // int bypassGradientProjection;
@@ -63,48 +65,50 @@ struct G_SceneData {
 };
 
 struct SvoTracerDataGpu {
-  SvoTracerDataGpu(size_t framesInFlight) : _iCap(static_cast<int>(framesInFlight)) {}
+  SvoTracerDataGpu() = default;
 
-  bool magicButton = true;
+  bool magicButton      = true;
+  bool visualizeOctree  = false;
+  bool beamOptimization = true;
 
-  bool _useGradientProjection = true;
+  // bool _useGradientProjection = true;
 
-  bool _movingLightSource = false;
-  uint32_t _outputType    = 1; // combined, direct only, indirect only
-  float _offsetX          = 0.F;
-  float _offsetY          = 0.F;
+  // bool _movingLightSource = false;
+  // uint32_t _outputType    = 1; // combined, direct only, indirect only
+  // float _offsetX          = 0.F;
+  // float _offsetY          = 0.F;
 
-  // StratumFilterUniformBufferObject
-  bool _useStratumFiltering = false;
+  // // StratumFilterUniformBufferObject
+  // bool _useStratumFiltering = false;
 
-  // TemporalFilterUniformBufferObject
-  bool _useTemporalBlend = true;
-  bool _useDepthTest     = false;
-  float _depthThreshold  = 0.07F;
-  bool _useNormalTest    = true;
-  float _normalThreshold = 0.99F;
-  float _blendingAlpha   = 0.15F;
+  // // TemporalFilterUniformBufferObject
+  // bool _useTemporalBlend = true;
+  // bool _useDepthTest     = false;
+  // float _depthThreshold  = 0.07F;
+  // bool _useNormalTest    = true;
+  // float _normalThreshold = 0.99F;
+  // float _blendingAlpha   = 0.15F;
 
-  // VarianceUniformBufferObject
-  bool _useVarianceEstimation = true;
-  bool _skipStoppingFunctions = false;
-  bool _useTemporalVariance   = true;
-  int _varianceKernelSize     = 4;
-  float _variancePhiGaussian  = 1.F;
-  float _variancePhiDepth     = 0.2F;
+  // // VarianceUniformBufferObject
+  // bool _useVarianceEstimation = true;
+  // bool _skipStoppingFunctions = false;
+  // bool _useTemporalVariance   = true;
+  // int _varianceKernelSize     = 4;
+  // float _variancePhiGaussian  = 1.F;
+  // float _variancePhiDepth     = 0.2F;
 
-  // BlurFilterUniformBufferObject
-  bool _useATrous = true;
-  int _iCap;
-  bool _useVarianceGuidedFiltering      = true;
-  bool _useGradientInDepth              = true;
-  float _phiLuminance                   = 0.3F;
-  float _phiDepth                       = 0.2F;
-  float _phiNormal                      = 128.F;
-  bool _ignoreLuminanceAtFirstIteration = true;
-  bool _changingLuminancePhi            = true;
-  bool _useJittering                    = true;
+  // // BlurFilterUniformBufferObject
+  // bool _useATrous = true;
+  // int _iCap;
+  // bool _useVarianceGuidedFiltering      = true;
+  // bool _useGradientInDepth              = true;
+  // float _phiLuminance                   = 0.3F;
+  // float _phiDepth                       = 0.2F;
+  // float _phiNormal                      = 128.F;
+  // bool _ignoreLuminanceAtFirstIteration = true;
+  // bool _changingLuminancePhi            = true;
+  // bool _useJittering                    = true;
 
-  // PostProcessingUniformBufferObject
-  uint32_t _displayType = 0;
+  // // PostProcessingUniformBufferObject
+  // uint32_t _displayType = 0;
 };

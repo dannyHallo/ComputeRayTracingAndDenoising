@@ -42,9 +42,6 @@ layout(binding = 1) uniform UniformBufferObject {
 }
 ubo;
 
-// custom res
-layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
-layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
 
 // stratum res
 layout(binding = 4, r32ui) readonly uniform uimage2D stratumOffsetTex;

@@ -3,20 +3,8 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-#include "include/svoTracerData.glsl"
-
-layout(binding = 0) uniform RenderInfoUbo { G_RenderInfo data; }
-renderInfoUbo;
-
-layout(binding = 1) uniform TwickableParametersUbo { G_TwickableParameters data; }
-twickableParametersUbo;
-
-layout(binding = 2, r32f) writeonly uniform image2D beamDepthTex;
-layout(std430, binding = 5) readonly buffer SceneDataBufferObject { G_SceneData data; }
-sceneDataBufferObject;
-layout(std430, binding = 6) readonly buffer octreeBufferObject { uint[] octreeBuffer; };
-
 #include "include/definitions.glsl"
+#include "include/svoTracerDescriptorSet.glsl"
 
 const uint STACK_SIZE = 23;
 struct StackItem {
@@ -186,7 +174,7 @@ float rayTangent(in vec3 x, in vec3 y) {
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= imageSize(beamDepthTex).x || uv.y >= imageSize(beamDepthTex).y) {
+  if (uv.x >= imageSize(beamDepthImage).x || uv.y >= imageSize(beamDepthImage).y) {
     return;
   }
 
@@ -205,5 +193,5 @@ void main() {
 
   bool hit   = coarseMarching(t, size, o, d, lowestLevelVoxSize, dirSz);
   float dist = hit ? max(0.0, t - size) : 1e10;
-  imageStore(beamDepthTex, uv, vec4(dist, 0, 0, 0));
+  imageStore(beamDepthImage, uv, vec4(dist, 0, 0, 0));
 }

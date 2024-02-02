@@ -1,17 +1,9 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
+
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-struct FragmentListEntry {
-  uint coordinates;
-  uint properties;
-};
-
-layout(std430, binding = 1) buffer uuOctree { uint uOctree[]; };
-layout(std430, binding = 2) readonly buffer uuFragmentList { FragmentListEntry uFragmentList[]; };
-// layout(std430, binding = 2) readonly buffer uuFragmentList { uvec2 uFragmentList[]; };
-layout(std430, binding = 5) readonly buffer uuFragmentData {
-  uint voxelResolution, voxelFragmentCount;
-};
+#include "include/svoBuilderDescriptorSet.glsl"
 
 uvec4 LeafToUvec4(uint val) {
   return uvec4((val & 0xffu), ((val >> 8u) & 0xffu), ((val >> 16u) & 0xffu),

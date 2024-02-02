@@ -1,5 +1,5 @@
-#ifndef RAY_GEN_H
-#define RAY_GEN_H
+#ifndef RAY_GEN_GLSL
+#define RAY_GEN_GLSL
 
 // each component of coord ranges from 0 to 1
 vec3 getRayDir(G_RenderInfo rInfo, vec2 uv) {
@@ -13,4 +13,4 @@ vec3 getRayDir(G_RenderInfo rInfo, vec2 uv) {
                    rInfo.camUp * viewportHalfHeight * uv.y);
 }
 
-#endif // RAY_GEN_H
+#endif // RAY_GEN_GLSL

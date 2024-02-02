@@ -3,22 +3,10 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-#include "include/svoTracerData.glsl"
-
-layout(binding = 0) uniform RenderInfoUbo { G_RenderInfo data; }
-renderInfoUbo;
-
-layout(binding = 1) uniform TwickableParametersUbo { G_TwickableParameters data; }
-twickableParametersUbo;
-
-layout(binding = 2, r32f) readonly uniform image2D beamDepthTex;
-layout(binding = 3, rgba32f) writeonly uniform image2D rawTex;
-layout(std430, binding = 5) readonly buffer SceneDataBufferObject { G_SceneData data; }
-sceneDataBufferObject;
-layout(std430, binding = 6) readonly buffer OctreeBufferObject { uint[] octreeBuffer; };
-layout(std430, binding = 7) readonly buffer PaletteBufferObject { uint[] paletteBuffer; };
-
 #include "include/definitions.glsl"
+#include "include/random.glsl"
+#include "include/rayGen.glsl"
+#include "include/svoTracerDescriptorSet.glsl"
 
 const uint STACK_SIZE = 23;
 struct StackItem {
@@ -194,7 +182,11 @@ bool detailedMarching(out vec3 oPos, out vec3 oColor, out vec3 oNormal, out uint
   return scale < STACK_SIZE && t_min <= t_max;
 }
 
-#include "include/rayGen.glsl"
+vec3 dayLightCalc(vec3 d) {
+  vec3 maximumLight = vec3(1.0);
+  float angle       = dot(d, vec3(0, 1, 0));
+  return maximumLight * angle;
+}
 
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
   vec2 uv = (vec2(gl_GlobalInvocationID.xy) + subpixOffset) /
@@ -214,12 +206,12 @@ void main() {
   rayGen(o, d, vec2(0.5));
 
   // beam opti
-  if (twickableParametersUbo.data.magicButton == 0) {
+  if (twickableParametersUbo.data.beamOptimization == 1) {
     ivec2 beamUv = ivec2(gl_GlobalInvocationID.xy / sceneDataBufferObject.data.beamResolution);
-    float t1     = imageLoad(beamDepthTex, beamUv).r;
-    float t2     = imageLoad(beamDepthTex, beamUv + ivec2(1, 0)).r;
-    float t3     = imageLoad(beamDepthTex, beamUv + ivec2(0, 1)).r;
-    float t4     = imageLoad(beamDepthTex, beamUv + ivec2(1, 1)).r;
+    float t1     = imageLoad(beamDepthImage, beamUv).r;
+    float t2     = imageLoad(beamDepthImage, beamUv + ivec2(1, 0)).r;
+    float t3     = imageLoad(beamDepthImage, beamUv + ivec2(0, 1)).r;
+    float t4     = imageLoad(beamDepthImage, beamUv + ivec2(1, 1)).r;
     float t      = min(min(t1, t2), min(t3, t4));
     o += t * d;
   }
@@ -233,5 +225,6 @@ void main() {
   vec4 overlappingColor = vec4(0.0);
   overlappingColor      = vec4(vec3(1, 0.4, 0.2) * float(iterUsed) / 100, 1.0);
 
-  imageStore(rawTex, uv, vec4(color, 1.0) + overlappingColor);
+  imageStore(rawImage, uv, vec4(color, 1.0));
+  imageStore(octreeVisualizationImage, uv, vec4(overlappingColor));
 }

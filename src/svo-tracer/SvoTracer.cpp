@@ -16,8 +16,7 @@ static uint32_t constexpr kBeamResolution = 8;
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
                      Camera *camera)
-    : _appContext(appContext), _logger(logger), _camera(camera), _framesInFlight(framesInFlight),
-      _uboData(framesInFlight) {}
+    : _appContext(appContext), _logger(logger), _camera(camera), _framesInFlight(framesInFlight) {}
 
 SvoTracer::~SvoTracer() {
   for (auto &commandBuffer : _commandBuffers) {
@@ -109,6 +108,9 @@ void SvoTracer::_createFullSizedImages() {
   _beamDepthImage = std::make_unique<Image>(std::ceil(static_cast<float>(w) / kBeamResolution) + 1,
                                             std::ceil(static_cast<float>(h) / kBeamResolution) + 1,
                                             VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+
+  _octreeVisualizationImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _rawImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
@@ -404,7 +406,10 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   //     _camera->getViewMatrix();
 
   G_TwickableParameters gpUbo{};
-  gpUbo.magicButton = static_cast<uint32_t>(_uboData.magicButton);
+  gpUbo.magicButton      = static_cast<uint32_t>(_uboData.magicButton);
+  gpUbo.visualizeOctree  = static_cast<uint32_t>(_uboData.visualizeOctree);
+  gpUbo.beamOptimization = static_cast<uint32_t>(_uboData.beamOptimization);
+
   _twickableParametersUniformBuffers->getBuffer(currentFrame)->fillData(&gpUbo);
 
   // _gradientProjectionBufferBundle->getBuffer(currentFrame)->fillData(&gpUbo);
@@ -466,13 +471,17 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoUniformBuffers.get());
   _descriptorSetBundle->bindUniformBufferBundle(1, _twickableParametersUniformBuffers.get());
 
-  _descriptorSetBundle->bindStorageImage(2, _beamDepthImage.get());
-  _descriptorSetBundle->bindStorageImage(3, _rawImage.get());
-  _descriptorSetBundle->bindStorageImage(4, _renderTargetImage.get());
+  _descriptorSetBundle->bindStorageImage(2, _vec2BlueNoise.get());
+  _descriptorSetBundle->bindStorageImage(3, _weightedCosineBlueNoise.get());
 
-  _descriptorSetBundle->bindStorageBuffer(5, _sceneDataBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(6, _svoBuilder->getOctreeBuffer());
-  _descriptorSetBundle->bindStorageBuffer(7, _svoBuilder->getPaletteBuffer());
+  _descriptorSetBundle->bindStorageImage(4, _beamDepthImage.get());
+  _descriptorSetBundle->bindStorageImage(5, _rawImage.get());
+  _descriptorSetBundle->bindStorageImage(6, _renderTargetImage.get());
+  _descriptorSetBundle->bindStorageImage(7, _octreeVisualizationImage.get());
+
+  _descriptorSetBundle->bindStorageBuffer(8, _sceneDataBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(9, _svoBuilder->getOctreeBuffer());
+  _descriptorSetBundle->bindStorageBuffer(10, _svoBuilder->getPaletteBuffer());
 
   _descriptorSetBundle->create();
 }
