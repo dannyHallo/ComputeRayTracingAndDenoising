@@ -34,8 +34,9 @@ target("implot")
     )
 
 target("main")
-    -- disable vsprintf warnings in glm lib
-    add_defines("_CRT_SECURE_NO_WARNINGS")
+    -- https://github.com/KhronosGroup/Vulkan-Loader/issues/552#issuecomment-791983003
+    add_defines("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1")
+    add_defines("DISABLE_LAYER_NV_OPTIMUS_1=1")
     if is_mode("release") then
         add_defines("NVALIDATIONLAYERS")
     end
