@@ -1,38 +1,38 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
-layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-// bigger phi indicates bigger tolerence to apply blur
-layout(binding = 1) uniform UniformBufferObject {
-  bool bypassBluring;
-  int i;
-  int iCap; // ranged from 0 - 5
-  bool useVarianceGuidedFiltering;
-  bool useGradientInDepth;
-  float phiLuminance;
-  float phiDepth;
-  float phiNormal;
-  bool ignoreLuminanceAtFirstIteration;
-  bool changingLuminancePhi;
-  bool useJittering;
-}
-ubo;
+// // bigger phi indicates bigger tolerence to apply blur
+// layout(binding = 1) uniform UniformBufferObject {
+//   bool bypassBluring;
+//   int i;
+//   int iCap; // ranged from 0 - 5
+//   bool useVarianceGuidedFiltering;
+//   bool useGradientInDepth;
+//   float phiLuminance;
+//   float phiDepth;
+//   float phiNormal;
+//   bool ignoreLuminanceAtFirstIteration;
+//   bool changingLuminancePhi;
+//   bool useJittering;
+// }
+// ubo;
 
-layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
-layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
+// layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
+// layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
 
-layout(binding = 4, rgba32f) readonly uniform image2D aTrousInputTex;
-layout(binding = 5, rgba32f) readonly uniform image2D normalTex;
-layout(binding = 6, r32f) readonly uniform image2D depthTex;
-layout(binding = 7, rg32f) readonly uniform image2D gradientTex;
-layout(binding = 8, r32f) readonly uniform image2D varianceTex;
-layout(binding = 9, rgba32f) writeonly uniform image2D accumTex;
-layout(binding = 10, rgba32f) writeonly uniform image2D aTrousOutputTex;
+// layout(binding = 4, rgba32f) readonly uniform image2D aTrousInputTex;
+// layout(binding = 5, rgba32f) readonly uniform image2D normalTex;
+// layout(binding = 6, r32f) readonly uniform image2D depthTex;
+// layout(binding = 7, rg32f) readonly uniform image2D gradientTex;
+// layout(binding = 8, r32f) readonly uniform image2D varianceTex;
+// layout(binding = 9, rgba32f) writeonly uniform image2D accumTex;
+// layout(binding = 10, rgba32f) writeonly uniform image2D aTrousOutputTex;
 
 #include "include/definitions.glsl"
-#include "include/globalUbo.glsl"
 #include "include/random.glsl"
+#include "include/svoTracerDescriptorSet.glsl"
 
 // standard 3x3 filtering kernel from q2rtx
 const float waveletFac      = 0.5;
@@ -48,7 +48,7 @@ float varianceAtUv;
 float luminanceAtUv;
 
 ivec2 jittering(int stepSize) {
-  uvec3 seed       = uvec3(gl_GlobalInvocationID.xy, globalUbo.currentSample);
+  uvec3 seed       = uvec3(gl_GlobalInvocationID.xy, renderInfoUbo.data.currentSample);
   vec2 randomNoise = vec2(random(seed), random(seed));
   randomNoise -= 0.5;
   randomNoise *= 0.5;
@@ -56,20 +56,34 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-void loadData(ivec2 offsetXY, out vec2 gradientAtUv, out vec3 normalAtUv, out vec3 colorAtUv,
-              out float depthAtUv, out float varianceAtUv) {
-  ivec2 ipos = uv + offsetXY;
-  if (ipos.x < 0 || ipos.y < 0 || ipos.x >= globalUbo.swapchainWidth ||
-      ipos.y >= globalUbo.swapchainHeight) {
-    ipos =
-        clamp(ipos, ivec2(0), ivec2(globalUbo.swapchainWidth - 1, globalUbo.swapchainHeight - 1));
+void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out float oDepth, out float oVariance,
+                      ivec2 uv) {
+  ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
+    uv =
+        clamp(uv, ivec2(0),
+              ivec2(renderInfoUbo.data.swapchainWidth - 1, renderInfoUbo.data.swapchainHeight - 1));
   }
 
-  gradientAtUv = imageLoad(gradientTex, ipos).xy;
-  normalAtUv   = imageLoad(normalTex, ipos).xyz;
-  colorAtUv    = imageLoad(aTrousInputTex, ipos).xyz;
-  depthAtUv    = imageLoad(depthTex, ipos).x;
-  varianceAtUv = imageLoad(varianceTex, ipos).x;
+  oNormal   = imageLoad(normalImage, uv).xyz;
+  oColor    = imageLoad(aTrousPingImage, uv).xyz;
+  oDepth    = imageLoad(depthImage, uv).x;
+  oVariance = imageLoad(varianceImage, uv).x;
+}
+
+void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out float oDepth, out float oVariance,
+                      ivec2 uv) {
+  ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
+    uv =
+        clamp(uv, ivec2(0),
+              ivec2(renderInfoUbo.data.swapchainWidth - 1, renderInfoUbo.data.swapchainHeight - 1));
+  }
+
+  oNormal   = imageLoad(normalImage, uv).xyz;
+  oColor    = imageLoad(aTrousPongImage, uv).xyz;
+  oDepth    = imageLoad(depthImage, uv).x;
+  oVariance = imageLoad(varianceImage, uv).x;
 }
 
 void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
@@ -117,13 +131,10 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
     weightN = max(0., pow(dot(normalAtUv, normalAtSample), ubo.phiNormal));
 
     float differenceInDepth = 0;
-    // using gradient here can better blend samples within a single screen space
-    // tilted mesh
-    if (ubo.useGradientInDepth) {
-      differenceInDepth = abs((depthAtUv - depthAtSample) - dot(gradientAtUv, vec2(offsetXY)));
-    } else {
-      differenceInDepth = abs(depthAtUv - depthAtSample);
-    }
+    // using gradient here can better blend samples within a single screen space tilted mesh
+    //   differenceInDepth = abs((depthAtUv - depthAtSample) - dot(gradientAtUv, vec2(offsetXY)));
+    differenceInDepth = abs(depthAtUv - depthAtSample);
+
     weightZ = exp(-differenceInDepth / ubo.phiDepth);
 
     float weight = weightK * weightC * weightN * weightZ;
@@ -134,7 +145,8 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
 
 void main() {
   uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight) return;
+  if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight)
+    return;
 
   loadData(ivec2(0), gradientAtUv, normalAtUv, colorAtUv, depthAtUv, varianceAtUv);
 

@@ -23,10 +23,8 @@ ivec2 backwardProjection(ivec2 uv) {
 }
 
 vec4 getAccumColor(ivec2 pUv) {
-  ivec2 texSize = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
-
-  // if read pos is out of image bounds, return -1
-  if (any(lessThan(pUv, ivec2(0))) || any(greaterThanEqual(pUv, texSize))) {
+  ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  if (any(lessThan(pUv, ivec2(0))) || any(greaterThanEqual(pUv, bound))) {
     return vec4(0, 0, 0, 0);
   }
 
@@ -38,17 +36,8 @@ bool isConsistent(ivec2 uv, ivec2 pUv) {
   vec3 lastNormal       = imageLoad(lastNormalImage, pUv).xyz;
   bool normalConsistent = true;
 
-  // normal test
-  // if (dot(normal, lastNormal) == 0) {
-  //   if (normal + lastNormal != vec3(0)) {
-  //     normalConsistent = false;
-  //   } else {
-  //     normalConsistent = true;
-  //   }
-  // } else {
   float normalFac  = pow(dot(normal, lastNormal), 128.);
   normalConsistent = normalFac > 0.99;
-  // }
 
   // bool voxHashConsistent = imageLoad(voxHashImage, uv) == imageLoad(lastVoxHashImage, pUv);
   bool voxHashConsistent = true;

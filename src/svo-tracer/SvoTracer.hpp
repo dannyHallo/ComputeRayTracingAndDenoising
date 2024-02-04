@@ -62,6 +62,7 @@ private:
   // following resources are swapchain dim related
   std::unique_ptr<Image> _beamDepthImage;
   std::unique_ptr<Image> _rawImage;
+  std::unique_ptr<Image> _depthImage;
   std::unique_ptr<Image> _positionImage;
   std::unique_ptr<Image> _octreeVisualizationImage;
 
@@ -97,10 +98,6 @@ private:
 
   // std::unique_ptr<Image> _temporalGradientNormalizationImagePing;
   // std::unique_ptr<Image> _temporalGradientNormalizationImagePong;
-
-  // std::unique_ptr<Image> _depthImage;
-  // std::unique_ptr<Image> _depthImagePrev;
-  // std::unique_ptr<ImageForwardingPair> _depthForwardingPair;
 
   // std::unique_ptr<Image> _gradientImage;
   // std::unique_ptr<Image> _gradientImagePrev;

@@ -42,7 +42,15 @@ void main() {
 
   vec3 writingCol = vec3(0);
   writingCol      = imageLoad(accumedImage, uv).xyz;
-  // writingCol      = imageLoad(rawImage, uv).xyz;
+
+  // float depthHighRes           = imageLoad(depthImage, uv).x;
+  // vec3 highResOverlappingColor = vec3(1, 0, 0) * exp(-depthHighRes);
+
+  // ivec2 lookupUv              = ivec2(uv / sceneDataBufferObject.data.beamResolution);
+  // float depthLowRes           = imageLoad(beamDepthImage, lookupUv).x;
+  // vec3 lowResOverlappingColor = vec3(0, 1, 0) * exp(-depthLowRes);
+
+  // vec3 positionOverlappingColor = imageLoad(positionImage, uv).xyz - vec3(1);
 
   if (twickableParametersUbo.data.visualizeOctree == 1) {
     writingCol += imageLoad(octreeVisualizationImage, uv).xyz;

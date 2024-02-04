@@ -1,48 +1,48 @@
-#version 450
-#extension GL_GOOGLE_include_directive : require
+// #version 450
+// #extension GL_GOOGLE_include_directive : require
 
-layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+// layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-layout(binding = 1, r32f) readonly uniform image2D depthTex;
-layout(binding = 2, rg32f) writeonly uniform image2D gradientTex;
+// layout(binding = 1, r32f) readonly uniform image2D depthTex;
+// layout(binding = 2, rg32f) writeonly uniform image2D gradientTex;
 
-#include "include/globalUbo.glsl"
+// #include "include/globalUbo.glsl"
 
-ivec2 uv;
-ivec2 texSize = imageSize(depthTex);
+// ivec2 uv;
+// ivec2 texSize = imageSize(depthTex);
 
-bool outofBounds(ivec2 p) {
-  return any(lessThan(p, ivec2(0))) || any(greaterThanEqual(p, texSize));
-}
+// bool outofBounds(ivec2 p) {
+//   return any(lessThan(p, ivec2(0))) || any(greaterThanEqual(p, texSize));
+// }
 
-float readDepth(ivec2 offset) {
-  ivec2 p = uv + offset;
+// float readDepth(ivec2 offset) {
+//   ivec2 p = uv + offset;
 
-  // if read pos is out of image bounds, return -1
-  if (outofBounds(p)) {
-    return -1;
-  }
+//   // if read pos is out of image bounds, return -1
+//   if (outofBounds(p)) {
+//     return -1;
+//   }
 
-  // otherwise, return the depth, if depth is -1 (nothit), return 100000
-  float rawDepth = imageLoad(depthTex, p).x;
-  return rawDepth == -1 ? 100000 : rawDepth;
-}
+//   // otherwise, return the depth, if depth is -1 (nothit), return 100000
+//   float rawDepth = imageLoad(depthTex, p).x;
+//   return rawDepth == -1 ? 100000 : rawDepth;
+// }
 
-vec2 calculateGradient() {
-  float cDepth = readDepth(ivec2(0, 0));
-  float rDepth = readDepth(ivec2(1, 0));
-  float uDepth = readDepth(ivec2(0, 1));
+// vec2 calculateGradient() {
+//   float cDepth = readDepth(ivec2(0, 0));
+//   float rDepth = readDepth(ivec2(1, 0));
+//   float uDepth = readDepth(ivec2(0, 1));
 
-  float gradientX = rDepth == -1 ? 0 : rDepth - cDepth;
-  float gradientY = uDepth == -1 ? 0 : uDepth - cDepth;
+//   float gradientX = rDepth == -1 ? 0 : rDepth - cDepth;
+//   float gradientY = uDepth == -1 ? 0 : uDepth - cDepth;
 
-  return vec2(gradientX, gradientY);
-}
+//   return vec2(gradientX, gradientY);
+// }
 
-void main() {
-  uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
-    return;
+// void main() {
+//   uv = ivec2(gl_GlobalInvocationID.xy);
+//   if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
+//     return;
 
-  imageStore(gradientTex, uv, vec4(calculateGradient(), 0, 0));
-}
+//   imageStore(gradientTex, uv, vec4(calculateGradient(), 0, 0));
+// }

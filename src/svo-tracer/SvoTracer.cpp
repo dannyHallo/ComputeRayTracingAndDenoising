@@ -106,6 +106,8 @@ void SvoTracer::_createFullSizedImages() {
 
   _rawImage = std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
+  _depthImage = std::make_unique<Image>(w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+
   _positionImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
@@ -156,8 +158,6 @@ void SvoTracer::_createFullSizedImages() {
   //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
   //                                 VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  // _depthImage = std::make_unique<Image>(
-  //     w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   // _depthImagePrev = std::make_unique<Image>(
   //     w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
@@ -426,10 +426,11 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   lastMvpe = thisMvpe;
 
   G_TwickableParameters gpUbo{};
-  gpUbo.magicButton      = static_cast<uint32_t>(_uboData.magicButton);
-  gpUbo.visualizeOctree  = static_cast<uint32_t>(_uboData.visualizeOctree);
-  gpUbo.beamOptimization = static_cast<uint32_t>(_uboData.beamOptimization);
-  gpUbo.temporalAlpha    = _uboData.temporalAlpha;
+  gpUbo.magicButton       = static_cast<uint32_t>(_uboData.magicButton);
+  gpUbo.visualizeOctree   = static_cast<uint32_t>(_uboData.visualizeOctree);
+  gpUbo.beamOptimization  = static_cast<uint32_t>(_uboData.beamOptimization);
+  gpUbo.traceSecondaryRay = static_cast<uint32_t>(_uboData.traceSecondaryRay);
+  gpUbo.temporalAlpha     = _uboData.temporalAlpha;
 
   _twickableParametersUniformBuffers->getBuffer(currentFrame)->fillData(&gpUbo);
 
@@ -496,21 +497,22 @@ void SvoTracer::_createDescriptorSetBundle() {
 
   _descriptorSetBundle->bindStorageImage(4, _beamDepthImage.get());
   _descriptorSetBundle->bindStorageImage(5, _rawImage.get());
-  _descriptorSetBundle->bindStorageImage(6, _positionImage.get());
-  _descriptorSetBundle->bindStorageImage(7, _octreeVisualizationImage.get());
-  _descriptorSetBundle->bindStorageImage(8, _normalImage.get());
-  _descriptorSetBundle->bindStorageImage(9, _lastNormalImage.get());
-  _descriptorSetBundle->bindStorageImage(10, _voxHashImage.get());
-  _descriptorSetBundle->bindStorageImage(11, _lastVoxHashImage.get());
-  _descriptorSetBundle->bindStorageImage(12, _accumedImage.get());
-  _descriptorSetBundle->bindStorageImage(13, _lastAccumedImage.get());
-  _descriptorSetBundle->bindStorageImage(14, _varianceHistImage.get());
-  _descriptorSetBundle->bindStorageImage(15, _lastVarianceHistImage.get());
-  _descriptorSetBundle->bindStorageImage(16, _renderTargetImage.get());
+  _descriptorSetBundle->bindStorageImage(6, _depthImage.get());
+  _descriptorSetBundle->bindStorageImage(7, _positionImage.get());
+  _descriptorSetBundle->bindStorageImage(8, _octreeVisualizationImage.get());
+  _descriptorSetBundle->bindStorageImage(9, _normalImage.get());
+  _descriptorSetBundle->bindStorageImage(10, _lastNormalImage.get());
+  _descriptorSetBundle->bindStorageImage(11, _voxHashImage.get());
+  _descriptorSetBundle->bindStorageImage(12, _lastVoxHashImage.get());
+  _descriptorSetBundle->bindStorageImage(13, _accumedImage.get());
+  _descriptorSetBundle->bindStorageImage(14, _lastAccumedImage.get());
+  _descriptorSetBundle->bindStorageImage(15, _varianceHistImage.get());
+  _descriptorSetBundle->bindStorageImage(16, _lastVarianceHistImage.get());
+  _descriptorSetBundle->bindStorageImage(17, _renderTargetImage.get());
 
-  _descriptorSetBundle->bindStorageBuffer(17, _sceneDataBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(18, _svoBuilder->getOctreeBuffer());
-  _descriptorSetBundle->bindStorageBuffer(19, _svoBuilder->getPaletteBuffer());
+  _descriptorSetBundle->bindStorageBuffer(18, _sceneDataBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(19, _svoBuilder->getOctreeBuffer());
+  _descriptorSetBundle->bindStorageBuffer(20, _svoBuilder->getPaletteBuffer());
 
   _descriptorSetBundle->create();
 }

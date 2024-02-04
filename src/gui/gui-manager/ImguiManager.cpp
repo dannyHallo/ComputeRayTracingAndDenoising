@@ -299,6 +299,7 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::Checkbox("Magic Button", &_SvoTracerDataGpu->magicButton);
     ImGui::Checkbox("Visualize Octree", &_SvoTracerDataGpu->visualizeOctree);
     ImGui::Checkbox("Beam Optimization", &_SvoTracerDataGpu->beamOptimization);
+    ImGui::Checkbox("Trace Secondary Ray", &_SvoTracerDataGpu->traceSecondaryRay);
     ImGui::SliderFloat("Temporal Alpha", &_SvoTracerDataGpu->temporalAlpha, 0.0F, 1.0F);
 
     // ImGui::SeparatorText("Gradient Projection");

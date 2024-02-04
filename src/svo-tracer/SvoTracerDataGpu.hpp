@@ -20,6 +20,7 @@ struct G_TwickableParameters {
   uint32_t magicButton;
   uint32_t visualizeOctree;
   uint32_t beamOptimization;
+  uint32_t traceSecondaryRay;
   float temporalAlpha;
 
   // // gradient projection
@@ -70,9 +71,10 @@ struct G_SceneData {
 struct SvoTracerDataGpu {
   SvoTracerDataGpu() = default;
 
-  bool magicButton      = true;
-  bool visualizeOctree  = false;
-  bool beamOptimization = true;
+  bool magicButton       = true;
+  bool visualizeOctree   = false;
+  bool beamOptimization  = true;
+  bool traceSecondaryRay = true;
   float temporalAlpha    = 0.15F;
   // bool _useDepthTest     = false;
   // float _depthThreshold  = 0.07F;
@@ -86,7 +88,6 @@ struct SvoTracerDataGpu {
 
   // // StratumFilterUniformBufferObject
   // bool _useStratumFiltering = false;
-
 
   // // VarianceUniformBufferObject
   // bool _useVarianceEstimation = true;
