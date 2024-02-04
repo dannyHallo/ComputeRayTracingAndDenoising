@@ -11,6 +11,6 @@ uint group_x_64(uint x) { return (x >> 6u) + (((x & 0x3fu) > 0u) ? 1u : 0u); }
 void main() {
   buildInfoBuffer.data.allocBegin += buildInfoBuffer.data.allocNum;
   // uCounter stores accumulated tagged node count
-  buildInfoBuffer.data.allocNum = (counterBuffer.uCounter << 3u) - buildInfoBuffer.data.allocBegin;
+  buildInfoBuffer.data.allocNum = (counterBuffer.data << 3u) - buildInfoBuffer.data.allocBegin;
   indirectDispatchInfoBuffer.data.dispatchX = group_x_64(buildInfoBuffer.data.allocNum);
 }

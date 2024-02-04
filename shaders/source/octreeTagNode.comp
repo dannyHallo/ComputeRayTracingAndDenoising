@@ -25,7 +25,7 @@ uint TraverseOctree(in const uvec3 voxel_pos, out bool is_leaf) {
     // fast division by 2, level_dim is always 2^n, n >= 0
     bvec3 cmp = greaterThanEqual(level_pos, uvec3(level_dim >>= 1));
     idx       = cur | uint(cmp.x) | (uint(cmp.y) << 1u) | (uint(cmp.z) << 2u);
-    cur       = octreeBuffer.uOctree[idx] & 0x3fffffffu; // read node pointer
+    cur       = octreeBuffer.data[idx] & 0x3fffffffu; // read node pointer
     level_pos -= uvec3(cmp) * level_dim;
   } while (cur != 0 && level_dim > 1u);
   is_leaf = level_dim == 1u;
@@ -45,8 +45,8 @@ void main() {
   uint idx = TraverseOctree(voxel_pos, is_leaf);
 
   if (is_leaf) {
-    uint properties           = ufragment.properties;
-    octreeBuffer.uOctree[idx] = 0xC0000000u | properties;
+    uint properties        = ufragment.properties;
+    octreeBuffer.data[idx] = 0xC0000000u | properties;
 
     // atomic moving average
     // uint prev_val = 0, cur_val, new_val = 0xC1000000u | (ufragment.y & 0xffffffu);
@@ -61,5 +61,5 @@ void main() {
     // }
   } else
     // flag the node so it can be subdivided (using msb)
-    octreeBuffer.uOctree[idx] = 0x80000000u;
+    octreeBuffer.data[idx] = 0x80000000u;
 }

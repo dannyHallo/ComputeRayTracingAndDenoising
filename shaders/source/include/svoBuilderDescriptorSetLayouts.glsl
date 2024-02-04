@@ -3,9 +3,9 @@
 
 #include "svoBuilderDataStructs.glsl"
 
-layout(std430, binding = 0) buffer CounterBuffer { uint uCounter; }
+layout(std430, binding = 0) buffer CounterBuffer { uint data; }
 counterBuffer;
-layout(std430, binding = 1) buffer OctreeBuffer { uint uOctree[]; }
+layout(std430, binding = 1) buffer OctreeBuffer { uint data[]; }
 octreeBuffer;
 layout(std430, binding = 2) readonly buffer FragmentListBuffer { G_FragmentListEntry datas[]; }
 fragmentListBuffer;
