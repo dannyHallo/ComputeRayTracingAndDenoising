@@ -1,110 +1,79 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
-layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
-
-layout(binding = 1) uniform UniformBufferObject {
-  bool bypassTemporalFiltering;
-  bool useNormalTest;
-  float normalTestThreshold;
-  float blendingAlpha;
-  mat4 lastMvpe;
-}
-ubo;
-
-layout(binding = 2, rgba32f) readonly uniform image2D posTex;
-layout(binding = 3, rgba32f) readonly uniform image2D rawTex;
-layout(binding = 4, r32f) readonly uniform image2D thisFrameDepthTex;
-layout(binding = 5, r32f) readonly uniform image2D lastFrameDepthTex;
-layout(binding = 6, rgba32f) readonly uniform image2D thisFrameNormalTex;
-layout(binding = 7, rgba32f) readonly uniform image2D lastFrameNormalTex;
-layout(binding = 8, rg32f) readonly uniform image2D thisFrameGradientTex;
-layout(binding = 9, rg32f) readonly uniform image2D lastFrameGradientTex;
-layout(binding = 10, r32ui) readonly uniform uimage2D thisFrameMeshHashTex;
-layout(binding = 11, r32ui) readonly uniform uimage2D lastFrameMeshHashTex;
-layout(binding = 12, rgba32f) readonly uniform image2D lastFrameAccumTex;
-layout(binding = 13, rgba8) readonly uniform image2D lastFrameVarianceHistTex;
-layout(binding = 14, rgba32f) writeonly uniform image2D thisFrameAccumTex;
-layout(binding = 15, rgba8) writeonly uniform image2D thisFrameVarianceHistTex;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/definitions.glsl"
-#include "include/globalUbo.glsl"
+#include "include/svoTracerDescriptorSet.glsl"
 
 // when alpha is too low, the image is over-smoothed -> loss of detail
 // when alpha is too high, the image is unstable     -> jitter of noise
 
-ivec2 uv, pUv;
-
-ivec2 backwardProjection() {
-  vec4 worldPos       = imageLoad(posTex, uv);
-  vec4 screenBoxCoord = ubo.lastMvpe * worldPos;
+ivec2 backwardProjection(ivec2 uv) {
+  vec4 worldPos       = imageLoad(positionImage, uv);
+  vec4 screenBoxCoord = renderInfoUbo.data.lastMvpe * worldPos;
   // points are bounded in [-1, 1] in x, y, z after the following
   screenBoxCoord /= screenBoxCoord.w;
   // points are bounded in [0, 1] in x, y, meanwhile z, w are thrown away
   screenBoxCoord = (screenBoxCoord + vec4(1)) / 2;
   // to vulkan uv coord, starts from top left corner, range is [0, 1]
   vec2 uvCoord = vec2(screenBoxCoord.x, 1 - screenBoxCoord.y);
-  return ivec2(uvCoord.x * globalUbo.swapchainWidth,
-               uvCoord.y * globalUbo.swapchainHeight);
+  return ivec2(uvCoord.x * renderInfoUbo.data.swapchainWidth,
+               uvCoord.y * renderInfoUbo.data.swapchainHeight);
 }
 
-vec4 getAccumColor() {
-  ivec2 texSize = imageSize(lastFrameAccumTex);
+vec4 getAccumColor(ivec2 pUv) {
+  ivec2 texSize = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+
   // if read pos is out of image bounds, return -1
   if (any(lessThan(pUv, ivec2(0))) || any(greaterThanEqual(pUv, texSize))) {
     return vec4(0, 0, 0, 0);
   }
 
-  return imageLoad(lastFrameAccumTex, pUv);
+  return imageLoad(lastAccumedImage, pUv);
 }
 
-bool isConsistent() {
-  vec3 thisFrameNormal  = imageLoad(thisFrameNormalTex, uv).xyz;
-  vec3 lastFrameNormal  = imageLoad(lastFrameNormalTex, pUv).xyz;
+bool isConsistent(ivec2 uv, ivec2 pUv) {
+  vec3 normal           = imageLoad(normalImage, uv).xyz;
+  vec3 lastNormal       = imageLoad(lastNormalImage, pUv).xyz;
   bool normalConsistent = true;
-  if (ubo.useNormalTest) {
-    if (dot(thisFrameNormal, lastFrameNormal) == 0) {
-      if (thisFrameNormal + lastFrameNormal != vec3(0)) {
-        normalConsistent = false;
-      } else {
-        normalConsistent = true;
-      }
-    } else {
-      float normalFac  = pow(dot(thisFrameNormal, lastFrameNormal), 128.);
-      normalConsistent = normalFac > ubo.normalTestThreshold;
-    }
-  }
 
-  bool meshIdConsistent = imageLoad(thisFrameMeshHashTex, uv) ==
-                          imageLoad(lastFrameMeshHashTex, pUv);
+  // normal test
+  // if (dot(normal, lastNormal) == 0) {
+  //   if (normal + lastNormal != vec3(0)) {
+  //     normalConsistent = false;
+  //   } else {
+  //     normalConsistent = true;
+  //   }
+  // } else {
+  float normalFac  = pow(dot(normal, lastNormal), 128.);
+  normalConsistent = normalFac > 0.99;
+  // }
 
-  return normalConsistent && meshIdConsistent;
+  // bool voxHashConsistent = imageLoad(voxHashImage, uv) == imageLoad(lastVoxHashImage, pUv);
+  bool voxHashConsistent = true;
+  return normalConsistent && voxHashConsistent;
 }
 
 void main() {
-  uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= globalUbo.swapchainWidth || uv.y >= globalUbo.swapchainHeight)
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+  if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight)
     return;
 
-  float alpha = ubo.blendingAlpha;
+  float alphaBlending = twickableParametersUbo.data.temporalAlpha;
 
-  vec4 thisTimeTracingResult = imageLoad(rawTex, uv);
+  ivec2 pUv = backwardProjection(uv);
 
-  if (ubo.bypassTemporalFiltering) alpha = 1;
+  vec4 rawColor     = imageLoad(rawImage, uv);
+  vec4 accumedColor = getAccumColor(pUv);
 
-  pUv = backwardProjection();
-
-  vec4 lastFrameAccumResult = getAccumColor();
-
-  if (!isConsistent()) {
-    imageStore(thisFrameAccumTex, uv, thisTimeTracingResult);
-    imageStore(thisFrameVarianceHistTex, uv, vec4(0, 0, 0, 0));
-    return;
+  // float varianceBlending = 0;
+  if (!isConsistent(uv, pUv)) {
+    alphaBlending = 1;
+    // varianceBlending = 1;
   }
-
-  vec4 colToWrite;
-  vec4 accumVarianceHist = imageLoad(lastFrameVarianceHistTex, pUv);
-  colToWrite = mix(lastFrameAccumResult, thisTimeTracingResult, alpha);
-  imageStore(thisFrameAccumTex, uv, colToWrite);
-  imageStore(thisFrameVarianceHistTex, uv, accumVarianceHist);
+  vec4 colToWrite = mix(accumedColor, rawColor, alphaBlending);
+  imageStore(accumedImage, uv, colToWrite);
+  // vec4 accumVarianceHist = mix(imageLoad(lastVarianceHistImage, pUv), vec4(0), varianceBlending);
+  // imageStore(varianceHistImage, uv, accumVarianceHist);
 }

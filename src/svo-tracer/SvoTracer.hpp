@@ -44,7 +44,7 @@ private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
   Camera *_camera;
-  SvoBuilder*_svoBuilder = nullptr;
+  SvoBuilder *_svoBuilder = nullptr;
 
   size_t _framesInFlight;
   std::vector<VkCommandBuffer> _commandBuffers{};
@@ -61,56 +61,57 @@ private:
 
   // following resources are swapchain dim related
   std::unique_ptr<Image> _beamDepthImage;
+  std::unique_ptr<Image> _rawImage;
+  std::unique_ptr<Image> _positionImage;
   std::unique_ptr<Image> _octreeVisualizationImage;
 
-  std::unique_ptr<Image> _positionImage;
-  std::unique_ptr<Image> _rawImage;
+  std::unique_ptr<Image> _normalImage;
+  std::unique_ptr<Image> _lastNormalImage;
+  std::unique_ptr<ImageForwardingPair> _normalForwardingPair;
+
+  std::unique_ptr<Image> _voxHashImage;
+  std::unique_ptr<Image> _lastVoxHashImage;
+  std::unique_ptr<ImageForwardingPair> _voxHashForwardingPair;
 
   std::unique_ptr<Image> _renderTargetImage;
   std::vector<std::unique_ptr<ImageForwardingPair>> _targetForwardingPairs;
 
-  std::unique_ptr<Image> _lastFrameAccumImage;
-
-  std::unique_ptr<Image> _varianceImage;
-
-  std::unique_ptr<Image> _stratumOffsetImage;
-  std::unique_ptr<Image> _perStratumLockingImage;
-
-  std::unique_ptr<Image> _visibilityImage;
-  std::unique_ptr<Image> _visibilitySeedImage;
-
-  std::unique_ptr<Image> _seedImage;
-  std::unique_ptr<Image> _seedVisibilityImage;
-
-  std::unique_ptr<Image> _temporalGradientNormalizationImagePing;
-  std::unique_ptr<Image> _temporalGradientNormalizationImagePong;
-
-  std::unique_ptr<Image> _depthImage;
-  std::unique_ptr<Image> _depthImagePrev;
-  std::unique_ptr<ImageForwardingPair> _depthForwardingPair;
-
-  std::unique_ptr<Image> _normalImage;
-  std::unique_ptr<Image> _normalImagePrev;
-  std::unique_ptr<ImageForwardingPair> _normalForwardingPair;
-
-  std::unique_ptr<Image> _gradientImage;
-  std::unique_ptr<Image> _gradientImagePrev;
-  std::unique_ptr<ImageForwardingPair> _gradientForwardingPair;
+  std::unique_ptr<Image> _accumedImage;
+  std::unique_ptr<Image> _lastAccumedImage;
+  std::unique_ptr<ImageForwardingPair> _accumedForwardingPair;
 
   std::unique_ptr<Image> _varianceHistImage;
-  std::unique_ptr<Image> _varianceHistImagePrev;
+  std::unique_ptr<Image> _lastVarianceHistImage;
   std::unique_ptr<ImageForwardingPair> _varianceHistForwardingPair;
 
-  std::unique_ptr<Image> _meshHashImage;
-  std::unique_ptr<Image> _meshHashImagePrev;
-  std::unique_ptr<ImageForwardingPair> _meshHashForwardingPair;
+  // std::unique_ptr<Image> _varianceImage;
 
-  std::unique_ptr<Image> _aTrousInputImage;
-  std::unique_ptr<Image> _aTrousOutputImage;
-  std::unique_ptr<ImageForwardingPair> _aTrousForwardingPair;
+  // std::unique_ptr<Image> _stratumOffsetImage;
+  // std::unique_ptr<Image> _perStratumLockingImage;
+
+  // std::unique_ptr<Image> _visibilityImage;
+  // std::unique_ptr<Image> _visibilitySeedImage;
+
+  // std::unique_ptr<Image> _seedImage;
+  // std::unique_ptr<Image> _seedVisibilityImage;
+
+  // std::unique_ptr<Image> _temporalGradientNormalizationImagePing;
+  // std::unique_ptr<Image> _temporalGradientNormalizationImagePong;
+
+  // std::unique_ptr<Image> _depthImage;
+  // std::unique_ptr<Image> _depthImagePrev;
+  // std::unique_ptr<ImageForwardingPair> _depthForwardingPair;
+
+  // std::unique_ptr<Image> _gradientImage;
+  // std::unique_ptr<Image> _gradientImagePrev;
+  // std::unique_ptr<ImageForwardingPair> _gradientForwardingPair;
+
+  // std::unique_ptr<Image> _aTrousInputImage;
+  // std::unique_ptr<Image> _aTrousOutputImage;
+  // std::unique_ptr<ImageForwardingPair> _aTrousForwardingPair;
 
   void _createImages();
-  void _createOneTimeImages();
+  void _createResourseImages();
   void _createSwapchainRelatedImages(); // auto release
 
   void _createBlueNoiseImages();
@@ -143,7 +144,7 @@ private:
   std::unique_ptr<ComputePipeline> _svoTracingPipeline;
   // std::unique_ptr<ComputePipeline> _gradientPipeline;
   // std::vector<std::unique_ptr<ComputePipeline>> _stratumFilterPipelines;
-  // std::unique_ptr<ComputePipeline> _temporalFilterPipeline;
+  std::unique_ptr<ComputePipeline> _temporalFilterPipeline;
   // std::unique_ptr<ComputePipeline> _variancePipeline;
   // std::vector<std::unique_ptr<ComputePipeline>> _aTrousPipelines;
   std::unique_ptr<ComputePipeline> _postProcessingPipeline;

@@ -57,11 +57,11 @@ void SvoTracer::onSwapchainResize() {
 }
 
 void SvoTracer::_createImages() {
-  _createOneTimeImages();
+  _createResourseImages();
   _createSwapchainRelatedImages();
 }
 
-void SvoTracer::_createOneTimeImages() { _createBlueNoiseImages(); }
+void SvoTracer::_createResourseImages() { _createBlueNoiseImages(); }
 
 void SvoTracer::_createSwapchainRelatedImages() {
   _createFullSizedImages();
@@ -99,112 +99,145 @@ void SvoTracer::_createFullSizedImages() {
   auto w = _appContext->getSwapchainExtentWidth();
   auto h = _appContext->getSwapchainExtentHeight();
 
-  _renderTargetImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R8G8B8A8_UNORM,
-      VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-          VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-
   // w = 16 -> 3, w = 17 -> 4
   _beamDepthImage = std::make_unique<Image>(std::ceil(static_cast<float>(w) / kBeamResolution) + 1,
                                             std::ceil(static_cast<float>(h) / kBeamResolution) + 1,
                                             VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _octreeVisualizationImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  _rawImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  _seedImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  _aTrousInputImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  _aTrousOutputImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                                  VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _rawImage = std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _positionImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _depthImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _depthImagePrev = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _octreeVisualizationImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _normalImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _normalImagePrev =
+  _lastNormalImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _gradientImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _gradientImagePrev = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _voxHashImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _lastVoxHashImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  _accumedImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _lastAccumedImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _varianceHistImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
 
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _varianceHistImagePrev =
+  _lastVarianceHistImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _meshHashImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _meshHashImagePrev = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _renderTargetImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R8G8B8A8_UNORM,
+      VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+          VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
-  _varianceImage = std::make_unique<Image>(w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+  // _seedImage =
+  //     std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _lastFrameAccumImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+  // _aTrousInputImage =
+  //     std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+  //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  // _aTrousOutputImage =
+  //     std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+  //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+  //                                 VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  // _depthImage = std::make_unique<Image>(
+  //     w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  // _depthImagePrev = std::make_unique<Image>(
+  //     w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  // _gradientImage = std::make_unique<Image>(
+  //     w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT |
+  //     VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  // _gradientImagePrev = std::make_unique<Image>(
+  //     w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT |
+  //     VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  // _varianceImage = std::make_unique<Image>(w, h, VK_FORMAT_R32_SFLOAT,
+  // VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
 void SvoTracer::_createStratumSizedImages() {
-  auto w = _appContext->getSwapchainExtentWidth();
-  auto h = _appContext->getSwapchainExtentHeight();
+  // auto w = _appContext->getSwapchainExtentWidth();
+  // auto h = _appContext->getSwapchainExtentHeight();
 
-  constexpr float kStratumResolutionScale = 1.0F / 3.0F;
+  // constexpr float kStratumResolutionScale = 1.0F / 3.0F;
 
-  uint32_t perStratumImageWidth  = ceil(static_cast<float>(w) * kStratumResolutionScale);
-  uint32_t perStratumImageHeight = ceil(static_cast<float>(h) * kStratumResolutionScale);
+  // uint32_t perStratumImageWidth  = ceil(static_cast<float>(w) * kStratumResolutionScale);
+  // uint32_t perStratumImageHeight = ceil(static_cast<float>(h) * kStratumResolutionScale);
 
-  _stratumOffsetImage =
-      std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  // _stratumOffsetImage =
+  //     std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
+  //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _perStratumLockingImage =
-      std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
+  // _perStratumLockingImage =
+  //     std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
 
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _visibilityImage = std::make_unique<Image>(
-      perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  // _visibilityImage = std::make_unique<Image>(
+  //     perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+  //     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _seedVisibilityImage = std::make_unique<Image>(
-      perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_UINT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  // _seedVisibilityImage = std::make_unique<Image>(
+  //     perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_UINT,
+  //     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _temporalGradientNormalizationImagePing = std::make_unique<Image>(
-      perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  // _temporalGradientNormalizationImagePing = std::make_unique<Image>(
+  //     perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+  //     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _temporalGradientNormalizationImagePong = std::make_unique<Image>(
-      perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  // _temporalGradientNormalizationImagePong = std::make_unique<Image>(
+  //     perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+  //     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 }
 
 void SvoTracer::_createImageForwardingPairs() {
+
+  _normalForwardingPair = std::make_unique<ImageForwardingPair>(
+      _normalImage->getVkImage(), _lastNormalImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+
+  _voxHashForwardingPair = std::make_unique<ImageForwardingPair>(
+      _voxHashImage->getVkImage(), _lastVoxHashImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+
+  _accumedForwardingPair = std::make_unique<ImageForwardingPair>(
+      _accumedImage->getVkImage(), _lastAccumedImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+
+  // _aTrousForwardingPair = std::make_unique<ImageForwardingPair>(
+  //     _aTrousOutputImage->getVkImage(), _aTrousInputImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+  //     VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+
+  // _depthForwardingPair = std::make_unique<ImageForwardingPair>(
+  //     _depthImage->getVkImage(), _depthImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+  //     VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+
+  // _gradientForwardingPair = std::make_unique<ImageForwardingPair>(
+  //     _gradientImage->getVkImage(), _gradientImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+  //     VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+
+  _varianceHistForwardingPair = std::make_unique<ImageForwardingPair>(
+      _varianceHistImage->getVkImage(), _lastVarianceHistImage->getVkImage(),
+      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_GENERAL);
+
   // creating forwarding pairs to copy the image result each frame to a specific swapchain
   _targetForwardingPairs.clear();
   for (int i = 0; i < _appContext->getSwapchainSize(); i++) {
@@ -213,31 +246,6 @@ void SvoTracer::_createImageForwardingPairs() {
         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL));
   }
-
-  _aTrousForwardingPair = std::make_unique<ImageForwardingPair>(
-      _aTrousOutputImage->getVkImage(), _aTrousInputImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-
-  _depthForwardingPair = std::make_unique<ImageForwardingPair>(
-      _depthImage->getVkImage(), _depthImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-
-  _normalForwardingPair = std::make_unique<ImageForwardingPair>(
-      _normalImage->getVkImage(), _normalImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-
-  _gradientForwardingPair = std::make_unique<ImageForwardingPair>(
-      _gradientImage->getVkImage(), _gradientImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
-
-  _varianceHistForwardingPair = std::make_unique<ImageForwardingPair>(
-      _varianceHistImage->getVkImage(), _varianceHistImagePrev->getVkImage(),
-      VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_GENERAL);
-
-  _meshHashForwardingPair = std::make_unique<ImageForwardingPair>(
-      _meshHashImage->getVkImage(), _meshHashImagePrev->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 }
 
 // these buffers are modified by the CPU side every frame, and we have multiple frames in flight,
@@ -294,14 +302,14 @@ void SvoTracer::_recordCommandBuffers() {
     vkBeginCommandBuffer(cmdBuffer, &beginInfo);
 
     _renderTargetImage->clearImage(cmdBuffer);
-    _aTrousInputImage->clearImage(cmdBuffer);
-    _aTrousOutputImage->clearImage(cmdBuffer);
-    _stratumOffsetImage->clearImage(cmdBuffer);
-    _perStratumLockingImage->clearImage(cmdBuffer);
-    _visibilityImage->clearImage(cmdBuffer);
-    _seedVisibilityImage->clearImage(cmdBuffer);
-    _temporalGradientNormalizationImagePing->clearImage(cmdBuffer);
-    _temporalGradientNormalizationImagePong->clearImage(cmdBuffer);
+    // _aTrousInputImage->clearImage(cmdBuffer);
+    // _aTrousOutputImage->clearImage(cmdBuffer);
+    // _stratumOffsetImage->clearImage(cmdBuffer);
+    // _perStratumLockingImage->clearImage(cmdBuffer);
+    // _visibilityImage->clearImage(cmdBuffer);
+    // _seedVisibilityImage->clearImage(cmdBuffer);
+    // _temporalGradientNormalizationImagePing->clearImage(cmdBuffer);
+    // _temporalGradientNormalizationImagePong->clearImage(cmdBuffer);
 
     uint32_t w = _appContext->getSwapchainExtentWidth();
     uint32_t h = _appContext->getSwapchainExtentHeight();
@@ -322,6 +330,12 @@ void SvoTracer::_recordCommandBuffers() {
                          nullptr);
 
     _svoTracingPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
+
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
+                         nullptr);
+
+    _temporalFilterPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
@@ -368,14 +382,16 @@ void SvoTracer::_recordCommandBuffers() {
 
     _postProcessingPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
 
-    _targetForwardingPairs[imageIndex]->forwardCopy(cmdBuffer);
-
     // copy to history images
+    _normalForwardingPair->forwardCopy(cmdBuffer);
+    _voxHashForwardingPair->forwardCopy(cmdBuffer);
+    _accumedForwardingPair->forwardCopy(cmdBuffer);
+    _varianceHistForwardingPair->forwardCopy(cmdBuffer);
     // _depthForwardingPair->forwardCopy(cmdBuffer);
-    // _normalForwardingPair->forwardCopy(cmdBuffer);
     // _gradientForwardingPair->forwardCopy(cmdBuffer);
     // _varianceHistForwardingPair->forwardCopy(cmdBuffer);
-    // _meshHashForwardingPair->forwardCopy(cmdBuffer);
+
+    _targetForwardingPairs[imageIndex]->forwardCopy(cmdBuffer);
 
     vkEndCommandBuffer(cmdBuffer);
   }
@@ -383,15 +399,22 @@ void SvoTracer::_recordCommandBuffers() {
 
 void SvoTracer::updateUboData(size_t currentFrame) {
   static uint32_t currentSample = 0;
-  // static glm::mat4 lastMvpe{1.0F};
+  static glm::mat4 lastMvpe{1.0F}; // identity matrix
 
   auto currentTime = static_cast<float>(glfwGetTime());
+
+  auto thisMvpe =
+      _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
+                                   static_cast<float>(_appContext->getSwapchainExtentHeight())) *
+      _camera->getViewMatrix();
 
   G_RenderInfo renderInfoData = {
       _camera->getPosition(),
       _camera->getFront(),
       _camera->getUp(),
       _camera->getRight(),
+      thisMvpe,
+      lastMvpe,
       _appContext->getSwapchainExtentWidth(),
       _appContext->getSwapchainExtentHeight(),
       _camera->getVFov(),
@@ -400,15 +423,13 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   };
   _renderInfoUniformBuffers->getBuffer(currentFrame)->fillData(&renderInfoData);
 
-  // auto thisMvpe =
-  //     _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
-  //                                  static_cast<float>(_appContext->getSwapchainExtentHeight())) *
-  //     _camera->getViewMatrix();
+  lastMvpe = thisMvpe;
 
   G_TwickableParameters gpUbo{};
   gpUbo.magicButton      = static_cast<uint32_t>(_uboData.magicButton);
   gpUbo.visualizeOctree  = static_cast<uint32_t>(_uboData.visualizeOctree);
   gpUbo.beamOptimization = static_cast<uint32_t>(_uboData.beamOptimization);
+  gpUbo.temporalAlpha    = _uboData.temporalAlpha;
 
   _twickableParametersUniformBuffers->getBuffer(currentFrame)->fillData(&gpUbo);
 
@@ -428,7 +449,6 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   //     lastMvpe,
   // };
   // _temperalFilterBufferBundle->getBuffer(currentFrame)->fillData(&tfUbo);
-  // lastMvpe = thisMvpe;
 
   // VarianceUniformBufferObject varianceUbo = {
   //     static_cast<int>(!_uboData._useVarianceEstimation),
@@ -476,12 +496,21 @@ void SvoTracer::_createDescriptorSetBundle() {
 
   _descriptorSetBundle->bindStorageImage(4, _beamDepthImage.get());
   _descriptorSetBundle->bindStorageImage(5, _rawImage.get());
-  _descriptorSetBundle->bindStorageImage(6, _renderTargetImage.get());
+  _descriptorSetBundle->bindStorageImage(6, _positionImage.get());
   _descriptorSetBundle->bindStorageImage(7, _octreeVisualizationImage.get());
+  _descriptorSetBundle->bindStorageImage(8, _normalImage.get());
+  _descriptorSetBundle->bindStorageImage(9, _lastNormalImage.get());
+  _descriptorSetBundle->bindStorageImage(10, _voxHashImage.get());
+  _descriptorSetBundle->bindStorageImage(11, _lastVoxHashImage.get());
+  _descriptorSetBundle->bindStorageImage(12, _accumedImage.get());
+  _descriptorSetBundle->bindStorageImage(13, _lastAccumedImage.get());
+  _descriptorSetBundle->bindStorageImage(14, _varianceHistImage.get());
+  _descriptorSetBundle->bindStorageImage(15, _lastVarianceHistImage.get());
+  _descriptorSetBundle->bindStorageImage(16, _renderTargetImage.get());
 
-  _descriptorSetBundle->bindStorageBuffer(8, _sceneDataBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(9, _svoBuilder->getOctreeBuffer());
-  _descriptorSetBundle->bindStorageBuffer(10, _svoBuilder->getPaletteBuffer());
+  _descriptorSetBundle->bindStorageBuffer(17, _sceneDataBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(18, _svoBuilder->getOctreeBuffer());
+  _descriptorSetBundle->bindStorageBuffer(19, _svoBuilder->getPaletteBuffer());
 
   _descriptorSetBundle->create();
 }
@@ -504,6 +533,15 @@ void SvoTracer::_createPipelines() {
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
     _svoTracingPipeline->init();
+  }
+  {
+    std::vector<uint32_t> shaderCode{
+#include "temporalFilter.spv"
+    };
+    _temporalFilterPipeline =
+        std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
+                                          WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
+    _temporalFilterPipeline->init();
   }
   {
     std::vector<uint32_t> shaderCode{

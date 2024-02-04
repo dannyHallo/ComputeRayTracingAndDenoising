@@ -7,6 +7,8 @@ struct G_RenderInfo {
   alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
   alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
   alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camRight;
+  alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
+  alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
   uint32_t swapchainWidth;
   uint32_t swapchainHeight;
   float vfov;
@@ -18,6 +20,7 @@ struct G_TwickableParameters {
   uint32_t magicButton;
   uint32_t visualizeOctree;
   uint32_t beamOptimization;
+  float temporalAlpha;
 
   // // gradient projection
   // int bypassGradientProjection;
@@ -70,6 +73,9 @@ struct SvoTracerDataGpu {
   bool magicButton      = true;
   bool visualizeOctree  = false;
   bool beamOptimization = true;
+  float temporalAlpha    = 0.15F;
+  // bool _useDepthTest     = false;
+  // float _depthThreshold  = 0.07F;
 
   // bool _useGradientProjection = true;
 
@@ -81,13 +87,6 @@ struct SvoTracerDataGpu {
   // // StratumFilterUniformBufferObject
   // bool _useStratumFiltering = false;
 
-  // // TemporalFilterUniformBufferObject
-  // bool _useTemporalBlend = true;
-  // bool _useDepthTest     = false;
-  // float _depthThreshold  = 0.07F;
-  // bool _useNormalTest    = true;
-  // float _normalThreshold = 0.99F;
-  // float _blendingAlpha   = 0.15F;
 
   // // VarianceUniformBufferObject
   // bool _useVarianceEstimation = true;

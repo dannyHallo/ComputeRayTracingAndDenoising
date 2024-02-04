@@ -41,9 +41,10 @@ void main() {
   }
 
   vec3 writingCol = vec3(0);
-  writingCol      = imageLoad(rawImage, uv).xyz;
+  writingCol      = imageLoad(accumedImage, uv).xyz;
+  // writingCol      = imageLoad(rawImage, uv).xyz;
 
-  if(twickableParametersUbo.data.visualizeOctree == 1){
+  if (twickableParametersUbo.data.visualizeOctree == 1) {
     writingCol += imageLoad(octreeVisualizationImage, uv).xyz;
   }
 

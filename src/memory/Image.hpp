@@ -19,8 +19,8 @@ public:
         VkImageTiling tiling             = VK_IMAGE_TILING_OPTIMAL,
         VkImageAspectFlags aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT);
 
-  // create an image from a file, VK_FORMAT_R8G8B8A8_UNORM is the format way
-  // stb_image supports, so the created image format is fixed
+  // create an image from a file, VK_FORMAT_R8G8B8A8_UNORM is the format that stb_image supports, so
+  // the created image format is fixed
   Image(const std::string &filename, VkImageUsageFlags usage,
         VkImageLayout initialImageLayout = VK_IMAGE_LAYOUT_GENERAL,
         VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT,
