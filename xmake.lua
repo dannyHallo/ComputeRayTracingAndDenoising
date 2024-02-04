@@ -51,6 +51,7 @@ target("main")
         "dep/imgui/backends/imgui_impl_vulkan.cpp"
     )
     add_includedirs(
+        "./",
         "src/",
         "dep/",
         "dep/spdlog/include/",
@@ -58,7 +59,7 @@ target("main")
         "dep/implot/",
         "dep/obj-loader/",
         "dep/memory-allocator-hpp/",
-        "shaders/generated"
+        "shaders/generated/"
     )
     add_deps("imgui")
     add_deps("implot")

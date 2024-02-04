@@ -1,32 +1,7 @@
-#ifndef SVO_TRACER_DESCRIPTOR_SET_GLSL
-#define SVO_TRACER_DESCRIPTOR_SET_GLSL
+#ifndef SVO_TRACER_DESCRIPTOR_SET_LAYOUTS_GLSL
+#define SVO_TRACER_DESCRIPTOR_SET_LAYOUTS_GLSL
 
-struct G_RenderInfo {
-  vec3 camPosition;
-  vec3 camFront;
-  vec3 camUp;
-  vec3 camRight;
-  mat4 thisMvpe;
-  mat4 lastMvpe;
-  uint swapchainWidth;
-  uint swapchainHeight;
-  float vfov;
-  uint currentSample;
-  float time;
-};
-
-struct G_TwickableParameters {
-  uint magicButton;
-  uint visualizeOctree;
-  uint beamOptimization;
-  uint traceSecondaryRay;
-  float temporalAlpha;
-};
-
-struct G_SceneData {
-  uint beamResolution;
-  uint voxelLevelCount;
-};
+#include "svoTracerDataStructs.glsl"
 
 layout(binding = 0) uniform RenderInfoUbo { G_RenderInfo data; }
 renderInfoUbo;
@@ -57,4 +32,4 @@ sceneDataBufferObject;
 layout(std430, binding = 19) readonly buffer OctreeBufferObject { uint[] octreeBuffer; };
 layout(std430, binding = 20) readonly buffer PaletteBufferObject { uint[] paletteBuffer; };
 
-#endif // SVO_TRACER_DESCRIPTOR_SET_GLSL
+#endif // SVO_TRACER_DESCRIPTOR_SET_LAYOUTS_GLSL

@@ -1,8 +1,10 @@
 #ifndef RANDOM_GLSL
 #define RANDOM_GLSL
 
+#include "svoTracerDataStructs.glsl"
+#include "svoTracerDescriptorSetLayouts.glsl"
+
 #include "definitions.glsl"
-#include "svoTracerDescriptorSet.glsl"
 
 // for easier searching
 struct BaseDisturbance {

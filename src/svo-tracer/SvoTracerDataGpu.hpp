@@ -2,71 +2,17 @@
 
 #include <cstdint>
 
-struct G_RenderInfo {
-  alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camPosition;
-  alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camFront;
-  alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camUp;
-  alignas(sizeof(glm::vec3::x) * 4) glm::vec3 camRight;
-  alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
-  alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
-  uint32_t swapchainWidth;
-  uint32_t swapchainHeight;
-  float vfov;
-  uint32_t currentSample;
-  float time;
-};
+// alignment rule:
+// https://www.oreilly.com/library/view/opengl-programming-guide/9780132748445/app09lev1sec3.html
+#define vec3 alignas(16) glm::vec3
+#define mat4 alignas(16) glm::mat4
+#define uint uint32_t
 
-struct G_TwickableParameters {
-  uint32_t magicButton;
-  uint32_t visualizeOctree;
-  uint32_t beamOptimization;
-  uint32_t traceSecondaryRay;
-  float temporalAlpha;
+#include "shaders/source/include/svoTracerDataStructs.glsl"
 
-  // // gradient projection
-  // int bypassGradientProjection;
-  // alignas(sizeof(glm::vec3::x) * 4) glm::mat4 thisMvpe;
-
-  // // stratified filtering
-  // int i;
-  // int bypassStratumFiltering;
-
-  // // temporal filtering
-  // int bypassTemporalFiltering;
-  // int useNormalTest;
-  // float normalThrehold;
-  // float blendingAlpha;
-  // alignas(sizeof(glm::vec3::x) * 4) glm::mat4 lastMvpe;
-
-  // // variance estimation
-  // int bypassVarianceEstimation;
-  // int skipStoppingFunctions;
-  // int useTemporalVariance;
-  // int kernelSize;
-  // float phiGaussian;
-  // float phiDepth;
-
-  // // blur filter
-  // int bypassBluring;
-  // int i2;
-  // int iCap;
-  // int useVarianceGuidedFiltering;
-  // int useGradientInDepth;
-  // float phiLuminance2;
-  // float phiDepth2;
-  // float phiNormal2;
-  // int ignoreLuminanceAtFirstIteration;
-  // int changingLuminancePhi;
-  // int useJittering;
-
-  // // post processing
-  // uint32_t displayType;
-};
-
-struct G_SceneData {
-  uint32_t beamResolution;
-  uint32_t voxelLevelCount;
-};
+#undef vec3
+#undef mat4
+#undef uint
 
 struct SvoTracerDataGpu {
   SvoTracerDataGpu() = default;
