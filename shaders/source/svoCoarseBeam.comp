@@ -151,10 +151,9 @@ bool coarseMarching(out float oT, out float oSize, vec3 o, vec3 d, float orig_sz
 
 vec3 rayGen(vec2 beamOffset) {
   vec2 midOffset = vec2(0.5);
-  vec2 uv =
-      ((vec2(gl_GlobalInvocationID.xy + beamOffset) * sceneDataBufferObject.data.beamResolution) +
-       midOffset) /
-      vec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  vec2 uv = ((vec2(gl_GlobalInvocationID.xy + beamOffset) * sceneDataBuffer.data.beamResolution) +
+             midOffset) /
+            vec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
 
   // clamping, just for the last row and column
   //   uv = min(uv, vec2(1.0));
@@ -190,7 +189,7 @@ void main() {
   float dirSz = 2.0 * max(max(t0, t1), max(t2, t3));
 
   float t, size;
-  float lowestLevelVoxSize = exp2(1.0 - sceneDataBufferObject.data.voxelLevelCount);
+  float lowestLevelVoxSize = exp2(1.0 - sceneDataBuffer.data.voxelLevelCount);
 
   bool hit   = coarseMarching(t, size, o, d, lowestLevelVoxSize, dirSz);
   float dist = hit ? max(0.0, t - size) : 1e10;

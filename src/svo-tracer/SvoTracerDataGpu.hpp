@@ -14,14 +14,27 @@
 #undef mat4
 #undef uint
 
-struct SvoTracerDataGpu {
-  SvoTracerDataGpu() = default;
+struct SvoTracerTweakingData {
+  SvoTracerTweakingData() = default;
 
   bool magicButton       = true;
   bool visualizeOctree   = false;
   bool beamOptimization  = true;
   bool traceSecondaryRay = true;
   float temporalAlpha    = 0.15F;
+
+  bool enableATrous                    = true;
+  int aTrousIterationCount             = 1;
+  bool useVarianceGuidedFiltering      = true;
+  bool useGradientInDepth              = true;
+  float phiLuminance                   = 0.3F;
+  float phiDepth                       = 0.2F;
+  float phiNormal                      = 128.F;
+  bool ignoreLuminanceAtFirstIteration = true;
+  bool changingLuminancePhi            = true;
+  bool useJittering                    = true;
+
+  // bool _useStratumFiltering = false;
   // bool _useDepthTest     = false;
   // float _depthThreshold  = 0.07F;
 
@@ -32,9 +45,6 @@ struct SvoTracerDataGpu {
   // float _offsetX          = 0.F;
   // float _offsetY          = 0.F;
 
-  // // StratumFilterUniformBufferObject
-  // bool _useStratumFiltering = false;
-
   // // VarianceUniformBufferObject
   // bool _useVarianceEstimation = true;
   // bool _skipStoppingFunctions = false;
@@ -42,18 +52,6 @@ struct SvoTracerDataGpu {
   // int _varianceKernelSize     = 4;
   // float _variancePhiGaussian  = 1.F;
   // float _variancePhiDepth     = 0.2F;
-
-  // // BlurFilterUniformBufferObject
-  // bool _useATrous = true;
-  // int _iCap;
-  // bool _useVarianceGuidedFiltering      = true;
-  // bool _useGradientInDepth              = true;
-  // float _phiLuminance                   = 0.3F;
-  // float _phiDepth                       = 0.2F;
-  // float _phiNormal                      = 128.F;
-  // bool _ignoreLuminanceAtFirstIteration = true;
-  // bool _changingLuminancePhi            = true;
-  // bool _useJittering                    = true;
 
   // // PostProcessingUniformBufferObject
   // uint32_t _displayType = 0;

@@ -44,7 +44,7 @@ void check_vk_result(VkResult resultCode) {
 } // namespace
 
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
-                           int framesInFlight, SvoTracerDataGpu *SvoTracerDataGpu)
+                           int framesInFlight, SvoTracerTweakingData *SvoTracerDataGpu)
     : _appContext(appContext), _window(window), _logger(logger), _framesInFlight(framesInFlight),
       _SvoTracerDataGpu(SvoTracerDataGpu), _colorPalette(std::make_unique<ColorPalette>()) {}
 
@@ -301,6 +301,19 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::Checkbox("Beam Optimization", &_SvoTracerDataGpu->beamOptimization);
     ImGui::Checkbox("Trace Secondary Ray", &_SvoTracerDataGpu->traceSecondaryRay);
     ImGui::SliderFloat("Temporal Alpha", &_SvoTracerDataGpu->temporalAlpha, 0.0F, 1.0F);
+
+    ImGui::Checkbox("Enable A-Trous", &_SvoTracerDataGpu->enableATrous);
+    ImGui::SliderInt("A-Trous Iteration Count", &_SvoTracerDataGpu->aTrousIterationCount, 0, 5);
+    ImGui::Checkbox("Use Variance Guided Filtering",
+                    &_SvoTracerDataGpu->useVarianceGuidedFiltering);
+    ImGui::Checkbox("Use Gradient In Depth", &_SvoTracerDataGpu->useGradientInDepth);
+    ImGui::SliderFloat("Phi Luminance", &_SvoTracerDataGpu->phiLuminance, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Depth", &_SvoTracerDataGpu->phiDepth, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Normal", &_SvoTracerDataGpu->phiNormal, 0.0F, 200.0F);
+    ImGui::Checkbox("Ignore Luminance At First Iteration",
+                    &_SvoTracerDataGpu->ignoreLuminanceAtFirstIteration);
+    ImGui::Checkbox("Changing Luminance Phi", &_SvoTracerDataGpu->changingLuminancePhi);
+    ImGui::Checkbox("Use Jittering", &_SvoTracerDataGpu->useJittering);
 
     // ImGui::SeparatorText("Gradient Projection");
     // ImGui::Checkbox("Use Gradient Projection", &_useGradientProjection);

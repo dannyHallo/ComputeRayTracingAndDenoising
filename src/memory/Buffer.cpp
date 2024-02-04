@@ -75,7 +75,7 @@ void Buffer::_allocate(VkBufferUsageFlags bufferUsageFlags,
   }
 
   if (memoryAccessingStyle == MemoryAccessingStyle::kCpuToGpuOnce) {
-    // Allocation ended up in a non-mappable memory - need to transfer.
+    // allocation ended up in a non-mappable memory - need to transfer using a staging buffer
     VkBufferCreateInfo stagingBufCreateInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
     stagingBufCreateInfo.size               = _size;
     stagingBufCreateInfo.usage              = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
@@ -123,11 +123,6 @@ void Buffer::fillData(const void *data) {
 
     memcpy(_stagingBufferMappedAddr, data, _size);
     // vkCmdPipelineBarrier: VK_ACCESS_HOST_WRITE_BIT --> VK_ACCESS_TRANSFER_READ_BIT
-    VkBufferCopy bufCopy = {
-        0,     // srcOffset
-        0,     // dstOffset,
-        _size, // size
-    };
 
     VkMemoryBarrier memoryBarrier{};
     memoryBarrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -145,6 +140,12 @@ void Buffer::fillData(const void *data) {
                          0,                              // image memory barrier count
                          nullptr                         // image memory barriers
     );
+
+    VkBufferCopy bufCopy = {
+        0,     // srcOffset
+        0,     // dstOffset,
+        _size, // size
+    };
 
     // record a command to copy the buffer to the image
     vkCmdCopyBuffer(commandBuffer, _stagingVkBuffer, _mainVkBuffer, 1, &bufCopy);

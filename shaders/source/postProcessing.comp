@@ -41,12 +41,12 @@ void main() {
   }
 
   vec3 writingCol = vec3(0);
-  writingCol      = imageLoad(accumedImage, uv).xyz;
+  writingCol      = imageLoad(aTrousPongImage, uv).xyz;
 
   // float depthHighRes           = imageLoad(depthImage, uv).x;
   // vec3 highResOverlappingColor = vec3(1, 0, 0) * exp(-depthHighRes);
 
-  // ivec2 lookupUv              = ivec2(uv / sceneDataBufferObject.data.beamResolution);
+  // ivec2 lookupUv              = ivec2(uv / sceneDataBuffer.data.beamResolution);
   // float depthLowRes           = imageLoad(beamDepthImage, lookupUv).x;
   // vec3 lowResOverlappingColor = vec3(0, 1, 0) * exp(-depthLowRes);
 

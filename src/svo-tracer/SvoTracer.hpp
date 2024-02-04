@@ -38,7 +38,7 @@ public:
   void updateUboData(size_t currentFrame);
 
   // this getter will be used for imguiManager
-  SvoTracerDataGpu &getUboData() { return _uboData; }
+  SvoTracerTweakingData &getUboData() { return _uboData; }
 
 private:
   VulkanApplicationContext *_appContext;
@@ -49,7 +49,7 @@ private:
   size_t _framesInFlight;
   std::vector<VkCommandBuffer> _commandBuffers{};
 
-  SvoTracerDataGpu _uboData;
+  SvoTracerTweakingData _uboData;
 
   void _recordCommandBuffers();
 
@@ -74,9 +74,6 @@ private:
   std::unique_ptr<Image> _lastVoxHashImage;
   std::unique_ptr<ImageForwardingPair> _voxHashForwardingPair;
 
-  std::unique_ptr<Image> _renderTargetImage;
-  std::vector<std::unique_ptr<ImageForwardingPair>> _targetForwardingPairs;
-
   std::unique_ptr<Image> _accumedImage;
   std::unique_ptr<Image> _lastAccumedImage;
   std::unique_ptr<ImageForwardingPair> _accumedForwardingPair;
@@ -84,6 +81,12 @@ private:
   std::unique_ptr<Image> _varianceHistImage;
   std::unique_ptr<Image> _lastVarianceHistImage;
   std::unique_ptr<ImageForwardingPair> _varianceHistForwardingPair;
+
+  std::unique_ptr<Image> _aTrousPingImage;
+  std::unique_ptr<Image> _aTrousPongImage;
+
+  std::unique_ptr<Image> _renderTargetImage;
+  std::vector<std::unique_ptr<ImageForwardingPair>> _targetForwardingPairs;
 
   // std::unique_ptr<Image> _varianceImage;
 
@@ -126,8 +129,11 @@ private:
 
   std::unique_ptr<BufferBundle> _renderInfoUniformBuffers;
   std::unique_ptr<BufferBundle> _twickableParametersUniformBuffers;
+  std::unique_ptr<BufferBundle> _aTrousInfoBuffers;
 
-  std::unique_ptr<Buffer> _sceneDataBuffer;
+  std::unique_ptr<Buffer> _sceneInfoBuffer;
+  std::unique_ptr<Buffer> _aTrousIterationBuffer;
+  std::vector<std::unique_ptr<Buffer>> _aTrousIterationStagingBuffers;
 
   void _createBuffersAndBufferBundles();
   void _initBufferData();
@@ -143,7 +149,7 @@ private:
   // std::vector<std::unique_ptr<ComputePipeline>> _stratumFilterPipelines;
   std::unique_ptr<ComputePipeline> _temporalFilterPipeline;
   // std::unique_ptr<ComputePipeline> _variancePipeline;
-  // std::vector<std::unique_ptr<ComputePipeline>> _aTrousPipelines;
+  std::unique_ptr<ComputePipeline> _aTrousPipeline;
   std::unique_ptr<ComputePipeline> _postProcessingPipeline;
 
   void _createDescriptorSetBundle();

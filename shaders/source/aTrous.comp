@@ -3,33 +3,6 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-// // bigger phi indicates bigger tolerence to apply blur
-// layout(binding = 1) uniform UniformBufferObject {
-//   bool bypassBluring;
-//   int i;
-//   int iCap; // ranged from 0 - 5
-//   bool useVarianceGuidedFiltering;
-//   bool useGradientInDepth;
-//   float phiLuminance;
-//   float phiDepth;
-//   float phiNormal;
-//   bool ignoreLuminanceAtFirstIteration;
-//   bool changingLuminancePhi;
-//   bool useJittering;
-// }
-// ubo;
-
-// layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
-// layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
-
-// layout(binding = 4, rgba32f) readonly uniform image2D aTrousInputTex;
-// layout(binding = 5, rgba32f) readonly uniform image2D normalTex;
-// layout(binding = 6, r32f) readonly uniform image2D depthTex;
-// layout(binding = 7, rg32f) readonly uniform image2D gradientTex;
-// layout(binding = 8, r32f) readonly uniform image2D varianceTex;
-// layout(binding = 9, rgba32f) writeonly uniform image2D accumTex;
-// layout(binding = 10, rgba32f) writeonly uniform image2D aTrousOutputTex;
-
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
 #include "include/definitions.glsl"
@@ -39,13 +12,11 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 const float waveletFac      = 0.5;
 const float kernel3x3[2][2] = {{1.0, waveletFac}, {waveletFac, waveletFac *waveletFac}};
 
-ivec2 uv;
-
 vec2 gradientAtUv;
 vec3 normalAtUv;
 vec3 colorAtUv;
 float depthAtUv;
-float varianceAtUv;
+// float varianceAtUv;
 float luminanceAtUv;
 
 ivec2 jittering(int stepSize) {
@@ -57,8 +28,7 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out float oDepth, out float oVariance,
-                      ivec2 uv) {
+void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out float oDepth, ivec2 uv) {
   ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv =
@@ -66,14 +36,13 @@ void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out float oDepth, out f
               ivec2(renderInfoUbo.data.swapchainWidth - 1, renderInfoUbo.data.swapchainHeight - 1));
   }
 
-  oNormal   = imageLoad(normalImage, uv).xyz;
-  oColor    = imageLoad(aTrousPingImage, uv).xyz;
-  oDepth    = imageLoad(depthImage, uv).x;
-  oVariance = imageLoad(varianceImage, uv).x;
+  oNormal = imageLoad(normalImage, uv).xyz;
+  oColor  = imageLoad(aTrousPingImage, uv).xyz;
+  oDepth  = imageLoad(depthImage, uv).x;
+  // oVariance = imageLoad(varianceImage, uv).x;
 }
 
-void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out float oDepth, out float oVariance,
-                      ivec2 uv) {
+void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out float oDepth, ivec2 uv) {
   ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv =
@@ -81,17 +50,17 @@ void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out float oDepth, out f
               ivec2(renderInfoUbo.data.swapchainWidth - 1, renderInfoUbo.data.swapchainHeight - 1));
   }
 
-  oNormal   = imageLoad(normalImage, uv).xyz;
-  oColor    = imageLoad(aTrousPongImage, uv).xyz;
-  oDepth    = imageLoad(depthImage, uv).x;
-  oVariance = imageLoad(varianceImage, uv).x;
+  oNormal = imageLoad(normalImage, uv).xyz;
+  oColor  = imageLoad(aTrousPongImage, uv).xyz;
+  oDepth  = imageLoad(depthImage, uv).x;
+  // oVariance = imageLoad(varianceImage, uv).x;
 }
 
-void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
+void blurKernel(ivec2 uv, ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
                 inout vec4 sumOfWeightedValues) {
-  int stepSize   = 1 << ubo.i;
+  int stepSize   = 1 << aTrousIterationBuffer.data;
   ivec2 offsetXY = dispatchXY * stepSize;
-  if (ubo.useJittering && dispatchXY != ivec2(0)) {
+  if ((aTrousInfoUbo.data.useJittering != 0) && dispatchXY != ivec2(0)) {
     offsetXY += jittering(stepSize);
   }
 
@@ -108,35 +77,40 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
     vec3 normalAtSample;
     vec3 colorAtSample;
     float depthAtSample;
-    float varianceAtSample;
-    loadData(offsetXY, gradientAtSample, normalAtSample, colorAtSample, depthAtSample,
-             varianceAtSample);
+    // float varianceAtSample;
+    // first load from ping
+    if (aTrousIterationBuffer.data % 2 == 0) {
+      loadDataFromPing(normalAtSample, colorAtSample, depthAtSample, uv + offsetXY);
+    } else {
+      loadDataFromPong(normalAtSample, colorAtSample, depthAtSample, uv + offsetXY);
+    }
 
     float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
-    float phiC              = ubo.phiLuminance;
-    if (ubo.changingLuminancePhi) {
-      phiC = pow(2, -ubo.i) * ubo.phiLuminance;
+    float phiC              = aTrousInfoUbo.data.phiLuminance;
+    if (aTrousInfoUbo.data.changingLuminancePhi != 0) {
+      phiC = pow(2, -aTrousIterationBuffer.data) * aTrousInfoUbo.data.phiLuminance;
     }
     weightC       = 0;
     float colDiff = abs(luminanceAtSample - luminanceAtUv);
-    if (ubo.useVarianceGuidedFiltering) {
-      phiC *= 100.;
-      weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), kEpsilon));
-    } else {
-      weightC = exp(-colDiff / phiC);
-    }
-    if (ubo.ignoreLuminanceAtFirstIteration && ubo.i == 0) {
+    // if (aTrousInfoUbo.data.useVarianceGuidedFiltering != 0) {
+    //   phiC *= 100.;
+    //   weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), kEpsilon));
+    // } else {
+    weightC = exp(-colDiff / phiC);
+    // }
+    if (aTrousInfoUbo.data.ignoreLuminanceAtFirstIteration != 0 &&
+        aTrousIterationBuffer.data == 0) {
       weightC = 1.0;
     }
 
-    weightN = max(0., pow(dot(normalAtUv, normalAtSample), ubo.phiNormal));
+    weightN = max(0., pow(dot(normalAtUv, normalAtSample), aTrousInfoUbo.data.phiNormal));
 
     float differenceInDepth = 0;
     // using gradient here can better blend samples within a single screen space tilted mesh
     //   differenceInDepth = abs((depthAtUv - depthAtSample) - dot(gradientAtUv, vec2(offsetXY)));
     differenceInDepth = abs(depthAtUv - depthAtSample);
 
-    weightZ = exp(-differenceInDepth / ubo.phiDepth);
+    weightZ = exp(-differenceInDepth / aTrousInfoUbo.data.phiDepth);
 
     float weight = weightK * weightC * weightN * weightZ;
     weightSum += weight;
@@ -145,21 +119,31 @@ void blurKernel(ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
 }
 
 void main() {
-  uv = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight)
     return;
 
-  loadData(ivec2(0), gradientAtUv, normalAtUv, colorAtUv, depthAtUv, varianceAtUv);
+  if (aTrousIterationBuffer.data >= aTrousInfoUbo.data.aTrousIterationCount) return;
+
+  // vec3 col3 = vec3(1.0) * aTrousIterationBuffer.data / 5;
+  // imageStore(aTrousPongImage, uv, vec4(col3, 1));
+
+  if (aTrousIterationBuffer.data % 2 == 0) {
+    loadDataFromPing(normalAtUv, colorAtUv, depthAtUv, uv);
+  } else {
+    loadDataFromPong(normalAtUv, colorAtUv, depthAtUv, uv);
+  }
 
   luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
 
-  if (ubo.bypassBluring || ubo.i >= ubo.iCap) {
-    if (ubo.i == 0) {
-      imageStore(accumTex, uv, vec4(colorAtUv, 1));
-    }
-    imageStore(aTrousOutputTex, uv, vec4(colorAtUv, 1));
-    return;
-  }
+  // if (aTrousInfoUbo.data.bypassBluring || aTrousIterationsInfo.data >=
+  // aTrousIterationsInfo.dataCap) {
+  //   if (aTrousIterationsInfo.data == 0) {
+  //     imageStore(accumTex, uv, vec4(colorAtUv, 1));
+  //   }
+  //   imageStore(aTrousOutputTex, uv, vec4(colorAtUv, 1));
+  //   return;
+  // }
 
   const int kernelSize     = 3;
   const int kernalHalfSize = 1;
@@ -168,15 +152,19 @@ void main() {
   vec4 sumOfWeightedValues = vec4(0);
   for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
     for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
-      blurKernel(ivec2(indexX, indexY), kernalHalfSize, weightSum, sumOfWeightedValues);
+      blurKernel(uv, ivec2(indexX, indexY), kernalHalfSize, weightSum, sumOfWeightedValues);
     }
   }
 
   vec4 weightedColor = sumOfWeightedValues / weightSum;
 
-  if (ubo.i == 0) {
-    imageStore(accumTex, uv, weightedColor);
+  if (aTrousIterationBuffer.data == 0) {
+    imageStore(accumedImage, uv, weightedColor);
   }
 
-  imageStore(aTrousOutputTex, uv, weightedColor);
+  if (aTrousIterationBuffer.data % 2 == 0) {
+    imageStore(aTrousPongImage, uv, weightedColor);
+  } else {
+    imageStore(aTrousPingImage, uv, weightedColor);
+  }
 }

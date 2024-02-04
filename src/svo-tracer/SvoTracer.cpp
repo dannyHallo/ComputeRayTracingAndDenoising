@@ -11,7 +11,7 @@
 #include "utils/config/RootDir.h"
 
 // static int constexpr kStratumFilterSize   = 6;
-// static int constexpr kATrousSize          = 5;
+static int constexpr kATrousSize          = 5;
 static uint32_t constexpr kBeamResolution = 8;
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
@@ -126,12 +126,10 @@ void SvoTracer::_createFullSizedImages() {
   _lastVoxHashImage = std::make_unique<Image>(
       w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _accumedImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _lastAccumedImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _accumedImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _lastAccumedImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _varianceHistImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -140,6 +138,13 @@ void SvoTracer::_createFullSizedImages() {
   _lastVarianceHistImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  // both of the ping and pong can be dumped to the render target image and the lastAccumedImage
+  _aTrousPingImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  _aTrousPongImage = std::make_unique<Image>(
+      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _renderTargetImage = std::make_unique<Image>(
       w, h, VK_FORMAT_R8G8B8A8_UNORM,
@@ -252,8 +257,19 @@ void SvoTracer::_createImageForwardingPairs() {
 // so we need to create multiple copies of them, they are fairly small though
 void SvoTracer::_createBuffersAndBufferBundles() {
   // buffers
-  _sceneDataBuffer = std::make_unique<Buffer>(
-      sizeof(G_SceneData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
+  _sceneInfoBuffer = std::make_unique<Buffer>(
+      sizeof(G_SceneInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
+
+  _aTrousIterationBuffer = std::make_unique<Buffer>(
+      sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      MemoryAccessingStyle::kGpuOnly);
+
+  _aTrousIterationStagingBuffers.clear();
+  _aTrousIterationStagingBuffers.reserve(kATrousSize);
+  for (int i = 0; i < kATrousSize; i++) {
+    _aTrousIterationStagingBuffers.emplace_back(std::make_unique<Buffer>(
+        sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryAccessingStyle::kCpuToGpuOnce));
+  }
 
   // buffer bundles
   _renderInfoUniformBuffers = std::make_unique<BufferBundle>(
@@ -263,11 +279,20 @@ void SvoTracer::_createBuffersAndBufferBundles() {
   _twickableParametersUniformBuffers = std::make_unique<BufferBundle>(
       _framesInFlight, sizeof(G_TwickableParameters), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
+
+  _aTrousInfoBuffers = std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_ATrousInfo),
+                                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                      MemoryAccessingStyle::kCpuToGpuEveryFrame);
 }
 
 void SvoTracer::_initBufferData() {
-  G_SceneData sceneData = {kBeamResolution, _svoBuilder->getVoxelLevelCount()};
-  _sceneDataBuffer->fillData(&sceneData);
+  G_SceneInfo sceneData = {kBeamResolution, _svoBuilder->getVoxelLevelCount()};
+  _sceneInfoBuffer->fillData(&sceneData);
+
+  for (uint32_t i = 0; i < kATrousSize; i++) {
+    uint32_t aTrousIteration = i;
+    _aTrousIterationStagingBuffers[i]->fillData(&aTrousIteration);
+  }
 }
 
 void SvoTracer::_recordCommandBuffers() {
@@ -341,6 +366,39 @@ void SvoTracer::_recordCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
+    for (int i = 0; i < kATrousSize; i++) {
+      VkBufferCopy bufCopy = {
+          0,                                 // srcOffset
+          0,                                 // dstOffset,
+          _aTrousIterationBuffer->getSize(), // size
+      };
+
+      vkCmdCopyBuffer(cmdBuffer, _aTrousIterationStagingBuffers[i]->getVkBuffer(),
+                      _aTrousIterationBuffer->getVkBuffer(), 1, &bufCopy);
+
+      VkMemoryBarrier bufferCopyMemoryBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+      bufferCopyMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      bufferCopyMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+      vkCmdPipelineBarrier(cmdBuffer,
+                           VK_PIPELINE_STAGE_TRANSFER_BIT,       // source stage
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // destination stage
+                           0,                                    // dependency flags
+                           1,                                    // memory barrier count
+                           &bufferCopyMemoryBarrier,             // memory barriers
+                           0,                                    // buffer memory barrier count
+                           nullptr,                              // buffer memory barriers
+                           0,                                    // image memory barrier count
+                           nullptr                               // image memory barriers
+      );
+
+      _aTrousPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
+
+      vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr,
+                           0, nullptr);
+    }
+
     // _PipelinesHolder->getGradientModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
 
     // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -408,7 +466,7 @@ void SvoTracer::updateUboData(size_t currentFrame) {
                                    static_cast<float>(_appContext->getSwapchainExtentHeight())) *
       _camera->getViewMatrix();
 
-  G_RenderInfo renderInfoData = {
+  G_RenderInfo renderInfo = {
       _camera->getPosition(),
       _camera->getFront(),
       _camera->getUp(),
@@ -421,18 +479,34 @@ void SvoTracer::updateUboData(size_t currentFrame) {
       currentSample,
       currentTime,
   };
-  _renderInfoUniformBuffers->getBuffer(currentFrame)->fillData(&renderInfoData);
+  _renderInfoUniformBuffers->getBuffer(currentFrame)->fillData(&renderInfo);
 
   lastMvpe = thisMvpe;
 
-  G_TwickableParameters gpUbo{};
-  gpUbo.magicButton       = static_cast<uint32_t>(_uboData.magicButton);
-  gpUbo.visualizeOctree   = static_cast<uint32_t>(_uboData.visualizeOctree);
-  gpUbo.beamOptimization  = static_cast<uint32_t>(_uboData.beamOptimization);
-  gpUbo.traceSecondaryRay = static_cast<uint32_t>(_uboData.traceSecondaryRay);
-  gpUbo.temporalAlpha     = _uboData.temporalAlpha;
+  G_TwickableParameters twickableParameters{};
+  twickableParameters.magicButton       = static_cast<uint32_t>(_uboData.magicButton);
+  twickableParameters.visualizeOctree   = static_cast<uint32_t>(_uboData.visualizeOctree);
+  twickableParameters.beamOptimization  = static_cast<uint32_t>(_uboData.beamOptimization);
+  twickableParameters.traceSecondaryRay = static_cast<uint32_t>(_uboData.traceSecondaryRay);
+  twickableParameters.temporalAlpha     = _uboData.temporalAlpha;
 
-  _twickableParametersUniformBuffers->getBuffer(currentFrame)->fillData(&gpUbo);
+  _twickableParametersUniformBuffers->getBuffer(currentFrame)->fillData(&twickableParameters);
+
+  G_ATrousInfo aTrousInfo{};
+  aTrousInfo.enableATrous         = static_cast<uint32_t>(_uboData.enableATrous);
+  aTrousInfo.aTrousIterationCount = static_cast<uint32_t>(_uboData.aTrousIterationCount);
+  aTrousInfo.useVarianceGuidedFiltering =
+      static_cast<uint32_t>(_uboData.useVarianceGuidedFiltering);
+  aTrousInfo.useGradientInDepth = static_cast<uint32_t>(_uboData.useGradientInDepth);
+  aTrousInfo.phiLuminance       = _uboData.phiLuminance;
+  aTrousInfo.phiDepth           = _uboData.phiDepth;
+  aTrousInfo.phiNormal          = _uboData.phiNormal;
+  aTrousInfo.ignoreLuminanceAtFirstIteration =
+      static_cast<uint32_t>(_uboData.ignoreLuminanceAtFirstIteration);
+  aTrousInfo.changingLuminancePhi = static_cast<uint32_t>(_uboData.changingLuminancePhi);
+  aTrousInfo.useJittering         = static_cast<uint32_t>(_uboData.useJittering);
+
+  _aTrousInfoBuffers->getBuffer(currentFrame)->fillData(&aTrousInfo);
 
   // _gradientProjectionBufferBundle->getBuffer(currentFrame)->fillData(&gpUbo);
 
@@ -461,24 +535,6 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   // };
   // _varianceBufferBundle->getBuffer(currentFrame)->fillData(&varianceUbo);
 
-  // for (int i = 0; i < kATrousSize; i++) {
-  //   // update ubo for the sampleDistance
-  //   BlurFilterUniformBufferObject bfUbo = {
-  //       static_cast<int>(!_uboData._useATrous),
-  //       i,
-  //       _uboData._iCap,
-  //       static_cast<int>(_uboData._useVarianceGuidedFiltering),
-  //       static_cast<int>(_uboData._useGradientInDepth),
-  //       _uboData._phiLuminance,
-  //       _uboData._phiDepth,
-  //       _uboData._phiNormal,
-  //       static_cast<int>(_uboData._ignoreLuminanceAtFirstIteration),
-  //       static_cast<int>(_uboData._changingLuminancePhi),
-  //       static_cast<int>(_uboData._useJittering),
-  //   };
-  //   _blurFilterBufferBundles[i]->getBuffer(currentFrame)->fillData(&bfUbo);
-  // }
-
   // PostProcessingUniformBufferObject postProcessingUbo = {_uboData._displayType};
   // _postProcessingBufferBundle->getBuffer(currentFrame)->fillData(&postProcessingUbo);
 
@@ -491,6 +547,7 @@ void SvoTracer::_createDescriptorSetBundle() {
 
   _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoUniformBuffers.get());
   _descriptorSetBundle->bindUniformBufferBundle(1, _twickableParametersUniformBuffers.get());
+  _descriptorSetBundle->bindUniformBufferBundle(23, _aTrousInfoBuffers.get());
 
   _descriptorSetBundle->bindStorageImage(2, _vec2BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(3, _weightedCosineBlueNoise.get());
@@ -508,11 +565,15 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(14, _lastAccumedImage.get());
   _descriptorSetBundle->bindStorageImage(15, _varianceHistImage.get());
   _descriptorSetBundle->bindStorageImage(16, _lastVarianceHistImage.get());
-  _descriptorSetBundle->bindStorageImage(17, _renderTargetImage.get());
+  // atrous ping and pong
+  _descriptorSetBundle->bindStorageImage(17, _aTrousPingImage.get());
+  _descriptorSetBundle->bindStorageImage(18, _aTrousPongImage.get());
+  _descriptorSetBundle->bindStorageImage(19, _renderTargetImage.get());
 
-  _descriptorSetBundle->bindStorageBuffer(18, _sceneDataBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(19, _svoBuilder->getOctreeBuffer());
-  _descriptorSetBundle->bindStorageBuffer(20, _svoBuilder->getPaletteBuffer());
+  _descriptorSetBundle->bindStorageBuffer(20, _sceneInfoBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(21, _svoBuilder->getOctreeBuffer());
+  _descriptorSetBundle->bindStorageBuffer(22, _svoBuilder->getPaletteBuffer());
+  _descriptorSetBundle->bindStorageBuffer(24, _aTrousIterationBuffer.get());
 
   _descriptorSetBundle->create();
 }
@@ -544,6 +605,15 @@ void SvoTracer::_createPipelines() {
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
     _temporalFilterPipeline->init();
+  }
+  {
+    std::vector<uint32_t> shaderCode{
+#include "aTrous.spv"
+    };
+    _aTrousPipeline =
+        std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
+                                          WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
+    _aTrousPipeline->init();
   }
   {
     std::vector<uint32_t> shaderCode{

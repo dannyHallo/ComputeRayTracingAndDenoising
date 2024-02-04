@@ -287,7 +287,7 @@ void main() {
 
   // beam optimization
   if (twickableParametersUbo.data.beamOptimization == 1) {
-    ivec2 beamUv      = ivec2(gl_GlobalInvocationID.xy / sceneDataBufferObject.data.beamResolution);
+    ivec2 beamUv      = ivec2(gl_GlobalInvocationID.xy / sceneDataBuffer.data.beamResolution);
     float t1          = imageLoad(beamDepthImage, beamUv).r;
     float t2          = imageLoad(beamDepthImage, beamUv + ivec2(1, 0)).r;
     float t3          = imageLoad(beamDepthImage, beamUv + ivec2(0, 1)).r;

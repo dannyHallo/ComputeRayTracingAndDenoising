@@ -23,9 +23,22 @@ struct G_TwickableParameters {
   float temporalAlpha;
 };
 
-struct G_SceneData {
+struct G_SceneInfo {
   uint beamResolution;
   uint voxelLevelCount;
+};
+
+struct G_ATrousInfo {
+  uint enableATrous;
+  uint aTrousIterationCount;
+  uint useVarianceGuidedFiltering;
+  uint useGradientInDepth;
+  float phiLuminance;
+  float phiDepth;
+  float phiNormal;
+  uint ignoreLuminanceAtFirstIteration;
+  uint changingLuminancePhi;
+  uint useJittering;
 };
 
 #endif // SVO_TRACER_DATA_STRUCTS_GLSL

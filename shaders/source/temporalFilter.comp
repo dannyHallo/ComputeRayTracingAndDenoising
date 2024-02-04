@@ -63,7 +63,7 @@ void main() {
     // varianceBlending = 1;
   }
   vec4 colToWrite = mix(accumedColor, rawColor, alphaBlending);
-  imageStore(accumedImage, uv, colToWrite);
+  imageStore(aTrousPingImage, uv, colToWrite);
   // vec4 accumVarianceHist = mix(imageLoad(lastVarianceHistImage, pUv), vec4(0), varianceBlending);
   // imageStore(varianceHistImage, uv, accumVarianceHist);
 }
