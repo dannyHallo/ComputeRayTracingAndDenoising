@@ -58,8 +58,8 @@ private:
   std::unique_ptr<Buffer> _octreeBuffer;
   std::unique_ptr<Buffer> _fragmentListBuffer;
   std::unique_ptr<Buffer> _buildInfoBuffer;
-  std::unique_ptr<Buffer> _indirectBuffer;
-  std::unique_ptr<Buffer> _fragmentDataBuffer;
+  std::unique_ptr<Buffer> _indirectDispatchInfoBuffer;
+  std::unique_ptr<Buffer> _fragmentListInfoBuffer;
 
   void _createBuffers(VoxData const &voxData);
   void _initBufferData(VoxData const &voxData);

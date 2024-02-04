@@ -114,13 +114,13 @@ void SvoBuilder::_createBuffers(const VoxData &voxData) {
   _buildInfoBuffer = std::make_unique<Buffer>(
       sizeof(G_BuildInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
 
-  _indirectBuffer = std::make_unique<Buffer>(sizeof(G_IndirectData),
-                                             VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
-                                                 VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                             MemoryAccessingStyle::kCpuToGpuOnce);
+  _indirectDispatchInfoBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
+                                                         VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+                                                             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                                         MemoryAccessingStyle::kCpuToGpuOnce);
 
-  _fragmentDataBuffer =
-      std::make_unique<Buffer>(sizeof(G_FragmentListData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+  _fragmentListInfoBuffer =
+      std::make_unique<Buffer>(sizeof(G_FragmentListInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                MemoryAccessingStyle::kCpuToGpuOnce);
 }
 
@@ -131,25 +131,24 @@ void SvoBuilder::_initBufferData(VoxData const &voxData) {
   _atomicCounterBuffer->fillData(&atomicCounterInitData);
 
   // octree buffer is left uninitialized
-  // _octreeBuffer->fillData(_createByHand().data());
 
   _fragmentListBuffer->fillData(voxData.fragmentList.data());
 
-  G_BuildInfo buildInfoInitData{};
-  buildInfoInitData.allocBegin = 0;
-  buildInfoInitData.allocNum   = 8;
-  _buildInfoBuffer->fillData(&buildInfoInitData);
+  G_BuildInfo buildInfo{};
+  buildInfo.allocBegin = 0;
+  buildInfo.allocNum   = 8;
+  _buildInfoBuffer->fillData(&buildInfo);
 
-  G_IndirectData indirectDataInitData{};
-  indirectDataInitData.dispatchX = 1;
-  indirectDataInitData.dispatchY = 1;
-  indirectDataInitData.dispatchZ = 1;
-  _indirectBuffer->fillData(&indirectDataInitData);
+  G_IndirectDispatchInfo indirectDispatchInfo{};
+  indirectDispatchInfo.dispatchX = 1;
+  indirectDispatchInfo.dispatchY = 1;
+  indirectDispatchInfo.dispatchZ = 1;
+  _indirectDispatchInfoBuffer->fillData(&indirectDispatchInfo);
 
-  G_FragmentListData fragmentListDataInitData{};
-  fragmentListDataInitData.voxelResolution    = voxData.voxelResolution;
-  fragmentListDataInitData.voxelFragmentCount = static_cast<uint32_t>(voxData.fragmentList.size());
-  _fragmentDataBuffer->fillData(&fragmentListDataInitData);
+  G_FragmentListInfo fragmentListInfo{};
+  fragmentListInfo.voxelResolution    = voxData.voxelResolution;
+  fragmentListInfo.voxelFragmentCount = static_cast<uint32_t>(voxData.fragmentList.size());
+  _fragmentListInfoBuffer->fillData(&fragmentListInfo);
 }
 
 void SvoBuilder::_createDescriptorSetBundle() {
@@ -161,8 +160,8 @@ void SvoBuilder::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageBuffer(1, _octreeBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(2, _fragmentListBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(3, _buildInfoBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(4, _indirectBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(5, _fragmentDataBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(4, _indirectDispatchInfoBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(5, _fragmentListInfoBuffer.get());
 
   _descriptorSetBundle->create();
 }
@@ -232,7 +231,8 @@ void SvoBuilder::_recordCommandBuffer(uint32_t voxelFragmentCount, uint32_t octr
       VK_ACCESS_INDIRECT_COMMAND_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
   for (uint32_t level = 0; level < octreeLevelCount; level++) {
-    _initNodePipeline->recordIndirectCommand(_commandBuffer, 0, _indirectBuffer->getVkBuffer());
+    _initNodePipeline->recordIndirectCommand(_commandBuffer, 0,
+                                             _indirectDispatchInfoBuffer->getVkBuffer());
     vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier1, 0, nullptr, 0,
                          nullptr);
@@ -244,7 +244,8 @@ void SvoBuilder::_recordCommandBuffer(uint32_t voxelFragmentCount, uint32_t octr
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier1, 0, nullptr,
                            0, nullptr);
 
-      _allocNodePipeline->recordIndirectCommand(_commandBuffer, 0, _indirectBuffer->getVkBuffer());
+      _allocNodePipeline->recordIndirectCommand(_commandBuffer, 0,
+                                                _indirectDispatchInfoBuffer->getVkBuffer());
       vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier1, 0, nullptr,
                            0, nullptr);

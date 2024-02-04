@@ -3,14 +3,14 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-#include "include/svoBuilderDescriptorSet.glsl"
+#include "include/svoBuilderDescriptorSetLayouts.glsl"
 
 // equivalent to ceil(x / 64)
 uint group_x_64(uint x) { return (x >> 6u) + (((x & 0x3fu) > 0u) ? 1u : 0u); }
 
 void main() {
-  uAllocBegin += uAllocNum;
+  buildInfoBuffer.data.allocBegin += buildInfoBuffer.data.allocNum;
   // uCounter stores accumulated tagged node count
-  uAllocNum  = (uCounter << 3u) - uAllocBegin;
-  uNumGroupX = group_x_64(uAllocNum);
+  buildInfoBuffer.data.allocNum = (counterBuffer.uCounter << 3u) - buildInfoBuffer.data.allocBegin;
+  indirectDispatchInfoBuffer.data.dispatchX = group_x_64(buildInfoBuffer.data.allocNum);
 }

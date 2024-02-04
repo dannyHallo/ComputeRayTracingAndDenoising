@@ -2,23 +2,10 @@
 
 #include <cstdint>
 
-struct G_FragmentListEntry {
-  uint32_t coordinates;
-  uint32_t properties;
-};
+#define uint uint32_t
 
-struct G_BuildInfo {
-  uint32_t allocBegin;
-  uint32_t allocNum;
-};
+#include "shaders/source/include/svoBuilderDataStructs.glsl"
 
-struct G_IndirectData {
-  uint32_t dispatchX;
-  uint32_t dispatchY;
-  uint32_t dispatchZ;
-};
-
-struct G_FragmentListData {
-  uint32_t voxelResolution;
-  uint32_t voxelFragmentCount;
-};
+#undef vec3
+#undef mat4
+#undef uint
