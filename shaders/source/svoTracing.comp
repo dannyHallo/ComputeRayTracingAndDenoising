@@ -266,7 +266,9 @@ void tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
   oPosition = vec4(pos, 1);
   oNormal   = vec4(normal, 1);
   oVoxHash  = voxHash;
-  oT        = tMin + optimizedDistance;
+
+  // don't forget the optimized distance
+  oT = tMin + optimizedDistance;
 }
 
 void main() {
@@ -284,13 +286,12 @@ void main() {
 
   // beam optimization
   if (twickableParametersUbo.data.beamOptimization == 1) {
-    ivec2 beamUv = ivec2(gl_GlobalInvocationID.xy / sceneDataBufferObject.data.beamResolution);
-    float t1     = imageLoad(beamDepthImage, beamUv).r;
-    float t2     = imageLoad(beamDepthImage, beamUv + ivec2(1, 0)).r;
-    float t3     = imageLoad(beamDepthImage, beamUv + ivec2(0, 1)).r;
-    float t4     = imageLoad(beamDepthImage, beamUv + ivec2(1, 1)).r;
-    float t      = min(min(t1, t2), min(t3, t4));
-    // o += t * d;
+    ivec2 beamUv      = ivec2(gl_GlobalInvocationID.xy / sceneDataBufferObject.data.beamResolution);
+    float t1          = imageLoad(beamDepthImage, beamUv).r;
+    float t2          = imageLoad(beamDepthImage, beamUv + ivec2(1, 0)).r;
+    float t3          = imageLoad(beamDepthImage, beamUv + ivec2(0, 1)).r;
+    float t4          = imageLoad(beamDepthImage, beamUv + ivec2(1, 1)).r;
+    float t           = min(min(t1, t2), min(t3, t4));
     optimizedDistance = t;
   }
 
