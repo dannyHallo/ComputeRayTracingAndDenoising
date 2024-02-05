@@ -63,12 +63,15 @@ private:
   std::unique_ptr<Image> _beamDepthImage;
   std::unique_ptr<Image> _rawImage;
   std::unique_ptr<Image> _depthImage;
-  std::unique_ptr<Image> _positionImage;
   std::unique_ptr<Image> _octreeVisualizationImage;
 
   std::unique_ptr<Image> _normalImage;
   std::unique_ptr<Image> _lastNormalImage;
   std::unique_ptr<ImageForwardingPair> _normalForwardingPair;
+
+  std::unique_ptr<Image> _positionImage;
+  std::unique_ptr<Image> _lastPositionImage;
+  std::unique_ptr<ImageForwardingPair> _positionForwardingPair;
 
   std::unique_ptr<Image> _voxHashImage;
   std::unique_ptr<Image> _lastVoxHashImage;

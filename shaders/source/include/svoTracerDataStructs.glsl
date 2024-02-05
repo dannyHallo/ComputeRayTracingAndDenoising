@@ -21,6 +21,7 @@ struct G_TwickableParameters {
   bool beamOptimization;
   bool traceSecondaryRay;
   float temporalAlpha;
+  float temporalPositionPhi;
 };
 
 struct G_SceneInfo {

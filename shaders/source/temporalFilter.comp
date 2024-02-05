@@ -11,8 +11,16 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 // when alpha is too high, the image is unstable     -> jitter of noise
 
 ivec2 backwardProjection(ivec2 uv) {
-  vec4 worldPos       = imageLoad(positionImage, uv);
-  vec4 screenBoxCoord = renderInfoUbo.data.lastMvpe * worldPos;
+  vec4 worldPos = imageLoad(positionImage, uv);
+
+  mat4 mvpe;
+  if (twickableParametersUbo.data.magicButton) {
+    mvpe = renderInfoUbo.data.lastMvpe;
+  } else {
+    mvpe = renderInfoUbo.data.thisMvpe;
+  }
+  vec4 screenBoxCoord = mvpe * worldPos;
+
   // points are bounded in [-1, 1] in x, y, z after the following
   screenBoxCoord /= screenBoxCoord.w;
   // points are bounded in [0, 1] in x, y, meanwhile z, w are thrown away
@@ -33,16 +41,21 @@ vec4 getAccumColor(ivec2 pUv) {
 }
 
 bool isConsistent(ivec2 uv, ivec2 pUv) {
-  vec3 normal           = imageLoad(normalImage, uv).xyz;
-  vec3 lastNormal       = imageLoad(lastNormalImage, pUv).xyz;
-  bool normalConsistent = true;
+  vec3 normal     = imageLoad(normalImage, uv).xyz;
+  vec3 lastNormal = imageLoad(lastNormalImage, pUv).xyz;
 
-  float normalFac  = pow(dot(normal, lastNormal), 128.);
-  normalConsistent = normalFac > 0.99;
+  float normalFac       = pow(dot(normal, lastNormal), 128.);
+  bool normalConsistent = normalFac > 0.99;
+
+  vec3 position     = imageLoad(positionImage, uv).xyz;
+  vec3 lastPosition = imageLoad(lastPositionImage, pUv).xyz;
+
+  float positionFac       = exp(-distance(position, lastPosition));
+  bool positionConsistent = positionFac > twickableParametersUbo.data.temporalPositionPhi;
 
   // bool voxHashConsistent = imageLoad(voxHashImage, uv) == imageLoad(lastVoxHashImage, pUv);
   bool voxHashConsistent = true;
-  return normalConsistent && voxHashConsistent;
+  return normalConsistent && voxHashConsistent && positionConsistent;
 }
 
 void main() {

@@ -307,7 +307,9 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::Checkbox("Use Variance Guided Filtering",
                     &_svoTracerTweakingData->useVarianceGuidedFiltering);
     ImGui::Checkbox("Use Gradient In Depth", &_svoTracerTweakingData->useGradientInDepth);
-    ImGui::SliderFloat("Phi Luminance", &_svoTracerTweakingData->phiLuminance, 0.0F, 1.0F);
+    ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi, 0.0F,
+                       1.0F);
+    ImGui::SliderFloat("Phi Luminance", &_svoTracerTweakingData->phiLuminance, 0.0F, 100.0F);
     ImGui::SliderFloat("Phi Depth", &_svoTracerTweakingData->phiDepth, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Normal", &_svoTracerTweakingData->phiNormal, 0.0F, 200.0F);
     ImGui::Checkbox("Ignore Luminance At First Iteration",

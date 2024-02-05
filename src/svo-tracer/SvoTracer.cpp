@@ -108,9 +108,6 @@ void SvoTracer::_createFullSizedImages() {
 
   _depthImage = std::make_unique<Image>(w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _positionImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
-
   _octreeVisualizationImage = std::make_unique<Image>(
       w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
@@ -118,6 +115,14 @@ void SvoTracer::_createFullSizedImages() {
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _lastNormalImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  _positionImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+
+  _lastPositionImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
@@ -219,6 +224,10 @@ void SvoTracer::_createImageForwardingPairs() {
 
   _normalForwardingPair = std::make_unique<ImageForwardingPair>(
       _normalImage->getVkImage(), _lastNormalImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
+
+  _positionForwardingPair = std::make_unique<ImageForwardingPair>(
+      _positionImage->getVkImage(), _lastPositionImage->getVkImage(), VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL);
 
   _voxHashForwardingPair = std::make_unique<ImageForwardingPair>(
@@ -445,6 +454,7 @@ void SvoTracer::_recordCommandBuffers() {
 
     // copy to history images
     _normalForwardingPair->forwardCopy(cmdBuffer);
+    _positionForwardingPair->forwardCopy(cmdBuffer);
     _voxHashForwardingPair->forwardCopy(cmdBuffer);
     _accumedForwardingPair->forwardCopy(cmdBuffer);
     _varianceHistForwardingPair->forwardCopy(cmdBuffer);
@@ -487,11 +497,12 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   lastMvpe = thisMvpe;
 
   G_TwickableParameters twickableParameters{};
-  twickableParameters.magicButton       = _uboData.magicButton;
-  twickableParameters.visualizeOctree   = _uboData.visualizeOctree;
-  twickableParameters.beamOptimization  = _uboData.beamOptimization;
-  twickableParameters.traceSecondaryRay = _uboData.traceSecondaryRay;
-  twickableParameters.temporalAlpha     = _uboData.temporalAlpha;
+  twickableParameters.magicButton         = _uboData.magicButton;
+  twickableParameters.visualizeOctree     = _uboData.visualizeOctree;
+  twickableParameters.beamOptimization    = _uboData.beamOptimization;
+  twickableParameters.traceSecondaryRay   = _uboData.traceSecondaryRay;
+  twickableParameters.temporalAlpha       = _uboData.temporalAlpha;
+  twickableParameters.temporalPositionPhi = _uboData.temporalPositionPhi;
 
   _twickableParametersUniformBuffers->getBuffer(currentFrame)->fillData(&twickableParameters);
 
@@ -555,10 +566,11 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(4, _beamDepthImage.get());
   _descriptorSetBundle->bindStorageImage(5, _rawImage.get());
   _descriptorSetBundle->bindStorageImage(6, _depthImage.get());
-  _descriptorSetBundle->bindStorageImage(7, _positionImage.get());
   _descriptorSetBundle->bindStorageImage(8, _octreeVisualizationImage.get());
   _descriptorSetBundle->bindStorageImage(9, _normalImage.get());
   _descriptorSetBundle->bindStorageImage(10, _lastNormalImage.get());
+  _descriptorSetBundle->bindStorageImage(7, _positionImage.get());
+  _descriptorSetBundle->bindStorageImage(26, _lastPositionImage.get());
   _descriptorSetBundle->bindStorageImage(11, _voxHashImage.get());
   _descriptorSetBundle->bindStorageImage(12, _lastVoxHashImage.get());
   _descriptorSetBundle->bindStorageImage(13, _accumedImage.get());

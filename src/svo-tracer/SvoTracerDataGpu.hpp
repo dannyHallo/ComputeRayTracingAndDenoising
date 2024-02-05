@@ -25,9 +25,10 @@ struct SvoTracerTweakingData {
   bool traceSecondaryRay = true;
   float temporalAlpha    = 0.15F;
 
-  int aTrousIterationCount             = 1;
+  int aTrousIterationCount             = 0;
   bool useVarianceGuidedFiltering      = true;
   bool useGradientInDepth              = true;
+  float temporalPositionPhi            = 0.95F;
   float phiLuminance                   = 0.3F;
   float phiDepth                       = 0.01F;
   float phiNormal                      = 128.F;
