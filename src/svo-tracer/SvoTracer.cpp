@@ -327,6 +327,10 @@ void SvoTracer::_recordCommandBuffers() {
       vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _commandBuffers.data());
   assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
 
+  VkMemoryBarrier uboWritingBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  uboWritingBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+  uboWritingBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
   // create the general memory barrier
   VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
   memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
@@ -337,6 +341,19 @@ void SvoTracer::_recordCommandBuffers() {
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+
+    // make all host writes to the ubo visible to the shaders
+    vkCmdPipelineBarrier(cmdBuffer,
+                         VK_PIPELINE_STAGE_HOST_BIT,           // source stage
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // destination stage
+                         0,                                    // dependency flags
+                         1,                                    // memory barrier count
+                         &uboWritingBarrier,                   // memory barriers
+                         0,                                    // buffer memory barrier count
+                         nullptr,                              // buffer memory barriers
+                         0,                                    // image memory barrier count
+                         nullptr                               // image memory barriers
+    );
 
     _renderTargetImage->clearImage(cmdBuffer);
     // _aTrousInputImage->clearImage(cmdBuffer);
