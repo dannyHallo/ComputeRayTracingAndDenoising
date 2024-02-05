@@ -45,7 +45,7 @@ private:
   int _framesInFlight;
   bool _showFpsGraph = true;
 
-  SvoTracerTweakingData *_SvoTracerDataGpu;
+  SvoTracerTweakingData *_svoTracerTweakingData;
 
   std::unique_ptr<FpsGui> _fpsGui;
   std::unique_ptr<ColorPalette> _colorPalette;

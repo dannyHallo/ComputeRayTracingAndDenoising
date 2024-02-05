@@ -30,6 +30,7 @@ layout(binding = 15, rgba32f) uniform image2D varianceHistImage;
 layout(binding = 16, rgba32f) readonly uniform image2D lastVarianceHistImage;
 layout(binding = 17, rgba8) uniform image2D aTrousPingImage;
 layout(binding = 18, rgba8) uniform image2D aTrousPongImage;
+layout(binding = 25, rgba8) uniform image2D aTrousFinalResultImage;
 layout(binding = 19, rgba8) uniform image2D renderTargetImage;
 
 layout(std430, binding = 20) readonly buffer SceneDataBuffer { G_SceneInfo data; }

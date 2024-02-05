@@ -6,6 +6,7 @@
 // https://www.oreilly.com/library/view/opengl-programming-guide/9780132748445/app09lev1sec3.html
 #define vec3 alignas(16) glm::vec3
 #define mat4 alignas(16) glm::mat4
+#define bool alignas(4) bool
 #define uint uint32_t
 
 #include "shaders/source/include/svoTracerDataStructs.glsl"
@@ -13,6 +14,7 @@
 #undef vec3
 #undef mat4
 #undef uint
+#undef bool
 
 struct SvoTracerTweakingData {
   SvoTracerTweakingData() = default;
@@ -23,12 +25,11 @@ struct SvoTracerTweakingData {
   bool traceSecondaryRay = true;
   float temporalAlpha    = 0.15F;
 
-  bool enableATrous                    = true;
   int aTrousIterationCount             = 1;
   bool useVarianceGuidedFiltering      = true;
   bool useGradientInDepth              = true;
   float phiLuminance                   = 0.3F;
-  float phiDepth                       = 0.2F;
+  float phiDepth                       = 0.01F;
   float phiNormal                      = 128.F;
   bool ignoreLuminanceAtFirstIteration = true;
   bool changingLuminancePhi            = true;

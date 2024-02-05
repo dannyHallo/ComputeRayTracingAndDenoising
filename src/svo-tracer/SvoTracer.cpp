@@ -140,11 +140,14 @@ void SvoTracer::_createFullSizedImages() {
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   // both of the ping and pong can be dumped to the render target image and the lastAccumedImage
-  _aTrousPingImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _aTrousPingImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _aTrousPongImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _aTrousPongImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
+
+  _aTrousFinalResultImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _renderTargetImage = std::make_unique<Image>(
       w, h, VK_FORMAT_R8G8B8A8_UNORM,
@@ -484,27 +487,24 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   lastMvpe = thisMvpe;
 
   G_TwickableParameters twickableParameters{};
-  twickableParameters.magicButton       = static_cast<uint32_t>(_uboData.magicButton);
-  twickableParameters.visualizeOctree   = static_cast<uint32_t>(_uboData.visualizeOctree);
-  twickableParameters.beamOptimization  = static_cast<uint32_t>(_uboData.beamOptimization);
-  twickableParameters.traceSecondaryRay = static_cast<uint32_t>(_uboData.traceSecondaryRay);
+  twickableParameters.magicButton       = _uboData.magicButton;
+  twickableParameters.visualizeOctree   = _uboData.visualizeOctree;
+  twickableParameters.beamOptimization  = _uboData.beamOptimization;
+  twickableParameters.traceSecondaryRay = _uboData.traceSecondaryRay;
   twickableParameters.temporalAlpha     = _uboData.temporalAlpha;
 
   _twickableParametersUniformBuffers->getBuffer(currentFrame)->fillData(&twickableParameters);
 
   G_ATrousInfo aTrousInfo{};
-  aTrousInfo.enableATrous         = static_cast<uint32_t>(_uboData.enableATrous);
-  aTrousInfo.aTrousIterationCount = static_cast<uint32_t>(_uboData.aTrousIterationCount);
-  aTrousInfo.useVarianceGuidedFiltering =
-      static_cast<uint32_t>(_uboData.useVarianceGuidedFiltering);
-  aTrousInfo.useGradientInDepth = static_cast<uint32_t>(_uboData.useGradientInDepth);
-  aTrousInfo.phiLuminance       = _uboData.phiLuminance;
-  aTrousInfo.phiDepth           = _uboData.phiDepth;
-  aTrousInfo.phiNormal          = _uboData.phiNormal;
-  aTrousInfo.ignoreLuminanceAtFirstIteration =
-      static_cast<uint32_t>(_uboData.ignoreLuminanceAtFirstIteration);
-  aTrousInfo.changingLuminancePhi = static_cast<uint32_t>(_uboData.changingLuminancePhi);
-  aTrousInfo.useJittering         = static_cast<uint32_t>(_uboData.useJittering);
+  aTrousInfo.aTrousIterationCount            = static_cast<uint32_t>(_uboData.aTrousIterationCount);
+  aTrousInfo.useVarianceGuidedFiltering      = _uboData.useVarianceGuidedFiltering;
+  aTrousInfo.useGradientInDepth              = _uboData.useGradientInDepth;
+  aTrousInfo.phiLuminance                    = _uboData.phiLuminance;
+  aTrousInfo.phiDepth                        = _uboData.phiDepth;
+  aTrousInfo.phiNormal                       = _uboData.phiNormal;
+  aTrousInfo.ignoreLuminanceAtFirstIteration = _uboData.ignoreLuminanceAtFirstIteration;
+  aTrousInfo.changingLuminancePhi            = _uboData.changingLuminancePhi;
+  aTrousInfo.useJittering                    = _uboData.useJittering;
 
   _aTrousInfoBuffers->getBuffer(currentFrame)->fillData(&aTrousInfo);
 
@@ -568,6 +568,8 @@ void SvoTracer::_createDescriptorSetBundle() {
   // atrous ping and pong
   _descriptorSetBundle->bindStorageImage(17, _aTrousPingImage.get());
   _descriptorSetBundle->bindStorageImage(18, _aTrousPongImage.get());
+  _descriptorSetBundle->bindStorageImage(25, _aTrousFinalResultImage.get());
+
   _descriptorSetBundle->bindStorageImage(19, _renderTargetImage.get());
 
   _descriptorSetBundle->bindStorageBuffer(20, _sceneInfoBuffer.get());

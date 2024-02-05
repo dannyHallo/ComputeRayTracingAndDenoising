@@ -16,10 +16,10 @@ struct G_RenderInfo {
 };
 
 struct G_TwickableParameters {
-  uint magicButton;
-  uint visualizeOctree;
-  uint beamOptimization;
-  uint traceSecondaryRay;
+  bool magicButton;
+  bool visualizeOctree;
+  bool beamOptimization;
+  bool traceSecondaryRay;
   float temporalAlpha;
 };
 
@@ -29,16 +29,15 @@ struct G_SceneInfo {
 };
 
 struct G_ATrousInfo {
-  uint enableATrous;
   uint aTrousIterationCount;
-  uint useVarianceGuidedFiltering;
-  uint useGradientInDepth;
+  bool useVarianceGuidedFiltering;
+  bool useGradientInDepth;
   float phiLuminance;
   float phiDepth;
   float phiNormal;
-  uint ignoreLuminanceAtFirstIteration;
-  uint changingLuminancePhi;
-  uint useJittering;
+  bool ignoreLuminanceAtFirstIteration;
+  bool changingLuminancePhi;
+  bool useJittering;
 };
 
 #endif // SVO_TRACER_DATA_STRUCTS_GLSL

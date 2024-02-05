@@ -223,7 +223,7 @@ vec3 traceSecondary(uvec3 seed, vec3 o, vec3 d) {
   }
 
   // only consider direct lighting
-  if (twickableParametersUbo.data.traceSecondaryRay == 0) {
+  if (!twickableParametersUbo.data.traceSecondaryRay) {
     return vec3(0);
   }
 
@@ -286,7 +286,7 @@ void main() {
   float optimizedDistance = 0;
 
   // beam optimization
-  if (twickableParametersUbo.data.beamOptimization == 1) {
+  if (twickableParametersUbo.data.beamOptimization) {
     ivec2 beamUv      = ivec2(gl_GlobalInvocationID.xy / sceneDataBuffer.data.beamResolution);
     float t1          = imageLoad(beamDepthImage, beamUv).r;
     float t2          = imageLoad(beamDepthImage, beamUv + ivec2(1, 0)).r;

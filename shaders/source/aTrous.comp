@@ -60,7 +60,7 @@ void blurKernel(ivec2 uv, ivec2 dispatchXY, int kernalHalfSize, inout float weig
                 inout vec4 sumOfWeightedValues) {
   int stepSize   = 1 << aTrousIterationBuffer.data;
   ivec2 offsetXY = dispatchXY * stepSize;
-  if ((aTrousInfoUbo.data.useJittering != 0) && dispatchXY != ivec2(0)) {
+  if (aTrousInfoUbo.data.useJittering && dispatchXY != ivec2(0)) {
     offsetXY += jittering(stepSize);
   }
 
@@ -87,7 +87,7 @@ void blurKernel(ivec2 uv, ivec2 dispatchXY, int kernalHalfSize, inout float weig
 
     float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
     float phiC              = aTrousInfoUbo.data.phiLuminance;
-    if (aTrousInfoUbo.data.changingLuminancePhi != 0) {
+    if (aTrousInfoUbo.data.changingLuminancePhi) {
       phiC = pow(2, -aTrousIterationBuffer.data) * aTrousInfoUbo.data.phiLuminance;
     }
     weightC       = 0;
@@ -98,8 +98,7 @@ void blurKernel(ivec2 uv, ivec2 dispatchXY, int kernalHalfSize, inout float weig
     // } else {
     weightC = exp(-colDiff / phiC);
     // }
-    if (aTrousInfoUbo.data.ignoreLuminanceAtFirstIteration != 0 &&
-        aTrousIterationBuffer.data == 0) {
+    if (aTrousInfoUbo.data.ignoreLuminanceAtFirstIteration && aTrousIterationBuffer.data == 0) {
       weightC = 1.0;
     }
 
@@ -120,10 +119,19 @@ void blurKernel(ivec2 uv, ivec2 dispatchXY, int kernalHalfSize, inout float weig
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight)
+  if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight) {
     return;
+  }
 
-  if (aTrousIterationBuffer.data >= aTrousInfoUbo.data.aTrousIterationCount) return;
+  if (aTrousIterationBuffer.data >= aTrousInfoUbo.data.aTrousIterationCount) {
+    // no A-Trous at all: just copy the input to the output
+    if (aTrousIterationBuffer.data == 0) {
+      vec4 color = imageLoad(aTrousPingImage, uv);
+      imageStore(aTrousFinalResultImage, uv, color);
+      imageStore(accumedImage, uv, color);
+    }
+    return;
+  }
 
   // vec3 col3 = vec3(1.0) * aTrousIterationBuffer.data / 5;
   // imageStore(aTrousPongImage, uv, vec4(col3, 1));
@@ -162,6 +170,11 @@ void main() {
     imageStore(accumedImage, uv, weightedColor);
   }
 
+  // dump image
+  if (aTrousIterationBuffer.data == aTrousInfoUbo.data.aTrousIterationCount - 1) {
+    imageStore(aTrousFinalResultImage, uv, weightedColor);
+    return;
+  }
   if (aTrousIterationBuffer.data % 2 == 0) {
     imageStore(aTrousPongImage, uv, weightedColor);
   } else {

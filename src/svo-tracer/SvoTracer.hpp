@@ -84,6 +84,7 @@ private:
 
   std::unique_ptr<Image> _aTrousPingImage;
   std::unique_ptr<Image> _aTrousPongImage;
+  std::unique_ptr<Image> _aTrousFinalResultImage;
 
   std::unique_ptr<Image> _renderTargetImage;
   std::vector<std::unique_ptr<ImageForwardingPair>> _targetForwardingPairs;

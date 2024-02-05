@@ -41,7 +41,7 @@ void main() {
   }
 
   vec3 writingCol = vec3(0);
-  writingCol      = imageLoad(aTrousPongImage, uv).xyz;
+  writingCol      = imageLoad(aTrousFinalResultImage, uv).xyz;
 
   // float depthHighRes           = imageLoad(depthImage, uv).x;
   // vec3 highResOverlappingColor = vec3(1, 0, 0) * exp(-depthHighRes);
@@ -52,7 +52,7 @@ void main() {
 
   // vec3 positionOverlappingColor = imageLoad(positionImage, uv).xyz - vec3(1);
 
-  if (twickableParametersUbo.data.visualizeOctree == 1) {
+  if (twickableParametersUbo.data.visualizeOctree) {
     writingCol += imageLoad(octreeVisualizationImage, uv).xyz;
   }
 
