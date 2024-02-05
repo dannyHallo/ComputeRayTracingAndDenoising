@@ -36,7 +36,7 @@ public:
 
   void onSwapchainResize();
 
-  void recordCommandBuffer(size_t currentFrame, uint32_t swapchainImageIndex);
+  void recordCommandBuffer(size_t currentFrame, uint32_t imageIndex);
 
 private:
   VulkanApplicationContext *_appContext;

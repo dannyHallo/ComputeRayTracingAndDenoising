@@ -55,7 +55,7 @@ public:
   [[nodiscard]] inline const std::vector<VkImageView> &getSwapchainImageViews() const {
     return _swapchainImageViews;
   }
-  [[nodiscard]] inline size_t getSwapchainSize() const { return _swapchainImages.size(); }
+  [[nodiscard]] inline size_t getSwapchainImagesCount() const { return _swapchainImages.size(); }
   [[nodiscard]] inline const VkFormat &getSwapchainImageFormat() const {
     return _swapchainImageFormat;
   }

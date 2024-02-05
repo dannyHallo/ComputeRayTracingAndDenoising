@@ -120,8 +120,8 @@ void ImguiManager::init() {
   info.PipelineCache             = VK_NULL_HANDLE;
   info.DescriptorPool            = _guiDescriptorPool;
   info.Allocator                 = VK_NULL_HANDLE;
-  info.MinImageCount             = static_cast<uint32_t>(_appContext->getSwapchainSize());
-  info.ImageCount                = static_cast<uint32_t>(_appContext->getSwapchainSize());
+  info.MinImageCount             = static_cast<uint32_t>(_appContext->getSwapchainImagesCount());
+  info.ImageCount                = static_cast<uint32_t>(_appContext->getSwapchainImagesCount());
   info.CheckVkResultFn           = check_vk_result;
   if (!ImGui_ImplVulkan_Init(&info, _guiPass)) {
     _logger->print("failed to init impl");
@@ -233,13 +233,13 @@ void ImguiManager::_createFramebuffers() {
   // Create gui frame buffers for gui pass to use
   // Each frame buffer will have an attachment of VkImageView, in this case, the
   // attachments are mSwapchainImageViews
-  _guiFrameBuffers.resize(_appContext->getSwapchainSize());
+  _guiFrameBuffers.resize(_appContext->getSwapchainImagesCount());
 
   uint32_t const w = _appContext->getSwapchainExtentWidth();
   uint32_t const h = _appContext->getSwapchainExtentHeight();
 
   // Iterate through image views
-  for (size_t i = 0; i < _appContext->getSwapchainSize(); i++) {
+  for (size_t i = 0; i < _appContext->getSwapchainImagesCount(); i++) {
     VkImageView attachment = _appContext->getSwapchainImageViews()[i];
 
     VkFramebufferCreateInfo frameBufferCreateInfo{};
@@ -257,7 +257,7 @@ void ImguiManager::_createFramebuffers() {
   }
 }
 
-void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t swapchainImageIndex) {
+void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t imageIndex) {
   VkCommandBuffer commandBuffer = _guiCommandBuffers[currentFrame];
 
   VkCommandBufferBeginInfo beginInfo{};
@@ -272,7 +272,7 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t swapchainIm
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
   renderPassInfo.renderPass            = _guiPass;
-  renderPassInfo.framebuffer           = _guiFrameBuffers[swapchainImageIndex];
+  renderPassInfo.framebuffer           = _guiFrameBuffers[imageIndex];
   renderPassInfo.renderArea.extent     = _appContext->getSwapchainExtent();
 
   VkClearValue clearValue{};

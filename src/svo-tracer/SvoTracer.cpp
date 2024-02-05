@@ -19,7 +19,7 @@ SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_
     : _appContext(appContext), _logger(logger), _camera(camera), _framesInFlight(framesInFlight) {}
 
 SvoTracer::~SvoTracer() {
-  for (auto &commandBuffer : _commandBuffers) {
+  for (auto &commandBuffer : _tracingCommandBuffers) {
     vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                          &commandBuffer);
   }
@@ -41,7 +41,8 @@ void SvoTracer::init(SvoBuilder *svoBuilder) {
   _createPipelines();
 
   // create command buffers
-  _recordCommandBuffers();
+  _recordRenderingCommandBuffers();
+  _recordDeliveryCommandBuffers();
 }
 
 void SvoTracer::onSwapchainResize() {
@@ -53,7 +54,8 @@ void SvoTracer::onSwapchainResize() {
   _createDescriptorSetBundle();
   _createPipelines();
 
-  _recordCommandBuffers();
+  _recordRenderingCommandBuffers();
+  _recordDeliveryCommandBuffers();
 }
 
 void SvoTracer::_createImages() {
@@ -257,7 +259,7 @@ void SvoTracer::_createImageForwardingPairs() {
 
   // creating forwarding pairs to copy the image result each frame to a specific swapchain
   _targetForwardingPairs.clear();
-  for (int i = 0; i < _appContext->getSwapchainSize(); i++) {
+  for (int i = 0; i < _appContext->getSwapchainImagesCount(); i++) {
     _targetForwardingPairs.emplace_back(std::make_unique<ImageForwardingPair>(
         _renderTargetImage->getVkImage(), _appContext->getSwapchainImages()[i],
         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
@@ -307,37 +309,33 @@ void SvoTracer::_initBufferData() {
   }
 }
 
-void SvoTracer::_recordCommandBuffers() {
-  for (auto &commandBuffer : _commandBuffers) {
+void SvoTracer::_recordRenderingCommandBuffers() {
+  for (auto &commandBuffer : _tracingCommandBuffers) {
     vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                          &commandBuffer);
   }
-  _commandBuffers.clear();
+  _tracingCommandBuffers.clear();
 
-  // create command buffers per swapchain image
-  _commandBuffers.resize(_appContext->getSwapchainSize()); //  change this later on, because it is
-                                                           //  bounded to the swapchain image
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  _tracingCommandBuffers.resize(_framesInFlight); //  change this later on, because it is
+                                                  //  bounded to the swapchain image
+  VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
   allocInfo.commandPool        = _appContext->getCommandPool();
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = (uint32_t)_commandBuffers.size();
+  allocInfo.commandBufferCount = (uint32_t)_tracingCommandBuffers.size();
 
-  VkResult result =
-      vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _commandBuffers.data());
-  assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
+  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _tracingCommandBuffers.data());
 
   VkMemoryBarrier uboWritingBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
   uboWritingBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
   uboWritingBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
   // create the general memory barrier
-  VkMemoryBarrier memoryBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-  memoryBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-  memoryBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+  VkMemoryBarrier memoryBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
-  for (size_t imageIndex = 0; imageIndex < _commandBuffers.size(); imageIndex++) {
-    auto &cmdBuffer = _commandBuffers[imageIndex];
+  for (size_t frameIndex = 0; frameIndex < _tracingCommandBuffers.size(); frameIndex++) {
+    auto &cmdBuffer = _tracingCommandBuffers[frameIndex];
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     vkBeginCommandBuffer(cmdBuffer, &beginInfo);
@@ -376,20 +374,21 @@ void SvoTracer::_recordCommandBuffers() {
     //                      nullptr);
 
     _svoCourseBeamPipeline->recordCommand(
-        cmdBuffer, 0, static_cast<uint32_t>(std::ceil(static_cast<float>(w) / kBeamResolution)) + 1,
+        cmdBuffer, frameIndex,
+        static_cast<uint32_t>(std::ceil(static_cast<float>(w) / kBeamResolution)) + 1,
         static_cast<uint32_t>(std::ceil(static_cast<float>(h) / kBeamResolution)) + 1, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    _svoTracingPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
+    _svoTracingPipeline->recordCommand(cmdBuffer, frameIndex, w, h, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    _temporalFilterPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
+    _temporalFilterPipeline->recordCommand(cmdBuffer, frameIndex, w, h, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
@@ -421,7 +420,7 @@ void SvoTracer::_recordCommandBuffers() {
                            nullptr                               // image memory barriers
       );
 
-      _aTrousPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
+      _aTrousPipeline->recordCommand(cmdBuffer, frameIndex, w, h, 1);
 
       vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr,
@@ -467,7 +466,7 @@ void SvoTracer::_recordCommandBuffers() {
     //   }
     // }
 
-    _postProcessingPipeline->recordCommand(cmdBuffer, 0, w, h, 1);
+    _postProcessingPipeline->recordCommand(cmdBuffer, frameIndex, w, h, 1);
 
     // copy to history images
     _normalForwardingPair->forwardCopy(cmdBuffer);
@@ -479,8 +478,52 @@ void SvoTracer::_recordCommandBuffers() {
     // _gradientForwardingPair->forwardCopy(cmdBuffer);
     // _varianceHistForwardingPair->forwardCopy(cmdBuffer);
 
-    _targetForwardingPairs[imageIndex]->forwardCopy(cmdBuffer);
+    // _targetForwardingPairs[frameIndex]->forwardCopy(cmdBuffer);
 
+    vkEndCommandBuffer(cmdBuffer);
+  }
+}
+
+void SvoTracer::_recordDeliveryCommandBuffers() {
+  for (auto &commandBuffer : _deliveryCommandBuffers) {
+    vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
+                         &commandBuffer);
+  }
+  _deliveryCommandBuffers.clear();
+
+  _deliveryCommandBuffers.resize(_appContext->getSwapchainImagesCount());
+
+  VkCommandBufferAllocateInfo allocInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO};
+  allocInfo.commandPool        = _appContext->getCommandPool();
+  allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandBufferCount = static_cast<uint32_t>(_deliveryCommandBuffers.size());
+
+  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _deliveryCommandBuffers.data());
+
+  VkMemoryBarrier deliveryMemoryBarrier{VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  deliveryMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  deliveryMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
+  for (size_t imageIndex = 0; imageIndex < _deliveryCommandBuffers.size(); imageIndex++) {
+    auto &cmdBuffer = _deliveryCommandBuffers[imageIndex];
+
+    VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+    vkBeginCommandBuffer(cmdBuffer, &beginInfo);
+
+    // // make all host writes to the ubo visible to the shaders
+    // vkCmdPipelineBarrier(cmdBuffer,
+    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, // source stage
+    //                      VK_PIPELINE_STAGE_TRANSFER_BIT,       // destination stage
+    //                      0,                                    // dependency flags
+    //                      1,                                    // memory barrier count
+    //                      &deliveryMemoryBarrier,               // memory barriers
+    //                      0,                                    // buffer memory barrier count
+    //                      nullptr,                              // buffer memory barriers
+    //                      0,                                    // image memory barrier count
+    //                      nullptr                               // image memory barriers
+    // );
+
+    _targetForwardingPairs[imageIndex]->forwardCopy(cmdBuffer);
     vkEndCommandBuffer(cmdBuffer);
   }
 }

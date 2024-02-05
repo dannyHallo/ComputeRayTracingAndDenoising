@@ -33,7 +33,12 @@ public:
   void init(SvoBuilder *svoBuilder);
 
   void onSwapchainResize();
-  VkCommandBuffer getCommandBuffer(size_t currentFrame) { return _commandBuffers[currentFrame]; }
+  VkCommandBuffer getTracingCommandBuffer(size_t currentFrame) {
+    return _tracingCommandBuffers[currentFrame];
+  }
+  VkCommandBuffer getDeliveryCommandBuffer(size_t imageIndex) {
+    return _deliveryCommandBuffers[imageIndex];
+  }
 
   void updateUboData(size_t currentFrame);
 
@@ -47,11 +52,13 @@ private:
   SvoBuilder *_svoBuilder = nullptr;
 
   size_t _framesInFlight;
-  std::vector<VkCommandBuffer> _commandBuffers{};
+  std::vector<VkCommandBuffer> _tracingCommandBuffers{};
+  std::vector<VkCommandBuffer> _deliveryCommandBuffers{};
 
   SvoTracerTweakingData _uboData;
 
-  void _recordCommandBuffers();
+  void _recordRenderingCommandBuffers();
+  void _recordDeliveryCommandBuffers();
 
   /// IMAGES
 

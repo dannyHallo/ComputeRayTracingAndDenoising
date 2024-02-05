@@ -114,9 +114,11 @@ void Application::_drawFrame() {
   _svoTracer->updateUboData(currentFrame);
 
   _imguiManager->recordCommandBuffer(currentFrame, imageIndex);
-  // be cautious here! the imageIndex is not the same as the currentFrame
   std::vector<VkCommandBuffer> submitCommandBuffers = {
-      _svoTracer->getCommandBuffer(imageIndex), _imguiManager->getCommandBuffer(currentFrame)};
+      _svoTracer->getTracingCommandBuffer(currentFrame),
+      _svoTracer->getDeliveryCommandBuffer(imageIndex),
+      _imguiManager->getCommandBuffer(currentFrame),
+  };
 
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
   // wait until the image is ready
