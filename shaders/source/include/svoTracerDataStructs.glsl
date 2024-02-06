@@ -20,8 +20,6 @@ struct G_TwickableParameters {
   bool visualizeOctree;
   bool beamOptimization;
   bool traceSecondaryRay;
-  float temporalAlpha;
-  float temporalPositionPhi;
 };
 
 struct G_SceneInfo {
@@ -29,7 +27,12 @@ struct G_SceneInfo {
   uint voxelLevelCount;
 };
 
-struct G_ATrousInfo {
+struct G_TemporalFilterInfo {
+  float temporalAlpha;
+  float temporalPositionPhi;
+};
+
+struct G_SpatialFilterInfo {
   uint aTrousIterationCount;
   bool useVarianceGuidedFiltering;
   bool useGradientInDepth;

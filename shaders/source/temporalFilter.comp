@@ -51,7 +51,7 @@ bool isConsistent(ivec2 uv, ivec2 pUv) {
   vec3 lastPosition = imageLoad(lastPositionImage, pUv).xyz;
 
   float positionFac       = exp(-distance(position, lastPosition));
-  bool positionConsistent = positionFac > twickableParametersUbo.data.temporalPositionPhi;
+  bool positionConsistent = positionFac > temporalFilterInfoUbo.data.temporalPositionPhi;
 
   // bool voxHashConsistent = imageLoad(voxHashImage, uv) == imageLoad(lastVoxHashImage, pUv);
   bool voxHashConsistent = true;
@@ -63,7 +63,7 @@ void main() {
   if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight)
     return;
 
-  float alphaBlending = twickableParametersUbo.data.temporalAlpha;
+  float alphaBlending = temporalFilterInfoUbo.data.temporalAlpha;
 
   ivec2 pUv = backwardProjection(uv);
 

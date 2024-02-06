@@ -329,14 +329,13 @@ namespace {
 VkImageMemoryBarrier getMemoryBarrier(VkImage image, VkImageLayout oldLayout,
                                       VkImageLayout newLayout, VkAccessFlags srcAccessMask,
                                       VkAccessFlags dstAccessMask) {
-  VkImageMemoryBarrier memoryBarrier = {};
-  memoryBarrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  memoryBarrier.oldLayout            = oldLayout;
-  memoryBarrier.newLayout            = newLayout;
-  memoryBarrier.image                = image;
-  memoryBarrier.subresourceRange     = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-  memoryBarrier.srcAccessMask        = srcAccessMask;
-  memoryBarrier.dstAccessMask        = dstAccessMask;
+  VkImageMemoryBarrier memoryBarrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
+  memoryBarrier.oldLayout        = oldLayout;
+  memoryBarrier.newLayout        = newLayout;
+  memoryBarrier.image            = image;
+  memoryBarrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  memoryBarrier.srcAccessMask    = srcAccessMask;
+  memoryBarrier.dstAccessMask    = dstAccessMask;
   return memoryBarrier;
 }
 

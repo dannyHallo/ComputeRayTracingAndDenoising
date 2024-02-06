@@ -5,12 +5,12 @@
 
 layout(binding = 0) uniform RenderInfoUniformBuffer { G_RenderInfo data; }
 renderInfoUbo;
-
 layout(binding = 1) uniform TwickableParametersUniformBuffer { G_TwickableParameters data; }
 twickableParametersUbo;
-
-layout(binding = 23) uniform ATrousInfoUniformBuffer { G_ATrousInfo data; }
-aTrousInfoUbo;
+layout(binding = 27) uniform TemporalFilterInfoUniformBuffer { G_TemporalFilterInfo data; }
+temporalFilterInfoUbo;
+layout(binding = 23) uniform SpatialFilterInfoUniformBuffer { G_SpatialFilterInfo data; }
+spatialFilterInfoUbo;
 
 layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
 layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;

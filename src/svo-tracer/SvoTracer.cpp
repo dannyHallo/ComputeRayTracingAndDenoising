@@ -286,17 +286,21 @@ void SvoTracer::_createBuffersAndBufferBundles() {
   }
 
   // buffer bundles
-  _renderInfoUniformBuffers = std::make_unique<BufferBundle>(
+  _renderInfoBufferBundle = std::make_unique<BufferBundle>(
       _framesInFlight, sizeof(G_RenderInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
-  _twickableParametersUniformBuffers = std::make_unique<BufferBundle>(
+  _twickableParametersBufferBundle = std::make_unique<BufferBundle>(
       _framesInFlight, sizeof(G_TwickableParameters), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
-  _aTrousInfoBuffers = std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_ATrousInfo),
-                                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+  _temporalFilterInfoBufferBundle = std::make_unique<BufferBundle>(
+      _framesInFlight, sizeof(G_TemporalFilterInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+
+  _spatialFilterInfoBufferBundle = std::make_unique<BufferBundle>(
+      _framesInFlight, sizeof(G_SpatialFilterInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      MemoryAccessingStyle::kCpuToGpuEveryFrame);
 }
 
 void SvoTracer::_initBufferData() {
@@ -552,32 +556,33 @@ void SvoTracer::updateUboData(size_t currentFrame) {
       currentSample,
       currentTime,
   };
-  _renderInfoUniformBuffers->getBuffer(currentFrame)->fillData(&renderInfo);
+  _renderInfoBufferBundle->getBuffer(currentFrame)->fillData(&renderInfo);
 
   lastMvpe = thisMvpe;
 
   G_TwickableParameters twickableParameters{};
-  twickableParameters.magicButton         = _uboData.magicButton;
-  twickableParameters.visualizeOctree     = _uboData.visualizeOctree;
-  twickableParameters.beamOptimization    = _uboData.beamOptimization;
-  twickableParameters.traceSecondaryRay   = _uboData.traceSecondaryRay;
-  twickableParameters.temporalAlpha       = _uboData.temporalAlpha;
-  twickableParameters.temporalPositionPhi = _uboData.temporalPositionPhi;
+  twickableParameters.magicButton       = _uboData.magicButton;
+  twickableParameters.visualizeOctree   = _uboData.visualizeOctree;
+  twickableParameters.beamOptimization  = _uboData.beamOptimization;
+  twickableParameters.traceSecondaryRay = _uboData.traceSecondaryRay;
+  _twickableParametersBufferBundle->getBuffer(currentFrame)->fillData(&twickableParameters);
 
-  _twickableParametersUniformBuffers->getBuffer(currentFrame)->fillData(&twickableParameters);
+  G_TemporalFilterInfo temporalFilterInfo{};
+  temporalFilterInfo.temporalAlpha       = _uboData.temporalAlpha;
+  temporalFilterInfo.temporalPositionPhi = _uboData.temporalPositionPhi;
+  _temporalFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&temporalFilterInfo);
 
-  G_ATrousInfo aTrousInfo{};
-  aTrousInfo.aTrousIterationCount            = static_cast<uint32_t>(_uboData.aTrousIterationCount);
-  aTrousInfo.useVarianceGuidedFiltering      = _uboData.useVarianceGuidedFiltering;
-  aTrousInfo.useGradientInDepth              = _uboData.useGradientInDepth;
-  aTrousInfo.phiLuminance                    = _uboData.phiLuminance;
-  aTrousInfo.phiDepth                        = _uboData.phiDepth;
-  aTrousInfo.phiNormal                       = _uboData.phiNormal;
-  aTrousInfo.ignoreLuminanceAtFirstIteration = _uboData.ignoreLuminanceAtFirstIteration;
-  aTrousInfo.changingLuminancePhi            = _uboData.changingLuminancePhi;
-  aTrousInfo.useJittering                    = _uboData.useJittering;
-
-  _aTrousInfoBuffers->getBuffer(currentFrame)->fillData(&aTrousInfo);
+  G_SpatialFilterInfo spatialFilterInfo{};
+  spatialFilterInfo.aTrousIterationCount = static_cast<uint32_t>(_uboData.aTrousIterationCount);
+  spatialFilterInfo.useVarianceGuidedFiltering      = _uboData.useVarianceGuidedFiltering;
+  spatialFilterInfo.useGradientInDepth              = _uboData.useGradientInDepth;
+  spatialFilterInfo.phiLuminance                    = _uboData.phiLuminance;
+  spatialFilterInfo.phiDepth                        = _uboData.phiDepth;
+  spatialFilterInfo.phiNormal                       = _uboData.phiNormal;
+  spatialFilterInfo.ignoreLuminanceAtFirstIteration = _uboData.ignoreLuminanceAtFirstIteration;
+  spatialFilterInfo.changingLuminancePhi            = _uboData.changingLuminancePhi;
+  spatialFilterInfo.useJittering                    = _uboData.useJittering;
+  _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
 
   // _gradientProjectionBufferBundle->getBuffer(currentFrame)->fillData(&gpUbo);
 
@@ -616,9 +621,10 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle = std::make_unique<DescriptorSetBundle>(_appContext, _framesInFlight,
                                                                VK_SHADER_STAGE_COMPUTE_BIT);
 
-  _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoUniformBuffers.get());
-  _descriptorSetBundle->bindUniformBufferBundle(1, _twickableParametersUniformBuffers.get());
-  _descriptorSetBundle->bindUniformBufferBundle(23, _aTrousInfoBuffers.get());
+  _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(1, _twickableParametersBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(27, _temporalFilterInfoBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(23, _spatialFilterInfoBufferBundle.get());
 
   _descriptorSetBundle->bindStorageImage(2, _vec2BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(3, _weightedCosineBlueNoise.get());

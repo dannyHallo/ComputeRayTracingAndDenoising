@@ -60,7 +60,7 @@ void blurKernel(ivec2 uv, ivec2 dispatchXY, int kernalHalfSize, inout float weig
                 inout vec4 sumOfWeightedValues) {
   int stepSize   = 1 << aTrousIterationBuffer.data;
   ivec2 offsetXY = dispatchXY * stepSize;
-  if (aTrousInfoUbo.data.useJittering && dispatchXY != ivec2(0)) {
+  if (spatialFilterInfoUbo.data.useJittering && dispatchXY != ivec2(0)) {
     offsetXY += jittering(stepSize);
   }
 
@@ -86,30 +86,31 @@ void blurKernel(ivec2 uv, ivec2 dispatchXY, int kernalHalfSize, inout float weig
     }
 
     float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
-    float phiC              = aTrousInfoUbo.data.phiLuminance;
-    if (aTrousInfoUbo.data.changingLuminancePhi) {
-      phiC = pow(2, -aTrousIterationBuffer.data) * aTrousInfoUbo.data.phiLuminance;
+    float phiC              = spatialFilterInfoUbo.data.phiLuminance;
+    if (spatialFilterInfoUbo.data.changingLuminancePhi) {
+      phiC = pow(2, -aTrousIterationBuffer.data) * spatialFilterInfoUbo.data.phiLuminance;
     }
     weightC       = 0;
     float colDiff = abs(luminanceAtSample - luminanceAtUv);
-    // if (aTrousInfoUbo.data.useVarianceGuidedFiltering != 0) {
+    // if (spatialFilterInfoUbo.data.useVarianceGuidedFiltering != 0) {
     //   phiC *= 100.;
     //   weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), kEpsilon));
     // } else {
     weightC = exp(-colDiff / phiC);
     // }
-    if (aTrousInfoUbo.data.ignoreLuminanceAtFirstIteration && aTrousIterationBuffer.data == 0) {
+    if (spatialFilterInfoUbo.data.ignoreLuminanceAtFirstIteration &&
+        aTrousIterationBuffer.data == 0) {
       weightC = 1.0;
     }
 
-    weightN = max(0., pow(dot(normalAtUv, normalAtSample), aTrousInfoUbo.data.phiNormal));
+    weightN = max(0., pow(dot(normalAtUv, normalAtSample), spatialFilterInfoUbo.data.phiNormal));
 
     float differenceInDepth = 0;
     // using gradient here can better blend samples within a single screen space tilted mesh
     //   differenceInDepth = abs((depthAtUv - depthAtSample) - dot(gradientAtUv, vec2(offsetXY)));
     differenceInDepth = abs(depthAtUv - depthAtSample);
 
-    weightZ = exp(-differenceInDepth / aTrousInfoUbo.data.phiDepth);
+    weightZ = exp(-differenceInDepth / spatialFilterInfoUbo.data.phiDepth);
 
     float weight = weightK * weightC * weightN * weightZ;
     weightSum += weight;
@@ -123,7 +124,7 @@ void main() {
     return;
   }
 
-  if (aTrousIterationBuffer.data >= aTrousInfoUbo.data.aTrousIterationCount) {
+  if (aTrousIterationBuffer.data >= spatialFilterInfoUbo.data.aTrousIterationCount) {
     // no A-Trous at all: just copy the input to the output
     if (aTrousIterationBuffer.data == 0) {
       vec4 color = imageLoad(aTrousPingImage, uv);
@@ -144,7 +145,7 @@ void main() {
 
   luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
 
-  // if (aTrousInfoUbo.data.bypassBluring || aTrousIterationsInfo.data >=
+  // if (spatialFilterInfoUbo.data.bypassBluring || aTrousIterationsInfo.data >=
   // aTrousIterationsInfo.dataCap) {
   //   if (aTrousIterationsInfo.data == 0) {
   //     imageStore(accumTex, uv, vec4(colorAtUv, 1));
@@ -171,7 +172,7 @@ void main() {
   }
 
   // dump image
-  if (aTrousIterationBuffer.data == aTrousInfoUbo.data.aTrousIterationCount - 1) {
+  if (aTrousIterationBuffer.data == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
     imageStore(aTrousFinalResultImage, uv, weightedColor);
     return;
   }

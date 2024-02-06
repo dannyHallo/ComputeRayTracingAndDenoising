@@ -61,7 +61,7 @@ private:
   void _setImguiPalette();
 
   void _createGuiDescripterPool();
-  void _createGuiCommandBuffers(int framesInFlight);
+  void _createGuiCommandBuffers();
   void _createGuiRenderPass();
   void _createFramebuffers();
 

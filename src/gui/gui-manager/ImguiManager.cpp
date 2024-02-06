@@ -90,7 +90,7 @@ void ImguiManager::init() {
 
   _fpsGui = std::make_unique<FpsGui>(_colorPalette.get());
 
-  _createGuiCommandBuffers(_framesInFlight);
+  _createGuiCommandBuffers();
   _createGuiRenderPass();
   _createFramebuffers();
   _createGuiDescripterPool();
@@ -169,8 +169,8 @@ void ImguiManager::_createGuiDescripterPool() {
   assert(result == VK_SUCCESS && "vkCreateDescriptorPool failed");
 }
 
-void ImguiManager::_createGuiCommandBuffers(int framesInFlight) {
-  _guiCommandBuffers.resize(framesInFlight);
+void ImguiManager::_createGuiCommandBuffers() {
+  _guiCommandBuffers.resize(_framesInFlight);
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.commandPool        = _appContext->getGuiCommandPool();
@@ -294,21 +294,24 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t imageIndex)
 
 void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
-    ImGui::SeparatorText("Svo Tracing");
+    ImGui::SeparatorText("Twickable Parameters");
 
     ImGui::Checkbox("Magic Button", &_svoTracerTweakingData->magicButton);
     ImGui::Checkbox("Visualize Octree", &_svoTracerTweakingData->visualizeOctree);
     ImGui::Checkbox("Beam Optimization", &_svoTracerTweakingData->beamOptimization);
     ImGui::Checkbox("Trace Secondary Ray", &_svoTracerTweakingData->traceSecondaryRay);
-    ImGui::SliderFloat("Temporal Alpha", &_svoTracerTweakingData->temporalAlpha, 0.0F, 1.0F);
 
+    ImGui::SeparatorText("Temporal Filter Info");
+    ImGui::SliderFloat("Temporal Alpha", &_svoTracerTweakingData->temporalAlpha, 0.0F, 1.0F);
+    ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi, 0.0F,
+                       1.0F);
+
+    ImGui::SeparatorText("Spatial Filter Info");
     ImGui::SliderInt("A-Trous Iteration Count", &_svoTracerTweakingData->aTrousIterationCount, 0,
                      5);
     ImGui::Checkbox("Use Variance Guided Filtering",
                     &_svoTracerTweakingData->useVarianceGuidedFiltering);
     ImGui::Checkbox("Use Gradient In Depth", &_svoTracerTweakingData->useGradientInDepth);
-    ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi, 0.0F,
-                       1.0F);
     ImGui::SliderFloat("Phi Luminance", &_svoTracerTweakingData->phiLuminance, 0.0F, 100.0F);
     ImGui::SliderFloat("Phi Depth", &_svoTracerTweakingData->phiDepth, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Normal", &_svoTracerTweakingData->phiNormal, 0.0F, 200.0F);
