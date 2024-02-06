@@ -13,6 +13,7 @@ const float waveletFac      = 0.5;
 const float kernel3x3[2][2] = {{1.0, waveletFac}, {waveletFac, waveletFac *waveletFac}};
 
 float luminanceAtUv;
+float depthAtUv;
 
 ivec2 jittering(int stepSize) {
   uvec3 seed       = uvec3(gl_GlobalInvocationID.xy, renderInfoUbo.data.currentSample);
@@ -25,6 +26,7 @@ ivec2 jittering(int stepSize) {
 
 void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uv) {
   ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  // padding
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv =
         clamp(uv, ivec2(0),
@@ -53,7 +55,7 @@ void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
 
 void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv, ivec2 dispatchXY,
                 int kernalHalfSize, uint currentIteration, vec3 normalAtUv, vec3 colorAtUv,
-                vec3 positionAtUv, float luminanceAtUv) {
+                vec3 positionAtUv, float luminanceAtUv, float depthAtUv) {
   int stepSize   = 1 << currentIteration;
   ivec2 offsetXY = dispatchXY * stepSize;
   if (spatialFilterInfoUbo.data.useJittering && dispatchXY != ivec2(0)) {
@@ -105,7 +107,21 @@ void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv,
   // WEIGHT_P
   float weightP = exp(-distance(positionAtSample, positionAtUv) / spatialFilterInfoUbo.data.phiP);
 
-  float weight = weightK * weightC * weightN * weightP;
+  // WEIGHT_Z
+  float weightZ = 1.0;
+  if (twickableParametersUbo.data.magicButton) {
+    float depthFalloff  = exp(-depthAtUv);
+    float depthThrehold = spatialFilterInfoUbo.data.phiZ;
+    // depth is bigger than the threshold
+    if (depthFalloff < depthThrehold) {
+      weightZ = 1.0;
+    } else {
+      bool sameVoxHash = imageLoad(voxHashImage, uv).x == imageLoad(voxHashImage, uv + offsetXY).x;
+      weightZ          = sameVoxHash ? 1.0 : 0.0;
+    }
+  }
+
+  float weight = weightK * weightC * weightN * weightP * weightZ;
 
   weightSum += weight;
   sumOfWeightedValues += weight * vec4(colorAtSample, 1);
@@ -150,6 +166,7 @@ void main() {
   }
 
   luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
+  depthAtUv     = imageLoad(depthImage, uv).x;
 
   const int kernalHalfSize = 1;
   float weightSum          = 0;
@@ -157,7 +174,7 @@ void main() {
   for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
     for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
       blurKernel(weightSum, sumOfWeightedValues, uv, ivec2(indexX, indexY), kernalHalfSize,
-                 currentIteration, normalAtUv, colorAtUv, positionAtUv, luminanceAtUv);
+                 currentIteration, normalAtUv, colorAtUv, positionAtUv, luminanceAtUv, depthAtUv);
     }
   }
   vec4 weightedColor = sumOfWeightedValues / weightSum;
