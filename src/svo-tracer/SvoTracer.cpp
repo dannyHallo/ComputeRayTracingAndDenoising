@@ -101,6 +101,9 @@ void SvoTracer::_createFullSizedImages() {
   auto w = _appContext->getSwapchainExtentWidth();
   auto h = _appContext->getSwapchainExtentHeight();
 
+  _backgroundImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
+
   // w = 16 -> 3, w = 17 -> 4
   _beamDepthImage = std::make_unique<Image>(std::ceil(static_cast<float>(w) / kBeamResolution) + 1,
                                             std::ceil(static_cast<float>(h) / kBeamResolution) + 1,
@@ -112,6 +115,8 @@ void SvoTracer::_createFullSizedImages() {
 
   _octreeVisualizationImage = std::make_unique<Image>(
       w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  _hitImage = std::make_unique<Image>(w, h, VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _normalImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -630,10 +635,12 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(2, _vec2BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(3, _weightedCosineBlueNoise.get());
 
+  _descriptorSetBundle->bindStorageImage(29, _backgroundImage.get());
   _descriptorSetBundle->bindStorageImage(4, _beamDepthImage.get());
   _descriptorSetBundle->bindStorageImage(5, _rawImage.get());
   _descriptorSetBundle->bindStorageImage(6, _depthImage.get());
   _descriptorSetBundle->bindStorageImage(8, _octreeVisualizationImage.get());
+  _descriptorSetBundle->bindStorageImage(28, _hitImage.get());
   _descriptorSetBundle->bindStorageImage(9, _normalImage.get());
   _descriptorSetBundle->bindStorageImage(10, _lastNormalImage.get());
   _descriptorSetBundle->bindStorageImage(7, _positionImage.get());

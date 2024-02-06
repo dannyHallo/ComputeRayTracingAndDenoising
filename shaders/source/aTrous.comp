@@ -12,12 +12,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 const float waveletFac      = 0.5;
 const float kernel3x3[2][2] = {{1.0, waveletFac}, {waveletFac, waveletFac *waveletFac}};
 
-vec2 gradientAtUv;
-vec3 normalAtUv;
-vec3 colorAtUv;
-vec3 positionAtUv;
-// float depthAtUv;
-// float varianceAtUv;
 float luminanceAtUv;
 
 ivec2 jittering(int stepSize) {
@@ -29,8 +23,7 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, out bool oIsSkybox,
-                      ivec2 uv) {
+void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uv) {
   ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv =
@@ -41,13 +34,10 @@ void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, out
   oNormal     = normal.xyz;
   oColor      = imageLoad(aTrousPingImage, uv).xyz;
   oPosition   = imageLoad(positionImage, uv).xyz;
-  oIsSkybox   = normal.w == 0;
-  // oDepth  = imageLoad(depthImage, uv).x;
   // oVariance = imageLoad(varianceImage, uv).x;
 }
 
-void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, out bool oIsSkybox,
-                      ivec2 uv) {
+void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uv) {
   ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv =
@@ -58,13 +48,12 @@ void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, out
   oNormal     = normal.xyz;
   oColor      = imageLoad(aTrousPongImage, uv).xyz;
   oPosition   = imageLoad(positionImage, uv).xyz;
-  oIsSkybox   = normal.w == 0;
-  // oDepth  = imageLoad(depthImage, uv).x;
   // oVariance = imageLoad(varianceImage, uv).x;
 }
 
 void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv, ivec2 dispatchXY,
-                int kernalHalfSize, uint currentIteration) {
+                int kernalHalfSize, uint currentIteration, vec3 normalAtUv, vec3 colorAtUv,
+                vec3 positionAtUv, float luminanceAtUv) {
   int stepSize   = 1 << currentIteration;
   ivec2 offsetXY = dispatchXY * stepSize;
   if (spatialFilterInfoUbo.data.useJittering && dispatchXY != ivec2(0)) {
@@ -81,18 +70,15 @@ void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv,
     return;
   }
 
-  vec2 gradientAtSample;
   vec3 normalAtSample;
   vec3 colorAtSample;
   vec3 positionAtSample;
-  bool isSkybox;
-  // float depthAtSample;
   // float varianceAtSample;
-  // first load from ping
+
   if (currentIteration % 2 == 0) {
-    loadDataFromPing(normalAtSample, colorAtSample, positionAtSample, isSkybox, uv + offsetXY);
+    loadDataFromPing(normalAtSample, colorAtSample, positionAtSample, uv + offsetXY);
   } else {
-    loadDataFromPong(normalAtSample, colorAtSample, positionAtSample, isSkybox, uv + offsetXY);
+    loadDataFromPong(normalAtSample, colorAtSample, positionAtSample, uv + offsetXY);
   }
 
   // WEIGHT_C
@@ -119,13 +105,6 @@ void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv,
   // WEIGHT_P
   float weightP = exp(-distance(positionAtSample, positionAtUv) / spatialFilterInfoUbo.data.phiP);
 
-  // float differenceInDepth = 0;
-  // // using gradient here can better blend samples within a single screen space tilted mesh
-  // //   differenceInDepth = abs((depthAtUv - depthAtSample) - dot(gradientAtUv,
-  // vec2(offsetXY))); differenceInDepth = abs(depthAtUv - depthAtSample);
-
-  // float weightZ = exp(-differenceInDepth / spatialFilterInfoUbo.data.phiDepth);
-
   float weight = weightK * weightC * weightN * weightP;
 
   weightSum += weight;
@@ -138,9 +117,14 @@ void main() {
     return;
   }
 
+  bool hit = imageLoad(hitImage, uv).x != 0;
+  if (!hit) {
+    return;
+  }
+
   uint currentIteration = aTrousIterationBuffer.data;
   if (currentIteration >= spatialFilterInfoUbo.data.aTrousIterationCount) {
-    // no A-Trous at all: just copy the input to the output
+    // no A-Trous at all: just copy input to the output at the first iteration
     if (currentIteration == 0) {
       vec4 color = imageLoad(aTrousPingImage, uv);
       imageStore(aTrousFinalResultImage, uv, color);
@@ -148,15 +132,6 @@ void main() {
     }
     return;
   }
-
-  bool isSkybox;
-  if (currentIteration % 2 == 0) {
-    loadDataFromPing(normalAtUv, colorAtUv, positionAtUv, isSkybox, uv);
-  } else {
-    loadDataFromPong(normalAtUv, colorAtUv, positionAtUv, isSkybox, uv);
-  }
-
-  luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
 
   // if (spatialFilterInfoUbo.data.bypassBluring || aTrousIterationsInfo.data >=
   // aTrousIterationsInfo.dataCap) {
@@ -167,32 +142,38 @@ void main() {
   //   return;
   // }
 
-  vec4 weightedColor;
-  // sky culling
-  if (isSkybox) {
-    weightedColor = vec4(colorAtUv, 1);
+  vec3 normalAtUv, colorAtUv, positionAtUv;
+  if (currentIteration % 2 == 0) {
+    loadDataFromPing(normalAtUv, colorAtUv, positionAtUv, uv);
   } else {
-    const int kernalHalfSize = 1;
-    float weightSum          = 0;
-    vec4 sumOfWeightedValues = vec4(0);
-    for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
-      for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
-        blurKernel(weightSum, sumOfWeightedValues, uv, ivec2(indexX, indexY), kernalHalfSize,
-                   currentIteration);
-      }
-    }
-    weightedColor = sumOfWeightedValues / weightSum;
+    loadDataFromPong(normalAtUv, colorAtUv, positionAtUv, uv);
   }
 
+  luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
+
+  const int kernalHalfSize = 1;
+  float weightSum          = 0;
+  vec4 sumOfWeightedValues = vec4(0);
+  for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
+    for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
+      blurKernel(weightSum, sumOfWeightedValues, uv, ivec2(indexX, indexY), kernalHalfSize,
+                 currentIteration, normalAtUv, colorAtUv, positionAtUv, luminanceAtUv);
+    }
+  }
+  vec4 weightedColor = sumOfWeightedValues / weightSum;
+
+  // send to accum buffer for the first iteration
   if (currentIteration == 0) {
     imageStore(accumedImage, uv, weightedColor);
   }
 
-  // dump image
+  // dump image if in the last iteration
   if (currentIteration == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
     imageStore(aTrousFinalResultImage, uv, weightedColor);
     return;
   }
+
+  // send to pingpong buffer
   if (currentIteration % 2 == 0) {
     imageStore(aTrousPongImage, uv, weightedColor);
   } else {

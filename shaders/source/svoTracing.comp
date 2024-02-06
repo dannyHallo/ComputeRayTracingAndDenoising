@@ -236,8 +236,8 @@ vec3 traceSecondary(uvec3 seed, vec3 o, vec3 d) {
   return vec3(0);
 }
 
-void tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, out vec4 oPosition,
-                  out vec4 oNormal, out uint oVoxHash, uvec3 seed, vec3 o, vec3 d,
+bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, out vec3 oPosition,
+                  out vec3 oNormal, out uint oVoxHash, uvec3 seed, vec3 o, vec3 d,
                   float optimizedDistance) {
   o += d * optimizedDistance;
 
@@ -250,12 +250,12 @@ void tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
   oPrimaryRayIterUsed = iter;
 
   if (!hit) {
-    oColor    = dayLightCalc(d); // or the skybox
-    oPosition = vec4(0);
-    oNormal   = vec4(0);
+    oColor    = dayLightCalc(d);
+    oPosition = vec3(0);
+    oNormal   = vec3(0);
     oVoxHash  = 0;
     oT        = 1e10;
-    return;
+    return false;
   }
 
   vec3 indirectRayDir = randomCosineWeightedHemispherePoint(normal, seed, BaseDisturbance(1), true);
@@ -264,12 +264,14 @@ void tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
 
   oColor = traceSecondary(seed, pos + normal * kEpsilon, indirectRayDir) * brdf *
            dot(indirectRayDir, normal) / pdf;
-  oPosition = vec4(pos, 1);
-  oNormal   = vec4(normal, 1);
+  oPosition = vec3(pos);
+  oNormal   = vec3(normal);
   oVoxHash  = voxHash;
 
   // don't forget the optimized distance
   oT = tMin + optimizedDistance;
+
+  return true;
 }
 
 void main() {
@@ -298,18 +300,21 @@ void main() {
 
   uint dhIterUsed, voxHash;
   vec3 color;
-  vec4 position, normal;
+  vec3 position, normal;
   float tMin;
-  tracePrimary(tMin, dhIterUsed, color, position, normal, voxHash, seed, o, d, optimizedDistance);
-  // for position and normal:
-  // w = 0 means no hit
-  // w = 1 means hit
+  bool hit = tracePrimary(tMin, dhIterUsed, color, position, normal, voxHash, seed, o, d,
+                          optimizedDistance);
 
-  imageStore(rawImage, uv, vec4(color, 1.0));
-  imageStore(positionImage, uv, position);
-  imageStore(normalImage, uv, normal);
-  imageStore(voxHashImage, uv, uvec4(voxHash, 0, 0, 0));
-  imageStore(depthImage, uv, vec4(tMin, 0, 0, 0));
+  // the only image that is guaranteed to be written
+  imageStore(hitImage, uv, vec4(hit ? 1 : 0, 0, 0, 0));
+  if (hit) {
+    imageStore(rawImage, uv, vec4(color, 1.0));
+    imageStore(positionImage, uv, vec4(position, 1));    imageStore(normalImage, uv, vec4(normal, 0));
+    imageStore(voxHashImage, uv, uvec4(voxHash, 0, 0, 0));
+    imageStore(depthImage, uv, vec4(tMin, 0, 0, 0));
+  } else {
+    imageStore(backgroundImage, uv, vec4(color, 1.0));
+  }
 
   vec4 overlappingColor = vec4(0.0);
   overlappingColor      = vec4(vec3(1, 0.4, 0.2) * float(dhIterUsed) / 100, 1.0);

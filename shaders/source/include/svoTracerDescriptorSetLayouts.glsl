@@ -15,10 +15,12 @@ spatialFilterInfoUbo;
 layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
 layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
 
+layout(binding = 29, rgba8) uniform image2D backgroundImage;
 layout(binding = 4, r32f) uniform image2D beamDepthImage;
 layout(binding = 5, rgba8) uniform image2D rawImage;
 layout(binding = 6, rgba8) uniform image2D depthImage;
 layout(binding = 8, rgba8) uniform image2D octreeVisualizationImage;
+layout(binding = 28, r8) uniform image2D hitImage;
 layout(binding = 9, rgba32f) uniform image2D normalImage;
 layout(binding = 10, rgba32f) readonly uniform image2D lastNormalImage;
 layout(binding = 7, rgba32f) uniform image2D positionImage;

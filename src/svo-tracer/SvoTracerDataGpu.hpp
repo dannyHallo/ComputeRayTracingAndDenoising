@@ -27,7 +27,7 @@ struct SvoTracerTweakingData {
 
   // for temporal filter info
   float temporalAlpha       = 0.15F;
-  float temporalPositionPhi = 0.95F;
+  float temporalPositionPhi = 0.99F;
 
   // for spatial filter info
   int aTrousIterationCount             = 0;

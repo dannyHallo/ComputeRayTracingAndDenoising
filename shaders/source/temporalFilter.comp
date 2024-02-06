@@ -14,11 +14,8 @@ ivec2 backwardProjection(ivec2 uv) {
   vec4 worldPos = imageLoad(positionImage, uv);
 
   mat4 mvpe;
-  if (twickableParametersUbo.data.magicButton) {
-    mvpe = renderInfoUbo.data.lastMvpe;
-  } else {
-    mvpe = renderInfoUbo.data.thisMvpe;
-  }
+  mvpe = renderInfoUbo.data.lastMvpe;
+
   vec4 screenBoxCoord = mvpe * worldPos;
 
   // points are bounded in [-1, 1] in x, y, z after the following
@@ -41,27 +38,30 @@ vec4 getAccumColor(ivec2 pUv) {
 }
 
 bool isConsistent(ivec2 uv, ivec2 pUv) {
-  vec3 normal     = imageLoad(normalImage, uv).xyz;
-  vec3 lastNormal = imageLoad(lastNormalImage, pUv).xyz;
-
+  // normal test is useful for edges (nearby disocclusions)
+  vec3 normal           = imageLoad(normalImage, uv).xyz;
+  vec3 lastNormal       = imageLoad(lastNormalImage, pUv).xyz;
   float normalFac       = pow(dot(normal, lastNormal), 128.);
   bool normalConsistent = normalFac > 0.99;
 
-  vec3 position     = imageLoad(positionImage, uv).xyz;
-  vec3 lastPosition = imageLoad(lastPositionImage, pUv).xyz;
-
+  // position test is useful for disocclusions happened in some distance
+  vec3 position           = imageLoad(positionImage, uv).xyz;
+  vec3 lastPosition       = imageLoad(lastPositionImage, pUv).xyz;
   float positionFac       = exp(-distance(position, lastPosition));
   bool positionConsistent = positionFac > temporalFilterInfoUbo.data.temporalPositionPhi;
 
-  // bool voxHashConsistent = imageLoad(voxHashImage, uv) == imageLoad(lastVoxHashImage, pUv);
-  bool voxHashConsistent = true;
-  return normalConsistent && voxHashConsistent && positionConsistent;
+  return normalConsistent && positionConsistent;
 }
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight)
     return;
+
+  bool hit = imageLoad(hitImage, uv).x != 0;
+  if (!hit) {
+    return;
+  }
 
   float alphaBlending = temporalFilterInfoUbo.data.temporalAlpha;
 
@@ -75,6 +75,7 @@ void main() {
     alphaBlending = 1;
     // varianceBlending = 1;
   }
+
   vec4 colToWrite = mix(accumedColor, rawColor, alphaBlending);
   imageStore(aTrousPingImage, uv, colToWrite);
   // vec4 accumVarianceHist = mix(imageLoad(lastVarianceHistImage, pUv), vec4(0), varianceBlending);
