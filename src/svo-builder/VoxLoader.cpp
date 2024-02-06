@@ -26,7 +26,7 @@ ogt_vox_scene const *_loadVoxelScene(std::string const &pathToFile, uint32_t sce
   if (fopen_s(&fp, pathToFile.c_str(), "rb") != 0) {
     fp = nullptr;
   }
-  assert(fp != nullptr && "Failed to open vox file");
+  assert(fp != nullptr && "failed to open vox file, check the path");
 
   // get the buffer size which matches the size of the file
   fseek(fp, 0, SEEK_END);

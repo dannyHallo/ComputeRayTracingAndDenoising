@@ -18,7 +18,7 @@
 namespace {
 
 VoxData _fetchVoxData() {
-  std::string const kFileName      = "128_monu2";
+  std::string const kFileName      = "128_monu2_light";
   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
   return VoxLoader::fetchDataFromFile(kPathToVoxFile);
 }
