@@ -576,9 +576,10 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   spatialFilterInfo.aTrousIterationCount = static_cast<uint32_t>(_uboData.aTrousIterationCount);
   spatialFilterInfo.useVarianceGuidedFiltering      = _uboData.useVarianceGuidedFiltering;
   spatialFilterInfo.useGradientInDepth              = _uboData.useGradientInDepth;
-  spatialFilterInfo.phiLuminance                    = _uboData.phiLuminance;
-  spatialFilterInfo.phiDepth                        = _uboData.phiDepth;
-  spatialFilterInfo.phiNormal                       = _uboData.phiNormal;
+  spatialFilterInfo.phiC                            = _uboData.phiC;
+  spatialFilterInfo.phiN                            = _uboData.phiN;
+  spatialFilterInfo.phiP                            = _uboData.phiP;
+  spatialFilterInfo.phiZ                            = _uboData.phiZ;
   spatialFilterInfo.ignoreLuminanceAtFirstIteration = _uboData.ignoreLuminanceAtFirstIteration;
   spatialFilterInfo.changingLuminancePhi            = _uboData.changingLuminancePhi;
   spatialFilterInfo.useJittering                    = _uboData.useJittering;

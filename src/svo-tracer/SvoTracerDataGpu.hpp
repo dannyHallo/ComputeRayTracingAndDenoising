@@ -33,9 +33,10 @@ struct SvoTracerTweakingData {
   int aTrousIterationCount             = 0;
   bool useVarianceGuidedFiltering      = true;
   bool useGradientInDepth              = true;
-  float phiLuminance                   = 0.3F;
-  float phiDepth                       = 0.01F;
-  float phiNormal                      = 128.F;
+  float phiC                           = 0.01F;
+  float phiN                           = 128.F;
+  float phiP                           = 0.01F;
+  float phiZ                           = 0.5F;
   bool ignoreLuminanceAtFirstIteration = true;
   bool changingLuminancePhi            = true;
   bool useJittering                    = true;

@@ -15,7 +15,8 @@ const float kernel3x3[2][2] = {{1.0, waveletFac}, {waveletFac, waveletFac *wavel
 vec2 gradientAtUv;
 vec3 normalAtUv;
 vec3 colorAtUv;
-float depthAtUv;
+vec3 positionAtUv;
+// float depthAtUv;
 // float varianceAtUv;
 float luminanceAtUv;
 
@@ -28,94 +29,107 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out float oDepth, ivec2 uv) {
+void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, out bool oIsSkybox,
+                      ivec2 uv) {
   ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv =
         clamp(uv, ivec2(0),
               ivec2(renderInfoUbo.data.swapchainWidth - 1, renderInfoUbo.data.swapchainHeight - 1));
   }
-
-  oNormal = imageLoad(normalImage, uv).xyz;
-  oColor  = imageLoad(aTrousPingImage, uv).xyz;
-  oDepth  = imageLoad(depthImage, uv).x;
+  vec4 normal = imageLoad(normalImage, uv);
+  oNormal     = normal.xyz;
+  oColor      = imageLoad(aTrousPingImage, uv).xyz;
+  oPosition   = imageLoad(positionImage, uv).xyz;
+  oIsSkybox   = normal.w == 0;
+  // oDepth  = imageLoad(depthImage, uv).x;
   // oVariance = imageLoad(varianceImage, uv).x;
 }
 
-void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out float oDepth, ivec2 uv) {
+void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, out bool oIsSkybox,
+                      ivec2 uv) {
   ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv =
         clamp(uv, ivec2(0),
               ivec2(renderInfoUbo.data.swapchainWidth - 1, renderInfoUbo.data.swapchainHeight - 1));
   }
-
-  oNormal = imageLoad(normalImage, uv).xyz;
-  oColor  = imageLoad(aTrousPongImage, uv).xyz;
-  oDepth  = imageLoad(depthImage, uv).x;
+  vec4 normal = imageLoad(normalImage, uv);
+  oNormal     = normal.xyz;
+  oColor      = imageLoad(aTrousPongImage, uv).xyz;
+  oPosition   = imageLoad(positionImage, uv).xyz;
+  oIsSkybox   = normal.w == 0;
+  // oDepth  = imageLoad(depthImage, uv).x;
   // oVariance = imageLoad(varianceImage, uv).x;
 }
 
-void blurKernel(ivec2 uv, ivec2 dispatchXY, int kernalHalfSize, inout float weightSum,
-                inout vec4 sumOfWeightedValues) {
-  int stepSize   = 1 << aTrousIterationBuffer.data;
+void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv, ivec2 dispatchXY,
+                int kernalHalfSize, uint currentIteration) {
+  int stepSize   = 1 << currentIteration;
   ivec2 offsetXY = dispatchXY * stepSize;
   if (spatialFilterInfoUbo.data.useJittering && dispatchXY != ivec2(0)) {
     offsetXY += jittering(stepSize);
   }
 
   float weightK = kernel3x3[abs(dispatchXY.x)][abs(dispatchXY.y)];
+
   if (dispatchXY == ivec2(0)) {
     float weight = weightK;
     weight       = clamp(weight, 0, 1);
     weightSum += weight;
     sumOfWeightedValues += weight * vec4(colorAtUv, 1);
-  } else {
-    float weightC, weightN, weightZ;
-
-    vec2 gradientAtSample;
-    vec3 normalAtSample;
-    vec3 colorAtSample;
-    float depthAtSample;
-    // float varianceAtSample;
-    // first load from ping
-    if (aTrousIterationBuffer.data % 2 == 0) {
-      loadDataFromPing(normalAtSample, colorAtSample, depthAtSample, uv + offsetXY);
-    } else {
-      loadDataFromPong(normalAtSample, colorAtSample, depthAtSample, uv + offsetXY);
-    }
-
-    float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
-    float phiC              = spatialFilterInfoUbo.data.phiLuminance;
-    if (spatialFilterInfoUbo.data.changingLuminancePhi) {
-      phiC = pow(2, -aTrousIterationBuffer.data) * spatialFilterInfoUbo.data.phiLuminance;
-    }
-    weightC       = 0;
-    float colDiff = abs(luminanceAtSample - luminanceAtUv);
-    // if (spatialFilterInfoUbo.data.useVarianceGuidedFiltering != 0) {
-    //   phiC *= 100.;
-    //   weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), kEpsilon));
-    // } else {
-    weightC = exp(-colDiff / phiC);
-    // }
-    if (spatialFilterInfoUbo.data.ignoreLuminanceAtFirstIteration &&
-        aTrousIterationBuffer.data == 0) {
-      weightC = 1.0;
-    }
-
-    weightN = max(0., pow(dot(normalAtUv, normalAtSample), spatialFilterInfoUbo.data.phiNormal));
-
-    float differenceInDepth = 0;
-    // using gradient here can better blend samples within a single screen space tilted mesh
-    //   differenceInDepth = abs((depthAtUv - depthAtSample) - dot(gradientAtUv, vec2(offsetXY)));
-    differenceInDepth = abs(depthAtUv - depthAtSample);
-
-    weightZ = exp(-differenceInDepth / spatialFilterInfoUbo.data.phiDepth);
-
-    float weight = weightK * weightC * weightN * weightZ;
-    weightSum += weight;
-    sumOfWeightedValues += weight * vec4(colorAtSample, 1);
+    return;
   }
+
+  vec2 gradientAtSample;
+  vec3 normalAtSample;
+  vec3 colorAtSample;
+  vec3 positionAtSample;
+  bool isSkybox;
+  // float depthAtSample;
+  // float varianceAtSample;
+  // first load from ping
+  if (currentIteration % 2 == 0) {
+    loadDataFromPing(normalAtSample, colorAtSample, positionAtSample, isSkybox, uv + offsetXY);
+  } else {
+    loadDataFromPong(normalAtSample, colorAtSample, positionAtSample, isSkybox, uv + offsetXY);
+  }
+
+  // WEIGHT_C
+  float phiC = spatialFilterInfoUbo.data.phiC;
+  if (spatialFilterInfoUbo.data.changingLuminancePhi) {
+    phiC *= pow(2, -currentIteration);
+  }
+
+  float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
+  float colDiff           = abs(luminanceAtSample - luminanceAtUv);
+  // if (spatialFilterInfoUbo.data.useVarianceGuidedFiltering != 0) {
+  //   phiC *= 100.;
+  //   weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), kEpsilon));
+  // } else {
+  float weightC = exp(-colDiff / phiC);
+  // }
+  if (spatialFilterInfoUbo.data.ignoreLuminanceAtFirstIteration && currentIteration == 0) {
+    weightC = 1.0;
+  }
+
+  // WEIGHT_N
+  float weightN = max(0., pow(dot(normalAtUv, normalAtSample), spatialFilterInfoUbo.data.phiN));
+
+  // WEIGHT_P
+  float weightP = exp(-distance(positionAtSample, positionAtUv) / spatialFilterInfoUbo.data.phiP);
+
+  // float differenceInDepth = 0;
+  // // using gradient here can better blend samples within a single screen space tilted mesh
+  // //   differenceInDepth = abs((depthAtUv - depthAtSample) - dot(gradientAtUv,
+  // vec2(offsetXY))); differenceInDepth = abs(depthAtUv - depthAtSample);
+
+  // float weightZ = exp(-differenceInDepth / spatialFilterInfoUbo.data.phiDepth);
+
+  float weight = weightK * weightC * weightN * weightP;
+
+  weightSum += weight;
+  sumOfWeightedValues += weight * vec4(colorAtSample, 1);
 }
 
 void main() {
@@ -124,9 +138,10 @@ void main() {
     return;
   }
 
-  if (aTrousIterationBuffer.data >= spatialFilterInfoUbo.data.aTrousIterationCount) {
+  uint currentIteration = aTrousIterationBuffer.data;
+  if (currentIteration >= spatialFilterInfoUbo.data.aTrousIterationCount) {
     // no A-Trous at all: just copy the input to the output
-    if (aTrousIterationBuffer.data == 0) {
+    if (currentIteration == 0) {
       vec4 color = imageLoad(aTrousPingImage, uv);
       imageStore(aTrousFinalResultImage, uv, color);
       imageStore(accumedImage, uv, color);
@@ -134,13 +149,11 @@ void main() {
     return;
   }
 
-  // vec3 col3 = vec3(1.0) * aTrousIterationBuffer.data / 5;
-  // imageStore(aTrousPongImage, uv, vec4(col3, 1));
-
-  if (aTrousIterationBuffer.data % 2 == 0) {
-    loadDataFromPing(normalAtUv, colorAtUv, depthAtUv, uv);
+  bool isSkybox;
+  if (currentIteration % 2 == 0) {
+    loadDataFromPing(normalAtUv, colorAtUv, positionAtUv, isSkybox, uv);
   } else {
-    loadDataFromPong(normalAtUv, colorAtUv, depthAtUv, uv);
+    loadDataFromPong(normalAtUv, colorAtUv, positionAtUv, isSkybox, uv);
   }
 
   luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
@@ -154,29 +167,33 @@ void main() {
   //   return;
   // }
 
-  const int kernelSize     = 3;
-  const int kernalHalfSize = 1;
-
-  float weightSum          = 0;
-  vec4 sumOfWeightedValues = vec4(0);
-  for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
-    for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
-      blurKernel(uv, ivec2(indexX, indexY), kernalHalfSize, weightSum, sumOfWeightedValues);
+  vec4 weightedColor;
+  // sky culling
+  if (isSkybox) {
+    weightedColor = vec4(colorAtUv, 1);
+  } else {
+    const int kernalHalfSize = 1;
+    float weightSum          = 0;
+    vec4 sumOfWeightedValues = vec4(0);
+    for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
+      for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
+        blurKernel(weightSum, sumOfWeightedValues, uv, ivec2(indexX, indexY), kernalHalfSize,
+                   currentIteration);
+      }
     }
+    weightedColor = sumOfWeightedValues / weightSum;
   }
 
-  vec4 weightedColor = sumOfWeightedValues / weightSum;
-
-  if (aTrousIterationBuffer.data == 0) {
+  if (currentIteration == 0) {
     imageStore(accumedImage, uv, weightedColor);
   }
 
   // dump image
-  if (aTrousIterationBuffer.data == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
+  if (currentIteration == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
     imageStore(aTrousFinalResultImage, uv, weightedColor);
     return;
   }
-  if (aTrousIterationBuffer.data % 2 == 0) {
+  if (currentIteration % 2 == 0) {
     imageStore(aTrousPongImage, uv, weightedColor);
   } else {
     imageStore(aTrousPingImage, uv, weightedColor);

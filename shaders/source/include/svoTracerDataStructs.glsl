@@ -36,9 +36,10 @@ struct G_SpatialFilterInfo {
   uint aTrousIterationCount;
   bool useVarianceGuidedFiltering;
   bool useGradientInDepth;
-  float phiLuminance;
-  float phiDepth;
-  float phiNormal;
+  float phiC;
+  float phiN;
+  float phiP;
+  float phiZ;
   bool ignoreLuminanceAtFirstIteration;
   bool changingLuminancePhi;
   bool useJittering;
