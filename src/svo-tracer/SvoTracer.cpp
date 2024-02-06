@@ -116,7 +116,10 @@ void SvoTracer::_createFullSizedImages() {
   _octreeVisualizationImage = std::make_unique<Image>(
       w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _hitImage = std::make_unique<Image>(w, h, VK_FORMAT_R8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
+  _hitImage = std::make_unique<Image>(w, h, VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
+
+  _temporalHistLengthImage =
+      std::make_unique<Image>(w, h, VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _normalImage =
       std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -573,8 +576,9 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   _twickableParametersBufferBundle->getBuffer(currentFrame)->fillData(&twickableParameters);
 
   G_TemporalFilterInfo temporalFilterInfo{};
-  temporalFilterInfo.temporalAlpha       = _uboData.temporalAlpha;
-  temporalFilterInfo.temporalPositionPhi = _uboData.temporalPositionPhi;
+  temporalFilterInfo.temporalAlphaHighest = _uboData.temporalAlphaHighest;
+  temporalFilterInfo.temporalAlphaLowest  = _uboData.temporalAlphaLowest;
+  temporalFilterInfo.temporalPositionPhi  = _uboData.temporalPositionPhi;
   _temporalFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&temporalFilterInfo);
 
   G_SpatialFilterInfo spatialFilterInfo{};
@@ -641,6 +645,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(6, _depthImage.get());
   _descriptorSetBundle->bindStorageImage(8, _octreeVisualizationImage.get());
   _descriptorSetBundle->bindStorageImage(28, _hitImage.get());
+  _descriptorSetBundle->bindStorageImage(30, _temporalHistLengthImage.get());
   _descriptorSetBundle->bindStorageImage(9, _normalImage.get());
   _descriptorSetBundle->bindStorageImage(10, _lastNormalImage.get());
   _descriptorSetBundle->bindStorageImage(7, _positionImage.get());

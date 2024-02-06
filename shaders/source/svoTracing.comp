@@ -331,7 +331,7 @@ void main() {
                           optimizedDistance);
 
   // the only image that is guaranteed to be written
-  imageStore(hitImage, uv, vec4(hit ? 1 : 0, 0, 0, 0));
+  imageStore(hitImage, uv, uvec4(hit ? 1 : 0, 0, 0, 0));
   if (hit) {
     imageStore(rawImage, uv, vec4(color, 1.0));
     imageStore(positionImage, uv, vec4(position, 1));

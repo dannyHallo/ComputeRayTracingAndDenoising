@@ -28,7 +28,8 @@ struct G_SceneInfo {
 };
 
 struct G_TemporalFilterInfo {
-  float temporalAlpha;
+  float temporalAlphaHighest;
+  float temporalAlphaLowest;
   float temporalPositionPhi;
 };
 

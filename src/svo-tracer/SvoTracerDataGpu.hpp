@@ -26,8 +26,9 @@ struct SvoTracerTweakingData {
   bool traceSecondaryRay = true;
 
   // for temporal filter info
-  float temporalAlpha       = 0.15F;
-  float temporalPositionPhi = 0.99F;
+  float temporalAlphaHighest = 0.15F;
+  float temporalAlphaLowest  = 0.05F;
+  float temporalPositionPhi  = 0.99F;
 
   // for spatial filter info
   int aTrousIterationCount             = 0;

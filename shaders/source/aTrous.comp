@@ -108,17 +108,15 @@ void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv,
   float weightP = exp(-distance(positionAtSample, positionAtUv) / spatialFilterInfoUbo.data.phiP);
 
   // WEIGHT_Z
-  float weightZ = 1.0;
-  if (twickableParametersUbo.data.magicButton) {
-    float depthFalloff  = exp(-depthAtUv);
-    float depthThrehold = spatialFilterInfoUbo.data.phiZ;
-    // depth is bigger than the threshold
-    if (depthFalloff < depthThrehold) {
-      weightZ = 1.0;
-    } else {
-      bool sameVoxHash = imageLoad(voxHashImage, uv).x == imageLoad(voxHashImage, uv + offsetXY).x;
-      weightZ          = sameVoxHash ? 1.0 : 0.0;
-    }
+  float weightZ       = 1.0;
+  float depthFalloff  = exp(-depthAtUv);
+  float depthThrehold = spatialFilterInfoUbo.data.phiZ;
+  // depth is bigger than the threshold
+  if (depthFalloff < depthThrehold) {
+    weightZ = 1.0;
+  } else {
+    bool sameVoxHash = imageLoad(voxHashImage, uv).x == imageLoad(voxHashImage, uv + offsetXY).x;
+    weightZ          = sameVoxHash ? 1.0 : 0.0;
   }
 
   float weight = weightK * weightC * weightN * weightP * weightZ;

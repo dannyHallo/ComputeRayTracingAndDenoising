@@ -302,7 +302,10 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::Checkbox("Trace Secondary Ray", &_svoTracerTweakingData->traceSecondaryRay);
 
     ImGui::SeparatorText("Temporal Filter Info");
-    ImGui::SliderFloat("Temporal Alpha", &_svoTracerTweakingData->temporalAlpha, 0.0F, 1.0F);
+    ImGui::SliderFloat("Temporal Alpha Highest", &_svoTracerTweakingData->temporalAlphaHighest,
+                       0.0F, 1.0F);
+    ImGui::SliderFloat("Temporal Alpha Lowest", &_svoTracerTweakingData->temporalAlphaLowest, 0.0F,
+                       1.0F);
     ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi, 0.0F,
                        1.0F);
 

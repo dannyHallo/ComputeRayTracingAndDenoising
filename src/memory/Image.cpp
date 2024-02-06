@@ -60,6 +60,15 @@ Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags
   }
   _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
                                  format, aspectFlags, _layerCount);
+
+  // TODO: clear the image functionality
+  // auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
+  // auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
+  // auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
+
+  // VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+  // clearImage(commandBuffer);
+  // endSingleTimeCommands(device, commandPool, queue, commandBuffer);
 }
 
 Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout initialImageLayout,

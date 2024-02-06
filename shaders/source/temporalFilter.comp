@@ -7,9 +7,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/definitions.glsl"
 
-// when alpha is too low, the image is over-smoothed -> loss of detail
-// when alpha is too high, the image is unstable     -> jitter of noise
-
 ivec2 backwardProjection(ivec2 uv) {
   vec4 worldPos = imageLoad(positionImage, uv);
 
@@ -63,21 +60,30 @@ void main() {
     return;
   }
 
-  float alphaBlending = temporalFilterInfoUbo.data.temporalAlpha;
-
   ivec2 pUv = backwardProjection(uv);
 
   vec4 rawColor     = imageLoad(rawImage, uv);
   vec4 accumedColor = getAccumColor(pUv);
 
   // float varianceBlending = 0;
+  uint histLength;
+  float alphaFac;
   if (!isConsistent(uv, pUv)) {
-    alphaBlending = 1;
-    // varianceBlending = 1;
+    histLength = 0;
+    alphaFac   = 1;
+  } else {
+    histLength = min(255u, uint(imageLoad(temporalHistLengthImage, uv).x) + 1);
+    if (twickableParametersUbo.data.magicButton) {
+      alphaFac = min(temporalFilterInfoUbo.data.temporalAlphaHighest,
+                     max(temporalFilterInfoUbo.data.temporalAlphaLowest, 2.0 / float(histLength)));
+    } else {
+      alphaFac = temporalFilterInfoUbo.data.temporalAlphaLowest;
+    }
   }
 
-  vec4 colToWrite = mix(accumedColor, rawColor, alphaBlending);
+  vec4 colToWrite = mix(accumedColor, rawColor, alphaFac);
   imageStore(aTrousPingImage, uv, colToWrite);
+  imageStore(temporalHistLengthImage, uv, uvec4(histLength, 0, 0, 0));
   // vec4 accumVarianceHist = mix(imageLoad(lastVarianceHistImage, pUv), vec4(0), varianceBlending);
   // imageStore(varianceHistImage, uv, accumVarianceHist);
 }

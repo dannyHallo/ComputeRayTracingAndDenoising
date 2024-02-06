@@ -73,6 +73,7 @@ private:
   std::unique_ptr<Image> _depthImage;
   std::unique_ptr<Image> _octreeVisualizationImage;
   std::unique_ptr<Image> _hitImage;
+  std::unique_ptr<Image> _temporalHistLengthImage;
 
   std::unique_ptr<Image> _normalImage;
   std::unique_ptr<Image> _lastNormalImage;
