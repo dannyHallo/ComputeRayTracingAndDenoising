@@ -297,15 +297,13 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SeparatorText("Twickable Parameters");
 
     ImGui::Checkbox("Magic Button", &_svoTracerTweakingData->magicButton);
+    ImGui::SliderFloat("Magic Slider", &_svoTracerTweakingData->magicSlider, 0.0F, 1.0F);
     ImGui::Checkbox("Visualize Octree", &_svoTracerTweakingData->visualizeOctree);
     ImGui::Checkbox("Beam Optimization", &_svoTracerTweakingData->beamOptimization);
     ImGui::Checkbox("Trace Secondary Ray", &_svoTracerTweakingData->traceSecondaryRay);
 
     ImGui::SeparatorText("Temporal Filter Info");
-    ImGui::SliderFloat("Temporal Alpha Highest", &_svoTracerTweakingData->temporalAlphaHighest,
-                       0.0F, 1.0F);
-    ImGui::SliderFloat("Temporal Alpha Lowest", &_svoTracerTweakingData->temporalAlphaLowest, 0.0F,
-                       1.0F);
+    ImGui::SliderFloat("Temporal Alpha", &_svoTracerTweakingData->temporalAlpha, 0.0F, 1.0F);
     ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi, 0.0F,
                        1.0F);
 

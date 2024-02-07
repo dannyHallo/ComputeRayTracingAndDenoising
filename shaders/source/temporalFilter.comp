@@ -66,19 +66,13 @@ void main() {
   vec4 accumedColor = getAccumColor(pUv);
 
   // float varianceBlending = 0;
-  uint histLength;
-  float alphaFac;
+  float histLength, alphaFac;
   if (!isConsistent(uv, pUv)) {
-    histLength = 0;
-    alphaFac   = 1;
+    histLength = 0.0;
+    alphaFac   = 1.0;
   } else {
-    histLength = min(255u, uint(imageLoad(temporalHistLengthImage, uv).x) + 1);
-    if (twickableParametersUbo.data.magicButton) {
-      alphaFac = min(temporalFilterInfoUbo.data.temporalAlphaHighest,
-                     max(temporalFilterInfoUbo.data.temporalAlphaLowest, 2.0 / float(histLength)));
-    } else {
-      alphaFac = temporalFilterInfoUbo.data.temporalAlphaLowest;
-    }
+    histLength = min(255.0, float(imageLoad(temporalHistLengthImage, uv).x) + 1.0);
+    alphaFac   = max(temporalFilterInfoUbo.data.temporalAlpha, 1.0 / histLength);
   }
 
   vec4 colToWrite = mix(accumedColor, rawColor, alphaFac);

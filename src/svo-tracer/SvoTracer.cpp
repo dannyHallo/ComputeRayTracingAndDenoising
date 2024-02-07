@@ -570,15 +570,15 @@ void SvoTracer::updateUboData(size_t currentFrame) {
 
   G_TwickableParameters twickableParameters{};
   twickableParameters.magicButton       = _uboData.magicButton;
+  twickableParameters.magicSlider       = _uboData.magicSlider;
   twickableParameters.visualizeOctree   = _uboData.visualizeOctree;
   twickableParameters.beamOptimization  = _uboData.beamOptimization;
   twickableParameters.traceSecondaryRay = _uboData.traceSecondaryRay;
   _twickableParametersBufferBundle->getBuffer(currentFrame)->fillData(&twickableParameters);
 
   G_TemporalFilterInfo temporalFilterInfo{};
-  temporalFilterInfo.temporalAlphaHighest = _uboData.temporalAlphaHighest;
-  temporalFilterInfo.temporalAlphaLowest  = _uboData.temporalAlphaLowest;
-  temporalFilterInfo.temporalPositionPhi  = _uboData.temporalPositionPhi;
+  temporalFilterInfo.temporalAlpha       = _uboData.temporalAlpha;
+  temporalFilterInfo.temporalPositionPhi = _uboData.temporalPositionPhi;
   _temporalFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&temporalFilterInfo);
 
   G_SpatialFilterInfo spatialFilterInfo{};

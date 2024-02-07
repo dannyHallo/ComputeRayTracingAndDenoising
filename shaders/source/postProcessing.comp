@@ -45,9 +45,6 @@ void main() {
 
   if (hit) {
     writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
-    // float f       = imageLoad(temporalHistLengthImage, uv).x;
-    // float falloff = exp(-(f * 0.01));
-    // writingCol    = vec3(falloff);
   } else {
     writingCol = imageLoad(backgroundImage, uv).xyz;
   }

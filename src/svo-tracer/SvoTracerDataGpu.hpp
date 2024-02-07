@@ -21,14 +21,14 @@ struct SvoTracerTweakingData {
 
   // for general info
   bool magicButton       = true;
+  float magicSlider      = 0.0F;
   bool visualizeOctree   = false;
   bool beamOptimization  = true;
   bool traceSecondaryRay = true;
 
   // for temporal filter info
-  float temporalAlphaHighest = 0.15F;
-  float temporalAlphaLowest  = 0.05F;
-  float temporalPositionPhi  = 0.99F;
+  float temporalAlpha       = 0.05F;
+  float temporalPositionPhi = 0.99F;
 
   // for spatial filter info
   int aTrousIterationCount             = 0;

@@ -17,6 +17,7 @@ struct G_RenderInfo {
 
 struct G_TwickableParameters {
   bool magicButton;
+  float magicSlider;
   bool visualizeOctree;
   bool beamOptimization;
   bool traceSecondaryRay;
@@ -28,8 +29,7 @@ struct G_SceneInfo {
 };
 
 struct G_TemporalFilterInfo {
-  float temporalAlphaHighest;
-  float temporalAlphaLowest;
+  float temporalAlpha;
   float temporalPositionPhi;
 };
 
