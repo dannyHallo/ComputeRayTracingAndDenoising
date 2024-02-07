@@ -7,7 +7,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/definitions.glsl"
 
-ivec2 backwardProjection(ivec2 uv) {
+vec2 backwardProjection(ivec2 uv) {
   vec4 worldPos = imageLoad(positionImage, uv);
 
   mat4 mvpe;
@@ -21,8 +21,8 @@ ivec2 backwardProjection(ivec2 uv) {
   screenBoxCoord = (screenBoxCoord + vec4(1)) / 2;
   // to vulkan uv coord, starts from top left corner, range is [0, 1]
   vec2 uvCoord = vec2(screenBoxCoord.x, 1 - screenBoxCoord.y);
-  return ivec2(uvCoord.x * renderInfoUbo.data.swapchainWidth,
-               uvCoord.y * renderInfoUbo.data.swapchainHeight);
+  return vec2(uvCoord.x * renderInfoUbo.data.swapchainWidth,
+              uvCoord.y * renderInfoUbo.data.swapchainHeight);
 }
 
 vec4 getAccumColor(ivec2 pUv) {
@@ -34,16 +34,12 @@ vec4 getAccumColor(ivec2 pUv) {
   return imageLoad(lastAccumedImage, pUv);
 }
 
-bool isConsistent(ivec2 uv, ivec2 pUv) {
+bool isConsistent(vec3 normal, vec3 lastNormal, vec3 position, vec3 lastPosition) {
   // normal test is useful for edges (nearby disocclusions)
-  vec3 normal           = imageLoad(normalImage, uv).xyz;
-  vec3 lastNormal       = imageLoad(lastNormalImage, pUv).xyz;
   float normalFac       = pow(dot(normal, lastNormal), 128.);
   bool normalConsistent = normalFac > 0.99;
 
   // position test is useful for disocclusions happened in some distance
-  vec3 position           = imageLoad(positionImage, uv).xyz;
-  vec3 lastPosition       = imageLoad(lastPositionImage, pUv).xyz;
   float positionFac       = exp(-distance(position, lastPosition));
   bool positionConsistent = positionFac > temporalFilterInfoUbo.data.temporalPositionPhi;
 
@@ -60,23 +56,54 @@ void main() {
     return;
   }
 
-  ivec2 pUv = backwardProjection(uv);
+  vec2 pUv     = backwardProjection(uv);
+  vec2 pBaseUv = floor(pUv - vec2(0.5));
+  vec2 subpix  = fract(pUv - vec2(0.5) - pBaseUv);
 
-  vec4 rawColor     = imageLoad(rawImage, uv);
-  vec4 accumedColor = getAccumColor(pUv);
+  const ivec2 off[4] = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
+  float w[4]         = {(1.0 - subpix.x) * (1.0 - subpix.y), (subpix.x) * (1.0 - subpix.y),
+                        (1.0 - subpix.x) * (subpix.y), (subpix.x) * (subpix.y)};
 
+  // sum of weights of bilinear interpolation is 1
+  float sumOfWeights       = 0;
+  float sumOfHistLengths   = 0;
+  vec4 sumOfWeightedColors = vec4(0);
   // float varianceBlending = 0;
-  float histLength, alphaFac;
-  if (!isConsistent(uv, pUv)) {
-    histLength = 0.0;
-    alphaFac   = 1.0;
-  } else {
-    histLength = min(255.0, float(imageLoad(temporalHistLengthImage, uv).x) + 1.0);
-    alphaFac   = max(temporalFilterInfoUbo.data.temporalAlpha, 1.0 / histLength);
+
+  // normal test is useful for edges (nearby disocclusions)
+  vec3 normal   = imageLoad(normalImage, uv).xyz;
+  vec3 position = imageLoad(positionImage, uv).xyz;
+  for (int i = 0; i < 4; i++) {
+    ivec2 tappingUv   = ivec2(pBaseUv) + off[i];
+    vec3 lastNormal   = imageLoad(lastNormalImage, tappingUv).xyz;
+    vec3 lastPosition = imageLoad(lastPositionImage, tappingUv).xyz;
+
+    bool consistent = isConsistent(normal, lastNormal, position, lastPosition);
+    if (consistent) {
+      sumOfHistLengths += w[i] * float(imageLoad(temporalHistLengthImage, uv).x);
+      sumOfWeightedColors += w[i] * getAccumColor(tappingUv);
+      sumOfWeights += w[i];
+    }
   }
 
-  vec4 colToWrite = mix(accumedColor, rawColor, alphaFac);
-  imageStore(aTrousPingImage, uv, colToWrite);
+  vec4 rawColor = imageLoad(rawImage, uv);
+
+  float histLength;
+  vec4 thisFrameColor;
+
+  // relevant surfaces found
+  if (sumOfWeights >= 1e-6) {
+    sumOfHistLengths /= sumOfWeights;
+    sumOfWeightedColors /= sumOfWeights;
+    histLength     = min(255.0, sumOfHistLengths + 1.0);
+    float alphaFac = max(temporalFilterInfoUbo.data.temporalAlpha, 1.0 / histLength);
+    thisFrameColor = mix(sumOfWeightedColors, rawColor, alphaFac);
+  } else {
+    histLength     = 1.0;
+    thisFrameColor = rawColor;
+  }
+
+  imageStore(aTrousPingImage, uv, thisFrameColor);
   imageStore(temporalHistLengthImage, uv, uvec4(histLength, 0, 0, 0));
   // vec4 accumVarianceHist = mix(imageLoad(lastVarianceHistImage, pUv), vec4(0), varianceBlending);
   // imageStore(varianceHistImage, uv, accumVarianceHist);
