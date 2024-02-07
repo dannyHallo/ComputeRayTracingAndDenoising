@@ -164,12 +164,12 @@ bool detailedMarching(out float oT, out vec3 oPos, out vec3 oColor, out vec3 oNo
   if ((oct_mask & 2u) == 0u) norm.y = -norm.y;
   if ((oct_mask & 4u) == 0u) norm.z = -norm.z;
 
-  // undo mirroring of the coordinate system.
+  // undo mirroring of the coordinate system
   if ((oct_mask & 1u) != 0u) pos.x = 3 - scale_exp2 - pos.x;
   if ((oct_mask & 2u) != 0u) pos.y = 3 - scale_exp2 - pos.y;
   if ((oct_mask & 4u) != 0u) pos.z = 3 - scale_exp2 - pos.z;
 
-  // output results.
+  // output results
   oPos = clamp(o + t_min * d, pos, pos + scale_exp2);
   if (norm.x != 0) oPos.x = norm.x > 0 ? pos.x + scale_exp2 + kEpsilon * 2 : pos.x - kEpsilon;
   if (norm.y != 0) oPos.y = norm.y > 0 ? pos.y + scale_exp2 + kEpsilon * 2 : pos.y - kEpsilon;
