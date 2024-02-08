@@ -102,70 +102,74 @@ void SvoTracer::_createFullSizedImages() {
   auto h = _appContext->getSwapchainExtentHeight();
 
   _backgroundImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
   // w = 16 -> 3, w = 17 -> 4
   _beamDepthImage = std::make_unique<Image>(std::ceil(static_cast<float>(w) / kBeamResolution) + 1,
                                             std::ceil(static_cast<float>(h) / kBeamResolution) + 1,
-                                            VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+                                            1, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _rawImage = std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
+  _rawImage =
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _depthImage = std::make_unique<Image>(w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+  _depthImage = std::make_unique<Image>(w, h, 1, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _octreeVisualizationImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _octreeVisualizationImage =
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _hitImage = std::make_unique<Image>(w, h, VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
+  _hitImage = std::make_unique<Image>(w, h, 1, VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _temporalHistLengthImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _normalImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _lastNormalImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _positionImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
   _lastPositionImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _voxHashImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+      w, h, 1, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _lastVoxHashImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+      w, h, 1, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _accumedImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _lastAccumedImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _accumedImage =
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _lastAccumedImage =
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _varianceHistImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
 
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _lastVarianceHistImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   // both of the ping and pong can be dumped to the render target image and the lastAccumedImage
   _aTrousPingImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _aTrousPongImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _aTrousFinalResultImage =
-      std::make_unique<Image>(w, h, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _renderTargetImage = std::make_unique<Image>(
-      w, h, VK_FORMAT_R8G8B8A8_UNORM,
+      w, h, 1, VK_FORMAT_R8G8B8A8_UNORM,
       VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
           VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 

@@ -48,18 +48,18 @@ unsigned char *_loadImageFromPath(const std::string &path, int &width, int &heig
 void _freeImageData(unsigned char *imageData) { stbi_image_free(imageData); }
 } // namespace
 
-Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
-             VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
-             VkImageTiling tiling, VkImageAspectFlags aspectFlags)
+Image::Image(uint32_t width, uint32_t height, uint32_t depth, VkFormat format,
+             VkImageUsageFlags usage, VkImageLayout initialImageLayout,
+             VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags)
     : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1), _format(format),
-      _width(width), _height(height) {
+      _width(width), _height(height), _depth(depth) {
   _createImage(numSamples, tiling, usage);
 
   if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
     _transitionImageLayout(initialImageLayout);
   }
   _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
-                                 format, aspectFlags, _layerCount);
+                                 format, aspectFlags, _depth, _layerCount);
 
   // TODO: clear the image functionality
   // auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
@@ -80,8 +80,10 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout
   int height      = 0;
   int channels    = 0;
   auto *imageData = _loadImageFromPath(filename, width, height, channels);
-  _width          = static_cast<uint32_t>(width);
-  _height         = static_cast<uint32_t>(height);
+
+  _width  = static_cast<uint32_t>(width);
+  _height = static_cast<uint32_t>(height);
+  _depth  = 1;
 
   _createImage(numSamples, tiling, usage);
 
@@ -101,7 +103,7 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout
   }
 
   _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
-                                 _format, aspectFlags, _layerCount);
+                                 _format, aspectFlags, _depth, _layerCount);
 }
 
 Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
@@ -119,8 +121,10 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
     auto *imageData = _loadImageFromPath(filename, width, height, channels);
     imageDatas.push_back(imageData);
   }
+
   _width  = static_cast<uint32_t>(width);
   _height = static_cast<uint32_t>(height);
+  _depth  = 1;
 
   _createImage(numSamples, tiling, usage);
 
@@ -140,7 +144,7 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
   }
 
   _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
-                                 _format, aspectFlags, _layerCount);
+                                 _format, aspectFlags, _depth, _layerCount);
 }
 
 Image::~Image() {
@@ -163,7 +167,7 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
   auto const &allocator   = VulkanApplicationContext::getInstance()->getAllocator();
 
-  const uint32_t imagePixelCount = _width * _height;
+  const uint32_t imagePixelCount = _width * _height * _depth;
   // the channel count is ignored here, because the VkFormat is enough
   const uint32_t imageDataSize = imagePixelCount * kVkFormatBytesPerPixelMap.at(_format);
 
@@ -201,7 +205,7 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   region.imageSubresource.baseArrayLayer = layerToCopyTo;
   region.imageSubresource.layerCount     = 1;
   region.imageOffset                     = {0, 0, 0};
-  region.imageExtent                     = {_width, _height, 1};
+  region.imageExtent                     = {_width, _height, _depth};
 
   vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, _vkImage,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
@@ -215,12 +219,11 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
 
 VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
                              VkImageUsageFlags usage) {
-  VkImageCreateInfo imageInfo{};
-  imageInfo.sType         = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-  imageInfo.imageType     = VK_IMAGE_TYPE_2D;
+  VkImageCreateInfo imageInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+  imageInfo.imageType     = _depth > 1 ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
   imageInfo.extent.width  = _width;
   imageInfo.extent.height = _height;
-  imageInfo.extent.depth  = 1;
+  imageInfo.extent.depth  = _depth;
   imageInfo.mipLevels     = 1;
   imageInfo.arrayLayers   = _layerCount;
   imageInfo.format        = _format;
@@ -241,15 +244,24 @@ VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling til
 }
 
 VkImageView Image::createImageView(VkDevice device, const VkImage &image, VkFormat format,
-                                   VkImageAspectFlags aspectFlags, uint32_t layerCount) {
+                                   VkImageAspectFlags aspectFlags, uint32_t imageDepth,
+                                   uint32_t layerCount) {
+
   VkImageView imageView{};
 
-  VkImageViewCreateInfo viewInfo{};
-  viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-  viewInfo.image = image;
+  VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_2D;
+  if (layerCount == 1) {
+    viewType = imageDepth > 1 ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D;
+  } else {
+    assert(imageDepth == 1 && "imageDepth must be 1 for 2D array images");
+    viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+  }
 
-  viewInfo.viewType = (layerCount == 1) ? VK_IMAGE_VIEW_TYPE_2D : VK_IMAGE_VIEW_TYPE_2D_ARRAY;
-  viewInfo.format   = format;
+  VkImageViewCreateInfo viewInfo{};
+  viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.image                           = image;
+  viewInfo.viewType                        = viewType;
+  viewInfo.format                          = format;
   viewInfo.subresourceRange.aspectMask     = aspectFlags;
   viewInfo.subresourceRange.baseMipLevel   = 0;
   viewInfo.subresourceRange.levelCount     = 1;

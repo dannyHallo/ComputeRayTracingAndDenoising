@@ -44,7 +44,15 @@ void main() {
   bool hit        = imageLoad(hitImage, uv).x != 0;
 
   if (hit) {
-    writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
+    // writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
+
+    // float histLength = imageLoad(temporalHistLengthImage, uv).x;
+    // writingCol       = exp(-histLength * 0.1) * vec3(1);
+
+    vec3 normal     = imageLoad(normalImage, uv).xyz;
+    vec3 lastNormal = imageLoad(lastNormalImage, uv).xyz;
+    float normalFac = pow(dot(normal, lastNormal), 128.0);
+    writingCol      = normalFac > twickableParametersUbo.data.magicSlider ? vec3(1) : vec3(0);
   } else {
     writingCol = imageLoad(backgroundImage, uv).xyz;
   }

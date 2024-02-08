@@ -1,0 +1,46 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+#include "include/svoBuilderDescriptorSetLayouts.glsl"
+
+// step 2: we calculate each fragment's normal (we are using one normal per voxel)
+void main() {
+  if (gl_GlobalInvocationID.x >= fragmentListInfoBuffer.data.voxelFragmentCount) return;
+  G_FragmentListEntry ufragment = fragmentListBuffer.datas[gl_GlobalInvocationID.x];
+
+  uint coordinates = ufragment.coordinates;
+  ivec3 voxel_pos  = ivec3((coordinates & 0x3FF00000u) >> 20u, (coordinates & 0x000FFC00u) >> 10u,
+                           (coordinates & 0x000003FFu));
+
+  ivec3 directions[6] = ivec3[6](ivec3(1, 0, 0), ivec3(-1, 0, 0), ivec3(0, 1, 0), ivec3(0, -1, 0),
+                                 ivec3(0, 0, 1), ivec3(0, 0, -1));
+
+  vec3 normal = vec3(0.0);
+  for (int i = 0; i < 6; i++) {
+    ivec3 direction    = directions[i];
+    ivec3 neighbor_pos = voxel_pos + direction;
+    bool hasVoxel =
+        imageLoad(fragmentListImage, ivec3(neighbor_pos.x, neighbor_pos.y, neighbor_pos.z)).x != 0;
+    if (!hasVoxel) {
+      normal += vec3(direction);
+    }
+  }
+
+  normal             = normal == vec3(0) ? vec3(0) : normalize(normal);
+  normal             = (normal + 1.0) / 2.0; // normalize to [0, 1]
+  vec4 writingNormal = vec4(normal, 0);
+
+  ufragment.properties |= packUnorm4x8(writingNormal);
+  // reserved, normal.z, normal.y, normal.x -> each component is 8 bits
+
+  //   bool upperHasVoxel =
+  //       imageLoad(fragmentListImage, ivec3(voxel_pos.x, voxel_pos.y + 1, voxel_pos.z)).x > 0;
+  //   if (upperHasVoxel) {
+  //     ufragment.properties |= 0x00000100u;
+  //   }
+
+  // store property buffer back
+  fragmentListBuffer.datas[gl_GlobalInvocationID.x] = ufragment;
+}

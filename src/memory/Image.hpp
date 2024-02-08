@@ -13,14 +13,14 @@
 class Image {
 public:
   // create a blank image
-  Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
+  Image(uint32_t width, uint32_t height, uint32_t depth, VkFormat format, VkImageUsageFlags usage,
         VkImageLayout initialImageLayout = VK_IMAGE_LAYOUT_GENERAL,
         VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT,
         VkImageTiling tiling             = VK_IMAGE_TILING_OPTIMAL,
         VkImageAspectFlags aspectFlags   = VK_IMAGE_ASPECT_COLOR_BIT);
 
-  // create an image from a file, VK_FORMAT_R8G8B8A8_UNORM is the format that stb_image supports, so
-  // the created image format is fixed
+  // create an image from a file, VK_FORMAT_R8G8B8A8_UNORM is the only format that stb_image
+  // supports, so the created image format is fixed, and only 2D images are supported.
   Image(const std::string &filename, VkImageUsageFlags usage,
         VkImageLayout initialImageLayout = VK_IMAGE_LAYOUT_GENERAL,
         VkSampleCountFlagBits numSamples = VK_SAMPLE_COUNT_1_BIT,
@@ -53,7 +53,8 @@ public:
   void clearImage(VkCommandBuffer commandBuffer);
 
   static VkImageView createImageView(VkDevice device, const VkImage &image, VkFormat format,
-                                     VkImageAspectFlags aspectFlags, uint32_t layerCount = 1);
+                                     VkImageAspectFlags aspectFlags, uint32_t imageDepth = 1,
+                                     uint32_t layerCount = 1);
 
 private:
   VkImage _vkImage          = VK_NULL_HANDLE;
@@ -62,8 +63,10 @@ private:
   VkImageLayout _currentImageLayout;
   uint32_t _layerCount;
   VkFormat _format;
+
   uint32_t _width;
   uint32_t _height;
+  uint32_t _depth;
 
   void _copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo = 0);
 

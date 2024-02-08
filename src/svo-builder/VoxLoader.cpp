@@ -101,10 +101,10 @@ VoxData _parseSceneInstances(ogt_vox_scene const *scene,
 
     // reverse the order of rgba because of packing standard specified here
     // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
-    convertedColor |= static_cast<uint32_t>(color.r);
-    convertedColor |= static_cast<uint32_t>(color.g) << 8;
-    convertedColor |= static_cast<uint32_t>(color.b) << 16;
-    convertedColor |= static_cast<uint32_t>(color.a) << 24;
+    convertedColor |= color.r;
+    convertedColor |= color.g << 8;
+    convertedColor |= color.b << 16;
+    convertedColor |= color.a << 24;
     voxData.paletteData[i] = convertedColor;
   }
 
@@ -139,7 +139,7 @@ VoxData _parseSceneInstances(ogt_vox_scene const *scene,
             coordinatesData |= shiftedY;
 
             uint32_t propertiesData = 0;
-            propertiesData |= static_cast<uint32_t>(colorIndex);
+            // propertiesData |= colorIndex << 16; TODO:
 
             voxData.fragmentList.emplace_back(coordinatesData, propertiesData);
           }

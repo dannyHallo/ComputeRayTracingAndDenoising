@@ -33,11 +33,11 @@ struct SvoTracerTweakingData {
   float sunSize      = 0.5F;
 
   // for temporal filter info
-  float temporalAlpha       = 0.05F;
+  float temporalAlpha       = 1.F;
   float temporalPositionPhi = 0.99F;
 
   // for spatial filter info
-  int aTrousIterationCount             = 3;
+  int aTrousIterationCount             = 0;
   bool useVarianceGuidedFiltering      = true;
   bool useGradientInDepth              = true;
   float phiC                           = 0.01F;

@@ -14,6 +14,7 @@ class ComputePipeline;
 class Logger;
 class VulkanApplicationContext;
 class Buffer;
+class Image;
 
 class SvoBuilder {
 public:
@@ -42,13 +43,16 @@ private:
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
-  std::unique_ptr<ComputePipeline> _initNodePipeline;
-  std::unique_ptr<ComputePipeline> _tagNodePipeline;
-  std::unique_ptr<ComputePipeline> _allocNodePipeline;
-  std::unique_ptr<ComputePipeline> _modifyArgPipeline;
+  VkCommandBuffer _normalCalcCommandBuffer     = VK_NULL_HANDLE;
+  VkCommandBuffer _octreeBuildingCommandBuffer = VK_NULL_HANDLE;
 
-  VkCommandBuffer _commandBuffer = VK_NULL_HANDLE; // only one command buffer is needed
-  void _recordCommandBuffer(uint32_t voxelFragmentCount, uint32_t octreeLevelCount);
+  void _recordNormalCalcCommandBuffer(uint32_t voxelFragmentCount);
+  void _recordOctreeBuildingCommandBuffer(uint32_t voxelFragmentCount, uint32_t octreeLevelCount);
+
+  /// IMAGES
+  std::unique_ptr<Image> _fragmentListImage;
+
+  void _createImages(VoxData const &voxData);
 
   /// BUFFERS
 
@@ -65,6 +69,14 @@ private:
   void _initBufferData(VoxData const &voxData);
 
   /// PIPELINES
+
+  std::unique_ptr<ComputePipeline> _fragmentListImageFillingPipeline;
+  std::unique_ptr<ComputePipeline> _fragmentListNormalCalcPipeline;
+
+  std::unique_ptr<ComputePipeline> _initNodePipeline;
+  std::unique_ptr<ComputePipeline> _tagNodePipeline;
+  std::unique_ptr<ComputePipeline> _allocNodePipeline;
+  std::unique_ptr<ComputePipeline> _modifyArgPipeline;
 
   void _createDescriptorSetBundle();
   void _createPipelines();

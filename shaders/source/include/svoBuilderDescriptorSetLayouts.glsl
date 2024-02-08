@@ -3,11 +3,13 @@
 
 #include "svoBuilderDataStructs.glsl"
 
+layout(binding = 6, r32ui) uniform uimage3D fragmentListImage;
+
 layout(std430, binding = 0) buffer CounterBuffer { uint data; }
 counterBuffer;
 layout(std430, binding = 1) buffer OctreeBuffer { uint data[]; }
 octreeBuffer;
-layout(std430, binding = 2) readonly buffer FragmentListBuffer { G_FragmentListEntry datas[]; }
+layout(std430, binding = 2) buffer FragmentListBuffer { G_FragmentListEntry datas[]; }
 fragmentListBuffer;
 layout(std430, binding = 3) buffer BuildInfoBuffer { G_BuildInfo data; }
 buildInfoBuffer;
