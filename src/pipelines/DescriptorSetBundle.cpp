@@ -75,9 +75,7 @@ void DescriptorSetBundle::_createDescriptorPool() {
   poolInfo.pPoolSizes    = poolSizes.data();
   poolInfo.poolSizeCount = poolSizes.size();
 
-  VkResult result =
-      vkCreateDescriptorPool(_appContext->getDevice(), &poolInfo, nullptr, &_descriptorPool);
-  assert(result == VK_SUCCESS && "Material::initDescriptorPool: failed to create descriptor pool");
+  vkCreateDescriptorPool(_appContext->getDevice(), &poolInfo, nullptr, &_descriptorPool);
 }
 
 void DescriptorSetBundle::_createDescriptorSetLayout() {
@@ -186,7 +184,6 @@ void DescriptorSetBundle::_createDescriptorSet(uint32_t descriptorSetIndex) {
                          descriptorWrites.data(), 0, nullptr);
 }
 
-
 void DescriptorSetBundle::_createDescriptorSets() {
   // set bundle uses identical layout, but with different data
   std::vector<VkDescriptorSetLayout> layouts(_bundleSize, _descriptorSetLayout);
@@ -198,9 +195,7 @@ void DescriptorSetBundle::_createDescriptorSets() {
   allocInfo.pSetLayouts        = layouts.data();
 
   _descriptorSets.resize(_bundleSize);
-  VkResult res =
-      vkAllocateDescriptorSets(_appContext->getDevice(), &allocInfo, _descriptorSets.data());
-  assert(res == VK_SUCCESS && "Material::initDescriptorSets: failed to allocate descriptor sets");
+  vkAllocateDescriptorSets(_appContext->getDevice(), &allocInfo, _descriptorSets.data());
 
   for (uint32_t j = 0; j < _bundleSize; j++) {
     _createDescriptorSet(j);

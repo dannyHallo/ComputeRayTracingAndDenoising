@@ -3,7 +3,6 @@
 #include "pipelines/DescriptorSetBundle.hpp"
 #include "utils/logger/Logger.hpp"
 
-#include <cassert>
 #include <memory>
 #include <vector>
 
@@ -14,9 +13,7 @@ void ComputePipeline::init() {
   // this is why the compute pipeline requires the descriptor set layout to be specified
   pipelineLayoutInfo.pSetLayouts = &_descriptorSetBundle->getDescriptorSetLayout();
 
-  VkResult result = vkCreatePipelineLayout(_appContext->getDevice(), &pipelineLayoutInfo, nullptr,
-                                           &_pipelineLayout);
-  assert(result == VK_SUCCESS && "failed to create pipeline layout");
+  vkCreatePipelineLayout(_appContext->getDevice(), &pipelineLayoutInfo, nullptr, &_pipelineLayout);
 
   VkShaderModule shaderModule = _createShaderModule(_shaderCode);
 
@@ -32,9 +29,8 @@ void ComputePipeline::init() {
   computePipelineCreateInfo.flags  = 0;
   computePipelineCreateInfo.stage  = shaderStageInfo;
 
-  result = vkCreateComputePipelines(_appContext->getDevice(), VK_NULL_HANDLE, 1,
-                                    &computePipelineCreateInfo, nullptr, &_pipeline);
-  assert(result == VK_SUCCESS && "failed to create compute pipeline");
+  vkCreateComputePipelines(_appContext->getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo,
+                           nullptr, &_pipeline);
 
   // the shader module can be destroyed after the pipeline has been created
   vkDestroyShaderModule(_appContext->getDevice(), shaderModule, nullptr);

@@ -27,6 +27,7 @@ cppcoreguidelines-*,
 -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
 -cppcoreguidelines-owning-memory,
 -cppcoreguidelines-pro-type-union-access,
+-cppcoreguidelines-prefer-member-initializer,
 
 -readability-identifier-length,
 "

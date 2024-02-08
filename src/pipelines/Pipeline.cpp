@@ -2,7 +2,6 @@
 #include "app-context/VulkanApplicationContext.hpp"
 #include "pipelines/DescriptorSetBundle.hpp"
 
-#include <cassert>
 #include <map>
 #include <memory>
 #include <vector>
@@ -19,9 +18,7 @@ VkShaderModule Pipeline::_createShaderModule(const std::vector<uint32_t> &code) 
   createInfo.codeSize = sizeof(uint32_t) * code.size(); // size in BYTES
 
   VkShaderModule shaderModule = VK_NULL_HANDLE;
-  VkResult result =
-      vkCreateShaderModule(_appContext->getDevice(), &createInfo, nullptr, &shaderModule);
-  assert(result == VK_SUCCESS && "Material::createShaderModule: failed to create shader module");
+  vkCreateShaderModule(_appContext->getDevice(), &createInfo, nullptr, &shaderModule);
 
   return shaderModule;
 }

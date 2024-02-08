@@ -3,7 +3,6 @@
 #include "utils/logger/Logger.hpp"
 #include "utils/vulkan/SimpleCommands.hpp"
 
-#include <cassert>
 #include <unordered_map>
 
 // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html

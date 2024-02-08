@@ -3,7 +3,6 @@
 #include "Common.hpp"
 #include "utils/logger/Logger.hpp"
 
-#include <cassert>
 #include <set>
 
 namespace {
@@ -344,8 +343,7 @@ void ContextCreator::createDevice(Logger *logger, VkPhysicalDevice &physicalDevi
     deviceCreateInfo.enabledLayerCount   = 0;
     deviceCreateInfo.ppEnabledLayerNames = nullptr;
 
-    VkResult result = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
-    assert(result == VK_SUCCESS && "failed to create logical device");
+    vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
 
     // reduce loading overhead by specifing only one device is used
     volkLoadDevice(device);

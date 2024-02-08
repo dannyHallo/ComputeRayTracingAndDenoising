@@ -109,16 +109,15 @@ void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
   swapchainCreateInfo.imageUsage =
       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-  uint32_t queueFamilyIndicesArray[] = {queueFamilyIndices.graphicsFamily,
-                                        queueFamilyIndices.presentFamily};
+  std::vector<uint32_t> queueFamilyIndicesArray = {queueFamilyIndices.graphicsFamily,
+                                                   queueFamilyIndices.presentFamily};
 
   if (queueFamilyIndices.graphicsFamily != queueFamilyIndices.presentFamily) {
     // images can be used across multiple queue families without explicit
     // ownership transfers.
     swapchainCreateInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
-    swapchainCreateInfo.queueFamilyIndexCount = 2;
-    swapchainCreateInfo.pQueueFamilyIndices =
-        static_cast<const uint32_t *>(queueFamilyIndicesArray);
+    swapchainCreateInfo.queueFamilyIndexCount = queueFamilyIndicesArray.size();
+    swapchainCreateInfo.pQueueFamilyIndices   = queueFamilyIndicesArray.data();
   } else {
     // an image is owned by one queue family at a time and ownership must be
     // explicitly transferred before the image is being used in another
@@ -136,8 +135,7 @@ void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
 
   swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
-  VkResult result = vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
-  assert(result == VK_SUCCESS && "Failed to create swapchain!");
+  vkCreateSwapchainKHR(device, &swapchainCreateInfo, nullptr, &swapchain);
 
   // obtain the actual number of swapchain images
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, nullptr);

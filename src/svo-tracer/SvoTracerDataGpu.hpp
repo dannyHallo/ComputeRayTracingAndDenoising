@@ -28,8 +28,8 @@ struct SvoTracerTweakingData {
 
   // for env
   float sunAngle     = 0.0F;
-  glm::vec3 sunColor = glm::vec3(1.0F, 1.0F, 1.0F);
-  float sunLuminance = 1.0F;
+  glm::vec3 sunColor = glm::vec3(255.F / 255.F, 208.F / 255.F, 173.F / 255.F);
+  float sunLuminance = 3.F;
   float sunSize      = 0.5F;
 
   // for temporal filter info
@@ -37,16 +37,16 @@ struct SvoTracerTweakingData {
   float temporalPositionPhi = 0.99F;
 
   // for spatial filter info
-  int aTrousIterationCount             = 0;
+  int aTrousIterationCount             = 3;
   bool useVarianceGuidedFiltering      = true;
   bool useGradientInDepth              = true;
   float phiC                           = 0.01F;
   float phiN                           = 128.F;
   float phiP                           = 0.01F;
-  float phiZ                           = 0.5F;
+  float phiZ                           = 0.1F;
   bool ignoreLuminanceAtFirstIteration = true;
   bool changingLuminancePhi            = true;
-  bool useJittering                    = true;
+  bool useJittering                    = false;
 
   // bool _useStratumFiltering = false;
   // bool _useDepthTest     = false;

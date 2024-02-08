@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+#pragma GCC system_header
+
 #ifndef AMD_VULKAN_MEMORY_ALLOCATOR_H
 #define AMD_VULKAN_MEMORY_ALLOCATOR_H
 

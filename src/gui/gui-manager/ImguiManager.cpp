@@ -18,10 +18,6 @@
 float constexpr kImguiFontSize = 20.0F;
 
 namespace {
-void check_vk_result(VkResult resultCode) {
-  assert(resultCode == VK_SUCCESS && "check_vk_result failed");
-}
-
 // void comboSelector(std::string const &comboLabel, std::vector<std::string> const &outputItems,
 //                    uint32_t &selectedIdx) {
 //   assert(selectedIdx < outputItems.size() && "selectedIdx is out of range");
@@ -122,7 +118,7 @@ void ImguiManager::init() {
   info.Allocator                 = VK_NULL_HANDLE;
   info.MinImageCount             = static_cast<uint32_t>(_appContext->getSwapchainImagesCount());
   info.ImageCount                = static_cast<uint32_t>(_appContext->getSwapchainImagesCount());
-  info.CheckVkResultFn           = check_vk_result;
+  info.CheckVkResultFn           = nullptr;
   if (!ImGui_ImplVulkan_Init(&info, _guiPass)) {
     _logger->print("failed to init impl");
   }
@@ -164,9 +160,7 @@ void ImguiManager::_createGuiDescripterPool() {
   poolInfo.pPoolSizes    = poolSizes.data();
   poolInfo.poolSizeCount = poolSizes.size();
 
-  VkResult result =
-      vkCreateDescriptorPool(_appContext->getDevice(), &poolInfo, nullptr, &_guiDescriptorPool);
-  assert(result == VK_SUCCESS && "vkCreateDescriptorPool failed");
+  vkCreateDescriptorPool(_appContext->getDevice(), &poolInfo, nullptr, &_guiDescriptorPool);
 }
 
 void ImguiManager::_createGuiCommandBuffers() {
@@ -177,9 +171,7 @@ void ImguiManager::_createGuiCommandBuffers() {
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = (uint32_t)_guiCommandBuffers.size();
 
-  VkResult result =
-      vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _guiCommandBuffers.data());
-  assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
+  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, _guiCommandBuffers.data());
 }
 
 void ImguiManager::_createGuiRenderPass() {
@@ -224,9 +216,7 @@ void ImguiManager::_createGuiRenderPass() {
   renderPassCreateInfo.dependencyCount        = 1;
   renderPassCreateInfo.pDependencies          = &dependency;
 
-  VkResult result =
-      vkCreateRenderPass(_appContext->getDevice(), &renderPassCreateInfo, nullptr, &_guiPass);
-  assert(result == VK_SUCCESS && "vkCreateRenderPass failed");
+  vkCreateRenderPass(_appContext->getDevice(), &renderPassCreateInfo, nullptr, &_guiPass);
 }
 
 void ImguiManager::_createFramebuffers() {
@@ -251,9 +241,8 @@ void ImguiManager::_createFramebuffers() {
     frameBufferCreateInfo.height          = h;
     frameBufferCreateInfo.layers          = 1;
 
-    VkResult result = vkCreateFramebuffer(_appContext->getDevice(), &frameBufferCreateInfo, nullptr,
-                                          &_guiFrameBuffers[i]);
-    assert(result == VK_SUCCESS && "vkCreateFramebuffer failed");
+    vkCreateFramebuffer(_appContext->getDevice(), &frameBufferCreateInfo, nullptr,
+                        &_guiFrameBuffers[i]);
   }
 }
 
@@ -265,9 +254,8 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t imageIndex)
   beginInfo.flags            = 0;       // Optional
   beginInfo.pInheritanceInfo = nullptr; // Optional
 
-  // A call to vkBeginCommandBuffer will implicitly reset the command buffer
-  VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-  assert(result == VK_SUCCESS && "vkBeginCommandBuffer failed");
+  // a call to vkBeginCommandBuffer will implicitly reset the command buffer
+  vkBeginCommandBuffer(commandBuffer, &beginInfo);
 
   VkRenderPassBeginInfo renderPassInfo = {};
   renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -287,9 +275,7 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t imageIndex)
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
   vkCmdEndRenderPass(commandBuffer);
-
-  result = vkEndCommandBuffer(commandBuffer);
-  assert(result == VK_SUCCESS && "vkEndCommandBuffer failed");
+  vkEndCommandBuffer(commandBuffer);
 }
 
 void ImguiManager::_drawConfigMenuItem() {

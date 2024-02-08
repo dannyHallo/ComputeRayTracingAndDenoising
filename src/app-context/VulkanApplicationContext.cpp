@@ -11,7 +11,6 @@
 #include "utils/logger/Logger.hpp"
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <set>
 
@@ -27,9 +26,8 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
   _logger->print("DEBUG mode is disabled");
 #endif // NDEBUG
 
-  _glWindow       = window;
-  VkResult result = volkInitialize();
-  assert(result == VK_SUCCESS && "Failed to initialize volk");
+  _glWindow = window;
+  volkInitialize();
 
   VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
   appInfo.pApplicationName   = "Compute Ray Tracing";
@@ -139,8 +137,7 @@ void VulkanApplicationContext::_createAllocator() {
   allocatorInfo.instance               = _vkInstance;
   allocatorInfo.pVulkanFunctions       = &vmaVulkanFunc;
 
-  VkResult result = vmaCreateAllocator(&allocatorInfo, &_allocator);
-  assert(result == VK_SUCCESS && "failed to create allocator");
+  vmaCreateAllocator(&allocatorInfo, &_allocator);
 }
 
 // create a command pool for rendering commands and a command pool for gui
@@ -150,8 +147,7 @@ void VulkanApplicationContext::_createCommandPool() {
   commandPoolCreateInfo1.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   commandPoolCreateInfo1.queueFamilyIndex = _queueFamilyIndices.graphicsFamily;
 
-  VkResult result = vkCreateCommandPool(_device, &commandPoolCreateInfo1, nullptr, &_commandPool);
-  assert(result == VK_SUCCESS && "failed to create command pool");
+  vkCreateCommandPool(_device, &commandPoolCreateInfo1, nullptr, &_commandPool);
 
   VkCommandPoolCreateInfo commandPoolCreateInfo2{};
   commandPoolCreateInfo2.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -159,6 +155,5 @@ void VulkanApplicationContext::_createCommandPool() {
   // this flag allows the use of vkResetCommandBuffer
   commandPoolCreateInfo2.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-  result = vkCreateCommandPool(_device, &commandPoolCreateInfo2, nullptr, &_guiCommandPool);
-  assert(result == VK_SUCCESS && "failed to create command pool");
+  vkCreateCommandPool(_device, &commandPoolCreateInfo2, nullptr, &_guiCommandPool);
 }

@@ -2,10 +2,7 @@
 
 #include "utils/logger/Logger.hpp"
 
-#include <cassert>
-
-void ContextCreator::createSurface(Logger *logger, VkInstance instance, VkSurfaceKHR &surface,
+void ContextCreator::createSurface(Logger * /*logger*/, VkInstance instance, VkSurfaceKHR &surface,
                                    GLFWwindow *window) {
-  VkResult result = glfwCreateWindowSurface(instance, window, nullptr, &surface);
-  assert(result == VK_SUCCESS && "failed to create window surface");
+  glfwCreateWindowSurface(instance, window, nullptr, &surface);
 }

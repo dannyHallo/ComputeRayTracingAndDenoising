@@ -145,7 +145,13 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
 void ImGui_ImplVulkanH_CreateWindowCommandBuffers(VkPhysicalDevice physical_device, VkDevice device, ImGui_ImplVulkanH_Window *wd,
                                                   uint32_t queue_family, const VkAllocationCallbacks *allocator);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 static bool g_FunctionsLoaded = true;
+
+#pragma GCC diagnostic pop
+
 // // Vulkan prototypes for use with custom loaders
 // // (see description of IMGUI_IMPL_VULKAN_NO_PROTOTYPES in imgui_impl_vulkan.h
 // #ifdef VK_NO_PROTOTYPES

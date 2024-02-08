@@ -15,7 +15,6 @@
 #include "utils/logger/Logger.hpp"
 #include "window/Window.hpp"
 
-#include <cassert>
 #include <chrono>
 
 // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/

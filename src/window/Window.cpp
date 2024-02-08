@@ -4,16 +4,15 @@
 
 Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowed)
     : _widthIfWindowed(widthIfWindowed), _heightIfWindowed(heightIfWindowed) {
-  auto result = glfwInit();
-  assert(result == GLFW_TRUE && "Failed to initialize GLFW");
+  glfwInit();
 
   _monitor = glfwGetPrimaryMonitor();
-  assert(_monitor != nullptr && "Failed to get primary monitor");
+  assert(_monitor != nullptr && "failed to get primary monitor");
 
   // get primary monitor for future maximize function
   // may be used to change mode for this program
   const GLFWvidmode *mode = glfwGetVideoMode(_monitor);
-  assert(mode != nullptr && "Failed to get video mode");
+  assert(mode != nullptr && "failed to get video mode");
 
   // only OpenGL Api is supported, so no API here
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -26,7 +25,7 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
   // create a windowed fullscreen window temporalily, to obtain its property
   _window = glfwCreateWindow(mode->width, mode->height, "Voxel Tracer v1.0", nullptr, nullptr);
   glfwMaximizeWindow(_window);
-  glfwGetWindowPos(_window, 0, &_titleBarHeight);
+  glfwGetWindowPos(_window, nullptr, &_titleBarHeight);
   glfwGetFramebufferSize(_window, &_maximizedFullscreenClientWidth,
                          &_maximizedFullscreenClientHeight);
 
@@ -92,10 +91,10 @@ void Window::setWindowStyle(WindowStyle newStyle) {
     break;
 
   case WindowStyle::kHover:
-    int hoverWindowX =
-        static_cast<int>(_maximizedFullscreenClientWidth / 2.F - _widthIfWindowed / 2.F);
-    int hoverWindowY =
-        static_cast<int>(_maximizedFullscreenClientHeight / 2.F - _heightIfWindowed / 2.F);
+    int hoverWindowX = static_cast<int>(static_cast<float>(_maximizedFullscreenClientWidth) / 2.F -
+                                        static_cast<float>(_widthIfWindowed) / 2.F);
+    int hoverWindowY = static_cast<int>(static_cast<float>(_maximizedFullscreenClientHeight) / 2.F -
+                                        static_cast<float>(_heightIfWindowed) / 2.F);
     glfwSetWindowMonitor(_window, nullptr, hoverWindowX, hoverWindowY, _widthIfWindowed,
                          _heightIfWindowed, mode->refreshRate);
     break;
@@ -107,7 +106,8 @@ void Window::setWindowStyle(WindowStyle newStyle) {
 void Window::showCursor() {
   glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   _cursorState = CursorState::kVisible;
-  glfwSetCursorPos(_window, getFrameBufferWidth() / 2.F, getFrameBufferHeight() / 2.F);
+  glfwSetCursorPos(_window, static_cast<float>(getFrameBufferWidth()) / 2.F,
+                   static_cast<float>(getFrameBufferHeight()) / 2.F);
 }
 
 void Window::hideCursor() {
@@ -169,7 +169,7 @@ void Window::_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
   }
 }
 
-void Window::_frameBufferResizeCallback(GLFWwindow *window, int width, int height) {
+void Window::_frameBufferResizeCallback(GLFWwindow *window, int /*width*/, int /*height*/) {
   auto *thisWindowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
   thisWindowClass->setWindowSizeChanged(true);
 }

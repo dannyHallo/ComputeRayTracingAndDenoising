@@ -6,6 +6,8 @@
 #include <set>
 
 namespace {
+
+#ifndef NVALIDATIONLAYERS
 // we can change the color of the debug messages from this callback function!
 // in this case, we change the debug messages to red
 VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -44,37 +46,13 @@ VkDebugUtilsMessengerCreateInfoEXT _getDebugMessagerCreateInfo() {
 }
 
 // setup runtime debug messager
-void _setupDebugMessager(Logger *logger, VkInstance instance,
-                         VkDebugUtilsMessengerEXT &debugMessager) {
+void _setupDebugMessager(VkInstance instance, VkDebugUtilsMessengerEXT &debugMessager) {
   auto createInfo = _getDebugMessagerCreateInfo();
 
   assert(vkCreateDebugUtilsMessengerEXT != VK_NULL_HANDLE &&
          "vkCreateDebugUtilsMessengerEXT is a null function, call "
          "volkLoadInstance first");
-  VkResult result = vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessager);
-  assert(result == VK_SUCCESS && "failed to set up debug messager");
-}
-
-// returns instance required extension names (i.e glfw, validation layers), they
-// are device-irrational extensions
-std::vector<const char *> _getRequiredInstanceExtensions() {
-  // Get glfw required extensions
-  uint32_t glfwExtensionCount = 0;
-  const char **glfwExtensions = nullptr;
-
-  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-  std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-  // Due to the nature of the Vulkan interface, there is very little error
-  // information available to the developer and application. By using the
-  // VK_EXT_debug_utils extension, developers can obtain more information. When
-  // combined with validation layers, even more detailed feedback on the
-  // application’s use of Vulkan will be provided.
-#ifndef NVALIDATIONLAYERS
-  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif // NDEBUG
-
-  return extensions;
+  vkCreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debugMessager);
 }
 
 bool _checkInstanceLayerSupport(Logger *logger, const std::vector<const char *> &layers) {
@@ -115,6 +93,30 @@ bool _checkInstanceLayerSupport(Logger *logger, const std::vector<const char *> 
   return false;
 }
 
+#endif // NVALIDATIONLAYERS
+
+// returns instance required extension names (i.e glfw, validation layers), they
+// are device-irrational extensions
+std::vector<const char *> _getRequiredInstanceExtensions() {
+  // Get glfw required extensions
+  uint32_t glfwExtensionCount = 0;
+  const char **glfwExtensions = nullptr;
+
+  glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+  std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+  // Due to the nature of the Vulkan interface, there is very little error
+  // information available to the developer and application. By using the
+  // VK_EXT_debug_utils extension, developers can obtain more information. When
+  // combined with validation layers, even more detailed feedback on the
+  // application’s use of Vulkan will be provided.
+#ifndef NVALIDATIONLAYERS
+  extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif // NDEBUG
+
+  return extensions;
+}
+
 } // namespace
 
 void ContextCreator::createInstance(Logger *logger, VkInstance &instance,
@@ -150,8 +152,7 @@ void ContextCreator::createInstance(Logger *logger, VkInstance &instance,
   logger->println();
 
 #ifndef NVALIDATIONLAYERS
-  // Setup debug messager info during vkCreateInstance and vkDestroyInstance
-
+  // setup debug messager info during vkCreateInstance and vkDestroyInstance
   if (!_checkInstanceLayerSupport(logger, layers)) {
     logger->throwError("Validation layers requested, but not available!");
   }
@@ -166,13 +167,12 @@ void ContextCreator::createInstance(Logger *logger, VkInstance &instance,
 #endif // NDEBUG
 
   // create VK Instance
-  VkResult result = vkCreateInstance(&createInfo, nullptr, &instance);
-  assert(result == VK_SUCCESS && "failed to create instance");
+  vkCreateInstance(&createInfo, nullptr, &instance);
 
   // load instance-related functions
   volkLoadInstance(instance);
 
 #ifndef NVALIDATIONLAYERS
-  _setupDebugMessager(logger, instance, debugMessager);
-#endif // NDEBUG
+  _setupDebugMessager(instance, debugMessager);
+#endif // NVLIDATIONLAYERS
 }

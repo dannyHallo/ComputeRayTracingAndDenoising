@@ -8,7 +8,6 @@
 #include "utils/config/RootDir.h"
 #include "utils/logger/Logger.hpp"
 
-#include <cassert>
 #include <chrono>
 #include <cmath>
 #include <iomanip> // for advanced cout formatting
@@ -18,7 +17,7 @@
 namespace {
 
 VoxData _fetchVoxData() {
-  std::string const kFileName      = "treehouse";
+  std::string const kFileName      = "128_monu2_light";
   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
   return VoxLoader::fetchDataFromFile(kPathToVoxFile);
 }
@@ -214,8 +213,7 @@ void SvoBuilder::_recordCommandBuffer(uint32_t voxelFragmentCount, uint32_t octr
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = 1;
 
-  VkResult result = vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, &_commandBuffer);
-  assert(result == VK_SUCCESS && "vkAllocateCommandBuffers failed");
+  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, &_commandBuffer);
 
   VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
   vkBeginCommandBuffer(_commandBuffer, &beginInfo);
