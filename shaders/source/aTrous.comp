@@ -53,11 +53,14 @@ void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
   // oVariance = imageLoad(varianceImage, uv).x;
 }
 
-void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv, ivec2 dispatchXY,
+void blurKernel(inout float weightSum, inout vec4 sumOfWeightedColors, ivec2 uv, ivec2 dispatchXY,
                 int kernalHalfSize, uint currentIteration, vec3 normalAtUv, vec3 colorAtUv,
                 vec3 positionAtUv, float luminanceAtUv, float depthAtUv) {
   int stepSize   = 1 << currentIteration;
   ivec2 offsetXY = dispatchXY * stepSize;
+
+  // this noise calculation will hugely affect the performance, and we are only using 3 iterations,
+  // so the jitter is not that useful
   if (spatialFilterInfoUbo.data.useJittering && dispatchXY != ivec2(0)) {
     offsetXY += jittering(stepSize);
   }
@@ -68,7 +71,12 @@ void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv,
     float weight = weightK;
     weight       = clamp(weight, 0, 1);
     weightSum += weight;
-    sumOfWeightedValues += weight * vec4(colorAtUv, 1);
+    sumOfWeightedColors += weight * vec4(colorAtUv, 1);
+    return;
+  }
+
+  // since we give a offset here, we need to check if the hit is valid again
+  if (imageLoad(hitImage, uv + offsetXY).x == 0) {
     return;
   }
 
@@ -122,7 +130,7 @@ void blurKernel(inout float weightSum, inout vec4 sumOfWeightedValues, ivec2 uv,
   float weight = weightK * weightC * weightN * weightP * weightZ;
 
   weightSum += weight;
-  sumOfWeightedValues += weight * vec4(colorAtSample, 1);
+  sumOfWeightedColors += weight * vec4(colorAtSample, 1);
 }
 
 void main() {
@@ -131,8 +139,7 @@ void main() {
     return;
   }
 
-  bool hit = imageLoad(hitImage, uv).x != 0;
-  if (!hit) {
+  if (imageLoad(hitImage, uv).x == 0) {
     return;
   }
 
@@ -168,14 +175,14 @@ void main() {
 
   const int kernalHalfSize = 1;
   float weightSum          = 0;
-  vec4 sumOfWeightedValues = vec4(0);
+  vec4 sumOfWeightedColors = vec4(0);
   for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
     for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
-      blurKernel(weightSum, sumOfWeightedValues, uv, ivec2(indexX, indexY), kernalHalfSize,
+      blurKernel(weightSum, sumOfWeightedColors, uv, ivec2(indexX, indexY), kernalHalfSize,
                  currentIteration, normalAtUv, colorAtUv, positionAtUv, luminanceAtUv, depthAtUv);
     }
   }
-  vec4 weightedColor = sumOfWeightedValues / weightSum;
+  vec4 weightedColor = sumOfWeightedColors / weightSum;
 
   // send to accum buffer for the first iteration
   if (currentIteration == 0) {
