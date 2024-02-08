@@ -26,6 +26,12 @@ struct SvoTracerTweakingData {
   bool beamOptimization  = true;
   bool traceSecondaryRay = true;
 
+  // for env
+  float sunAngle     = 0.0F;
+  glm::vec3 sunColor = glm::vec3(1.0F, 1.0F, 1.0F);
+  float sunLuminance = 1.0F;
+  float sunSize      = 0.5F;
+
   // for temporal filter info
   float temporalAlpha       = 0.05F;
   float temporalPositionPhi = 0.99F;

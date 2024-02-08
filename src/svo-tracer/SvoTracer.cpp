@@ -298,6 +298,10 @@ void SvoTracer::_createBuffersAndBufferBundles() {
       _framesInFlight, sizeof(G_RenderInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
 
+  _environmentInfoBufferBundle = std::make_unique<BufferBundle>(
+      _framesInFlight, sizeof(G_EnvironmentInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+
   _twickableParametersBufferBundle = std::make_unique<BufferBundle>(
       _framesInFlight, sizeof(G_TwickableParameters), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
       MemoryAccessingStyle::kCpuToGpuEveryFrame);
@@ -568,6 +572,13 @@ void SvoTracer::updateUboData(size_t currentFrame) {
 
   lastMvpe = thisMvpe;
 
+  G_EnvironmentInfo environmentInfo{};
+  environmentInfo.sunAngle     = _uboData.sunAngle;
+  environmentInfo.sunColor     = _uboData.sunColor;
+  environmentInfo.sunLuminance = _uboData.sunLuminance;
+  environmentInfo.sunSize      = _uboData.sunSize;
+  _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
+
   G_TwickableParameters twickableParameters{};
   twickableParameters.magicButton       = _uboData.magicButton;
   twickableParameters.magicSlider       = _uboData.magicSlider;
@@ -632,6 +643,7 @@ void SvoTracer::_createDescriptorSetBundle() {
                                                                VK_SHADER_STAGE_COMPUTE_BIT);
 
   _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(31, _environmentInfoBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(1, _twickableParametersBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(27, _temporalFilterInfoBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(23, _spatialFilterInfoBufferBundle.get());

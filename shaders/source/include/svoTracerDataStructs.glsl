@@ -15,6 +15,13 @@ struct G_RenderInfo {
   float time;
 };
 
+struct G_EnvironmentInfo {
+  float sunAngle;
+  vec3 sunColor;
+  float sunLuminance;
+  float sunSize;
+};
+
 struct G_TwickableParameters {
   bool magicButton;
   float magicSlider;

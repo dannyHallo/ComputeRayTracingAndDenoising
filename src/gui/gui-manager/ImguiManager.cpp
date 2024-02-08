@@ -294,6 +294,13 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t imageIndex)
 
 void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
+    ImGui::SeparatorText("Environtment Parameters");
+
+    ImGui::SliderFloat("Sun Angle", &_svoTracerTweakingData->sunAngle, 0.0F, 360.0F);
+    ImGui::ColorEdit3("Sun Color", &_svoTracerTweakingData->sunColor.x);
+    ImGui::SliderFloat("Sun Luminance", &_svoTracerTweakingData->sunLuminance, 0.0F, 10.0F);
+    ImGui::SliderFloat("Sun Size", &_svoTracerTweakingData->sunSize, 0.0F, 100.0F);
+
     ImGui::SeparatorText("Twickable Parameters");
 
     ImGui::Checkbox("Magic Button", &_svoTracerTweakingData->magicButton);

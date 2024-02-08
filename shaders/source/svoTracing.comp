@@ -179,7 +179,7 @@ bool detailedMarching(out float oT, out vec3 oPos, out vec3 oColor, out vec3 oNo
   // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
   uint colorIndex = cur & 0x000000FFu;
   if (colorIndex == 255) {
-    oColor         = vec3(1, 0.4, 0.2) * 4;
+    oColor         = vec3(1, 0.4, 0.2) * 10;
     lightSourceHit = true;
   } else {
     uint colorFromPalette = paletteBuffer[colorIndex];
@@ -195,9 +195,10 @@ bool detailedMarching(out float oT, out vec3 oPos, out vec3 oColor, out vec3 oNo
 }
 
 vec3 dayLightCalc(vec3 d) {
-  vec3 maximumLight = vec3(1.0);
-  float angle       = max(0, dot(d, vec3(0, 1, 0)));
-  return maximumLight * angle;
+  float sunAngle  = environmentUbo.data.sunAngle * kDeg2Rad;
+  float sunSize   = environmentUbo.data.sunSize;
+  float angleDiff = max(0, pow(dot(d, vec3(sin(sunAngle), cos(sunAngle), 0)), sunSize));
+  return environmentUbo.data.sunLuminance * environmentUbo.data.sunColor * angleDiff;
 }
 
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
