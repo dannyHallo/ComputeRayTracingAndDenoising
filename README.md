@@ -4,8 +4,9 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 
 # Todos
 
-- [ ] Load magicavoxel files
-- [ ] Implement colors to vox data
+- [ ] TAA
+- [ ] Chunking
+- [ ] Variance calculation 
 
 # Design Decisions
 

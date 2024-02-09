@@ -36,8 +36,8 @@ vec4 getAccumColor(ivec2 pUv) {
 
 bool isConsistent(vec3 normal, vec3 lastNormal, vec3 position, vec3 lastPosition) {
   // normal test is useful for edges (nearby disocclusions)
-  float normalFac       = pow(dot(normal, lastNormal), 128.);
-  bool normalConsistent = normalFac > 0.3;
+  float normalFac       = dot(normal, lastNormal);
+  bool normalConsistent = normalFac > 0.9;
   // normalConsistent      = true;
 
   // position test is useful for disocclusions happened in some distance

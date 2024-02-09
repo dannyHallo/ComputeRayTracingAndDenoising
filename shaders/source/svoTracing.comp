@@ -9,6 +9,19 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "include/random.glsl"
 #include "include/rayGen.glsl"
 
+vec3 decompressNormal(uint packed) {
+  // extract the components
+  uvec3 quantized;
+  quantized.r = (packed)&0x7F;
+  quantized.g = (packed >> 7) & 0x7F;
+  quantized.b = (packed >> 14) & 0x7F;
+
+  // convert back to [-1, 1] range
+  vec3 normal = vec3(quantized) / 127.0 * 2.0 - 1.0;
+
+  return normal;
+}
+
 const uint STACK_SIZE = 23;
 struct StackItem {
   uint node;
@@ -84,7 +97,7 @@ bool detailedMarching(out float oT, out vec3 oSurfacePos, out vec3 oTracingPos, 
     if ((cur & 0x80000000u) != 0 && t_min <= t_max) {
       // INTERSECT
       float tv_max          = min(t_max, tc_max);
-      float half_scale_exp2 = scale_exp2 * 0.5f;
+      float half_scale_exp2 = scale_exp2 * 0.5;
       vec3 t_center         = half_scale_exp2 * t_coef + t_corner;
 
       if (t_min <= tv_max) {
@@ -172,30 +185,28 @@ bool detailedMarching(out float oT, out vec3 oSurfacePos, out vec3 oTracingPos, 
 
   // output results
   oSurfacePos = clamp(o + t_min * d, pos, pos + scale_exp2);
-  if (norm.x != 0)
-    oSurfacePos.x = norm.x > 0 ? pos.x + scale_exp2 + kEpsilon * 2 : pos.x - kEpsilon;
-  if (norm.y != 0)
-    oSurfacePos.y = norm.y > 0 ? pos.y + scale_exp2 + kEpsilon * 2 : pos.y - kEpsilon;
-  if (norm.z != 0)
-    oSurfacePos.z = norm.z > 0 ? pos.z + scale_exp2 + kEpsilon * 2 : pos.z - kEpsilon;
+  if (norm.x != 0) oSurfacePos.x = norm.x > 0 ? pos.x + scale_exp2 + kEpsilon : pos.x - kEpsilon;
+  if (norm.y != 0) oSurfacePos.y = norm.y > 0 ? pos.y + scale_exp2 + kEpsilon : pos.y - kEpsilon;
+  if (norm.z != 0) oSurfacePos.z = norm.z > 0 ? pos.z + scale_exp2 + kEpsilon : pos.z - kEpsilon;
   // oNormal = norm;
 
-  vec3 voxNormal = vec3(unpackUnorm4x8(cur & 0x00FFFFFFu).xyz);
-  voxNormal      = voxNormal * 2 - 1;
+  // scale_exp2 is the length of the edges of the voxel
+  vec3 voxNormal = decompressNormal((cur & 0x1FFFFF00u) >> 8u);
   oNormal        = voxNormal;
-  oTracingPos    = pos + 2 * scale_exp2 * oNormal;
+  oTracingPos    = pos + scale_exp2 * 0.5 + 0.87 * scale_exp2 * oNormal;
 
   // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
-  // uint colorIndex = (cur & 0x00FF0000u) >> 16u;
-  // if (colorIndex == 255) {
-  //   oColor         = vec3(1, 0.4, 0.2) * 10;
-  //   lightSourceHit = true;
-  // } else {
-  //   uint colorFromPalette = paletteBuffer[colorIndex];
-  //   oColor                = unpackUnorm4x8(colorFromPalette).xyz;
-  //   lightSourceHit        = false;
-  // }
-  oColor = vec3(1, 0.3, 0.2);
+  uint colorIndex = cur & 0x000000FFu;
+  if (colorIndex == 255) {
+    oColor         = vec3(1, 0.4, 0.2) * 10;
+    lightSourceHit = true;
+  } else {
+    uint colorFromPalette = paletteBuffer[colorIndex];
+    oColor                = unpackUnorm4x8(colorFromPalette).xyz;
+    lightSourceHit        = false;
+  }
+
+  // oColor = voxNormal;
 
   oIter    = iter;
   oVoxHash = voxHash;
@@ -312,9 +323,8 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
   oColor =
       traceSecondary(seed, tracingPos, indirectRayDir) * brdf * dot(indirectRayDir, normal) / pdf;
 
-  // oColor = indirectRayDir;
-
   // oColor = color;
+
   return true;
 }
 

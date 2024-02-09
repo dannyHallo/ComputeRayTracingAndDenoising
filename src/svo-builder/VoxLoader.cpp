@@ -134,12 +134,12 @@ VoxData _parseSceneInstances(ogt_vox_scene const *scene,
             // voxData.coordinates.push_back(x);
             // voxData.properties.push_back(static_cast<uint32_t>(colorIndex));
             uint32_t coordinatesData = 0;
-            coordinatesData |= shiftedX << 20;
+            coordinatesData |= shiftedX;
             coordinatesData |= shiftedZ << 10;
-            coordinatesData |= shiftedY;
+            coordinatesData |= shiftedY << 20;
 
             uint32_t propertiesData = 0;
-            // propertiesData |= colorIndex << 16; TODO:
+            propertiesData |= colorIndex;
 
             voxData.fragmentList.emplace_back(coordinatesData, propertiesData);
           }

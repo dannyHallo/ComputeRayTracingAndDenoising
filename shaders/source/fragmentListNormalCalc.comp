@@ -5,6 +5,16 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 #include "include/svoBuilderDescriptorSetLayouts.glsl"
 
+uint compressNormal(vec3 normal) {
+  // scale and bias from [-1, 1] to [0, 127]
+  uvec3 quantized = uvec3(((normal + 1) * 0.5) * 127.0);
+
+  // pack the 7-bit components into a single uint
+  uint packed = (quantized.r) | (quantized.g << 7) | (quantized.b << 14);
+
+  return packed;
+}
+
 // step 2: we calculate each fragment's normal (we are using one normal per voxel)
 void main() {
   if (gl_GlobalInvocationID.x >= fragmentListInfoBuffer.data.voxelFragmentCount) return;
@@ -28,11 +38,9 @@ void main() {
     }
   }
 
-  normal             = normal == vec3(0) ? vec3(0) : normalize(normal);
-  normal             = (normal + 1.0) / 2.0; // normalize to [0, 1]
-  vec4 writingNormal = vec4(normal, 0);
+  normal = normal == vec3(0) ? vec3(0) : normalize(normal);
+  ufragment.properties |= compressNormal(normal) << 8u;
 
-  ufragment.properties |= packUnorm4x8(writingNormal);
   // reserved, normal.z, normal.y, normal.x -> each component is 8 bits
 
   //   bool upperHasVoxel =

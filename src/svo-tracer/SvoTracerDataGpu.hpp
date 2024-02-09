@@ -20,7 +20,7 @@ struct SvoTracerTweakingData {
   SvoTracerTweakingData() = default;
 
   // for general info
-  bool magicButton       = true;
+  bool magicButton       = false;
   float magicSlider      = 0.0F;
   bool visualizeOctree   = false;
   bool beamOptimization  = true;
@@ -33,15 +33,15 @@ struct SvoTracerTweakingData {
   float sunSize      = 0.5F;
 
   // for temporal filter info
-  float temporalAlpha       = 1.F;
+  float temporalAlpha       = 0.05F;
   float temporalPositionPhi = 0.99F;
 
   // for spatial filter info
-  int aTrousIterationCount             = 0;
+  int aTrousIterationCount             = 3;
   bool useVarianceGuidedFiltering      = true;
   bool useGradientInDepth              = true;
   float phiC                           = 0.01F;
-  float phiN                           = 128.F;
+  float phiN                           = 20.F;
   float phiP                           = 0.01F;
   float phiZ                           = 0.1F;
   bool ignoreLuminanceAtFirstIteration = true;
