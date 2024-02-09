@@ -201,9 +201,9 @@ bool detailedMarching(out float oT, out vec3 oSurfacePos, out vec3 oTracingPos, 
     oColor         = vec3(1, 0.4, 0.2) * 10;
     lightSourceHit = true;
   } else {
-    uint colorFromPalette = paletteBuffer[colorIndex];
-    oColor                = unpackUnorm4x8(colorFromPalette).xyz;
-    lightSourceHit        = false;
+    // uint colorFromPalette = paletteBuffer[colorIndex];
+    // oColor                = unpackUnorm4x8(colorFromPalette).xyz;
+    lightSourceHit = false;
   }
 
   // oColor = voxNormal;

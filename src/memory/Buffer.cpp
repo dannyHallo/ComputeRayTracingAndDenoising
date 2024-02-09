@@ -107,6 +107,8 @@ VkBufferMemoryBarrier Buffer::getMemoryBarrier(VkAccessFlags srcAccessMask,
 }
 
 void Buffer::fillData(const void *data) {
+  // TODO: when using kCpuToGpuOnce, destroy the staging buffer once the data is copied
+
   auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
   auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
   auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();

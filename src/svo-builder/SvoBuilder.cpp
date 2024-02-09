@@ -15,13 +15,15 @@
 #include <iostream>
 #include <stack>
 
+static uint32_t constexpr kChunkSize = 256;
+
 namespace {
 
-VoxData _fetchVoxData() {
-  std::string const kFileName      = "128_monu2_light";
-  std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
-  return VoxLoader::fetchDataFromFile(kPathToVoxFile);
-}
+// VoxData _fetchVoxData() {
+//   std::string const kFileName      = "128_monu2_light";
+//   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
+//   return VoxLoader::fetchDataFromFile(kPathToVoxFile);
+// }
 
 // the worst case: for every fragment, we assume they all reside in different parents, in the
 // current building algorithm, a non-leaf node's children must be initialized (to zero if empty at
@@ -29,57 +31,45 @@ VoxData _fetchVoxData() {
 // octree is fixed.
 // https://eisenwave.github.io/voxel-compression-docs/svo/svo.html
 
-uint32_t _getMaximumNodeCountOfOctree(VoxData const &voxData) {
-  uint32_t maximumSize = 0;
+// uint32_t _getMaximumNodeCountOfOctree(VoxData const &voxData) {
+//   uint32_t maximumSize = 0;
 
-  uint32_t res                     = voxData.voxelResolution;
-  uint32_t elementCount            = voxData.fragmentList.size();
-  uint32_t maximumNodeCountAtLevel = 0;
+//   uint32_t res                     = voxData.voxelResolution;
+//   uint32_t elementCount            = voxData.fragmentList.size();
+//   uint32_t maximumNodeCountAtLevel = 0;
 
-  while (res != 1) {
-    maximumNodeCountAtLevel = std::min(elementCount * 8, res * res * res);
-    maximumSize += maximumNodeCountAtLevel;
-    res          = res >> 1;
-    elementCount = std::ceil(static_cast<float>(elementCount) / 8);
-  }
+//   while (res != 1) {
+//     maximumNodeCountAtLevel = std::min(elementCount * 8, res * res * res);
+//     maximumSize += maximumNodeCountAtLevel;
+//     res          = res >> 1;
+//     elementCount = std::ceil(static_cast<float>(elementCount) / 8);
+//   }
 
-  return maximumSize;
-}
+//   return maximumSize;
+// }
 } // namespace
 
 SvoBuilder::SvoBuilder(VulkanApplicationContext *appContext, Logger *logger)
     : _appContext(appContext), _logger(logger) {}
 
 SvoBuilder::~SvoBuilder() {
-  vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
-                       &_normalCalcCommandBuffer);
-
-  vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
-                       &_octreeBuildingCommandBuffer);
+  vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1, &_commandBuffer);
 }
 
 void SvoBuilder::init() {
-  // data preparation
-  VoxData voxData = _fetchVoxData();
+  _voxelLevelCount = static_cast<uint32_t>(std::log2(kChunkSize));
 
   // images
-  _createImages(voxData);
+  _createImages();
 
   // buffers
-  _createBuffers(voxData);
-  _initBufferData(voxData);
-  uint32_t octreeVoxelResolution = voxData.voxelResolution;
-  _voxelLevelCount               = static_cast<uint32_t>(std::log2(octreeVoxelResolution));
-  uint32_t voxelFragmentCount    = voxData.fragmentList.size();
-  _logger->print("voxel resolution: {}", octreeVoxelResolution);
-  _logger->print("voxel level count: {}", _voxelLevelCount);
-  _logger->print("voxel fragment count: {}", voxelFragmentCount);
+  _createBuffers();
+  _initBufferData();
 
   // pipelines
   _createDescriptorSetBundle();
   _createPipelines();
-  _recordNormalCalcCommandBuffer(voxelFragmentCount);
-  _recordOctreeBuildingCommandBuffer(voxelFragmentCount, _voxelLevelCount);
+  _recordCommandBuffer();
 }
 
 void SvoBuilder::build(VkFence svoBuildingDoneFence) {
@@ -92,68 +82,63 @@ void SvoBuilder::build(VkFence svoBuildingDoneFence) {
   VkPipelineStageFlags waitStages{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
   submitInfo.pWaitDstStageMask = &waitStages;
 
-  std::vector<VkCommandBuffer> commandBuffers{_normalCalcCommandBuffer,
-                                              _octreeBuildingCommandBuffer};
-  submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffers.size());
-  submitInfo.pCommandBuffers    = commandBuffers.data();
+  std::vector<VkCommandBuffer> commandBuffersToSubmit{_commandBuffer};
+  submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit.size());
+  submitInfo.pCommandBuffers    = commandBuffersToSubmit.data();
 
   vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo, svoBuildingDoneFence);
 }
 
-void SvoBuilder::_createImages(VoxData const &voxData) {
-  uint32_t imageResolution = voxData.voxelResolution;
-  _fragmentListImage = std::make_unique<Image>(imageResolution, imageResolution, imageResolution,
-                                               VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  //  _beamDepthImage = std::make_unique<Image>(std::ceil(static_cast<float>(w) / kBeamResolution) +
-  //  1,
-  //                                         std::ceil(static_cast<float>(h) / kBeamResolution) + 1,
-  //                                         VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+void SvoBuilder::_createImages() {
+  _chunkFieldImage = std::make_unique<Image>(kChunkSize + 1, kChunkSize + 1, kChunkSize + 1,
+                                             VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
 // voxData is passed in to decide the size of some buffers dureing allocation
-void SvoBuilder::_createBuffers(const VoxData &voxData) {
-  _paletteBuffer = std::make_unique<Buffer>(sizeof(uint32_t) * voxData.paletteData.size(),
-                                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+void SvoBuilder::_createBuffers() {
+  _counterBuffer = std::make_unique<Buffer>(sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                             MemoryAccessingStyle::kCpuToGpuOnce);
 
-  _atomicCounterBuffer = std::make_unique<Buffer>(
-      sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
+  // uint32_t estimatedOctreeBufferSize = sizeof(uint32_t) * _getMaximumNodeCountOfOctree(voxData);
 
-  uint32_t estimatedOctreeBufferSize = sizeof(uint32_t) * _getMaximumNodeCountOfOctree(voxData);
-  _logger->print("estimated octree buffer size: {} mb",
-                 static_cast<float>(estimatedOctreeBufferSize) / (1024 * 1024));
+  uint32_t maximumOctreeBufferSize = std::ceil(static_cast<float>(sizeof(uint32_t)) * kChunkSize *
+                                               kChunkSize * kChunkSize * 8.F / 7.F);
+  _logger->print("octree buffer size: {} mb",
+                 static_cast<float>(maximumOctreeBufferSize) / (1024 * 1024));
 
-  _octreeBuffer =
-      std::make_unique<Buffer>(estimatedOctreeBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+  _indirectFragLengthBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
+                                                       VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+                                                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                                       MemoryAccessingStyle::kGpuOnly);
+
+  _octreeBuffer = std::make_unique<Buffer>(
+      maximumOctreeBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kGpuOnly);
+
+  uint32_t maximumFragmentListBufferSize =
+      sizeof(G_FragmentListEntry) * kChunkSize * kChunkSize * kChunkSize;
+  _fragmentListBuffer =
+      std::make_unique<Buffer>(maximumFragmentListBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                MemoryAccessingStyle::kGpuOnly);
 
-  _fragmentListBuffer = std::make_unique<Buffer>(
-      sizeof(G_FragmentListEntry) * voxData.fragmentList.size(), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      MemoryAccessingStyle::kCpuToGpuOnce);
+  _logger->print("fragment list buffer size: {} mb",
+                 static_cast<float>(maximumFragmentListBufferSize) / (1024 * 1024));
 
   _buildInfoBuffer = std::make_unique<Buffer>(
       sizeof(G_BuildInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
 
-  _indirectDispatchInfoBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
-                                                         VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
-                                                             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                                         MemoryAccessingStyle::kCpuToGpuOnce);
+  _indirectAllocNumBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
+                                                     VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+                                                         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                                     MemoryAccessingStyle::kCpuToGpuOnce);
 
   _fragmentListInfoBuffer =
       std::make_unique<Buffer>(sizeof(G_FragmentListInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                MemoryAccessingStyle::kCpuToGpuOnce);
 }
 
-void SvoBuilder::_initBufferData(VoxData const &voxData) {
-  _paletteBuffer->fillData(voxData.paletteData.data());
-
+void SvoBuilder::_initBufferData() {
   uint32_t atomicCounterInitData = 1;
-  _atomicCounterBuffer->fillData(&atomicCounterInitData);
-
-  // octree buffer is left uninitialized
-
-  _fragmentListBuffer->fillData(voxData.fragmentList.data());
+  _counterBuffer->fillData(&atomicCounterInitData);
 
   G_BuildInfo buildInfo{};
   buildInfo.allocBegin = 0;
@@ -164,11 +149,11 @@ void SvoBuilder::_initBufferData(VoxData const &voxData) {
   indirectDispatchInfo.dispatchX = 1;
   indirectDispatchInfo.dispatchY = 1;
   indirectDispatchInfo.dispatchZ = 1;
-  _indirectDispatchInfoBuffer->fillData(&indirectDispatchInfo);
+  _indirectAllocNumBuffer->fillData(&indirectDispatchInfo);
 
   G_FragmentListInfo fragmentListInfo{};
-  fragmentListInfo.voxelResolution    = voxData.voxelResolution;
-  fragmentListInfo.voxelFragmentCount = static_cast<uint32_t>(voxData.fragmentList.size());
+  fragmentListInfo.voxelResolution    = kChunkSize;
+  fragmentListInfo.voxelFragmentCount = 0;
   _fragmentListInfoBuffer->fillData(&fragmentListInfo);
 }
 
@@ -176,14 +161,13 @@ void SvoBuilder::_createDescriptorSetBundle() {
   _descriptorSetBundle =
       std::make_unique<DescriptorSetBundle>(_appContext, 1, VK_SHADER_STAGE_COMPUTE_BIT);
 
-  _descriptorSetBundle->bindStorageImage(6, _fragmentListImage.get());
-
-  // the palette buffer is left for the svo tracer to use
-  _descriptorSetBundle->bindStorageBuffer(0, _atomicCounterBuffer.get());
+  _descriptorSetBundle->bindStorageImage(6, _chunkFieldImage.get());
+  _descriptorSetBundle->bindStorageBuffer(7, _indirectFragLengthBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(0, _counterBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(1, _octreeBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(2, _fragmentListBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(3, _buildInfoBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(4, _indirectDispatchInfoBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(4, _indirectAllocNumBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(5, _fragmentListInfoBuffer.get());
 
   _descriptorSetBundle->create();
@@ -192,23 +176,31 @@ void SvoBuilder::_createDescriptorSetBundle() {
 void SvoBuilder::_createPipelines() {
   {
     std::vector<uint32_t> shaderCode{
-#include "fragmentListImageFilling.spv"
+#include "chunkFieldConstruction.spv"
     };
-    _fragmentListImageFillingPipeline =
+    _chunkFieldConstructionPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
-                                          WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get());
-    _fragmentListImageFillingPipeline->init();
+                                          WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get());
+    _chunkFieldConstructionPipeline->init();
   }
   {
     std::vector<uint32_t> shaderCode{
-#include "fragmentListNormalCalc.spv"
+#include "chunkVoxelCreation.spv"
     };
-    _fragmentListNormalCalcPipeline =
+    _chunkVoxelCreationPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
-                                          WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get());
-    _fragmentListNormalCalcPipeline->init();
+                                          WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get());
+    _chunkVoxelCreationPipeline->init();
   }
-  // indirect dispatch
+  {
+    std::vector<uint32_t> shaderCode{
+#include "chunkModifyArg.spv"
+    };
+    _chunkModifyArgPipeline =
+        std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
+                                          WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get());
+    _chunkModifyArgPipeline->init();
+  }
   {
     std::vector<uint32_t> shaderCode{
 #include "octreeInitNode.spv"
@@ -227,7 +219,6 @@ void SvoBuilder::_createPipelines() {
                                           WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get());
     _tagNodePipeline->init();
   }
-  // indirect dispatch
   {
     std::vector<uint32_t> shaderCode{
 #include "octreeAllocNode.spv"
@@ -248,52 +239,17 @@ void SvoBuilder::_createPipelines() {
   }
 }
 
-void SvoBuilder::_recordNormalCalcCommandBuffer(uint32_t voxelFragmentCount) {
+void SvoBuilder::_recordCommandBuffer() {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.commandPool        = _appContext->getCommandPool();
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = 1;
 
-  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, &_normalCalcCommandBuffer);
+  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, &_commandBuffer);
 
   VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-  vkBeginCommandBuffer(_normalCalcCommandBuffer, &beginInfo);
-
-  // create the standard memory barrier
-  VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-  shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-  shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-
-  _fragmentListImageFillingPipeline->recordCommand(_normalCalcCommandBuffer, 0, voxelFragmentCount,
-                                                   1, 1);
-
-  vkCmdPipelineBarrier(_normalCalcCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
-                       0, nullptr);
-
-  _fragmentListNormalCalcPipeline->recordCommand(_normalCalcCommandBuffer, 0, voxelFragmentCount, 1,
-                                                 1);
-
-  vkCmdPipelineBarrier(_normalCalcCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
-                       0, nullptr);
-
-  vkEndCommandBuffer(_normalCalcCommandBuffer);
-}
-
-void SvoBuilder::_recordOctreeBuildingCommandBuffer(uint32_t voxelFragmentCount,
-                                                    uint32_t octreeLevelCount) {
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool        = _appContext->getCommandPool();
-  allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = 1;
-
-  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, &_octreeBuildingCommandBuffer);
-
-  VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-  vkBeginCommandBuffer(_octreeBuildingCommandBuffer, &beginInfo);
+  vkBeginCommandBuffer(_commandBuffer, &beginInfo);
 
   // create the standard memory barrier
   VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -304,40 +260,68 @@ void SvoBuilder::_recordOctreeBuildingCommandBuffer(uint32_t voxelFragmentCount,
   indirectReadBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
   indirectReadBarrier.dstAccessMask   = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
 
-  for (uint32_t level = 0; level < octreeLevelCount; level++) {
-    _initNodePipeline->recordIndirectCommand(_octreeBuildingCommandBuffer, 0,
-                                             _indirectDispatchInfoBuffer->getVkBuffer());
-    vkCmdPipelineBarrier(_octreeBuildingCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+  // step 1: field creation and voxel fragment list construction
+
+  _chunkFieldConstructionPipeline->recordCommand(_commandBuffer, 0, kChunkSize + 1, kChunkSize + 1,
+                                                 kChunkSize + 1);
+
+  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
+                       0, nullptr);
+
+  _chunkVoxelCreationPipeline->recordCommand(_commandBuffer, 0, kChunkSize, kChunkSize, kChunkSize);
+
+  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
+                       0, nullptr);
+
+  _chunkModifyArgPipeline->recordCommand(_commandBuffer, 0, 1, 1, 1);
+
+  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
+                       0, nullptr);
+
+  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       0, 1, &indirectReadBarrier, 0, nullptr, 0, nullptr);
+
+  // step 2: octree construction
+
+  for (uint32_t level = 0; level < _voxelLevelCount; level++) {
+    _initNodePipeline->recordIndirectCommand(_commandBuffer, 0,
+                                             _indirectAllocNumBuffer->getVkBuffer());
+    vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
                          nullptr, 0, nullptr);
 
-    _tagNodePipeline->recordCommand(_octreeBuildingCommandBuffer, 0, voxelFragmentCount, 1, 1);
+    // that indirect buffer will no longer be updated, and it is made available by the previous
+    // barrier
+    _tagNodePipeline->recordIndirectCommand(_commandBuffer, 0,
+                                            _indirectFragLengthBuffer->getVkBuffer());
 
-    if (level != octreeLevelCount - 1) {
-      vkCmdPipelineBarrier(_octreeBuildingCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    if (level != _voxelLevelCount - 1) {
+      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
                            nullptr, 0, nullptr);
 
-      _allocNodePipeline->recordIndirectCommand(_octreeBuildingCommandBuffer, 0,
-                                                _indirectDispatchInfoBuffer->getVkBuffer());
-      vkCmdPipelineBarrier(_octreeBuildingCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      _allocNodePipeline->recordIndirectCommand(_commandBuffer, 0,
+                                                _indirectAllocNumBuffer->getVkBuffer());
+      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
                            nullptr, 0, nullptr);
 
-      _modifyArgPipeline->recordCommand(_octreeBuildingCommandBuffer, 0, 1, 1, 1);
+      _modifyArgPipeline->recordCommand(_commandBuffer, 0, 1, 1, 1);
 
-      vkCmdPipelineBarrier(_octreeBuildingCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
                            nullptr, 0, nullptr);
 
-      // the indirect buffer is modified in the modifyArg pipeline, so we need to
-      // make sure it is prepared for the next indirect dispatch too
-      vkCmdPipelineBarrier(_octreeBuildingCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT |
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            0, 1, &indirectReadBarrier, 0, nullptr, 0, nullptr);
     }
   }
 
-  vkEndCommandBuffer(_octreeBuildingCommandBuffer);
+  vkEndCommandBuffer(_commandBuffer);
 }

@@ -681,7 +681,7 @@ void SvoTracer::_createDescriptorSetBundle() {
 
   _descriptorSetBundle->bindStorageBuffer(20, _sceneInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(21, _svoBuilder->getOctreeBuffer());
-  _descriptorSetBundle->bindStorageBuffer(22, _svoBuilder->getPaletteBuffer());
+  // _descriptorSetBundle->bindStorageBuffer(22, _svoBuilder->getPaletteBuffer());
   _descriptorSetBundle->bindStorageBuffer(24, _aTrousIterationBuffer.get());
 
   _descriptorSetBundle->create();

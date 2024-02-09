@@ -17,7 +17,7 @@ if "%2"=="skipcpp" (
 )
 
 set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
-set SHADERS=fragmentListImageFilling fragmentListNormalCalc octreeInitNode octreeTagNode octreeAllocNode octreeModifyArg svoCoarseBeam svoTracing temporalFilter aTrous postProcessing 
+set SHADERS=chunkFieldConstruction chunkVoxelCreation chunkModifyArg octreeInitNode octreeTagNode octreeAllocNode octreeModifyArg svoCoarseBeam svoTracing temporalFilter aTrous postProcessing 
 
 @REM ---------------------------------------------------------------------------------------
 

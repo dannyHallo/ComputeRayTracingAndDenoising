@@ -6,7 +6,9 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 
 - [ ] TAA
 - [ ] Chunking
-- [ ] Variance calculation 
+- [ ] Variance calculation
+- [ ] Shader hot reloading
+- [ ] Vma Virtual Allocator https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/virtual_allocator.html
 
 # Design Decisions
 
