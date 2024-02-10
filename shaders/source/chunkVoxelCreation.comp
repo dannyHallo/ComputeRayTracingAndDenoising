@@ -77,9 +77,8 @@ void main() {
                 0.25;
   vec3 normal         = normalize(vec3(gradX, gradY, gradZ));
   uint propertiesData = 0;
-  propertiesData |=
-      uint(255. * gl_GlobalInvocationID.y / fragmentListInfoBuffer.data.voxelResolution);
-  propertiesData |= compressNormal(normal) << 8u;
+  propertiesData |= 0;
+  propertiesData |= compressNormal(normal) << 8;
   ufragment.properties = propertiesData;
 
   fragmentListBuffer.datas[fragmentListCur] = ufragment;

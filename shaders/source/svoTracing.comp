@@ -196,22 +196,9 @@ bool detailedMarching(out float oT, out vec3 oSurfacePos, out vec3 oTracingPos, 
   oNormal        = voxNormal;
 
   // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
-  uint colorIndex = cur & 0x000000FFu;
-  if (colorIndex == 255) {
-    oColor         = vec3(1, 0.4, 0.2) * 10;
-    lightSourceHit = true;
-  } else {
-    // uint colorFromPalette = paletteBuffer[colorIndex];
-    // oColor                = unpackUnorm4x8(colorFromPalette).xyz;
-    // oColor         = vec3(0.5);
-
-    vec3 lerpStartColor = vec3(1.0, 0, 0);
-    vec3 lerpEndColor   = vec3(0, 0, 1.0);
-    float lerpVal       = colorIndex / 255.0;
-    oColor              = mix(lerpStartColor, lerpEndColor, lerpVal);
-
-    lightSourceHit = false;
-  }
+  // uint colorIndex = cur & 0x000000FFu;
+  lightSourceHit = false;
+  oColor         = vec3(236, 177, 89) / 255.0;
 
   // oColor = voxNormal;
 
