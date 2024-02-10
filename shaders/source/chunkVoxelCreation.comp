@@ -15,6 +15,11 @@ uint compressNormal(vec3 normal) {
   return packed;
 }
 
+ivec3 lookupOffsets[8] = ivec3[8](ivec3(0, 0, 0), ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(1, 1, 0),
+                                  ivec3(0, 0, 1), ivec3(1, 0, 1), ivec3(0, 1, 1), ivec3(1, 1, 1));
+
+// TODO: use preloading functions to accelerate the loading process, this may speed up to 8x :)
+
 void main() {
   if (gl_GlobalInvocationID.x >= fragmentListInfoBuffer.data.voxelResolution ||
       gl_GlobalInvocationID.y >= fragmentListInfoBuffer.data.voxelResolution ||
@@ -22,48 +27,58 @@ void main() {
     return;
   }
 
-  if (gl_GlobalInvocationID.y == 0) {
-    uint fragmentListCur = atomicAdd(fragmentListInfoBuffer.data.voxelFragmentCount, 1);
+  ivec3 uv = ivec3(gl_GlobalInvocationID);
 
-    G_FragmentListEntry ufragment;
-    uint coordinatesData = 0;
-    coordinatesData |= gl_GlobalInvocationID.x;
-    coordinatesData |= gl_GlobalInvocationID.y << 10;
-    coordinatesData |= gl_GlobalInvocationID.z << 20;
-    ufragment.coordinates = coordinatesData;
-
-    uint propertiesData  = 0;
-    ufragment.properties = propertiesData;
-
-    fragmentListBuffer.datas[fragmentListCur] = ufragment;
+  ivec3 noiseLookupPositions[8];
+  for (int i = 0; i < 8; i++) {
+    noiseLookupPositions[i] = uv + lookupOffsets[i];
   }
 
-  // G_FragmentListEntry ufragment = fragmentListBuffer.datas[gl_GlobalInvocationID.x];
+  float noiseValues[8];
+  for (int i = 0; i < 8; i++) {
+    noiseValues[i] = imageLoad(chunkFieldImage, noiseLookupPositions[i]).x;
+  }
 
-  // uint coordinates = ufragment.coordinates;
-  // ivec3 voxel_pos  = ivec3((coordinates & 0x3FF00000u) >> 20u, (coordinates & 0x000FFC00u) >>
-  // 10u,
-  //                          (coordinates & 0x000003FFu));
+  // if all values are both less than 0 or all are greater than 0, then it's not a surface voxel
+  bool allLessThanZero    = true;
+  bool allGreaterThanZero = true;
 
-  // ivec3 directions[6] = ivec3[6](ivec3(1, 0, 0), ivec3(-1, 0, 0), ivec3(0, 1, 0), ivec3(0, -1,
-  // 0),
-  //                                ivec3(0, 0, 1), ivec3(0, 0, -1));
+  for (int i = 0; i < 8; i++) {
+    if (noiseValues[i] < 0) {
+      allGreaterThanZero = false;
+    } else {
+      allLessThanZero = false;
+    }
+  }
 
-  // vec3 normal = vec3(0.0);
-  // for (int i = 0; i < 6; i++) {
-  //   ivec3 direction    = directions[i];
-  //   ivec3 neighbor_pos = voxel_pos + direction;
-  //   bool hasVoxel =
-  //       imageLoad(fragmentListImage, ivec3(neighbor_pos.x, neighbor_pos.y, neighbor_pos.z)).x !=
-  //       0;
-  //   if (!hasVoxel) {
-  //     normal += vec3(direction);
-  //   }
-  // }
+  if (allLessThanZero || allGreaterThanZero) {
+    return;
+  }
 
-  // normal = normal == vec3(0) ? vec3(0) : normalize(normal);
-  // ufragment.properties |= compressNormal(normal) << 8u;
+  uint fragmentListCur = atomicAdd(fragmentListInfoBuffer.data.voxelFragmentCount, 1);
 
-  // // store property buffer back
-  // fragmentListBuffer.datas[gl_GlobalInvocationID.x] = ufragment;
+  // position
+  G_FragmentListEntry ufragment;
+  uint coordinatesData = 0;
+  coordinatesData |= gl_GlobalInvocationID.x;
+  coordinatesData |= gl_GlobalInvocationID.y << 10;
+  coordinatesData |= gl_GlobalInvocationID.z << 20;
+  ufragment.coordinates = coordinatesData;
+
+  // normal
+  float gradX = ((noiseValues[0] + noiseValues[2] + noiseValues[4] + noiseValues[6]) -
+                 (noiseValues[1] + noiseValues[3] + noiseValues[5] + noiseValues[7])) *
+                0.25;
+  float gradY = ((noiseValues[0] + noiseValues[1] + noiseValues[4] + noiseValues[5]) -
+                 (noiseValues[2] + noiseValues[3] + noiseValues[6] + noiseValues[7])) *
+                0.25;
+  float gradZ = ((noiseValues[0] + noiseValues[1] + noiseValues[2] + noiseValues[3]) -
+                 (noiseValues[4] + noiseValues[5] + noiseValues[6] + noiseValues[7])) *
+                0.25;
+  vec3 normal         = normalize(vec3(gradX, gradY, gradZ));
+  uint propertiesData = 0;
+  propertiesData |= compressNormal(normal) << 8u;
+  ufragment.properties = propertiesData;
+
+  fragmentListBuffer.datas[fragmentListCur] = ufragment;
 }

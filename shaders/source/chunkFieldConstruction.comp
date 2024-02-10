@@ -5,7 +5,24 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "include/svoBuilderDescriptorSetLayouts.glsl"
 
+#include "include/perlinNoise.glsl"
+
 void main() {
+  if (gl_GlobalInvocationID.x >= fragmentListInfoBuffer.data.voxelResolution + 1 ||
+      gl_GlobalInvocationID.y >= fragmentListInfoBuffer.data.voxelResolution + 1 ||
+      gl_GlobalInvocationID.z >= fragmentListInfoBuffer.data.voxelResolution + 1) {
+    return;
+  }
+
+  ivec3 uv = ivec3(gl_GlobalInvocationID);
+
+  vec3 noiseLookupPos = vec3(uv) / float(fragmentListInfoBuffer.data.voxelResolution);
+
+  float floorHeight = 20.0;
+  float noise       = (floorHeight - gl_GlobalInvocationID.y) - 100 * cnoise(noiseLookupPos * 4);
+
+  imageStore(chunkFieldImage, uv, vec4(noise, 0, 0, 0));
+
   // if (gl_GlobalInvocationID.x >= fragmentListInfoBuffer.data.voxelFragmentCount) return;
   // G_FragmentListEntry ufragment = fragmentListBuffer.datas[gl_GlobalInvocationID.x];
 
