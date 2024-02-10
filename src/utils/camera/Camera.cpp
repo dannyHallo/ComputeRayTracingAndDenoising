@@ -2,8 +2,8 @@
 
 namespace {
 
-constexpr float movementSpeed    = .05F;
-constexpr float mouseSensitivity = 0.06F;
+float constexpr kMovementSpeed    = .3F;
+float constexpr kMouseSensitivity = 0.06F;
 
 } // namespace
 
@@ -40,9 +40,7 @@ void Camera::processKeyboard(double deltaTime) {
     return;
   }
 
-  constexpr float movementSpeedMultiplier = 10.F;
-
-  float velocity = movementSpeedMultiplier * movementSpeed * static_cast<float>(deltaTime);
+  float velocity = _movementSpeedMultiplier * kMovementSpeed * static_cast<float>(deltaTime);
 
   if (_window->isInputBitActive(GLFW_KEY_W)) {
     _position += _front * velocity;
@@ -59,6 +57,11 @@ void Camera::processKeyboard(double deltaTime) {
   if (_window->isInputBitActive(GLFW_KEY_SPACE)) {
     _position += _worldUp * velocity;
   }
+  if (_window->isInputBitActive(GLFW_KEY_LEFT_SHIFT)) {
+    _movementSpeedMultiplier = 2.F;
+  } else {
+    _movementSpeedMultiplier = 1.F;
+  }
   if (_window->isInputBitActive(GLFW_KEY_LEFT_CONTROL)) {
     _position -= _worldUp * velocity;
   }
@@ -69,8 +72,8 @@ void Camera::handleMouseMovement(float xoffset, float yoffset) {
     return;
   }
 
-  xoffset *= -mouseSensitivity;
-  yoffset *= mouseSensitivity;
+  xoffset *= -kMouseSensitivity;
+  yoffset *= kMouseSensitivity;
 
   _yaw += xoffset;
   _pitch += yoffset;

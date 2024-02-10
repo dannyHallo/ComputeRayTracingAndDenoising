@@ -37,8 +37,8 @@ void main() {
   G_FragmentListEntry ufragment = fragmentListBuffer.datas[gl_GlobalInvocationID.x];
 
   uint coordinates = ufragment.coordinates;
-  uvec3 voxel_pos  = uvec3((coordinates & 0x3FF00000u) >> 20u, (coordinates & 0x000FFC00u) >> 10u,
-                           (coordinates & 0x000003FFu));
+  uvec3 voxel_pos  = uvec3((coordinates & 0x000003FFu), (coordinates & 0x000FFC00u) >> 10u,
+                           (coordinates & 0x3FF00000u) >> 20u);
 
   bool is_leaf;
   // is_leaf is only true when the leaf node is allocated

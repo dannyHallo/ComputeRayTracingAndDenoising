@@ -65,7 +65,7 @@ void main() {
   coordinatesData |= gl_GlobalInvocationID.z << 20;
   ufragment.coordinates = coordinatesData;
 
-  // normal
+  // color and normal
   float gradX = ((noiseValues[0] + noiseValues[2] + noiseValues[4] + noiseValues[6]) -
                  (noiseValues[1] + noiseValues[3] + noiseValues[5] + noiseValues[7])) *
                 0.25;
@@ -77,6 +77,8 @@ void main() {
                 0.25;
   vec3 normal         = normalize(vec3(gradX, gradY, gradZ));
   uint propertiesData = 0;
+  propertiesData |=
+      uint(255. * gl_GlobalInvocationID.y / fragmentListInfoBuffer.data.voxelResolution);
   propertiesData |= compressNormal(normal) << 8u;
   ufragment.properties = propertiesData;
 
