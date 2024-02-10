@@ -9,7 +9,7 @@
 #define bool alignas(4) bool
 #define uint uint32_t
 
-#include "shaders/source/include/svoTracerDataStructs.glsl"
+#include "shaders/include/svoTracerDataStructs.glsl"
 
 #undef vec3
 #undef mat4

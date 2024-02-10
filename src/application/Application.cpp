@@ -3,6 +3,7 @@
 #include "svo-builder/SvoBuilder.hpp"
 #include "svo-tracer/SvoTracer.hpp"
 
+#include "file-watcher/ShaderFileWatchListener.hpp"
 #include "gui/gui-manager/ImguiManager.hpp"
 #include "memory/Buffer.hpp"
 #include "memory/BufferBundle.hpp"
@@ -24,6 +25,8 @@ static int constexpr kFramesInFlight = 2;
 Camera *Application::getCamera() { return _camera.get(); }
 
 Application::Application() : _appContext(VulkanApplicationContext::getInstance()) {
+  _shaderFileWatchListener = std::make_unique<ShaderFileWatchListener>(&_logger);
+
   _window = std::make_unique<Window>(WindowStyle::kFullScreen);
   _appContext->init(&_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
@@ -170,9 +173,9 @@ void Application::_mainLoop() {
   while (glfwWindowShouldClose(_window->getGlWindow()) == 0) {
     glfwPollEvents();
 
-    if (glfwGetWindowAttrib(_window->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
-      _logger.print("window is not focused");
-    }
+    // if (glfwGetWindowAttrib(_window->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
+    //   _logger.print("window is not focused");
+    // }
 
     if (_window->windowSizeChanged() || _needToToggleWindowStyle()) {
       _window->setWindowSizeChanged(false);

@@ -14,6 +14,7 @@ class SvoTracer;
 class ImguiManager;
 class Camera;
 class FpsSink;
+class ShaderFileWatchListener;
 class Application {
 public:
   Application();
@@ -35,6 +36,7 @@ private:
   std::unique_ptr<ImguiManager> _imguiManager;
   std::unique_ptr<Camera> _camera;
   std::unique_ptr<Window> _window;
+  std::unique_ptr<ShaderFileWatchListener> _shaderFileWatchListener;
 
   VulkanApplicationContext *_appContext;
 

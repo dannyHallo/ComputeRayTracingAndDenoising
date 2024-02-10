@@ -59,13 +59,14 @@ target("main")
         "dep/implot/",
         "dep/obj-loader/",
         "dep/memory-allocator-hpp/",
-        "shaders/generated/"
+        "dep/efsw/include/"
     )
     add_deps("imgui")
     add_deps("implot")
 
     add_links( 
     "dep/glfw/Release/glfw3.lib", 
+    "dep/efsw/bin/efsw.lib",
     "User32", 
     "Gdi32", 
     "shell32",

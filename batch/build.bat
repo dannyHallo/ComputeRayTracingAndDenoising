@@ -23,11 +23,11 @@ set SHADERS=chunkFieldConstruction chunkVoxelCreation chunkModifyArg octreeInitN
 
 @REM https://chromium.googlesource.com/external/github.com/google/shaderc/+/HEAD/glslc/README.asciidoc
 echo compiling shaders...
-if exist "shaders/generated" rd /s /q "shaders/generated"
-mkdir "shaders/generated"
+if exist "resources/compiled-shaders" rd /s /q "resources/compiled-shaders"
+mkdir "resources/compiled-shaders"
 for %%s in (%SHADERS%) do (
-   echo compiling shaders/source/%%s.comp to shaders/generated/%%s.spv
-    "%GLSLC%" shaders/source/%%s.comp -o shaders/generated/%%s.spv -mfmt=num --target-env=vulkan1.1
+   echo compiling src/shaders/%%s.comp to resources/compiled-shaders/%%s.spv
+    "%GLSLC%" src/shaders/%%s.comp -o resources/compiled-shaders/%%s.spv -mfmt=num --target-env=vulkan1.1
     if !errorlevel! neq 0 (
         echo Build failed with error %errorlevel%. Exiting... 
         goto :eof
@@ -54,12 +54,17 @@ if %SKIP_CPP%==0 (
 
 @REM ---------------------------------------------------------------------------------------
 
+@REM echo:
+@REM echo prepare resources ...
+@REM if exist "build/windows/x64/%BUILD_TYPE%/resources" rd /s /q "build/windows/x64/%BUILD_TYPE%/resources"
+@REM mkdir "build/windows/x64/%BUILD_TYPE%/resources"
+@REM robocopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /E /IS /NFL /NDL /NJH /NJS /nc /ns /np
+
+@REM ---------------------------------------------------------------------------------------
+
 echo:
-echo copy resources ...
-if exist "build/windows/x64/%BUILD_TYPE%/resources" rd /s /q "build/windows/x64/%BUILD_TYPE%/resources"
-mkdir "build/windows/x64/%BUILD_TYPE%/resources"
-@REM Use robocopy instead of xcopy for better performance
-robocopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /E /IS /NFL /NDL /NJH /NJS /nc /ns /np
+echo prepare dlls ...
+robocopy "dep/efsw/bin/" "build/windows/x64/%BUILD_TYPE%/" "efsw.dll" /NFL /NDL /NJH /NJS /nc /ns /np
 
 @REM ---------------------------------------------------------------------------------------
 

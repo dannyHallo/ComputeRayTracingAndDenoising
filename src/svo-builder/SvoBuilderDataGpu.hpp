@@ -4,7 +4,7 @@
 
 #define uint uint32_t
 
-#include "shaders/source/include/svoBuilderDataStructs.glsl"
+#include "shaders/include/svoBuilderDataStructs.glsl"
 
 #undef vec3
 #undef mat4
