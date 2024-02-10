@@ -13,7 +13,7 @@ class VulkanApplicationContext;
 class DescriptorSetBundle;
 class Pipeline {
 public:
-  Pipeline(VulkanApplicationContext *appContext, Logger *logger, std::vector<uint32_t> &&shaderCode,
+  Pipeline(VulkanApplicationContext *appContext, Logger *logger, std::vector<char> &&shaderCode,
            DescriptorSetBundle *descriptorSetBundle, VkShaderStageFlags shaderStageFlags)
       : _appContext(appContext), _logger(logger), _descriptorSetBundle(descriptorSetBundle),
         _shaderCode(std::move(shaderCode)), _shaderStageFlags(shaderStageFlags) {}
@@ -32,7 +32,7 @@ protected:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
   DescriptorSetBundle *_descriptorSetBundle;
-  std::vector<uint32_t> _shaderCode;
+  std::vector<char> _shaderCode;
 
   std::vector<BufferBundle *> _uniformBufferBundles; // buffer bundles for uniform data
   std::vector<BufferBundle *> _storageBufferBundles; // buffer bundles for storage data
@@ -43,6 +43,6 @@ protected:
   VkPipeline _pipeline             = VK_NULL_HANDLE;
   VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
 
-  VkShaderModule _createShaderModule(const std::vector<uint32_t> &code);
+  VkShaderModule _createShaderModule(const std::vector<char> &code);
   void _bind(VkCommandBuffer commandBuffer, size_t currentFrame);
 };

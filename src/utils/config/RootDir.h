@@ -8,4 +8,5 @@
 
 #define ROOT_DIR "../../../../"
 
-static const std::string kPathToResourceFolder = std::string(ROOT_DIR) + "resources/";
+static const std::string kPathToResourceFolder        = std::string(ROOT_DIR) + "resources/";
+static const std::string KPathToCompiledShadersFolder = kPathToResourceFolder + "compiled-shaders/";

@@ -27,7 +27,7 @@ if exist "resources/compiled-shaders" rd /s /q "resources/compiled-shaders"
 mkdir "resources/compiled-shaders"
 for %%s in (%SHADERS%) do (
    echo compiling src/shaders/%%s.comp to resources/compiled-shaders/%%s.spv
-    "%GLSLC%" src/shaders/%%s.comp -o resources/compiled-shaders/%%s.spv -mfmt=num --target-env=vulkan1.1
+    "%GLSLC%" src/shaders/%%s.comp -o resources/compiled-shaders/%%s.spv --target-env=vulkan1.1
     if !errorlevel! neq 0 (
         echo Build failed with error %errorlevel%. Exiting... 
         goto :eof

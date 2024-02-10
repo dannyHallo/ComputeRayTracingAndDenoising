@@ -13,7 +13,7 @@ struct WorkGroupSize {
 class ComputePipeline : public Pipeline {
 public:
   ComputePipeline(VulkanApplicationContext *appContext, Logger *logger,
-                  std::vector<uint32_t> &&shaderCode, WorkGroupSize workGroupSize,
+                  std::vector<char> &&shaderCode, WorkGroupSize workGroupSize,
                   DescriptorSetBundle *descriptorSetBundle)
       : Pipeline(appContext, logger, std::move(shaderCode), descriptorSetBundle,
                  VK_SHADER_STAGE_COMPUTE_BIT),

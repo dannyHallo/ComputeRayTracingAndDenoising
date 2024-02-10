@@ -11,11 +11,11 @@ static const std::map<VkShaderStageFlags, VkPipelineBindPoint> kShaderStageFlags
     {VK_SHADER_STAGE_FRAGMENT_BIT, VK_PIPELINE_BIND_POINT_GRAPHICS},
     {VK_SHADER_STAGE_COMPUTE_BIT, VK_PIPELINE_BIND_POINT_COMPUTE}};
 
-VkShaderModule Pipeline::_createShaderModule(const std::vector<uint32_t> &code) {
+VkShaderModule Pipeline::_createShaderModule(const std::vector<char> &code) {
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.pCode    = code.data();
-  createInfo.codeSize = sizeof(uint32_t) * code.size(); // size in BYTES
+  createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
+  createInfo.codeSize = code.size(); // size in BYTES
 
   VkShaderModule shaderModule = VK_NULL_HANDLE;
   vkCreateShaderModule(_appContext->getDevice(), &createInfo, nullptr, &shaderModule);

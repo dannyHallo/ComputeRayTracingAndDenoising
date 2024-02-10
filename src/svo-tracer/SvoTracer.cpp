@@ -9,6 +9,7 @@
 #include "svo-builder/SvoBuilder.hpp"
 #include "utils/camera/Camera.hpp"
 #include "utils/config/RootDir.h"
+#include "utils/file-io/ShaderFileReader.hpp"
 
 // static int constexpr kStratumFilterSize   = 6;
 static int constexpr kATrousSize          = 5;
@@ -689,45 +690,40 @@ void SvoTracer::_createDescriptorSetBundle() {
 
 void SvoTracer::_createPipelines() {
   {
-    std::vector<uint32_t> shaderCode{
-#include "svoCoarseBeam.spv"
-    };
+    auto shaderCode =
+        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "svoCoarseBeam.spv");
+
     _svoCourseBeamPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
     _svoCourseBeamPipeline->init();
   }
   {
-    std::vector<uint32_t> shaderCode{
-#include "svoTracing.spv"
-    };
+    auto shaderCode =
+        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "svoTracing.spv");
     _svoTracingPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
     _svoTracingPipeline->init();
   }
   {
-    std::vector<uint32_t> shaderCode{
-#include "temporalFilter.spv"
-    };
+    auto shaderCode =
+        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "temporalFilter.spv");
     _temporalFilterPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
     _temporalFilterPipeline->init();
   }
   {
-    std::vector<uint32_t> shaderCode{
-#include "aTrous.spv"
-    };
+    auto shaderCode = ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "aTrous.spv");
     _aTrousPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
     _aTrousPipeline->init();
   }
   {
-    std::vector<uint32_t> shaderCode{
-#include "postProcessing.spv"
-    };
+    auto shaderCode =
+        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "postProcessing.spv");
     _postProcessingPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
