@@ -2,11 +2,7 @@
 
 #include <string>
 
-// #define ROOT_DIR "C:/Users/danny/Desktop/VoxelLab/build/windows/x64/debug/"
-
-// #define ROOT_DIR "./"
-
-#define ROOT_DIR "../../../../"
-
-static const std::string kPathToResourceFolder        = std::string(ROOT_DIR) + "resources/";
+static const std::string kRootDir = "C:/Users/danny/Desktop/VoxelLab/";
+// static const std::string kRootDir                     = "../../../../";
+static const std::string kPathToResourceFolder        = kRootDir + "resources/";
 static const std::string KPathToCompiledShadersFolder = kPathToResourceFolder + "compiled-shaders/";

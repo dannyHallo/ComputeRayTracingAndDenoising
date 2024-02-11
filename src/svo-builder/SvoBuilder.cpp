@@ -176,56 +176,56 @@ void SvoBuilder::_createDescriptorSetBundle() {
 
 void SvoBuilder::_createPipelines() {
   {
-    auto shaderCode = ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder +
-                                                       "chunkFieldConstruction.spv");
+    auto shaderCode = ShaderFileReader::readShaderBinary(
+        KPathToCompiledShadersFolder + "chunkFieldConstruction.spv", _logger);
     _chunkFieldConstructionPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get());
     _chunkFieldConstructionPipeline->init();
   }
   {
-    auto shaderCode =
-        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "chunkVoxelCreation.spv");
+    auto shaderCode = ShaderFileReader::readShaderBinary(
+        KPathToCompiledShadersFolder + "chunkVoxelCreation.spv", _logger);
     _chunkVoxelCreationPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get());
     _chunkVoxelCreationPipeline->init();
   }
   {
-    auto shaderCode =
-        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "chunkModifyArg.spv");
+    auto shaderCode = ShaderFileReader::readShaderBinary(
+        KPathToCompiledShadersFolder + "chunkModifyArg.spv", _logger);
     _chunkModifyArgPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get());
     _chunkModifyArgPipeline->init();
   }
   {
-    auto shaderCode =
-        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "octreeInitNode.spv");
+    auto shaderCode = ShaderFileReader::readShaderBinary(
+        KPathToCompiledShadersFolder + "octreeInitNode.spv", _logger);
     _initNodePipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get());
     _initNodePipeline->init();
   }
   {
-    auto shaderCode =
-        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "octreeTagNode.spv");
+    auto shaderCode = ShaderFileReader::readShaderBinary(
+        KPathToCompiledShadersFolder + "octreeTagNode.spv", _logger);
     _tagNodePipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get());
     _tagNodePipeline->init();
   }
   {
-    auto shaderCode =
-        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "octreeAllocNode.spv");
+    auto shaderCode = ShaderFileReader::readShaderBinary(
+        KPathToCompiledShadersFolder + "octreeAllocNode.spv", _logger);
     _allocNodePipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get());
     _allocNodePipeline->init();
   }
   {
-    auto shaderCode =
-        ShaderFileReader::readShaderFile(KPathToCompiledShadersFolder + "octreeModifyArg.spv");
+    auto shaderCode = ShaderFileReader::readShaderBinary(
+        KPathToCompiledShadersFolder + "octreeModifyArg.spv", _logger);
     _modifyArgPipeline =
         std::make_unique<ComputePipeline>(_appContext, _logger, std::move(shaderCode),
                                           WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get());

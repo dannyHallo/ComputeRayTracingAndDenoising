@@ -65,6 +65,7 @@ if %SKIP_CPP%==0 (
 echo:
 echo prepare dlls ...
 robocopy "dep/efsw/bin/" "build/windows/x64/%BUILD_TYPE%/" "efsw.dll" /NFL /NDL /NJH /NJS /nc /ns /np
+robocopy "dep/shaderc/bin/" "build/windows/x64/%BUILD_TYPE%/" "shaderc_shared.dll" /NFL /NDL /NJH /NJS /nc /ns /np
 
 @REM ---------------------------------------------------------------------------------------
 

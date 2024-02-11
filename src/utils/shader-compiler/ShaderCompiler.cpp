@@ -1,19 +1,21 @@
 #include "ShaderCompiler.hpp"
 
+#include "CustomFileIncluder.hpp"
 #include "utils/logger/Logger.hpp"
 
 ShaderCompiler::ShaderCompiler(Logger *logger) : _logger(logger) {
+  std::unique_ptr<CustomFileIncluder> fileIncluder = std::make_unique<CustomFileIncluder>(logger);
+  _defaultOptions.SetIncluder(std::move(fileIncluder));
   _defaultOptions.SetOptimizationLevel(shaderc_optimization_level_performance);
 }
 
-std::optional<std::vector<char>> ShaderCompiler::compileShader(const std::string &sourceName,
-                                                               shaderc_shader_kind kind,
-                                                               std::vector<char> const &source) {
+std::optional<std::vector<char>>
+ShaderCompiler::compileComputeShader(const std::string &sourceName, std::string const &sourceCode) {
   std::optional<std::vector<char>> res = std::nullopt;
+  shaderc_shader_kind const kind       = shaderc_glsl_compute_shader;
 
-  char const *sourceData = source.data();
   shaderc::SpvCompilationResult compilationResult =
-      this->CompileGlslToSpv(sourceData, source.size(), kind, sourceName.c_str(), _defaultOptions);
+      this->CompileGlslToSpv(sourceCode, kind, sourceName.c_str(), _defaultOptions);
 
   if (compilationResult.GetCompilationStatus() != shaderc_compilation_status_success) {
     _logger->warn(compilationResult.GetErrorMessage());

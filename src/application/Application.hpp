@@ -8,6 +8,7 @@
 #include <memory>
 #include <vector>
 
+class Logger;
 class Window;
 class SvoBuilder;
 class SvoTracer;
@@ -17,7 +18,7 @@ class FpsSink;
 class ShaderFileWatchListener;
 class Application {
 public:
-  Application();
+  Application(Logger *logger);
   ~Application();
 
   // disable move and copy
@@ -30,7 +31,7 @@ public:
   void run();
 
 private:
-  Logger _logger;
+  Logger *_logger;
 
   std::unique_ptr<FpsSink> _fpsSink;
   std::unique_ptr<ImguiManager> _imguiManager;

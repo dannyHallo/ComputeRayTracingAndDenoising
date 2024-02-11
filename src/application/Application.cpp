@@ -12,8 +12,10 @@
 #include "pipelines/DescriptorSetBundle.hpp"
 #include "utils/camera/Camera.hpp"
 #include "utils/config/RootDir.h"
+#include "utils/file-io/ShaderFileReader.hpp" //
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
+#include "utils/shader-compiler/ShaderCompiler.hpp" //
 #include "window/Window.hpp"
 
 #include <chrono>
@@ -24,19 +26,25 @@ static int constexpr kFramesInFlight = 2;
 
 Camera *Application::getCamera() { return _camera.get(); }
 
-Application::Application() : _appContext(VulkanApplicationContext::getInstance()) {
-  _shaderFileWatchListener = std::make_unique<ShaderFileWatchListener>(&_logger);
+Application::Application(Logger *logger)
+    : _logger(logger), _appContext(VulkanApplicationContext::getInstance()) {
+  _shaderFileWatchListener = std::make_unique<ShaderFileWatchListener>(_logger);
 
   _window = std::make_unique<Window>(WindowStyle::kFullScreen);
-  _appContext->init(&_logger, _window->getGlWindow());
+  _appContext->init(_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 
-  _svoBuilder = std::make_unique<SvoBuilder>(_appContext, &_logger);
-  _svoTracer  = std::make_unique<SvoTracer>(_appContext, &_logger, kFramesInFlight, _camera.get());
+  _svoBuilder = std::make_unique<SvoBuilder>(_appContext, _logger);
+  _svoTracer  = std::make_unique<SvoTracer>(_appContext, _logger, kFramesInFlight, _camera.get());
 
-  _imguiManager = std::make_unique<ImguiManager>(_appContext, _window.get(), &_logger,
+  _imguiManager = std::make_unique<ImguiManager>(_appContext, _window.get(), _logger,
                                                  kFramesInFlight, &_svoTracer->getUboData());
   _fpsSink      = std::make_unique<FpsSink>();
+
+  ShaderCompiler shaderCompiler{_logger};
+  auto const sourceCode =
+      ShaderFileReader::readShaderSourceCode(kRootDir + "src/shaders/testing.comp", _logger);
+  shaderCompiler.compileComputeShader("svo-tracer.comp", sourceCode);
 
   _init();
 }
@@ -49,7 +57,7 @@ void Application::run() {
 }
 
 void Application::_cleanup() {
-  _logger.info("application is cleaning up resources...");
+  _logger->info("application is cleaning up resources...");
 
   vkDestroyFence(_appContext->getDevice(), _svoBuildingDoneFence, nullptr);
   for (size_t i = 0; i < kFramesInFlight; i++) {
@@ -110,7 +118,7 @@ void Application::_drawFrame() {
   if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
     // sub-optimal: a swapchain no longer matches the surface properties
     // exactly, but can still be used to present to the surface successfully
-    _logger.error("resizing is not allowed!");
+    _logger->error("resizing is not allowed!");
   }
 
   _svoTracer->updateUboData(currentFrame);
@@ -174,7 +182,7 @@ void Application::_mainLoop() {
     glfwPollEvents();
 
     // if (glfwGetWindowAttrib(_window->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
-    //   _logger.info("window is not focused");
+    //   _logger->info("window is not focused");
     // }
 
     if (_window->windowSizeChanged() || _needToToggleWindowStyle()) {
@@ -224,7 +232,7 @@ void Application::_init() {
     auto endTime = std::chrono::steady_clock::now();
     auto duration =
         std::chrono::duration<double, std::chrono::seconds::period>(endTime - startTime).count();
-    _logger.info("SVO init time: " + std::to_string(duration) + " seconds");
+    _logger->info("SVO init time: " + std::to_string(duration) + " seconds");
   }
 
   _svoTracer->init(_svoBuilder.get());
@@ -245,6 +253,6 @@ void Application::_init() {
     auto endTime = std::chrono::steady_clock::now();
     auto duration =
         std::chrono::duration<double, std::chrono::seconds::period>(endTime - startTime).count();
-    _logger.info("SVO building time: " + std::to_string(duration) + " seconds");
+    _logger->info("SVO building time: " + std::to_string(duration) + " seconds");
   }
 }
