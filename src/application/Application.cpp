@@ -41,11 +41,6 @@ Application::Application(Logger *logger)
                                                  kFramesInFlight, &_svoTracer->getUboData());
   _fpsSink      = std::make_unique<FpsSink>();
 
-  ShaderCompiler shaderCompiler{_logger};
-  auto const sourceCode =
-      ShaderFileReader::readShaderSourceCode(kRootDir + "src/shaders/testing.comp", _logger);
-  shaderCompiler.compileComputeShader("svo-tracer.comp", sourceCode);
-
   _init();
 }
 

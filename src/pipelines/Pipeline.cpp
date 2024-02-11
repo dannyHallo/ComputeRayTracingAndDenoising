@@ -11,11 +11,16 @@ static const std::map<VkShaderStageFlags, VkPipelineBindPoint> kShaderStageFlags
     {VK_SHADER_STAGE_FRAGMENT_BIT, VK_PIPELINE_BIND_POINT_GRAPHICS},
     {VK_SHADER_STAGE_COMPUTE_BIT, VK_PIPELINE_BIND_POINT_COMPUTE}};
 
-VkShaderModule Pipeline::_createShaderModule(const std::vector<char> &code) {
+Pipeline::Pipeline(VulkanApplicationContext *appContext, Logger *logger, std::string fileName,
+                   DescriptorSetBundle *descriptorSetBundle, VkShaderStageFlags shaderStageFlags)
+    : _appContext(appContext), _logger(logger), _descriptorSetBundle(descriptorSetBundle),
+      _fileName(std::move(fileName)), _shaderStageFlags(shaderStageFlags) {}
+
+VkShaderModule Pipeline::_createShaderModule(const std::vector<uint32_t> &code) {
   VkShaderModuleCreateInfo createInfo{};
   createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-  createInfo.pCode    = reinterpret_cast<const uint32_t *>(code.data());
-  createInfo.codeSize = code.size(); // size in BYTES
+  createInfo.pCode    = code.data();
+  createInfo.codeSize = sizeof(uint32_t) * code.size();
 
   VkShaderModule shaderModule = VK_NULL_HANDLE;
   vkCreateShaderModule(_appContext->getDevice(), &createInfo, nullptr, &shaderModule);

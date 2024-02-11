@@ -1,7 +1,7 @@
 #ifndef SVO_TRACER_DESCRIPTOR_SET_LAYOUTS_GLSL
 #define SVO_TRACER_DESCRIPTOR_SET_LAYOUTS_GLSL
 
-#include "svoTracerDataStructs.glsl"
+#include "include/svoTracerDataStructs.glsl"
 
 layout(binding = 0) uniform RenderInfoUniformBuffer { G_RenderInfo data; }
 renderInfoUbo;

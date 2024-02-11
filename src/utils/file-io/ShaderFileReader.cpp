@@ -4,6 +4,8 @@
 
 namespace ShaderFileReader {
 std::string readShaderSourceCode(const std::string &filename, Logger *logger) {
+  logger->info("reading shader file: {}", filename);
+
   std::ifstream file(filename);
   if (!file.is_open()) {
     logger->error("shader file: {} not found", filename);

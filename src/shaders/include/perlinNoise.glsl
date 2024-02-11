@@ -3,7 +3,7 @@
 
 // https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
 
-//	classic perlin noise by Stefan Gustavson
+// classic perlin noise by Stefan Gustavson
 vec4 permute(vec4 x) { return mod(((x * 34.0) + 1.0) * x, 289.0); }
 vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
 vec3 fade(vec3 t) { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
@@ -76,7 +76,6 @@ float cnoise(vec3 P) {
   vec4 n_z      = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
   vec2 n_yz     = mix(n_z.xy, n_z.zw, fade_xyz.y);
   float n_xyz   = mix(n_yz.x, n_yz.y, fade_xyz.x);
-  return 2.2 * n_xyz;
 }
 
 #endif // PERLIN_NOISE_GLSL

@@ -60,7 +60,8 @@ target("main")
         "dep/obj-loader/",
         "dep/vulkan-memory-allocator/",
         "dep/efsw/include/",
-        "dep/shaderc/include"
+        "dep/shaderc/include",
+        "dep/entt/include"
     )
 
     add_deps("imgui")
@@ -69,8 +70,6 @@ target("main")
     add_links( 
     "dep/glfw/Release/glfw3.lib", 
     "dep/shaderc/bin/shaderc_shared.lib",
-    -- "dep/shaderc/build/glslc/Release/glslc.lib",
-    -- "dep/shaderc/build/libshaderc_util/Release/shaderc_util.lib",
     "dep/efsw/bin/efsw.lib",
     "User32", 
     "Gdi32", 

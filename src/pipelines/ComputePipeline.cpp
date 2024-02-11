@@ -3,6 +3,10 @@
 #include "pipelines/DescriptorSetBundle.hpp"
 #include "utils/logger/Logger.hpp"
 
+#include "utils/config/RootDir.h"
+#include "utils/file-io/ShaderFileReader.hpp"
+#include "utils/shader-compiler/ShaderCompiler.hpp"
+
 #include <memory>
 #include <vector>
 
@@ -15,7 +19,18 @@ void ComputePipeline::init() {
 
   vkCreatePipelineLayout(_appContext->getDevice(), &pipelineLayoutInfo, nullptr, &_pipelineLayout);
 
-  VkShaderModule shaderModule = _createShaderModule(_shaderCode);
+  auto const shaderSourceCode =
+      ShaderFileReader::readShaderSourceCode(kRootDir + "src/shaders/" + _fileName, _logger);
+  ShaderCompiler shaderCompiler{_logger};
+  auto const _shaderCode = shaderCompiler.compileComputeShader(_fileName, shaderSourceCode);
+
+  VkShaderModule shaderModule = nullptr;
+  if (_shaderCode.has_value()) {
+    shaderModule = _createShaderModule(_shaderCode.value());
+  } else {
+    _logger->error("failed to compile shader: {}", _fileName);
+    exit(0);
+  }
 
   VkPipelineShaderStageCreateInfo shaderStageInfo{};
   shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;

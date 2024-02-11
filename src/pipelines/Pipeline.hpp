@@ -4,6 +4,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 class Logger;
@@ -13,11 +14,8 @@ class VulkanApplicationContext;
 class DescriptorSetBundle;
 class Pipeline {
 public:
-  Pipeline(VulkanApplicationContext *appContext, Logger *logger, std::vector<char> &&shaderCode,
-           DescriptorSetBundle *descriptorSetBundle, VkShaderStageFlags shaderStageFlags)
-      : _appContext(appContext), _logger(logger), _descriptorSetBundle(descriptorSetBundle),
-        _shaderCode(std::move(shaderCode)), _shaderStageFlags(shaderStageFlags) {}
-
+  Pipeline(VulkanApplicationContext *appContext, Logger *logger, std::string fileName,
+           DescriptorSetBundle *descriptorSetBundle, VkShaderStageFlags shaderStageFlags);
   virtual ~Pipeline();
 
   // disable copy and move
@@ -31,8 +29,9 @@ public:
 protected:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
+
   DescriptorSetBundle *_descriptorSetBundle;
-  std::vector<char> _shaderCode;
+  std::string _fileName;
 
   std::vector<BufferBundle *> _uniformBufferBundles; // buffer bundles for uniform data
   std::vector<BufferBundle *> _storageBufferBundles; // buffer bundles for storage data
@@ -43,6 +42,6 @@ protected:
   VkPipeline _pipeline             = VK_NULL_HANDLE;
   VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
 
-  VkShaderModule _createShaderModule(const std::vector<char> &code);
+  VkShaderModule _createShaderModule(const std::vector<uint32_t> &code);
   void _bind(VkCommandBuffer commandBuffer, size_t currentFrame);
 };
