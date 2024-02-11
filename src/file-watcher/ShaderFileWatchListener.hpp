@@ -2,9 +2,7 @@
 
 // https://github.com/SpartanJ/efsw
 #include "efsw/efsw.hpp"
-#include "utils/config/RootDir.h"
 
-#include <iostream>
 #include <memory>
 
 class Logger;

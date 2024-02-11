@@ -1,5 +1,6 @@
 #include "ShaderFileWatchListener.hpp"
 
+#include "utils/config/RootDir.h"
 #include "utils/logger/Logger.hpp"
 
 ShaderFileWatchListener::ShaderFileWatchListener(Logger *logger) : _logger(logger) {
@@ -14,5 +15,5 @@ void ShaderFileWatchListener::handleFileAction(efsw::WatchID /*watchid*/, const 
   if (action != efsw::Actions::Modified) {
     return;
   }
-  _logger->print("shader file: dir{} filename{} has been modified! - reloading...", dir, filename);
+  _logger->info("shader file: dir{} filename{} has been modified! - reloading...", dir, filename);
 }

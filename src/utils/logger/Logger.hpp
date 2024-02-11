@@ -14,46 +14,42 @@
 #pragma once
 
 class Logger {
-  std::shared_ptr<spdlog::logger> logger;
-  std::shared_ptr<spdlog::logger> printlnLogger;
+  std::shared_ptr<spdlog::logger> _spdLogger;
+  std::shared_ptr<spdlog::logger> _printlnSpdLogger;
 
 public:
   Logger() {
     // the normal logger is designed to showcase the log level
-    logger = spdlog::stdout_color_mt("normalLogger");
-    logger->set_pattern("[%l] %v");
+    _spdLogger = spdlog::stdout_color_mt("normalLogger");
+    _spdLogger->set_pattern("[%l] %v");
 
     // the println logger is designed to print without any log level
-    printlnLogger = spdlog::stdout_color_mt("printlnLogger");
-    printlnLogger->set_pattern("%v");
+    _printlnSpdLogger = spdlog::stdout_color_mt("printlnLogger");
+    _printlnSpdLogger->set_pattern("%v");
   }
 
-  // print glm::vec3
-  inline void print(const glm::vec3 &v) { logger->info("{}, {}, {}", v.x, v.y, v.z); }
+  inline void print(const glm::vec3 &v) { _spdLogger->info("{}, {}, {}", v.x, v.y, v.z); }
 
-  template <typename... Args> inline void printSubinfo(std::string format, Args &&...args) {
+  template <typename... Args> inline void subInfo(std::string format, Args &&...args) {
     std::string formatWithSubInfo = "* " + std::move(format);
-    logger->info(fmt::runtime(formatWithSubInfo), args...);
+    _spdLogger->info(fmt::runtime(formatWithSubInfo), args...);
   }
 
-  // print with a format string and a variable number of arguments
-  template <typename... Args> inline void print(const std::string &format, Args &&...args) {
-    logger->info(fmt::runtime(format), args...);
+  template <typename... Args> inline void info(const std::string &format, Args &&...args) {
+    _spdLogger->info(fmt::runtime(format), args...);
+  }
+  template <typename... Args> inline void warn(const std::string &format, Args &&...args) {
+    _spdLogger->warn(fmt::runtime(format), args...);
+  }
+  template <typename... Args> inline void error(const std::string &format, Args &&...args) {
+    _spdLogger->error(fmt::runtime(format), args...);
   }
 
-  inline void println() { printlnLogger->info(""); }
+  inline void println() { _printlnSpdLogger->info(""); }
 
-  // print a single argument
-  template <typename T> inline void print(const T &t) { logger->info("{}", t); }
-
-  // throw a warning
-  inline void throwWarning(const std::string &warning) { logger->warn("Warning: {}", warning); }
-
-  // throw an error and exit
-  inline void throwError(const std::string &error) {
-    logger->error("Error: {}", error);
-    exit(1);
-  }
+  template <typename T> inline void info(const T &t) { _spdLogger->info("{}", t); }
+  template <typename T> inline void warn(const T &t) { _spdLogger->warn("{}", t); }
+  template <typename T> inline void error(const T &t) { _spdLogger->error("{}", t); }
 
   // void checkStep(const std::string stepName, const int resultCode);
 };

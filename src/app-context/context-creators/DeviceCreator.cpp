@@ -93,11 +93,11 @@ bool _checkDeviceExtensionSupport(Logger *logger, const VkPhysicalDevice &physic
     availableExtensionsSet.insert(static_cast<const char *>(extension.extensionName));
   }
 
-  logger->print("available device extensions count: {}", availableExtensions.size());
+  logger->info("available device extensions count: {}", availableExtensions.size());
   logger->println();
-  logger->print("using device extensions: {}", requiredDeviceExtensions.size());
+  logger->info("using device extensions: {}", requiredDeviceExtensions.size());
   for (const auto &extensionName : requiredDeviceExtensions) {
-    logger->printSubinfo("{}", extensionName);
+    logger->subInfo("{}", extensionName);
   }
   logger->println();
   logger->println();
@@ -113,9 +113,9 @@ bool _checkDeviceExtensionSupport(Logger *logger, const VkPhysicalDevice &physic
     return true;
   }
 
-  logger->print("the following device extensions are not available:");
+  logger->info("the following device extensions are not available:");
   for (const auto &unavailableExtensionName : unavailableExtensionNames) {
-    logger->printSubinfo("{}", unavailableExtensionName);
+    logger->subInfo("{}", unavailableExtensionName);
   }
   return false;
 }
@@ -175,7 +175,7 @@ void checkDeviceSuitable(Logger *logger, const VkSurfaceKHR &surface,
     return;
   }
 
-  logger->throwError("physical device not suitable");
+  logger->error("physical device not suitable");
 }
 
 // helper function to customize the physical device ranking mechanism, returns
@@ -194,7 +194,7 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
   std::vector<uint32_t> deviceMarks(physicalDevices.size());
   size_t deviceId = 0;
 
-  logger->print("-----------------------------------------------------------------------");
+  logger->info("-----------------------------------------------------------------------");
 
   for (const auto &physicalDevice : physicalDevices) {
 
@@ -227,13 +227,13 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
     VkSampleCountFlagBits msaaSamples = _getDeviceMaxUsableSampleCount(physicalDevice);
 
     int constexpr kDesiredLengthOfDeviceName = 30;
-    logger->print("[{}] {:<{}} memory {} mSAA {} mark {}", deviceId, deviceProperty.deviceName,
-                  kDesiredLengthOfDeviceName, deviceMemory, msaaSamples, deviceMarks[deviceId]);
+    logger->info("[{}] {:<{}} memory {} mSAA {} mark {}", deviceId, deviceProperty.deviceName,
+                 kDesiredLengthOfDeviceName, deviceMemory, msaaSamples, deviceMarks[deviceId]);
 
     deviceId++;
   }
 
-  logger->print("-----------------------------------------------------------------------");
+  logger->info("-----------------------------------------------------------------------");
   logger->println();
 
   uint32_t bestMark = 0;
@@ -249,11 +249,11 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
   }
 
   if (bestDevice == VK_NULL_HANDLE) {
-    logger->throwError("no suitable GPU found.");
+    logger->error("no suitable GPU found.");
   } else {
     VkPhysicalDeviceProperties bestDeviceProperty;
     vkGetPhysicalDeviceProperties(bestDevice, &bestDeviceProperty);
-    logger->print("Selected: {}", static_cast<const char *>(bestDeviceProperty.deviceName));
+    logger->info("Selected: {}", static_cast<const char *>(bestDeviceProperty.deviceName));
     logger->println();
 
     checkDeviceSuitable(logger, surface, bestDevice, requiredDeviceExtensions);
@@ -275,7 +275,7 @@ void ContextCreator::createDevice(Logger *logger, VkPhysicalDevice &physicalDevi
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
     if (deviceCount == 0) {
-      logger->throwError("failed to find GPUs with Vulkan support!");
+      logger->error("failed to find GPUs with Vulkan support!");
     }
 
     std::vector<VkPhysicalDevice> physicalDevices(deviceCount);

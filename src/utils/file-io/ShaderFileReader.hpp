@@ -10,7 +10,7 @@ inline std::vector<char> readShaderFile(const std::string &filename) {
   if (!file.is_open()) {
     throw std::runtime_error("shader file: " + filename + " not found");
   }
-  std::streamsize fileSize = (std::streamsize)file.tellg();
+  std::streamsize fileSize = static_cast<std::streamsize>(file.tellg());
   std::vector<char> buffer(fileSize);
   file.seekg(0);
   file.read(buffer.data(), static_cast<std::streamsize>(fileSize));

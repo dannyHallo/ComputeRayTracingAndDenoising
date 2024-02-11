@@ -120,7 +120,7 @@ void ImguiManager::init() {
   info.ImageCount                = static_cast<uint32_t>(_appContext->getSwapchainImagesCount());
   info.CheckVkResultFn           = nullptr;
   if (!ImGui_ImplVulkan_Init(&info, _guiPass)) {
-    _logger->print("failed to init impl");
+    _logger->info("failed to init impl");
   }
 
   // Create fonts texture
@@ -128,7 +128,7 @@ void ImguiManager::init() {
       beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
 
   if (!ImGui_ImplVulkan_CreateFontsTexture(commandBuffer)) {
-    _logger->print("failed to create fonts texture");
+    _logger->info("failed to create fonts texture");
   }
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), commandBuffer);

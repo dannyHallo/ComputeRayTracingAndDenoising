@@ -58,14 +58,16 @@ target("main")
         "dep/imgui/",
         "dep/implot/",
         "dep/obj-loader/",
-        "dep/memory-allocator-hpp/",
-        "dep/efsw/include/"
+        "dep/vulkan-memory-allocator/",
+        "dep/efsw/include/",
+        "dep/shaderc/include/"
     )
     add_deps("imgui")
     add_deps("implot")
 
     add_links( 
     "dep/glfw/Release/glfw3.lib", 
+    "dep/shaderc/bin/shaderc_shared.lib",
     "dep/efsw/bin/efsw.lib",
     "User32", 
     "Gdi32", 

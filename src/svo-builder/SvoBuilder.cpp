@@ -104,8 +104,8 @@ void SvoBuilder::_createBuffers() {
 
   uint32_t maximumOctreeBufferSize = std::ceil(static_cast<float>(sizeof(uint32_t)) * kChunkSize *
                                                kChunkSize * kChunkSize * 8.F / 7.F);
-  _logger->print("octree buffer size: {} mb",
-                 static_cast<float>(maximumOctreeBufferSize) / (1024 * 1024));
+  _logger->info("octree buffer size: {} mb",
+                static_cast<float>(maximumOctreeBufferSize) / (1024 * 1024));
 
   _indirectFragLengthBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
                                                        VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
@@ -121,8 +121,8 @@ void SvoBuilder::_createBuffers() {
       std::make_unique<Buffer>(maximumFragmentListBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                MemoryAccessingStyle::kGpuOnly);
 
-  _logger->print("fragment list buffer size: {} mb",
-                 static_cast<float>(maximumFragmentListBufferSize) / (1024 * 1024));
+  _logger->info("fragment list buffer size: {} mb",
+                static_cast<float>(maximumFragmentListBufferSize) / (1024 * 1024));
 
   _buildInfoBuffer = std::make_unique<Buffer>(
       sizeof(G_BuildInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);

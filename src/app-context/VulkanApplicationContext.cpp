@@ -19,11 +19,11 @@ static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCH
 
 void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
   _logger = logger;
-  _logger->print("Initiating VulkanApplicationContext");
+  _logger->info("Initiating VulkanApplicationContext");
 #ifndef NVALIDATIONLAYERS
-  _logger->print("DEBUG mode is enabled");
+  _logger->info("DEBUG mode is enabled");
 #else
-  _logger->print("DEBUG mode is disabled");
+  _logger->info("DEBUG mode is disabled");
 #endif // NDEBUG
 
   _glWindow = window;
@@ -77,7 +77,7 @@ void VulkanApplicationContext::onSwapchainResize() {
 }
 
 VulkanApplicationContext::~VulkanApplicationContext() {
-  _logger->print("Destroying VulkanApplicationContext");
+  _logger->info("Destroying VulkanApplicationContext");
 
   vkDestroyCommandPool(_device, _commandPool, nullptr);
   vkDestroyCommandPool(_device, _guiCommandPool, nullptr);

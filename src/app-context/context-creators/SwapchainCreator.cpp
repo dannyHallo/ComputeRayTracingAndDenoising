@@ -47,7 +47,7 @@ _chooseSwapSurfaceFormat(Logger *logger, const std::vector<VkSurfaceFormatKHR> &
     }
   }
 
-  logger->print("Surface format requirement didn't meet, the first available format is chosen!");
+  logger->info("Surface format requirement didn't meet, the first available format is chosen!");
   return availableFormats[0];
 }
 
@@ -61,7 +61,7 @@ _chooseSwapPresentMode(Logger *logger, const std::vector<VkPresentModeKHR> &avai
     }
   }
 
-  logger->print("Present mode preferance doesn't meet, switching to FIFO");
+  logger->info("Present mode preferance doesn't meet, switching to FIFO");
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 
@@ -70,8 +70,8 @@ VkExtent2D _getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, Logger *
   assert(capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max() &&
          "currentExtent.width should be valid!");
 
-  logger->print("using resolution: ({}, {})", capabilities.currentExtent.width,
-                capabilities.currentExtent.height);
+  logger->info("using resolution: ({}, {})", capabilities.currentExtent.width,
+               capabilities.currentExtent.height);
 
   return capabilities.currentExtent;
 }
@@ -97,7 +97,7 @@ void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
       imageCount > swapchainSupport.capabilities.maxImageCount) {
     imageCount = swapchainSupport.capabilities.maxImageCount;
   }
-  logger->print("number of swapchain images: {}", imageCount);
+  logger->info("number of swapchain images: {}", imageCount);
 
   VkSwapchainCreateInfoKHR swapchainCreateInfo{VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
   swapchainCreateInfo.surface          = surface;
