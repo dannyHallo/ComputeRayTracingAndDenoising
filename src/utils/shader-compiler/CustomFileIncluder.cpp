@@ -12,7 +12,7 @@ shaderc_include_result *MakeErrorIncludeResult(const char *message) {
 
 struct FileInfo {
   std::string fullPath;
-  std::string contents;
+  std::string content;
 };
 
 shaderc_include_result *CustomFileIncluder::GetInclude(const char *requested_source,
@@ -21,8 +21,9 @@ shaderc_include_result *CustomFileIncluder::GetInclude(const char *requested_sou
                                                        size_t /*include_depth*/) {
   std::string fullPath = kRootDir + "src/shaders/" + requested_source;
   std::string content  = ShaderFileReader::readShaderSourceCode(fullPath, _logger);
-  return new shaderc_include_result{fullPath.c_str(), fullPath.size(), content.c_str(),
-                                    content.size(), new FileInfo{fullPath, content}};
+  auto *info           = new FileInfo{fullPath, content};
+  return new shaderc_include_result{fullPath.c_str(), fullPath.size(), info->content.c_str(),
+                                    info->content.length(), info};
 }
 
 void CustomFileIncluder::ReleaseInclude(shaderc_include_result *include_result) {

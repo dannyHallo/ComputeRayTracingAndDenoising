@@ -19,18 +19,7 @@ void main() {
   vec3 noiseLookupPos = vec3(uv) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   float floorHeight = fragmentListInfoBuffer.data.voxelResolution * 0.2;
-  float noise       = (floorHeight - gl_GlobalInvocationID.y) - floorHeight * 0;
+  float noise = (floorHeight - gl_GlobalInvocationID.y) - floorHeight * cnoise(noiseLookupPos * 4);
 
   imageStore(chunkFieldImage, uv, vec4(noise, 0, 0, 0));
-
-  // if (gl_GlobalInvocationID.x >= fragmentListInfoBuffer.data.voxelFragmentCount) return;
-  // G_FragmentListEntry ufragment = fragmentListBuffer.datas[gl_GlobalInvocationID.x];
-
-  // uint coordinates = ufragment.coordinates;
-  // ivec3 voxel_pos  = ivec3((coordinates & 0x3FF00000u) >> 20u, (coordinates & 0x000FFC00u) >>
-  // 10u,
-  //                          (coordinates & 0x000003FFu));
-
-  // // only store the index inside, the added 1 is to avoid 0, which is reserved for empty
-  // imageStore(fragmentListImage, voxel_pos, uvec4(gl_GlobalInvocationID.x + 1, 0, 0, 0));
 }
