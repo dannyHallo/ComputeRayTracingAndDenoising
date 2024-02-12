@@ -32,18 +32,30 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
     return;
   }
 
-  _logger->info("change of shader ({}) detected", filename);
+  // here, is some editors, (vscode, notepad++), when a file is saved, it will be saved twice, so
+  // the block request is sent twice, however, when the render loop is blocked, the pipelines will
+  // be rebuilt only once, a caching mechanism is used to avoid avoid duplicates
+  _logger->info("changes to {} is detected", filename);
 
   Pipeline *pipeline   = _shaderFileNameToPipeline[filename];
   Scheduler *scheduler = pipeline->getScheduler();
 
   _schedulerPipelinesToRebuild[scheduler].insert(pipeline);
 
+  // request to block the render loop, when the render loop is blocked, the pipelines will be
+  // rebuilt
   GlobalEventDispatcher::get().trigger<E_RenderLoopBlockRequest>();
 }
 
 void ShaderChangeListener::_onRenderLoopBlocked() {
-  _logger->info("rebuild pipelines");
+  // logging
+  std::string pipelineNames;
+  for (auto const &[scheduler, pipelines] : _schedulerPipelinesToRebuild) {
+    for (auto *const pipeline : pipelines) {
+      pipelineNames += "[" + pipeline->getShaderFileName() + "] ";
+    }
+  }
+  _logger->info("render loop is blocked, rebuilding {}", pipelineNames);
 
   // rebuild pipelines
   for (auto const &[scheduler, pipelines] : _schedulerPipelinesToRebuild) {
@@ -57,12 +69,14 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
     scheduler->update();
   }
 
+  // clear the cache
+  _schedulerPipelinesToRebuild.clear();
+
   // then the render loop can continue
 }
 
 void ShaderChangeListener::addWatchingItem(Pipeline *pipeline) {
   auto const shaderFileName = pipeline->getShaderFileName();
-  _logger->info("addWatchingItem: {}", shaderFileName);
 
   _watchingShaderFiles.insert(shaderFileName);
 
@@ -76,7 +90,6 @@ void ShaderChangeListener::addWatchingItem(Pipeline *pipeline) {
 
 void ShaderChangeListener::removeWatchingItem(Pipeline *pipeline) {
   auto const shaderFileName = pipeline->getShaderFileName();
-  _logger->info("removeWatchingItem: {}", shaderFileName);
 
   _watchingShaderFiles.erase(shaderFileName);
   _shaderFileNameToPipeline.erase(shaderFileName);

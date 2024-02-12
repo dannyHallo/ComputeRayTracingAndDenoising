@@ -43,7 +43,7 @@ Application::Application(Logger *logger)
       .connect<&Application::_onRenderLoopBlockRequest>(this);
 }
 
-Application::~Application() = default;
+Application::~Application() { GlobalEventDispatcher::get().disconnect<>(this); }
 
 void Application::run() {
   _mainLoop();

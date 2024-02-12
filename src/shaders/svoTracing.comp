@@ -366,6 +366,6 @@ void main() {
   }
 
   vec4 overlappingColor = vec4(0.0);
-  overlappingColor      = vec4(vec3(1, 0.4, 0.2) * float(dhIterUsed) / 100, 1.0);
+  overlappingColor      = vec4(vec3(1, 0.4, 0.2) * float(dhIterUsed) / 50, 1.0);
   imageStore(octreeVisualizationImage, uv, vec4(overlappingColor));
 }
