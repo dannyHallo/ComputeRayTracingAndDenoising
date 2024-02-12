@@ -15,7 +15,7 @@ class SvoTracer;
 class ImguiManager;
 class Camera;
 class FpsSink;
-class ShaderFileWatchListener;
+class ShaderChangeListener;
 class Application {
 public:
   Application(Logger *logger);
@@ -37,7 +37,7 @@ private:
   std::unique_ptr<ImguiManager> _imguiManager;
   std::unique_ptr<Camera> _camera;
   std::unique_ptr<Window> _window;
-  std::unique_ptr<ShaderFileWatchListener> _shaderFileWatchListener;
+  std::unique_ptr<ShaderChangeListener> _shaderFileWatchListener;
 
   VulkanApplicationContext *_appContext;
 
@@ -50,6 +50,8 @@ private:
   std::vector<VkSemaphore> _renderFinishedSemaphores;
   std::vector<VkFence> _framesInFlightFences;
 
+  bool _blockFlag = false;
+
   void _createSemaphoresAndFences();
   void _onSwapchainResize();
   void _waitForTheWindowToBeResumed();
@@ -58,4 +60,6 @@ private:
   void _init();
   void _cleanup();
   bool _needToToggleWindowStyle();
+
+  void _onRenderLoopBlockRequest();
 };

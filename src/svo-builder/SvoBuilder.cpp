@@ -3,8 +3,8 @@
 #include "SvoBuilderDataGpu.hpp"
 #include "memory/Buffer.hpp"
 #include "memory/Image.hpp"
-#include "pipelines/ComputePipeline.hpp"
-#include "pipelines/DescriptorSetBundle.hpp"
+#include "pipeline/ComputePipeline.hpp"
+#include "pipeline/DescriptorSetBundle.hpp"
 #include "svo-builder/VoxLoader.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/file-io/ShaderFileReader.hpp"
@@ -176,39 +176,39 @@ void SvoBuilder::_createDescriptorSetBundle() {
 
 void SvoBuilder::_createPipelines() {
   _chunkFieldConstructionPipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "chunkFieldConstruction.comp",
+      std::make_unique<ComputePipeline>(_appContext, _logger, this, "chunkFieldConstruction.comp",
                                         WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get());
-  _chunkFieldConstructionPipeline->init();
+  _chunkFieldConstructionPipeline->build(false);
 
   _chunkVoxelCreationPipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "chunkVoxelCreation.comp",
+      std::make_unique<ComputePipeline>(_appContext, _logger, this, "chunkVoxelCreation.comp",
                                         WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get());
-  _chunkVoxelCreationPipeline->init();
+  _chunkVoxelCreationPipeline->build(false);
 
   _chunkModifyArgPipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "chunkModifyArg.comp",
+      std::make_unique<ComputePipeline>(_appContext, _logger, this, "chunkModifyArg.comp",
                                         WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get());
-  _chunkModifyArgPipeline->init();
+  _chunkModifyArgPipeline->build(false);
 
   _initNodePipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "octreeInitNode.comp",
+      std::make_unique<ComputePipeline>(_appContext, _logger, this, "octreeInitNode.comp",
                                         WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get());
-  _initNodePipeline->init();
+  _initNodePipeline->build(false);
 
   _tagNodePipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "octreeTagNode.comp",
+      std::make_unique<ComputePipeline>(_appContext, _logger, this, "octreeTagNode.comp",
                                         WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get());
-  _tagNodePipeline->init();
+  _tagNodePipeline->build(false);
 
   _allocNodePipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "octreeAllocNode.comp",
+      std::make_unique<ComputePipeline>(_appContext, _logger, this, "octreeAllocNode.comp",
                                         WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get());
-  _allocNodePipeline->init();
+  _allocNodePipeline->build(false);
 
   _modifyArgPipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "octreeModifyArg.comp",
+      std::make_unique<ComputePipeline>(_appContext, _logger, this, "octreeModifyArg.comp",
                                         WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get());
-  _modifyArgPipeline->init();
+  _modifyArgPipeline->build(false);
 }
 
 void SvoBuilder::_recordCommandBuffer() {

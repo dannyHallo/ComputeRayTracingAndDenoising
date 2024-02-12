@@ -1,11 +1,12 @@
 #include "SvoTracer.hpp"
 
 #include "app-context/VulkanApplicationContext.hpp"
+#include "file-watcher/ShaderChangeListener.hpp"
 #include "memory/Buffer.hpp"
 #include "memory/BufferBundle.hpp"
 #include "memory/Image.hpp"
-#include "pipelines/ComputePipeline.hpp"
-#include "pipelines/DescriptorSetBundle.hpp"
+#include "pipeline/ComputePipeline.hpp"
+#include "pipeline/DescriptorSetBundle.hpp"
 #include "svo-builder/SvoBuilder.hpp"
 #include "utils/camera/Camera.hpp"
 #include "utils/config/RootDir.h"
@@ -16,8 +17,9 @@ static int constexpr kATrousSize          = 5;
 static uint32_t constexpr kBeamResolution = 8;
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
-                     Camera *camera)
-    : _appContext(appContext), _logger(logger), _camera(camera), _framesInFlight(framesInFlight) {}
+                     Camera *camera, ShaderChangeListener *shaderChangeListener)
+    : _appContext(appContext), _logger(logger), _camera(camera),
+      _shaderChangeListener(shaderChangeListener), _framesInFlight(framesInFlight) {}
 
 SvoTracer::~SvoTracer() {
   for (auto &commandBuffer : _tracingCommandBuffers) {
@@ -53,11 +55,13 @@ void SvoTracer::onSwapchainResize() {
 
   // pipelines
   _createDescriptorSetBundle();
-  _createPipelines();
+  _updatePipelinesDescriptorBundles();
 
   _recordRenderingCommandBuffers();
   _recordDeliveryCommandBuffers();
 }
+
+void SvoTracer::update() { _recordRenderingCommandBuffers(); }
 
 void SvoTracer::_createImages() {
   _createResourseImages();
@@ -689,26 +693,36 @@ void SvoTracer::_createDescriptorSetBundle() {
 }
 
 void SvoTracer::_createPipelines() {
-  _svoCourseBeamPipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "svoCoarseBeam.comp",
-                                        WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
-  _svoCourseBeamPipeline->init();
+  _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, "svoCoarseBeam.comp", WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderChangeListener);
+  _svoCourseBeamPipeline->build(false);
 
   _svoTracingPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, "svoTracing.comp", WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
-  _svoTracingPipeline->init();
+      _appContext, _logger, this, "svoTracing.comp", WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderChangeListener);
+  _svoTracingPipeline->build(false);
 
-  _temporalFilterPipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "temporalFilter.comp",
-                                        WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
-  _temporalFilterPipeline->init();
+  _temporalFilterPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, "temporalFilter.comp", WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderChangeListener);
+  _temporalFilterPipeline->build(false);
 
   _aTrousPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, "aTrous.comp", WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
-  _aTrousPipeline->init();
+      _appContext, _logger, this, "aTrous.comp", WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(),
+      _shaderChangeListener);
+  _aTrousPipeline->build(false);
 
-  _postProcessingPipeline =
-      std::make_unique<ComputePipeline>(_appContext, _logger, "postProcessing.comp",
-                                        WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get());
-  _postProcessingPipeline->init();
+  _postProcessingPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, "postProcessing.comp", WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderChangeListener);
+  _postProcessingPipeline->build(false);
+}
+
+void SvoTracer::_updatePipelinesDescriptorBundles() {
+  _svoCourseBeamPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  _svoTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  _temporalFilterPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  _aTrousPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  _postProcessingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
 }

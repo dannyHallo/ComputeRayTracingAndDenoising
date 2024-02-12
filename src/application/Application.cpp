@@ -3,19 +3,13 @@
 #include "svo-builder/SvoBuilder.hpp"
 #include "svo-tracer/SvoTracer.hpp"
 
-#include "file-watcher/ShaderFileWatchListener.hpp"
+#include "file-watcher/ShaderChangeListener.hpp"
 #include "gui/gui-manager/ImguiManager.hpp"
-#include "memory/Buffer.hpp"
-#include "memory/BufferBundle.hpp"
-#include "memory/Image.hpp"
-#include "pipelines/ComputePipeline.hpp"
-#include "pipelines/DescriptorSetBundle.hpp"
 #include "utils/camera/Camera.hpp"
-#include "utils/config/RootDir.h"
-#include "utils/file-io/ShaderFileReader.hpp" //
+#include "utils/event/EventType.hpp"
+#include "utils/event/GlobalEventDispatcher.hpp"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
-#include "utils/shader-compiler/ShaderCompiler.hpp" //
 #include "window/Window.hpp"
 
 #include <chrono>
@@ -28,20 +22,25 @@ Camera *Application::getCamera() { return _camera.get(); }
 
 Application::Application(Logger *logger)
     : _logger(logger), _appContext(VulkanApplicationContext::getInstance()) {
-  _shaderFileWatchListener = std::make_unique<ShaderFileWatchListener>(_logger);
+  _shaderFileWatchListener = std::make_unique<ShaderChangeListener>(_logger);
 
-  _window = std::make_unique<Window>(WindowStyle::kFullScreen);
+  _window = std::make_unique<Window>(WindowStyle::kMaximized);
   _appContext->init(_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 
   _svoBuilder = std::make_unique<SvoBuilder>(_appContext, _logger);
-  _svoTracer  = std::make_unique<SvoTracer>(_appContext, _logger, kFramesInFlight, _camera.get());
+  _svoTracer  = std::make_unique<SvoTracer>(_appContext, _logger, kFramesInFlight, _camera.get(),
+                                           _shaderFileWatchListener.get());
 
   _imguiManager = std::make_unique<ImguiManager>(_appContext, _window.get(), _logger,
                                                  kFramesInFlight, &_svoTracer->getUboData());
   _fpsSink      = std::make_unique<FpsSink>();
 
   _init();
+
+  GlobalEventDispatcher::get()
+      .sink<E_RenderLoopBlockRequest>()
+      .connect<&Application::_onRenderLoopBlockRequest>(this);
 }
 
 Application::~Application() = default;
@@ -61,6 +60,8 @@ void Application::_cleanup() {
     vkDestroyFence(_appContext->getDevice(), _framesInFlightFences[i], nullptr);
   }
 }
+
+void Application::_onRenderLoopBlockRequest() { _blockFlag = true; }
 
 void Application::_onSwapchainResize() {
   _appContext->onSwapchainResize();
@@ -170,22 +171,23 @@ void Application::_waitForTheWindowToBeResumed() {
 }
 
 void Application::_mainLoop() {
-
   static std::chrono::time_point fpsRecordLastTime = std::chrono::steady_clock::now();
 
   while (glfwWindowShouldClose(_window->getGlWindow()) == 0) {
+
+    if (_blockFlag) {
+      vkDeviceWaitIdle(_appContext->getDevice());
+      GlobalEventDispatcher::get().trigger<E_RenderLoopBlocked>();
+      _blockFlag = false;
+    }
+
     glfwPollEvents();
 
-    // if (glfwGetWindowAttrib(_window->getGlWindow(), GLFW_FOCUSED) == GLFW_FALSE) {
-    //   _logger->info("window is not focused");
-    // }
-
     if (_window->windowSizeChanged() || _needToToggleWindowStyle()) {
-      _window->setWindowSizeChanged(false);
-
       vkDeviceWaitIdle(_appContext->getDevice());
-      _waitForTheWindowToBeResumed();
 
+      _window->setWindowSizeChanged(false);
+      _waitForTheWindowToBeResumed();
       _onSwapchainResize();
 
       fpsRecordLastTime = std::chrono::steady_clock::now();

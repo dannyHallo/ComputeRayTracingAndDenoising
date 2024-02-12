@@ -33,8 +33,7 @@ ivec2 texSize = imageSize(depthTex);
 
 bool outofBounds(ivec2 p) {
   return any(lessThan(p, ivec2(0))) ||
-         any(greaterThanEqual(
-             p, ivec2(globalUbo.swapchainWidth, globalUbo.swapchainHeight)));
+         any(greaterThanEqual(p, ivec2(globalUbo.swapchainWidth, globalUbo.swapchainHeight)));
 }
 
 float readDepth(ivec2 offset) {
@@ -94,7 +93,7 @@ float calculateVariance() {
           float weightK = exp(-(x * x + y * y) * ubo.phiGaussian);
 
           vec3 normalAtSample = imageLoad(normalTex, uv + ivec2(x, y)).xyz;
-          float weightN = max(0., pow(dot(normalAtSample, normalAtUv), 128.));
+          float weightN       = max(0., pow(dot(normalAtSample, normalAtUv), 128.));
 
           float depthAtSample = readDepth(ivec2(x, y));
           float differenceInDepth =
@@ -116,8 +115,7 @@ float calculateVariance() {
   }
 
   imageStore(varianceHistTex, uv,
-             vec4(luminancePairHist + luminancePairAtUv,
-                  varianceHistSampleCount + 1, 0));
+             vec4(luminancePairHist + luminancePairAtUv, varianceHistSampleCount + 1, 0));
 
   weightSumCalc  = max(weightSumCalc, 1e-8);
   float mean     = luminancePairCalc.x / weightSumCalc;

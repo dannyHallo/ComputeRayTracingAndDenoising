@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SvoTracerDataGpu.hpp"
+#include "scheduler/Scheduler.hpp"
 #include "utils/incl/Glm.hpp"
 #include "utils/incl/Vulkan.hpp"
 
@@ -17,12 +18,13 @@ class SvoBuilder;
 class DescriptorSetBundle;
 class ComputePipeline;
 class Camera;
+class ShaderChangeListener;
 
-class SvoTracer {
+class SvoTracer : public Scheduler {
 public:
   SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
-            Camera *camera);
-  ~SvoTracer();
+            Camera *camera, ShaderChangeListener *shaderChangeListener);
+  ~SvoTracer() override;
 
   // disable copy and move
   SvoTracer(SvoTracer const &)            = delete;
@@ -31,6 +33,7 @@ public:
   SvoTracer &operator=(SvoTracer &&)      = delete;
 
   void init(SvoBuilder *svoBuilder);
+  void update() override;
 
   void onSwapchainResize();
   VkCommandBuffer getTracingCommandBuffer(size_t currentFrame) {
@@ -49,6 +52,7 @@ private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
   Camera *_camera;
+  ShaderChangeListener *_shaderChangeListener;
   SvoBuilder *_svoBuilder = nullptr;
 
   size_t _framesInFlight;
@@ -170,4 +174,5 @@ private:
 
   void _createDescriptorSetBundle();
   void _createPipelines();
+  void _updatePipelinesDescriptorBundles();
 };

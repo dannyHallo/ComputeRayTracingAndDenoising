@@ -12,10 +12,15 @@ class Image;
 class BufferBundle;
 class VulkanApplicationContext;
 class DescriptorSetBundle;
+class Scheduler;
+class ShaderChangeListener;
+
 class Pipeline {
 public:
-  Pipeline(VulkanApplicationContext *appContext, Logger *logger, std::string fileName,
-           DescriptorSetBundle *descriptorSetBundle, VkShaderStageFlags shaderStageFlags);
+  Pipeline(VulkanApplicationContext *appContext, Logger *logger, Scheduler *scheduler,
+           std::string shaderFileName, DescriptorSetBundle *descriptorSetBundle,
+           VkShaderStageFlags shaderStageFlags,
+           ShaderChangeListener *shaderChangeListener = nullptr);
   virtual ~Pipeline();
 
   // disable copy and move
@@ -24,14 +29,21 @@ public:
   Pipeline(Pipeline &&)                 = delete;
   Pipeline &operator=(Pipeline &&)      = delete;
 
-  virtual void init() = 0;
+  virtual void build(bool allowCache) = 0;
+  void updateDescriptorSetBundle(DescriptorSetBundle *descriptorSetBundle);
+
+  [[nodiscard]] std::string getShaderFileName() const { return _shaderFileName; }
+  [[nodiscard]] Scheduler *getScheduler() const { return _scheduler; }
 
 protected:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
+  Scheduler *_scheduler;
+  ShaderChangeListener *_shaderChangeListener;
+  VkShaderModule _cachedShaderModule = VK_NULL_HANDLE;
 
   DescriptorSetBundle *_descriptorSetBundle;
-  std::string _fileName;
+  std::string _shaderFileName;
 
   std::vector<BufferBundle *> _uniformBufferBundles; // buffer bundles for uniform data
   std::vector<BufferBundle *> _storageBufferBundles; // buffer bundles for storage data
@@ -41,6 +53,8 @@ protected:
 
   VkPipeline _pipeline             = VK_NULL_HANDLE;
   VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
+
+  void _cleanupPipelineAndLayout();
 
   VkShaderModule _createShaderModule(const std::vector<uint32_t> &code);
   void _bind(VkCommandBuffer commandBuffer, size_t currentFrame);

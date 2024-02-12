@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SvoBuilderDataGpu.hpp"
+#include "scheduler/Scheduler.hpp"
 #include "utils/incl/Vulkan.hpp"
 
 #include <array>
@@ -16,10 +17,10 @@ class VulkanApplicationContext;
 class Buffer;
 class Image;
 
-class SvoBuilder {
+class SvoBuilder : public Scheduler {
 public:
   SvoBuilder(VulkanApplicationContext *appContext, Logger *logger);
-  ~SvoBuilder();
+  ~SvoBuilder() override;
 
   // disable copy and move
   SvoBuilder(SvoBuilder const &)            = delete;
@@ -28,6 +29,8 @@ public:
   SvoBuilder &operator=(SvoBuilder &&)      = delete;
 
   void init();
+  void update() override {} // it has no reason to update, it only works once
+
   void build(VkFence svoBuildingDoneFence);
 
   Buffer *getOctreeBuffer() { return _octreeBuffer.get(); }
