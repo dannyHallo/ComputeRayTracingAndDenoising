@@ -55,6 +55,7 @@ protected:
   VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
 
   void _cleanupPipelineAndLayout();
+  void _cleanupShaderModule();
 
   VkShaderModule _createShaderModule(const std::vector<uint32_t> &code);
   void _bind(VkCommandBuffer commandBuffer, size_t currentFrame);

@@ -33,9 +33,12 @@ void ComputePipeline::build(bool allowCache) {
 
   vkCreatePipelineLayout(_appContext->getDevice(), &pipelineLayoutInfo, nullptr, &_pipelineLayout);
 
+  if (!allowCache) {
+    _cleanupShaderModule();
+  }
+
   VkShaderModule shaderModule = VK_NULL_HANDLE;
-  if (allowCache && _cachedShaderModule != VK_NULL_HANDLE) {
-    _logger->info("using cached shader module for shader: {}", _shaderFileName);
+  if (_cachedShaderModule != VK_NULL_HANDLE) {
     shaderModule = _cachedShaderModule;
   } else {
     auto const shaderSourceCode = ShaderFileReader::readShaderSourceCode(

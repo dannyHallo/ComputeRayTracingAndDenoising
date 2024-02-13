@@ -45,6 +45,13 @@ void Pipeline::_cleanupPipelineAndLayout() {
   }
 }
 
+void Pipeline::_cleanupShaderModule() {
+  if (_cachedShaderModule != VK_NULL_HANDLE) {
+    vkDestroyShaderModule(_appContext->getDevice(), _cachedShaderModule, nullptr);
+    _cachedShaderModule = VK_NULL_HANDLE;
+  }
+}
+
 void Pipeline::updateDescriptorSetBundle(DescriptorSetBundle *descriptorSetBundle) {
   _descriptorSetBundle = descriptorSetBundle;
   build(true);
