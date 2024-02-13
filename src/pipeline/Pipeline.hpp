@@ -29,7 +29,9 @@ public:
   Pipeline(Pipeline &&)                 = delete;
   Pipeline &operator=(Pipeline &&)      = delete;
 
-  virtual void build(bool allowCache) = 0;
+  virtual void build()                                        = 0;
+  virtual bool buildAndCacheShaderModule(bool allowBuildFail) = 0;
+
   void updateDescriptorSetBundle(DescriptorSetBundle *descriptorSetBundle);
 
   [[nodiscard]] std::string getShaderFileName() const { return _shaderFileName; }

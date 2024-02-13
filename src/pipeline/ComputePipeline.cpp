@@ -22,7 +22,7 @@ ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *l
 
 ComputePipeline::~ComputePipeline() = default;
 
-void ComputePipeline::build(bool allowCache) {
+void ComputePipeline::build() {
   _cleanupPipelineAndLayout();
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -33,30 +33,15 @@ void ComputePipeline::build(bool allowCache) {
 
   vkCreatePipelineLayout(_appContext->getDevice(), &pipelineLayoutInfo, nullptr, &_pipelineLayout);
 
-  if (!allowCache) {
-    _cleanupShaderModule();
-  }
-
-  VkShaderModule shaderModule = VK_NULL_HANDLE;
-  if (_cachedShaderModule != VK_NULL_HANDLE) {
-    shaderModule = _cachedShaderModule;
-  } else {
-    auto const shaderSourceCode = ShaderFileReader::readShaderSourceCode(
-        kRootDir + "src/shaders/" + _shaderFileName, _logger);
-    auto const _shaderCode =
-        _shaderCompiler->compileComputeShader(_shaderFileName, shaderSourceCode);
-
-    if (!_shaderCode.has_value()) {
-      assert(false && "failed to compile the shader!");
-      exit(0);
-    }
-    shaderModule = _createShaderModule(_shaderCode.value());
+  if (_cachedShaderModule == VK_NULL_HANDLE) {
+    _logger->error("failed to build the pipeline because of a null shader module: {}",
+                   _shaderFileName);
   }
 
   VkPipelineShaderStageCreateInfo shaderStageInfo{};
   shaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
   shaderStageInfo.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
-  shaderStageInfo.module = shaderModule;
+  shaderStageInfo.module = _cachedShaderModule;
   shaderStageInfo.pName  = "main"; // name of the entry function of current shader
 
   VkComputePipelineCreateInfo computePipelineCreateInfo{};
@@ -67,6 +52,24 @@ void ComputePipeline::build(bool allowCache) {
 
   vkCreateComputePipelines(_appContext->getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo,
                            nullptr, &_pipeline);
+}
+
+bool ComputePipeline::buildAndCacheShaderModule(bool allowBuildFail) {
+  auto const shaderSourceCode =
+      ShaderFileReader::readShaderSourceCode(kRootDir + "src/shaders/" + _shaderFileName, _logger);
+  auto const _shaderCode = _shaderCompiler->compileComputeShader(_shaderFileName, shaderSourceCode);
+
+  if (!allowBuildFail && !_shaderCode.has_value()) {
+    _logger->error("failed to compile the shader: {}", _shaderFileName);
+    exit(0);
+  }
+
+  if (_shaderCode.has_value()) {
+    _cleanupShaderModule();
+    _cachedShaderModule = _createShaderModule(_shaderCode.value());
+    return true;
+  }
+  return false;
 }
 
 void ComputePipeline::recordCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame,

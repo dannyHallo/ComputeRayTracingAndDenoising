@@ -35,7 +35,7 @@ private:
 
   std::unordered_set<std::string> _watchingShaderFiles;
   std::unordered_map<std::string, Pipeline *> _shaderFileNameToPipeline;
-  std::unordered_map<Scheduler *, std::unordered_set<Pipeline *>> _schedulerPipelinesToRebuild;
+  std::unordered_set<Pipeline *> _pipelinesToRebuild;
 
   std::unique_ptr<efsw::FileWatcher> _fileWatcher;
 

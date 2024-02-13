@@ -28,7 +28,8 @@ public:
   ComputePipeline(ComputePipeline &&)                 = delete;
   ComputePipeline &operator=(ComputePipeline &&)      = delete;
 
-  void build(bool allowCache) override;
+  void build() override;
+  bool buildAndCacheShaderModule(bool allowBuildFail) override;
 
   void recordCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t threadCountX,
                      uint32_t threadCountY, uint32_t threadCountZ);

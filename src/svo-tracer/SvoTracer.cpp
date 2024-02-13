@@ -696,27 +696,32 @@ void SvoTracer::_createPipelines() {
   _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "svoCoarseBeam.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
-  _svoCourseBeamPipeline->build(false);
+  _svoCourseBeamPipeline->buildAndCacheShaderModule(false);
+  _svoCourseBeamPipeline->build();
 
   _svoTracingPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "svoTracing.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
-  _svoTracingPipeline->build(false);
+  _svoTracingPipeline->buildAndCacheShaderModule(false);
+  _svoTracingPipeline->build();
 
   _temporalFilterPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "temporalFilter.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
-  _temporalFilterPipeline->build(false);
+  _temporalFilterPipeline->buildAndCacheShaderModule(false);
+  _temporalFilterPipeline->build();
 
   _aTrousPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "aTrous.comp", WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(),
       _shaderChangeListener);
-  _aTrousPipeline->build(false);
+  _aTrousPipeline->buildAndCacheShaderModule(false);
+  _aTrousPipeline->build();
 
   _postProcessingPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "postProcessing.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
-  _postProcessingPipeline->build(false);
+  _postProcessingPipeline->buildAndCacheShaderModule(false);
+  _postProcessingPipeline->build();
 }
 
 void SvoTracer::_updatePipelinesDescriptorBundles() {

@@ -35,12 +35,9 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
   // here, is some editors, (vscode, notepad++), when a file is saved, it will be saved twice, so
   // the block request is sent twice, however, when the render loop is blocked, the pipelines will
   // be rebuilt only once, a caching mechanism is used to avoid avoid duplicates
-  _logger->info("changes to {} is detected", filename);
+  // _logger->info("changes to {} is detected", filename);
 
-  Pipeline *pipeline   = _shaderFileNameToPipeline[filename];
-  Scheduler *scheduler = pipeline->getScheduler();
-
-  _schedulerPipelinesToRebuild[scheduler].insert(pipeline);
+  _pipelinesToRebuild.insert(_shaderFileNameToPipeline[filename]);
 
   // request to block the render loop, when the render loop is blocked, the pipelines will be
   // rebuilt
@@ -50,27 +47,38 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
 void ShaderChangeListener::_onRenderLoopBlocked() {
   // logging
   std::string pipelineNames;
-  for (auto const &[scheduler, pipelines] : _schedulerPipelinesToRebuild) {
-    for (auto *const pipeline : pipelines) {
-      pipelineNames += "[" + pipeline->getShaderFileName() + "] ";
-    }
+  for (auto const &pipeline : _pipelinesToRebuild) {
+    pipelineNames += pipeline->getShaderFileName() + " ";
   }
-  _logger->info("render loop is blocked, rebuilding {}", pipelineNames);
+  _logger->info("rebuilding shaders due to changes: {}", pipelineNames);
+
+  std::string rebuildFailedNames;
+
+  std::unordered_set<Scheduler *> schedulersNeededToBeUpdated{};
 
   // rebuild pipelines
-  for (auto const &[scheduler, pipelines] : _schedulerPipelinesToRebuild) {
-    for (auto *const pipeline : pipelines) {
-      pipeline->build(false);
+  for (auto const &pipeline : _pipelinesToRebuild) {
+    // if shader module is rebuilt, then rebuild the pipeline, this is fail safe, because a valid
+    // shader module is previously built and cached when initializing
+    if (pipeline->buildAndCacheShaderModule(true)) {
+      pipeline->build();
+      schedulersNeededToBeUpdated.insert(pipeline->getScheduler());
+      continue;
     }
+    rebuildFailedNames += pipeline->getShaderFileName() + " ";
+  }
+
+  if (!rebuildFailedNames.empty()) {
+    _logger->error("shaders building failed and are not cached: {}", rebuildFailedNames);
   }
 
   // update schedulers
-  for (auto const &[scheduler, pipelines] : _schedulerPipelinesToRebuild) {
+  for (auto const &scheduler : schedulersNeededToBeUpdated) {
     scheduler->update();
   }
 
   // clear the cache
-  _schedulerPipelinesToRebuild.clear();
+  _pipelinesToRebuild.clear();
 
   // then the render loop can continue
 }

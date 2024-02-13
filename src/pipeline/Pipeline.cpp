@@ -54,7 +54,7 @@ void Pipeline::_cleanupShaderModule() {
 
 void Pipeline::updateDescriptorSetBundle(DescriptorSetBundle *descriptorSetBundle) {
   _descriptorSetBundle = descriptorSetBundle;
-  build(true);
+  build();
 }
 
 VkShaderModule Pipeline::_createShaderModule(const std::vector<uint32_t> &code) {
@@ -65,7 +65,6 @@ VkShaderModule Pipeline::_createShaderModule(const std::vector<uint32_t> &code) 
 
   VkShaderModule shaderModule = VK_NULL_HANDLE;
   vkCreateShaderModule(_appContext->getDevice(), &createInfo, nullptr, &shaderModule);
-  _cachedShaderModule = shaderModule;
   return shaderModule;
 }
 
