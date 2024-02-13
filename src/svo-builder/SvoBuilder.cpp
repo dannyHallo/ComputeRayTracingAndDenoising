@@ -13,11 +13,10 @@
 
 #include <chrono>
 #include <cmath>
-#include <iomanip> // for advanced cout formatting
 #include <iostream>
 #include <stack>
 
-static uint32_t constexpr kChunkSize = 512;
+static uint32_t constexpr kChunkSize = 256;
 
 namespace {
 

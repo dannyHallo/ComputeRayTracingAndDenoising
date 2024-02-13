@@ -43,12 +43,12 @@ void main() {
   bool hit        = imageLoad(hitImage, uv).x != 0;
 
   if (hit) {
-    // writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
+    writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
 
     // writingCol = vec3(0.5, 0.5, 0.2);
 
-    float depth = imageLoad(depthImage, uv).x;
-    writingCol  = vec3(0.5, 0.2, 0.1) * exp(-depth);
+    // float depth = imageLoad(depthImage, uv).x;
+    // writingCol  = vec3(0.5, 0.2, 0.1) * exp(-depth);
 
     // writingCol = imageLoad(normalImage, uv).xyz;
 
