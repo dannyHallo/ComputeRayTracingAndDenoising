@@ -19,7 +19,9 @@ void main() {
   vec3 noiseLookupPos = vec3(uv) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   float floorHeight = fragmentListInfoBuffer.data.voxelResolution * 0.2;
-  float noise = (floorHeight - gl_GlobalInvocationID.y) - floorHeight * cnoise(noiseLookupPos * 4);
+  // float noise = (floorHeight - gl_GlobalInvocationID.y) - floorHeight * cnoise(noiseLookupPos *
+  // 4);
+  float noise = gl_GlobalInvocationID.y < floorHeight ? 1 : -1;
 
   imageStore(chunkFieldImage, uv, vec4(noise, 0, 0, 0));
 }

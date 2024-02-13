@@ -1,9 +1,16 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+#define GROUP_SIZE 8
+#define GROUP_SIZE_3 GROUP_SIZE *GROUP_SIZE *GROUP_SIZE
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
 
 #include "include/svoBuilderDescriptorSetLayouts.glsl"
+
+#define SHARED_SIZE GROUP_SIZE + 1
+#define SHARED_SIZE_3 SHARED_SIZE *SHARED_SIZE *SHARED_SIZE
+
+shared float sharedVoxelData[SHARED_SIZE][SHARED_SIZE][SHARED_SIZE];
 
 uint compressNormal(vec3 normal) {
   // scale and bias from [-1, 1] to [0, 127]
@@ -18,7 +25,25 @@ uint compressNormal(vec3 normal) {
 ivec3 lookupOffsets[8] = ivec3[8](ivec3(0, 0, 0), ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(1, 1, 0),
                                   ivec3(0, 0, 1), ivec3(1, 0, 1), ivec3(0, 1, 1), ivec3(1, 1, 1));
 
-// TODO: use preloading functions to accelerate the loading process, this may speed up to 8x :)
+void preload() {
+  // for (uint linearIdx = gl_LocalInvocationIndex; linearIdx < SHARED_SIZE_3;
+  //      linearIdx += GROUP_SIZE_3) {
+
+  //   uvec3 sharedIdx;
+  //   sharedIdx.x = linearIdx % SHARED_SIZE;
+  //   sharedIdx.y = (linearIdx / SHARED_SIZE) % SHARED_SIZE;
+  //   sharedIdx.z = linearIdx / (SHARED_SIZE * SHARED_SIZE);
+
+  //   ivec3 groupBase = ivec3(gl_WorkGroupID) * GROUP_SIZE;
+  //   sharedVoxelData[sharedIdx.x][sharedIdx.y][sharedIdx.z] =
+  //       imageLoad(chunkFieldImage, groupBase + ivec3(sharedIdx)).x;
+  // }
+
+  ivec3 groupBase = ivec3(gl_WorkGroupID) * GROUP_SIZE;
+  ivec3 sharedIdx = ivec3(gl_LocalInvocationID);
+  sharedVoxelData[sharedIdx.x][sharedIdx.y][sharedIdx.z] =
+      imageLoad(chunkFieldImage, groupBase + sharedIdx).x;
+}
 
 void main() {
   if (gl_GlobalInvocationID.x >= fragmentListInfoBuffer.data.voxelResolution ||
@@ -27,34 +52,42 @@ void main() {
     return;
   }
 
-  ivec3 uv = ivec3(gl_GlobalInvocationID);
+  preload();
+  barrier();
 
   ivec3 noiseLookupPositions[8];
   for (int i = 0; i < 8; i++) {
-    noiseLookupPositions[i] = uv + lookupOffsets[i];
+    // ivec3 uv = ivec3(gl_GlobalInvocationID);
+    // noiseLookupPositions[i] = uv + lookupOffsets[i];
+    noiseLookupPositions[i] = ivec3(gl_LocalInvocationID) + lookupOffsets[i]; // change to this
   }
 
   float noiseValues[8];
   for (int i = 0; i < 8; i++) {
-    noiseValues[i] = imageLoad(chunkFieldImage, noiseLookupPositions[i]).x;
+    // noiseValues[i] = imageLoad(chunkFieldImage, noiseLookupPositions[i]).x;
+    noiseValues[i] = sharedVoxelData[noiseLookupPositions[i].x][noiseLookupPositions[i].y]
+                                    [noiseLookupPositions[i].z]; // change to this
   }
 
-  // if all values are both less than 0 or all are greater than 0, then it's not a surface voxel
-  bool allLessThanZero    = true;
-  bool allGreaterThanZero = true;
+  // // if all values are both less than 0 or all are greater than 0, then it's not a surface voxel
+  // bool allLessThanZero    = true;
+  // bool allGreaterThanZero = true;
 
-  for (int i = 0; i < 8; i++) {
-    if (noiseValues[i] < 0) {
-      allGreaterThanZero = false;
-    } else {
-      allLessThanZero = false;
-    }
-  }
+  // for (int i = 0; i < 8; i++) {
+  //   if (noiseValues[i] < 0) {
+  //     allGreaterThanZero = false;
+  //   } else {
+  //     allLessThanZero = false;
+  //   }
+  // }
 
-  if (allLessThanZero || allGreaterThanZero) {
+  // if (allLessThanZero || allGreaterThanZero) {
+  //   return;
+  // }
+
+  if (noiseValues[0] < 1.0) {
     return;
   }
-
   uint fragmentListCur = atomicAdd(fragmentListInfoBuffer.data.voxelFragmentCount, 1);
 
   // position
@@ -66,20 +99,20 @@ void main() {
   ufragment.coordinates = coordinatesData;
 
   // color and normal
-  float gradX = ((noiseValues[0] + noiseValues[2] + noiseValues[4] + noiseValues[6]) -
-                 (noiseValues[1] + noiseValues[3] + noiseValues[5] + noiseValues[7])) *
-                0.25;
-  float gradY = ((noiseValues[0] + noiseValues[1] + noiseValues[4] + noiseValues[5]) -
-                 (noiseValues[2] + noiseValues[3] + noiseValues[6] + noiseValues[7])) *
-                0.25;
-  float gradZ = ((noiseValues[0] + noiseValues[1] + noiseValues[2] + noiseValues[3]) -
-                 (noiseValues[4] + noiseValues[5] + noiseValues[6] + noiseValues[7])) *
-                0.25;
-  vec3 normal         = normalize(vec3(gradX, gradY, gradZ));
-  uint propertiesData = 0;
-  propertiesData |= 0;
-  propertiesData |= compressNormal(normal) << 8;
-  ufragment.properties = propertiesData;
+  // float gradX = ((noiseValues[0] + noiseValues[2] + noiseValues[4] + noiseValues[6]) -
+  //                (noiseValues[1] + noiseValues[3] + noiseValues[5] + noiseValues[7])) *
+  //               0.25;
+  // float gradY = ((noiseValues[0] + noiseValues[1] + noiseValues[4] + noiseValues[5]) -
+  //                (noiseValues[2] + noiseValues[3] + noiseValues[6] + noiseValues[7])) *
+  //               0.25;
+  // float gradZ = ((noiseValues[0] + noiseValues[1] + noiseValues[2] + noiseValues[3]) -
+  //                (noiseValues[4] + noiseValues[5] + noiseValues[6] + noiseValues[7])) *
+  //               0.25;
+  // vec3 normal         = normalize(vec3(gradX, gradY, gradZ));
+  // uint propertiesData = 0;
+  // propertiesData |= 0;
+  // propertiesData |= compressNormal(normal) << 8;
+  // ufragment.properties = propertiesData;
 
   fragmentListBuffer.datas[fragmentListCur] = ufragment;
 }

@@ -10,16 +10,10 @@ if "%1"=="debug" (
     goto :eof
 )
 
-if "%2"=="skipcpp" (
-    set SKIP_CPP=1
-) else (
-    set SKIP_CPP=0
-)
-
-set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
-set SHADERS=chunkFieldConstruction chunkVoxelCreation chunkModifyArg octreeInitNode octreeTagNode octreeAllocNode octreeModifyArg svoCoarseBeam svoTracing temporalFilter aTrous postProcessing 
-
 @REM ---------------------------------------------------------------------------------------
+
+@REM set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
+@REM set SHADERS=chunkFieldConstruction chunkVoxelCreation chunkModifyArg octreeInitNode octreeTagNode octreeAllocNode octreeModifyArg svoCoarseBeam svoTracing temporalFilter aTrous postProcessing 
 
 @REM https://chromium.googlesource.com/external/github.com/google/shaderc/+/HEAD/glslc/README.asciidoc
 @REM echo compiling shaders...
@@ -37,20 +31,14 @@ set SHADERS=chunkFieldConstruction chunkVoxelCreation chunkModifyArg octreeInitN
 @REM ---------------------------------------------------------------------------------------
 
 echo:
-if %SKIP_CPP%==0 (
-    echo compiling cpp ...
-
-    xmake f -p windows -a x64 -m %BUILD_TYPE%
-    xmake -w
-
-    if !errorlevel! neq 0 (
-       echo Build failed with error !errorlevel!. Exiting... 
-       goto :eof
-    )
-    echo xmake success
-) else (
-    echo skipping cpp compilation
+echo compiling cpp ...
+xmake f -p windows -a x64 -m %BUILD_TYPE%
+xmake -w
+if !errorlevel! neq 0 (
+   echo Build failed with error !errorlevel!. Exiting... 
+   goto :eof
 )
+echo xmake success
 
 @REM ---------------------------------------------------------------------------------------
 

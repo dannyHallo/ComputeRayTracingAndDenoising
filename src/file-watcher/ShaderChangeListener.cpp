@@ -41,7 +41,8 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
 
   // request to block the render loop, when the render loop is blocked, the pipelines will be
   // rebuilt
-  GlobalEventDispatcher::get().trigger<E_RenderLoopBlockRequest>();
+  GlobalEventDispatcher::get().trigger<E_RenderLoopBlockRequest>(
+      E_RenderLoopBlockRequest{it->second});
 }
 
 void ShaderChangeListener::_onRenderLoopBlocked() {
@@ -83,10 +84,10 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
   // then the render loop can continue
 }
 
-void ShaderChangeListener::addWatchingItem(Pipeline *pipeline) {
+void ShaderChangeListener::addWatchingItem(Pipeline *pipeline, bool needToRebuildSvo) {
   auto const shaderFileName = pipeline->getShaderFileName();
 
-  _watchingShaderFiles.insert(shaderFileName);
+  _watchingShaderFiles[shaderFileName] = needToRebuildSvo;
 
   if (_shaderFileNameToPipeline.find(shaderFileName) != _shaderFileNameToPipeline.end()) {
     _logger->error("shader file: {} called to be watched twice!", shaderFileName);

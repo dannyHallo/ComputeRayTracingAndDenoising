@@ -27,13 +27,15 @@ public:
                         const std::string &filename, efsw::Action action,
                         std::string oldFilename) override;
 
-  void addWatchingItem(Pipeline *pipeline);
+  void addWatchingItem(Pipeline *pipeline, bool needToRebuildSvo = false);
   void removeWatchingItem(Pipeline *pipeline);
 
 private:
   Logger *_logger;
 
-  std::unordered_set<std::string> _watchingShaderFiles;
+  // carries if svo needs to be rebuilt
+  std::unordered_map<std::string, bool> _watchingShaderFiles;
+
   std::unordered_map<std::string, Pipeline *> _shaderFileNameToPipeline;
   std::unordered_set<Pipeline *> _pipelinesToRebuild;
 

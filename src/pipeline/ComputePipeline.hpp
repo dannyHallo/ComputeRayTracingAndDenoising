@@ -18,7 +18,8 @@ public:
   ComputePipeline(VulkanApplicationContext *appContext, Logger *logger, Scheduler *scheduler,
                   std::string shaderFileName, WorkGroupSize workGroupSize,
                   DescriptorSetBundle *descriptorSetBundle,
-                  ShaderChangeListener *shaderChangeListener = nullptr);
+                  ShaderChangeListener *shaderChangeListener = nullptr,
+                  bool needToRebuildSvo                      = false);
 
   ~ComputePipeline() override;
 

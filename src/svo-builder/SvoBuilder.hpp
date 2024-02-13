@@ -16,10 +16,12 @@ class Logger;
 class VulkanApplicationContext;
 class Buffer;
 class Image;
+class ShaderChangeListener;
 
 class SvoBuilder : public Scheduler {
 public:
-  SvoBuilder(VulkanApplicationContext *appContext, Logger *logger);
+  SvoBuilder(VulkanApplicationContext *appContext, Logger *logger,
+             ShaderChangeListener *shaderChangeListener);
   ~SvoBuilder() override;
 
   // disable copy and move
@@ -29,7 +31,7 @@ public:
   SvoBuilder &operator=(SvoBuilder &&)      = delete;
 
   void init();
-  void update() override {} // it has no reason to update, it only works once
+  void update() override;
 
   void build(VkFence svoBuildingDoneFence);
 
@@ -40,6 +42,7 @@ public:
 private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
+  ShaderChangeListener *_shaderChangeListener;
 
   uint32_t _voxelLevelCount = 0;
 

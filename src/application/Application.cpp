@@ -6,7 +6,6 @@
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "gui/gui-manager/ImguiManager.hpp"
 #include "utils/camera/Camera.hpp"
-#include "utils/event/EventType.hpp"
 #include "utils/event/GlobalEventDispatcher.hpp"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
@@ -28,7 +27,7 @@ Application::Application(Logger *logger)
   _appContext->init(_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 
-  _svoBuilder = std::make_unique<SvoBuilder>(_appContext, _logger);
+  _svoBuilder = std::make_unique<SvoBuilder>(_appContext, _logger, _shaderFileWatchListener.get());
   _svoTracer  = std::make_unique<SvoTracer>(_appContext, _logger, kFramesInFlight, _camera.get(),
                                            _shaderFileWatchListener.get());
 
@@ -61,7 +60,9 @@ void Application::_cleanup() {
   }
 }
 
-void Application::_onRenderLoopBlockRequest() { _blockFlag = true; }
+void Application::_onRenderLoopBlockRequest(E_RenderLoopBlockRequest const &event) {
+  _blockState = event.rebuildSvo ? BlockState::kBlockedAndNeedToRebuildSvo : BlockState::kBlocked;
+}
 
 void Application::_onSwapchainResize() {
   _appContext->onSwapchainResize();
@@ -175,10 +176,15 @@ void Application::_mainLoop() {
 
   while (glfwWindowShouldClose(_window->getGlWindow()) == 0) {
 
-    if (_blockFlag) {
+    if (_blockState != BlockState::kUnblocked) {
       vkDeviceWaitIdle(_appContext->getDevice());
       GlobalEventDispatcher::get().trigger<E_RenderLoopBlocked>();
-      _blockFlag = false;
+      // then some rebuilding will happen
+
+      if (_blockState == BlockState::kBlockedAndNeedToRebuildSvo) {
+        _buildSvo();
+      }
+      _blockState = BlockState::kUnblocked;
     }
 
     glfwPollEvents();
@@ -243,13 +249,15 @@ void Application::_init() {
     _camera->handleMouseMovement(mouseDeltaX, mouseDeltaY);
   });
 
-  {
-    auto startTime = std::chrono::steady_clock::now();
-    _svoBuilder->build(_svoBuildingDoneFence);
-    vkWaitForFences(_appContext->getDevice(), 1, &_svoBuildingDoneFence, VK_TRUE, UINT64_MAX);
-    auto endTime = std::chrono::steady_clock::now();
-    auto duration =
-        std::chrono::duration<double, std::chrono::seconds::period>(endTime - startTime).count();
-    _logger->info("SVO building time: " + std::to_string(duration) + " seconds");
-  }
+  _buildSvo();
+}
+
+void Application::_buildSvo() {
+  auto startTime = std::chrono::steady_clock::now();
+  _svoBuilder->build(_svoBuildingDoneFence);
+  vkWaitForFences(_appContext->getDevice(), 1, &_svoBuildingDoneFence, VK_TRUE, UINT64_MAX);
+  auto endTime = std::chrono::steady_clock::now();
+  auto duration =
+      std::chrono::duration<double, std::chrono::seconds::period>(endTime - startTime).count();
+  _logger->info("SVO building time: " + std::to_string(duration) + " seconds");
 }

@@ -43,7 +43,9 @@ void main() {
   bool hit        = imageLoad(hitImage, uv).x != 0;
 
   if (hit) {
-    writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
+    // writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
+
+    writingCol = vec3(0.5, 0.5, 0.2);
 
     // writingCol = imageLoad(normalImage, uv).xyz;
 

@@ -15,9 +15,9 @@ ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *l
                                  Scheduler *scheduler, std::string shaderFileName,
                                  WorkGroupSize workGroupSize,
                                  DescriptorSetBundle *descriptorSetBundle,
-                                 ShaderChangeListener *shaderChangeListener)
+                                 ShaderChangeListener *shaderChangeListener, bool needToRebuildSvo)
     : Pipeline(appContext, logger, scheduler, std::move(shaderFileName), descriptorSetBundle,
-               VK_SHADER_STAGE_COMPUTE_BIT, shaderChangeListener),
+               VK_SHADER_STAGE_COMPUTE_BIT, shaderChangeListener, needToRebuildSvo),
       _workGroupSize(workGroupSize), _shaderCompiler(std::make_unique<ShaderCompiler>(logger)) {}
 
 ComputePipeline::~ComputePipeline() = default;

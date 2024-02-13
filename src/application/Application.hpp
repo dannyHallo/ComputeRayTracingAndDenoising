@@ -2,7 +2,9 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
+#include "utils/event/EventType.hpp"
 #include "utils/logger/Logger.hpp"
+
 
 #include <cstdint>
 #include <memory>
@@ -16,6 +18,13 @@ class ImguiManager;
 class Camera;
 class FpsSink;
 class ShaderChangeListener;
+
+enum class BlockState {
+  kUnblocked,
+  kBlocked,
+  kBlockedAndNeedToRebuildSvo,
+};
+
 class Application {
 public:
   Application(Logger *logger);
@@ -50,7 +59,7 @@ private:
   std::vector<VkSemaphore> _renderFinishedSemaphores;
   std::vector<VkFence> _framesInFlightFences;
 
-  bool _blockFlag = false;
+  BlockState _blockState = BlockState::kUnblocked;
 
   void _createSemaphoresAndFences();
   void _onSwapchainResize();
@@ -61,5 +70,7 @@ private:
   void _cleanup();
   bool _needToToggleWindowStyle();
 
-  void _onRenderLoopBlockRequest();
+  void _onRenderLoopBlockRequest(E_RenderLoopBlockRequest const &event);
+
+  void _buildSvo();
 };
