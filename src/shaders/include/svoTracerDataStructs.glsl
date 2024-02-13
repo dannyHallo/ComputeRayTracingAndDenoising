@@ -23,8 +23,6 @@ struct G_EnvironmentInfo {
 };
 
 struct G_TwickableParameters {
-  bool magicButton;
-  float magicSlider;
   bool visualizeOctree;
   bool beamOptimization;
   bool traceSecondaryRay;

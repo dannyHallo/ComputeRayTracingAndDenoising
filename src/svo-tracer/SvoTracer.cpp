@@ -589,8 +589,6 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
 
   G_TwickableParameters twickableParameters{};
-  twickableParameters.magicButton       = _uboData.magicButton;
-  twickableParameters.magicSlider       = _uboData.magicSlider;
   twickableParameters.visualizeOctree   = _uboData.visualizeOctree;
   twickableParameters.beamOptimization  = _uboData.beamOptimization;
   twickableParameters.traceSecondaryRay = _uboData.traceSecondaryRay;

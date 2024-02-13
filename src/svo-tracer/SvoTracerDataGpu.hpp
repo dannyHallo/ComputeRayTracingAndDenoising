@@ -20,8 +20,6 @@ struct SvoTracerTweakingData {
   SvoTracerTweakingData() = default;
 
   // for general info
-  bool magicButton       = false;
-  float magicSlider      = 0.0F;
   bool visualizeOctree   = false;
   bool beamOptimization  = true;
   bool traceSecondaryRay = true;

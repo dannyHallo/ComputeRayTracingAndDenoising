@@ -289,8 +289,6 @@ void ImguiManager::_drawConfigMenuItem() {
 
     ImGui::SeparatorText("Twickable Parameters");
 
-    ImGui::Checkbox("Magic Button", &_svoTracerTweakingData->magicButton);
-    ImGui::SliderFloat("Magic Slider", &_svoTracerTweakingData->magicSlider, 0.0F, 10.0F);
     ImGui::Checkbox("Visualize Octree", &_svoTracerTweakingData->visualizeOctree);
     ImGui::Checkbox("Beam Optimization", &_svoTracerTweakingData->beamOptimization);
     ImGui::Checkbox("Trace Secondary Ray", &_svoTracerTweakingData->traceSecondaryRay);

@@ -45,9 +45,7 @@ void main() {
   if (hit) {
     writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
 
-    if (twickableParametersUbo.data.magicButton) {
-      writingCol = imageLoad(normalImage, uv).xyz;
-    }
+    // writingCol = imageLoad(normalImage, uv).xyz;
 
     // float histLength = imageLoad(temporalHistLengthImage, uv).x;
     // writingCol       = exp(-histLength * 0.1) * vec3(1);
