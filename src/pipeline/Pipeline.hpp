@@ -29,7 +29,12 @@ public:
   Pipeline(Pipeline &&)                 = delete;
   Pipeline &operator=(Pipeline &&)      = delete;
 
-  virtual void build()                                        = 0;
+  virtual void build() = 0;
+
+  // build the shader module and cache it
+  // if allowBuildFail is set to true, function returns if the shader module is built successfully
+  // if allowBuildFail is set to false, the entire program exits if the shader module is not built
+  // successfully
   virtual bool buildAndCacheShaderModule(bool allowBuildFail) = 0;
 
   void updateDescriptorSetBundle(DescriptorSetBundle *descriptorSetBundle);
