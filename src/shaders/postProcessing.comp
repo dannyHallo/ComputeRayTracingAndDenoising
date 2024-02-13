@@ -45,7 +45,10 @@ void main() {
   if (hit) {
     // writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
 
-    writingCol = vec3(0.5, 0.5, 0.2);
+    // writingCol = vec3(0.5, 0.5, 0.2);
+
+    float depth = imageLoad(depthImage, uv).x;
+    writingCol  = vec3(0.5, 0.2, 0.1) * exp(-depth);
 
     // writingCol = imageLoad(normalImage, uv).xyz;
 
