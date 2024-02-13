@@ -27,7 +27,7 @@ struct SvoTracerTweakingData {
   // for env
   float sunAngle     = 0.0F;
   glm::vec3 sunColor = glm::vec3(255.F / 255.F, 208.F / 255.F, 173.F / 255.F);
-  float sunLuminance = 3.F;
+  float sunLuminance = 1.F;
   float sunSize      = 0.5F;
 
   // for temporal filter info

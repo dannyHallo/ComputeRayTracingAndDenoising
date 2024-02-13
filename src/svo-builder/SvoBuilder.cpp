@@ -110,12 +110,13 @@ void SvoBuilder::_createBuffers() {
 
   // uint32_t estimatedOctreeBufferSize = sizeof(uint32_t) * _getMaximumNodeCountOfOctree(voxData);
 
-  uint32_t maximumOctreeBufferSize = std::ceil(static_cast<float>(sizeof(uint32_t)) * kChunkSize *
-                                               kChunkSize * kChunkSize * 8.F / 7.F);
-  _logger->info("octree buffer size: {} mb",
-                static_cast<float>(maximumOctreeBufferSize) / (1024 * 1024));
+  // uint32_t maximumOctreeBufferSize = std::ceil(static_cast<float>(sizeof(uint32_t)) * kChunkSize
+  // *
+  //                                              kChunkSize * kChunkSize * 8.F / 7.F);
 
-  _indirectFragLengthBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
+  uint32_t gb                      = 1024 * 1024 * 1024;
+  uint32_t maximumOctreeBufferSize = 2 * gb;
+  _indirectFragLengthBuffer        = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
                                                        VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
                                                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                                        MemoryAccessingStyle::kGpuOnly);
