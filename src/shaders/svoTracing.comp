@@ -361,7 +361,7 @@ void main() {
   imageStore(hitImage, uv, uvec4(hit ? 1 : 0, 0, 0, 0));
   if (hit) {
     imageStore(rawImage, uv, uvec4(packRGBE(color), 0, 0, 0));
-    imageStore(positionImage, uv, vec4(position, 1));
+    imageStore(positionImage, uv, vec4(position, 0));
     imageStore(normalImage, uv, vec4(normal, 0));
     imageStore(voxHashImage, uv, uvec4(voxHash, 0, 0, 0));
     imageStore(depthImage, uv, vec4(tMin, 0, 0, 0));

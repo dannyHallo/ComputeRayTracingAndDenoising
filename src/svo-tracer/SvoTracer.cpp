@@ -580,6 +580,8 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   static glm::mat4 vMatPrevInv{1.0F};
   static glm::mat4 pMatPrev{1.0F};
   static glm::mat4 pMatPrevInv{1.0F};
+  static glm::mat4 vpMatPrev{1.0F};
+  static glm::mat4 vpMatPrevInv{1.0F};
 
   auto currentTime = static_cast<float>(glfwGetTime());
 
@@ -588,7 +590,9 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   auto pMat =
       _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
                                    static_cast<float>(_appContext->getSwapchainExtentHeight()));
-  auto pMatInv = glm::inverse(pMat);
+  auto pMatInv  = glm::inverse(pMat);
+  auto vpMat    = pMat * vMat;
+  auto vpMatInv = glm::inverse(vpMat);
 
   G_RenderInfo renderInfo = {
       _camera->getPosition(),
@@ -604,6 +608,10 @@ void SvoTracer::updateUboData(size_t currentFrame) {
       pMatInv,
       pMatPrev,
       pMatPrevInv,
+      vpMat,
+      vpMatInv,
+      vpMatPrev,
+      vpMatPrevInv,
       glm::uvec2(_appContext->getSwapchainExtentWidth(), _appContext->getSwapchainExtentHeight()),
       _camera->getVFov(),
       currentSample,
@@ -611,10 +619,12 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   };
   _renderInfoBufferBundle->getBuffer(currentFrame)->fillData(&renderInfo);
 
-  vMatPrev    = vMat;
-  vMatPrevInv = vMatInv;
-  pMatPrev    = pMat;
-  pMatPrevInv = pMatInv;
+  vMatPrev     = vMat;
+  vMatPrevInv  = vMatInv;
+  pMatPrev     = pMat;
+  pMatPrevInv  = pMatInv;
+  vpMatPrev    = vpMat;
+  vpMatPrevInv = vpMatInv;
 
   G_EnvironmentInfo environmentInfo{};
   environmentInfo.sunAngle     = _uboData.sunAngle;

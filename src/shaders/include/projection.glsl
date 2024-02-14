@@ -4,9 +4,8 @@
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
 vec2 projectWorldPosToScreenUv(vec3 worldPos, bool previous) {
-  vec4 screenBoxCoord =
-      previous ? renderInfoUbo.data.pMatPrev * renderInfoUbo.data.vMatPrev * vec4(worldPos, 1)
-               : renderInfoUbo.data.pMat * renderInfoUbo.data.vMat * vec4(worldPos, 1);
+  vec4 screenBoxCoord = previous ? renderInfoUbo.data.vpMatPrev * vec4(worldPos, 1)
+                                 : renderInfoUbo.data.vpMat * vec4(worldPos, 1);
 
   // points are bounded in [-1, 1] in x, y, z after the following
   screenBoxCoord /= screenBoxCoord.w;
@@ -25,9 +24,8 @@ vec3 projectScreenUvToWorldCamFarPoint(vec2 screenUv, bool previous) {
   // glm's origin is at the bottom-left corner, whereas vulkan uses the top-left corner
   screenUv.y    = 1.0 - screenUv.y;
   vec4 clipPos  = vec4(screenUv * 2.0 - vec2(1.0), 1, 1);
-  vec4 worldPos = previous
-                      ? (renderInfoUbo.data.vMatPrevInv * renderInfoUbo.data.pMatPrevInv * clipPos)
-                      : (renderInfoUbo.data.vMatInv * renderInfoUbo.data.pMatInv * clipPos);
+  vec4 worldPos = previous ? (renderInfoUbo.data.vpMatPrevInv * clipPos)
+                           : (renderInfoUbo.data.vpMatInv * clipPos);
   worldPos /= worldPos.w;
   return worldPos.xyz;
 }
