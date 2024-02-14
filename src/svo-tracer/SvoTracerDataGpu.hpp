@@ -5,6 +5,7 @@
 // alignment rule:
 // https://www.oreilly.com/library/view/opengl-programming-guide/9780132748445/app09lev1sec3.html
 #define vec3 alignas(16) glm::vec3
+#define vec2 alignas(8) glm::vec2
 #define mat4 alignas(16) glm::mat4
 #define bool alignas(4) bool
 #define uint uint32_t
@@ -12,6 +13,7 @@
 #include "shaders/include/svoTracerDataStructs.glsl"
 
 #undef vec3
+#undef vec2
 #undef mat4
 #undef uint
 #undef bool

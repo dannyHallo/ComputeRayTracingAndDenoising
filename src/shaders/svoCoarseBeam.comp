@@ -6,6 +6,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
 #include "include/definitions.glsl"
+#include "include/projection.glsl"
 
 const uint STACK_SIZE = 23;
 struct StackItem {
@@ -147,18 +148,15 @@ bool coarseMarching(out float oT, out float oSize, vec3 o, vec3 d, float orig_sz
   return scale < STACK_SIZE && t_min <= t_max;
 }
 
-#include "include/rayGen.glsl"
-
 vec3 rayGen(vec2 beamOffset) {
-  vec2 midOffset = vec2(0.5);
-  vec2 uv = ((vec2(gl_GlobalInvocationID.xy + beamOffset) * sceneDataBuffer.data.beamResolution) +
-             midOffset) /
-            vec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  vec2 screenSpaceUv =
+      ((vec2(gl_GlobalInvocationID.xy + beamOffset) * sceneDataBuffer.data.beamResolution) +
+       vec2(0.5)) /
+      vec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  screenSpaceUv.y = 1 - screenSpaceUv.y;
 
-  // clamping, just for the last row and column
-  //   uv = min(uv, vec2(1.0));
-
-  return getRayDir(renderInfoUbo.data, uv);
+  return normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
+                   renderInfoUbo.data.camPosition);
 }
 
 // x and y are normalized, the function calculates the tangent value of the

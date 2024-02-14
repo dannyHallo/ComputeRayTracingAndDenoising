@@ -1,7 +1,6 @@
 #ifndef RANDOM_GLSL
 #define RANDOM_GLSL
 
-#include "include/svoTracerDataStructs.glsl"
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
 #include "include/definitions.glsl"

@@ -13,8 +13,24 @@
 #include "utils/file-io/ShaderFileReader.hpp"
 
 // static int constexpr kStratumFilterSize   = 6;
-static int constexpr kATrousSize          = 5;
-static uint32_t constexpr kBeamResolution = 8;
+static int constexpr kATrousSize                 = 5;
+static uint32_t constexpr kBeamResolution        = 8;
+static uint32_t constexpr kTaaSamplingOffsetSize = 128;
+
+namespace {
+float halton(int base, int index) {
+  float f = 1.F;
+  float r = 0.F;
+  int i   = index;
+
+  while (i > 0) {
+    f = f / static_cast<float>(base);
+    r = r + f * static_cast<float>(i % base);
+    i = i / base;
+  }
+  return r;
+};
+}; // namespace
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
                      Camera *camera, ShaderChangeListener *shaderChangeListener)
@@ -46,6 +62,8 @@ void SvoTracer::init(SvoBuilder *svoBuilder) {
   // create command buffers
   _recordRenderingCommandBuffers();
   _recordDeliveryCommandBuffers();
+
+  _createTaaSamplingOffsets();
 }
 
 void SvoTracer::onSwapchainResize() {
@@ -59,6 +77,13 @@ void SvoTracer::onSwapchainResize() {
 
   _recordRenderingCommandBuffers();
   _recordDeliveryCommandBuffers();
+}
+
+void SvoTracer::_createTaaSamplingOffsets() {
+  _taaSamplingOffsets.resize(kTaaSamplingOffsetSize);
+  for (int i = 0; i < kTaaSamplingOffsetSize; i++) {
+    _taaSamplingOffsets[i] = {halton(2, i + 1), halton(3, i + 1)};
+  }
 }
 
 void SvoTracer::update() { _recordRenderingCommandBuffers(); }
@@ -76,19 +101,9 @@ void SvoTracer::_createSwapchainRelatedImages() {
 }
 
 void SvoTracer::_createBlueNoiseImages() {
-  std::vector<std::string> filenames{};
   constexpr int kBlueNoiseArraySize = 64;
 
-  filenames.reserve(kBlueNoiseArraySize);
-  for (int i = 0; i < kBlueNoiseArraySize; i++) {
-    filenames.emplace_back(kPathToResourceFolder +
-                           "/textures/stbn/unitvec1_2d_1d/"
-                           "stbn_unitvec1_2Dx1D_128x128x64_" +
-                           std::to_string(i) + ".png");
-  }
-  _unitVec1BlueNoise = std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
-                                                              VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
+  std::vector<std::string> filenames{};
   filenames.reserve(kBlueNoiseArraySize);
   for (int i = 0; i < kBlueNoiseArraySize; i++) {
     filenames.emplace_back(kPathToResourceFolder +
@@ -560,22 +575,35 @@ void SvoTracer::_recordDeliveryCommandBuffers() {
 
 void SvoTracer::updateUboData(size_t currentFrame) {
   static uint32_t currentSample = 0;
-  static glm::mat4 lastMvpe{1.0F}; // identity matrix
+  // identity matrix
+  static glm::mat4 vMatPrev{1.0F};
+  static glm::mat4 vMatPrevInv{1.0F};
+  static glm::mat4 pMatPrev{1.0F};
+  static glm::mat4 pMatPrevInv{1.0F};
 
   auto currentTime = static_cast<float>(glfwGetTime());
 
-  auto thisMvpe =
+  auto vMat    = _camera->getViewMatrix();
+  auto vMatInv = glm::inverse(vMat);
+  auto pMat =
       _camera->getProjectionMatrix(static_cast<float>(_appContext->getSwapchainExtentWidth()) /
-                                   static_cast<float>(_appContext->getSwapchainExtentHeight())) *
-      _camera->getViewMatrix();
+                                   static_cast<float>(_appContext->getSwapchainExtentHeight()));
+  auto pMatInv = glm::inverse(pMat);
 
   G_RenderInfo renderInfo = {
       _camera->getPosition(),
       _camera->getFront(),
       _camera->getUp(),
       _camera->getRight(),
-      thisMvpe,
-      lastMvpe,
+      _taaSamplingOffsets[currentSample % kTaaSamplingOffsetSize],
+      vMat,
+      vMatInv,
+      vMatPrev,
+      vMatPrevInv,
+      pMat,
+      pMatInv,
+      pMatPrev,
+      pMatPrevInv,
       _appContext->getSwapchainExtentWidth(),
       _appContext->getSwapchainExtentHeight(),
       _camera->getVFov(),
@@ -584,7 +612,10 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   };
   _renderInfoBufferBundle->getBuffer(currentFrame)->fillData(&renderInfo);
 
-  lastMvpe = thisMvpe;
+  vMatPrev    = vMat;
+  vMatPrevInv = vMatInv;
+  pMatPrev    = pMat;
+  pMatPrevInv = pMatInv;
 
   G_EnvironmentInfo environmentInfo{};
   environmentInfo.sunAngle     = _uboData.sunAngle;
@@ -660,7 +691,6 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindUniformBufferBundle(27, _temporalFilterInfoBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(23, _spatialFilterInfoBufferBundle.get());
 
-  _descriptorSetBundle->bindStorageImage(32, _unitVec1BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(2, _vec2BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(3, _weightedCosineBlueNoise.get());
 

@@ -158,7 +158,6 @@ float calculateInStratumAvgLum() {
 }
 
 void main() {
-
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   if (uv.x >= ceil(globalUbo.swapchainWidth / 3.0) || uv.y >= ceil(globalUbo.swapchainHeight / 3.0))
     return;

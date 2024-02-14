@@ -6,8 +6,15 @@ struct G_RenderInfo {
   vec3 camFront;
   vec3 camUp;
   vec3 camRight;
-  mat4 thisMvpe;
-  mat4 lastMvpe;
+  vec2 subpixOffset;
+  mat4 vMat;
+  mat4 vMatInv;
+  mat4 vMatPrev;
+  mat4 vMatPrevInv;
+  mat4 pMat;
+  mat4 pMatInv;
+  mat4 pMatPrev;
+  mat4 pMatPrevInv;
   uint swapchainWidth;
   uint swapchainHeight;
   float vfov;

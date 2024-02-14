@@ -7,8 +7,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/colorPacker.glsl"
 #include "include/definitions.glsl"
+#include "include/projection.glsl"
 #include "include/random.glsl"
-#include "include/rayGen.glsl"
 
 vec3 decompressNormal(uint packed) {
   // extract the components
@@ -219,11 +219,14 @@ vec3 dayLightCalc(vec3 d) {
 }
 
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
-  vec2 uv = (vec2(gl_GlobalInvocationID.xy) + subpixOffset) /
-            vec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  vec2 screenSpaceUv = (vec2(gl_GlobalInvocationID.xy) + subpixOffset) /
+                       vec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  screenSpaceUv.y = 1 - screenSpaceUv.y; // flip y axis (glm's origin is at the bottom-left corner,
+                                         // but vulkan's origin is at the top-left corner)
 
   o = renderInfoUbo.data.camPosition;
-  d = getRayDir(renderInfoUbo.data, uv);
+  d = normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
+                renderInfoUbo.data.camPosition);
 }
 
 uvec3 getSeed() {
@@ -334,6 +337,8 @@ void main() {
 
   vec3 o, d;
   rayGen(o, d, vec2(0.5));
+  // subpixOffset ranges from 0.0 to 1.0
+  // rayGen(o, d, renderInfoUbo.data.subpixOffset);
 
   float optimizedDistance = 0;
 

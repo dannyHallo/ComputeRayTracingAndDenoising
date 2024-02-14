@@ -6,6 +6,7 @@
 #include "utils/incl/Vulkan.hpp"
 
 #include <memory>
+#include <utility>
 
 class Logger;
 class VulkanApplicationContext;
@@ -61,13 +62,16 @@ private:
 
   SvoTracerTweakingData _uboData;
 
+  std::vector<glm::vec2> _taaSamplingOffsets{};
+
   void _recordRenderingCommandBuffers();
   void _recordDeliveryCommandBuffers();
+
+  void _createTaaSamplingOffsets();
 
   /// IMAGES
 
   // spatial-temporal blue noise (arrays of images)
-  std::unique_ptr<Image> _unitVec1BlueNoise;
   std::unique_ptr<Image> _vec2BlueNoise;
   std::unique_ptr<Image> _weightedCosineBlueNoise;
 

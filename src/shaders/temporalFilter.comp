@@ -11,10 +11,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 vec2 backwardProjection(ivec2 uv) {
   vec4 worldPos = imageLoad(positionImage, uv);
 
-  mat4 mvpe;
-  mvpe = renderInfoUbo.data.lastMvpe;
-
-  vec4 screenBoxCoord = mvpe * worldPos;
+  vec4 screenBoxCoord = renderInfoUbo.data.pMatPrev * renderInfoUbo.data.vMatPrev * worldPos;
 
   // points are bounded in [-1, 1] in x, y, z after the following
   screenBoxCoord /= screenBoxCoord.w;
