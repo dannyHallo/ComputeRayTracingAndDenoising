@@ -77,11 +77,20 @@ void SvoTracer::_createSwapchainRelatedImages() {
 
 void SvoTracer::_createBlueNoiseImages() {
   std::vector<std::string> filenames{};
-  constexpr int kVec2BlueNoiseSize           = 64;
-  constexpr int kWeightedCosineBlueNoiseSize = 64;
+  constexpr int kBlueNoiseArraySize = 64;
 
-  filenames.reserve(kVec2BlueNoiseSize);
-  for (int i = 0; i < kVec2BlueNoiseSize; i++) {
+  filenames.reserve(kBlueNoiseArraySize);
+  for (int i = 0; i < kBlueNoiseArraySize; i++) {
+    filenames.emplace_back(kPathToResourceFolder +
+                           "/textures/stbn/unitvec1_2d_1d/"
+                           "stbn_unitvec1_2Dx1D_128x128x64_" +
+                           std::to_string(i) + ".png");
+  }
+  _unitVec1BlueNoise = std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
+                                                              VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  filenames.reserve(kBlueNoiseArraySize);
+  for (int i = 0; i < kBlueNoiseArraySize; i++) {
     filenames.emplace_back(kPathToResourceFolder +
                            "/textures/stbn/vec2_2d_1d/"
                            "stbn_vec2_2Dx1D_128x128x64_" +
@@ -91,8 +100,8 @@ void SvoTracer::_createBlueNoiseImages() {
                                                           VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   filenames.clear();
-  filenames.reserve(kWeightedCosineBlueNoiseSize);
-  for (int i = 0; i < kWeightedCosineBlueNoiseSize; i++) {
+  filenames.reserve(kBlueNoiseArraySize);
+  for (int i = 0; i < kBlueNoiseArraySize; i++) {
     filenames.emplace_back(kPathToResourceFolder +
                            "/textures/stbn/unitvec3_cosine_2d_1d/"
                            "stbn_unitvec3_cosine_2Dx1D_128x128x64_" +
@@ -651,6 +660,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindUniformBufferBundle(27, _temporalFilterInfoBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(23, _spatialFilterInfoBufferBundle.get());
 
+  _descriptorSetBundle->bindStorageImage(32, _unitVec1BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(2, _vec2BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(3, _weightedCosineBlueNoise.get());
 

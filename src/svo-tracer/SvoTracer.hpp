@@ -67,6 +67,7 @@ private:
   /// IMAGES
 
   // spatial-temporal blue noise (arrays of images)
+  std::unique_ptr<Image> _unitVec1BlueNoise;
   std::unique_ptr<Image> _vec2BlueNoise;
   std::unique_ptr<Image> _weightedCosineBlueNoise;
 
