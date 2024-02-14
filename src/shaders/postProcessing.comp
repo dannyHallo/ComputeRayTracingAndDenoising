@@ -7,7 +7,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "include/colorPacker.glsl"
+#include "include/packer.glsl"
 #include "include/projection.glsl"
 
 #define DISPLAY_TYPE_RAW 0
@@ -73,7 +73,7 @@ void main() {
     // float depth = imageLoad(depthImage, uv).x;
     // writingCol  = vec3(0.5, 0.2, 0.1) * exp(-depth);
 
-    // writingCol = imageLoad(normalImage, uv).xyz;
+    // writingCol = unpackNormal(imageLoad(normalImage, uv).x);
 
     // float histLength = imageLoad(temporalHistLengthImage, uv).x;
     // writingCol       = exp(-histLength * 0.1) * vec3(1);

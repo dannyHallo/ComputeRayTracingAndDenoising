@@ -150,12 +150,10 @@ void SvoTracer::_createFullSizedImages() {
   _temporalHistLengthImage =
       std::make_unique<Image>(w, h, 1, VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _normalImage =
-      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_SNORM,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _lastNormalImage =
-      std::make_unique<Image>(w, h, 1, VK_FORMAT_R8G8B8A8_SNORM,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _normalImage = std::make_unique<Image>(
+      w, h, 1, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _lastNormalImage = std::make_unique<Image>(
+      w, h, 1, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _positionImage =
       std::make_unique<Image>(w, h, 1, VK_FORMAT_R32G32B32A32_SFLOAT,

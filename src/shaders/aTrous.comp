@@ -5,8 +5,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "include/colorPacker.glsl"
 #include "include/definitions.glsl"
+#include "include/packer.glsl"
 #include "include/random.glsl"
 
 // standard 3x3 filtering kernel from q2rtx
@@ -31,10 +31,10 @@ void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv = clamp(uv, ivec2(0), bound - ivec2(1));
   }
-  vec4 normal = imageLoad(normalImage, uv);
-  oNormal     = normal.xyz;
-  oColor      = unpackRGBE(imageLoad(aTrousPingImage, uv).x);
-  oPosition   = imageLoad(positionImage, uv).xyz;
+
+  oNormal   = unpackNormal(imageLoad(normalImage, uv).x);
+  oColor    = unpackRGBE(imageLoad(aTrousPingImage, uv).x);
+  oPosition = imageLoad(positionImage, uv).xyz;
   // oVariance = imageLoad(varianceImage, uv).x;
 }
 
@@ -43,10 +43,10 @@ void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv = clamp(uv, ivec2(0), bound - ivec2(1));
   }
-  vec4 normal = imageLoad(normalImage, uv);
-  oNormal     = normal.xyz;
-  oColor      = unpackRGBE(imageLoad(aTrousPongImage, uv).x);
-  oPosition   = imageLoad(positionImage, uv).xyz;
+
+  oNormal   = unpackNormal(imageLoad(normalImage, uv).x);
+  oColor    = unpackRGBE(imageLoad(aTrousPongImage, uv).x);
+  oPosition = imageLoad(positionImage, uv).xyz;
   // oVariance = imageLoad(varianceImage, uv).x;
 }
 

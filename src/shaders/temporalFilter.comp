@@ -5,8 +5,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "include/colorPacker.glsl"
 #include "include/definitions.glsl"
+#include "include/packer.glsl"
 #include "include/projection.glsl"
 
 vec3 getAccumColor(ivec2 pUv) {
@@ -57,11 +57,11 @@ void main() {
   // float varianceBlending = 0;
 
   // normal test is useful for edges (nearby disocclusions)
-  vec3 normal   = imageLoad(normalImage, uv).xyz;
+  vec3 normal   = unpackNormal(imageLoad(normalImage, uv).x);
   vec3 position = imageLoad(positionImage, uv).xyz;
   for (int i = 0; i < 4; i++) {
     ivec2 tappingUv   = ivec2(pBaseUv) + off[i];
-    vec3 lastNormal   = imageLoad(lastNormalImage, tappingUv).xyz;
+    vec3 lastNormal   = unpackNormal(imageLoad(lastNormalImage, tappingUv).x);
     vec3 lastPosition = imageLoad(lastPositionImage, tappingUv).xyz;
 
     bool consistent = isConsistent(normal, lastNormal, position, lastPosition);

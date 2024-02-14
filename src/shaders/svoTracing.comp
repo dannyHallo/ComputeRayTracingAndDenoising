@@ -5,8 +5,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "include/colorPacker.glsl"
 #include "include/definitions.glsl"
+#include "include/packer.glsl"
 #include "include/projection.glsl"
 #include "include/random.glsl"
 
@@ -362,7 +362,7 @@ void main() {
   if (hit) {
     imageStore(rawImage, uv, uvec4(packRGBE(color), 0, 0, 0));
     imageStore(positionImage, uv, vec4(position, 0));
-    imageStore(normalImage, uv, vec4(normal, 0));
+    imageStore(normalImage, uv, uvec4(packNormal(normal), 0, 0, 0));
     imageStore(voxHashImage, uv, uvec4(voxHash, 0, 0, 0));
     imageStore(depthImage, uv, vec4(tMin, 0, 0, 0));
   } else {
