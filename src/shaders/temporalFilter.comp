@@ -5,6 +5,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
+#include "include/colorPacker.glsl"
 #include "include/definitions.glsl"
 
 vec2 backwardProjection(ivec2 uv) {
@@ -25,13 +26,12 @@ vec2 backwardProjection(ivec2 uv) {
               uvCoord.y * renderInfoUbo.data.swapchainHeight);
 }
 
-vec4 getAccumColor(ivec2 pUv) {
+vec3 getAccumColor(ivec2 pUv) {
   ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
   if (any(lessThan(pUv, ivec2(0))) || any(greaterThanEqual(pUv, bound))) {
-    return vec4(0, 0, 0, 0);
+    return vec3(0);
   }
-
-  return imageLoad(lastAccumedImage, pUv);
+  return unpackRGBE(imageLoad(lastAccumedImage, pUv).x);
 }
 
 bool isConsistent(vec3 normal, vec3 lastNormal, vec3 position, vec3 lastPosition) {
@@ -68,7 +68,7 @@ void main() {
   // sum of weights of bilinear interpolation is 1
   float sumOfWeights       = 0;
   float sumOfHistLengths   = 0;
-  vec4 sumOfWeightedColors = vec4(0);
+  vec3 sumOfWeightedColors = vec3(0);
   // float varianceBlending = 0;
 
   // normal test is useful for edges (nearby disocclusions)
@@ -87,10 +87,10 @@ void main() {
     }
   }
 
-  vec4 rawColor = imageLoad(rawImage, uv);
+  vec3 rawColor = unpackRGBE(imageLoad(rawImage, uv).x);
 
   float histLength;
-  vec4 thisFrameColor;
+  vec3 thisFrameColor;
 
   // relevant surfaces found
   if (sumOfWeights >= 1e-6) {
@@ -104,7 +104,7 @@ void main() {
     thisFrameColor = rawColor;
   }
 
-  imageStore(aTrousPingImage, uv, thisFrameColor);
+  imageStore(aTrousPingImage, uv, uvec4(packRGBE(thisFrameColor), 0, 0, 0));
   imageStore(temporalHistLengthImage, uv, uvec4(histLength, 0, 0, 0));
   // vec4 accumVarianceHist = mix(imageLoad(lastVarianceHistImage, pUv), vec4(0), varianceBlending);
   // imageStore(varianceHistImage, uv, accumVarianceHist);

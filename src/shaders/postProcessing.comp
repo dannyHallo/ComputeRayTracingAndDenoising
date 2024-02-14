@@ -7,6 +7,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
+#include "include/colorPacker.glsl"
+
 #define DISPLAY_TYPE_RAW 0
 
 // this hashing function is probably to be the best one of its kind
@@ -43,7 +45,7 @@ void main() {
   bool hit        = imageLoad(hitImage, uv).x != 0;
 
   if (hit) {
-    writingCol = imageLoad(aTrousFinalResultImage, uv).xyz;
+    writingCol = unpackRGBE(imageLoad(aTrousFinalResultImage, uv).x);
 
     // writingCol = vec3(0.5, 0.5, 0.2);
 
@@ -55,11 +57,11 @@ void main() {
     // float histLength = imageLoad(temporalHistLengthImage, uv).x;
     // writingCol       = exp(-histLength * 0.1) * vec3(1);
   } else {
-    writingCol = imageLoad(backgroundImage, uv).xyz;
+    writingCol = unpackRGBE(imageLoad(backgroundImage, uv).x);
   }
 
   if (twickableParametersUbo.data.visualizeOctree) {
-    writingCol += imageLoad(octreeVisualizationImage, uv).xyz;
+    writingCol += unpackRGBE(imageLoad(octreeVisualizationImage, uv).x);
   }
 
   // rgb to bgr

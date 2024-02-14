@@ -17,11 +17,11 @@ spatialFilterInfoUbo;
 layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
 layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
 
-layout(binding = 29, rgba8) uniform image2D backgroundImage;
+layout(binding = 29, r32ui) uniform uimage2D backgroundImage;
 layout(binding = 4, r32f) uniform image2D beamDepthImage;
-layout(binding = 5, rgba8) uniform image2D rawImage;
+layout(binding = 5, r32ui) uniform uimage2D rawImage;
 layout(binding = 6, r32f) uniform image2D depthImage;
-layout(binding = 8, rgba8) uniform image2D octreeVisualizationImage;
+layout(binding = 8, r32ui) uniform uimage2D octreeVisualizationImage;
 layout(binding = 28, r8ui) uniform uimage2D hitImage;
 layout(binding = 30, r8ui) uniform uimage2D temporalHistLengthImage;
 layout(binding = 9, rgba8) uniform image2D normalImage;
@@ -30,13 +30,13 @@ layout(binding = 7, rgba32f) uniform image2D positionImage;
 layout(binding = 26, rgba32f) uniform image2D lastPositionImage;
 layout(binding = 11, r32ui) uniform uimage2D voxHashImage;
 layout(binding = 12, r32ui) readonly uniform uimage2D lastVoxHashImage;
-layout(binding = 13, rgba8) uniform image2D accumedImage;
-layout(binding = 14, rgba8) readonly uniform image2D lastAccumedImage;
+layout(binding = 13, r32ui) uniform uimage2D accumedImage;
+layout(binding = 14, r32ui) readonly uniform uimage2D lastAccumedImage;
 layout(binding = 15, rgba32f) uniform image2D varianceHistImage;
 layout(binding = 16, rgba32f) readonly uniform image2D lastVarianceHistImage;
-layout(binding = 17, rgba8) uniform image2D aTrousPingImage;
-layout(binding = 18, rgba8) uniform image2D aTrousPongImage;
-layout(binding = 25, rgba8) uniform image2D aTrousFinalResultImage;
+layout(binding = 17, r32ui) uniform uimage2D aTrousPingImage;
+layout(binding = 18, r32ui) uniform uimage2D aTrousPongImage;
+layout(binding = 25, r32ui) uniform uimage2D aTrousFinalResultImage;
 layout(binding = 19, rgba8) uniform image2D renderTargetImage;
 
 layout(std430, binding = 20) readonly buffer SceneDataBuffer { G_SceneInfo data; }

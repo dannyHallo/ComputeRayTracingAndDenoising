@@ -5,6 +5,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
+#include "include/colorPacker.glsl"
 #include "include/definitions.glsl"
 #include "include/random.glsl"
 #include "include/rayGen.glsl"
@@ -357,16 +358,15 @@ void main() {
   // the only image that is guaranteed to be written
   imageStore(hitImage, uv, uvec4(hit ? 1 : 0, 0, 0, 0));
   if (hit) {
-    imageStore(rawImage, uv, vec4(color, 1.0));
+    imageStore(rawImage, uv, uvec4(packRGBE(color), 0, 0, 0));
     imageStore(positionImage, uv, vec4(position, 1));
     imageStore(normalImage, uv, vec4(normal, 0));
     imageStore(voxHashImage, uv, uvec4(voxHash, 0, 0, 0));
     imageStore(depthImage, uv, vec4(tMin, 0, 0, 0));
   } else {
-    imageStore(backgroundImage, uv, vec4(color, 1.0));
+    imageStore(backgroundImage, uv, uvec4(packRGBE(color), 0, 0, 0));
   }
 
-  vec4 overlappingColor = vec4(0.0);
-  overlappingColor      = vec4(vec3(1, 0.4, 0.2) * float(dhIterUsed) / 50, 1.0);
-  imageStore(octreeVisualizationImage, uv, vec4(overlappingColor));
+  vec3 overlappingColor = vec3(1, 0.4, 0.2) * float(dhIterUsed) * 0.02;
+  imageStore(octreeVisualizationImage, uv, uvec4(packRGBE(overlappingColor), 0, 0, 0));
 }

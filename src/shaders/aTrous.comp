@@ -5,6 +5,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
+#include "include/colorPacker.glsl"
 #include "include/definitions.glsl"
 #include "include/random.glsl"
 
@@ -34,7 +35,7 @@ void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
   }
   vec4 normal = imageLoad(normalImage, uv);
   oNormal     = normal.xyz;
-  oColor      = imageLoad(aTrousPingImage, uv).xyz;
+  oColor      = unpackRGBE(imageLoad(aTrousPingImage, uv).x);
   oPosition   = imageLoad(positionImage, uv).xyz;
   // oVariance = imageLoad(varianceImage, uv).x;
 }
@@ -48,12 +49,12 @@ void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
   }
   vec4 normal = imageLoad(normalImage, uv);
   oNormal     = normal.xyz;
-  oColor      = imageLoad(aTrousPongImage, uv).xyz;
+  oColor      = unpackRGBE(imageLoad(aTrousPongImage, uv).x);
   oPosition   = imageLoad(positionImage, uv).xyz;
   // oVariance = imageLoad(varianceImage, uv).x;
 }
 
-void blurKernel(inout float weightSum, inout vec4 sumOfWeightedColors, ivec2 uv, ivec2 dispatchXY,
+void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv, ivec2 dispatchXY,
                 int kernalHalfSize, uint currentIteration, vec3 normalAtUv, vec3 colorAtUv,
                 vec3 positionAtUv, float luminanceAtUv, float depthAtUv) {
   int stepSize   = 1 << currentIteration;
@@ -71,7 +72,7 @@ void blurKernel(inout float weightSum, inout vec4 sumOfWeightedColors, ivec2 uv,
     float weight = weightK;
     weight       = clamp(weight, 0, 1);
     weightSum += weight;
-    sumOfWeightedColors += weight * vec4(colorAtUv, 1);
+    sumOfWeightedColors += weight * colorAtUv;
     return;
   }
 
@@ -130,7 +131,7 @@ void blurKernel(inout float weightSum, inout vec4 sumOfWeightedColors, ivec2 uv,
   float weight = weightK * weightC * weightN * weightP * weightZ;
 
   weightSum += weight;
-  sumOfWeightedColors += weight * vec4(colorAtSample, 1);
+  sumOfWeightedColors += weight * colorAtSample;
 }
 
 void main() {
@@ -147,9 +148,10 @@ void main() {
   if (currentIteration >= spatialFilterInfoUbo.data.aTrousIterationCount) {
     // no A-Trous at all: just copy input to the output at the first iteration
     if (currentIteration == 0) {
-      vec4 color = imageLoad(aTrousPingImage, uv);
-      imageStore(aTrousFinalResultImage, uv, color);
-      imageStore(accumedImage, uv, color);
+      vec3 color       = unpackRGBE(imageLoad(aTrousPingImage, uv).x);
+      uint packedColor = packRGBE(color);
+      imageStore(aTrousFinalResultImage, uv, uvec4(packedColor, 0, 0, 0));
+      imageStore(accumedImage, uv, uvec4(packedColor, 0, 0, 0));
     }
     return;
   }
@@ -175,30 +177,31 @@ void main() {
 
   const int kernalHalfSize = 1;
   float weightSum          = 0;
-  vec4 sumOfWeightedColors = vec4(0);
+  vec3 sumOfWeightedColors = vec3(0);
   for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
     for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
       blurKernel(weightSum, sumOfWeightedColors, uv, ivec2(indexX, indexY), kernalHalfSize,
                  currentIteration, normalAtUv, colorAtUv, positionAtUv, luminanceAtUv, depthAtUv);
     }
   }
-  vec4 weightedColor = sumOfWeightedColors / weightSum;
+  vec3 weightedColor = sumOfWeightedColors / weightSum;
 
+  uint packedWeightedColor = packRGBE(weightedColor);
   // send to accum buffer for the first iteration
   if (currentIteration == 0) {
-    imageStore(accumedImage, uv, weightedColor);
+    imageStore(accumedImage, uv, uvec4(packedWeightedColor, 0, 0, 0));
   }
 
   // dump image if in the last iteration
   if (currentIteration == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
-    imageStore(aTrousFinalResultImage, uv, weightedColor);
+    imageStore(aTrousFinalResultImage, uv, uvec4(packedWeightedColor, 0, 0, 0));
     return;
   }
 
   // send to pingpong buffer
   if (currentIteration % 2 == 0) {
-    imageStore(aTrousPongImage, uv, weightedColor);
+    imageStore(aTrousPongImage, uv, uvec4(packedWeightedColor, 0, 0, 0));
   } else {
-    imageStore(aTrousPingImage, uv, weightedColor);
+    imageStore(aTrousPingImage, uv, uvec4(packedWeightedColor, 0, 0, 0));
   }
 }
