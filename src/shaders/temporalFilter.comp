@@ -7,24 +7,10 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/colorPacker.glsl"
 #include "include/definitions.glsl"
-
-vec2 backwardProjection(ivec2 uv) {
-  vec4 worldPos = imageLoad(positionImage, uv);
-
-  vec4 screenBoxCoord = renderInfoUbo.data.pMatPrev * renderInfoUbo.data.vMatPrev * worldPos;
-
-  // points are bounded in [-1, 1] in x, y, z after the following
-  screenBoxCoord /= screenBoxCoord.w;
-  // points are bounded in [0, 1] in x, y, meanwhile z, w are thrown away
-  screenBoxCoord = (screenBoxCoord + vec4(1)) / 2;
-  // to vulkan uv coord, starts from top left corner, range is [0, 1]
-  vec2 uvCoord = vec2(screenBoxCoord.x, 1 - screenBoxCoord.y);
-  return vec2(uvCoord.x * renderInfoUbo.data.swapchainWidth,
-              uvCoord.y * renderInfoUbo.data.swapchainHeight);
-}
+#include "include/projection.glsl"
 
 vec3 getAccumColor(ivec2 pUv) {
-  ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  ivec2 bound = ivec2(renderInfoUbo.data.swapchainSize);
   if (any(lessThan(pUv, ivec2(0))) || any(greaterThanEqual(pUv, bound))) {
     return vec3(0);
   }
@@ -46,15 +32,17 @@ bool isConsistent(vec3 normal, vec3 lastNormal, vec3 position, vec3 lastPosition
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight)
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.swapchainSize)))) {
     return;
+  }
 
   bool hit = imageLoad(hitImage, uv).x != 0;
   if (!hit) {
     return;
   }
 
-  vec2 pUv     = backwardProjection(uv);
+  vec2 pUv = projectWorldPosToScreenUv(imageLoad(positionImage, uv).xyz, true) *
+             vec2(renderInfoUbo.data.swapchainSize);
   vec2 pBaseUv = floor(pUv - vec2(0.5));
   vec2 subpix  = fract(pUv - vec2(0.5) - pBaseUv);
 

@@ -7,6 +7,7 @@
 #define vec3 alignas(16) glm::vec3
 #define vec2 alignas(8) glm::vec2
 #define mat4 alignas(16) glm::mat4
+#define uvec2 alignas(8) glm::uvec2
 #define bool alignas(4) bool
 #define uint uint32_t
 
@@ -15,6 +16,7 @@
 #undef vec3
 #undef vec2
 #undef mat4
+#undef uvec2
 #undef uint
 #undef bool
 

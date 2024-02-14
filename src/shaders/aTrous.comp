@@ -26,12 +26,10 @@ ivec2 jittering(int stepSize) {
 }
 
 void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uv) {
-  ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  ivec2 bound = ivec2(renderInfoUbo.data.swapchainSize);
   // padding
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
-    uv =
-        clamp(uv, ivec2(0),
-              ivec2(renderInfoUbo.data.swapchainWidth - 1, renderInfoUbo.data.swapchainHeight - 1));
+    uv = clamp(uv, ivec2(0), bound - ivec2(1));
   }
   vec4 normal = imageLoad(normalImage, uv);
   oNormal     = normal.xyz;
@@ -41,11 +39,9 @@ void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
 }
 
 void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uv) {
-  ivec2 bound = ivec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
+  ivec2 bound = ivec2(renderInfoUbo.data.swapchainSize);
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
-    uv =
-        clamp(uv, ivec2(0),
-              ivec2(renderInfoUbo.data.swapchainWidth - 1, renderInfoUbo.data.swapchainHeight - 1));
+    uv = clamp(uv, ivec2(0), bound - ivec2(1));
   }
   vec4 normal = imageLoad(normalImage, uv);
   oNormal     = normal.xyz;
@@ -136,7 +132,7 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight) {
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.swapchainSize)))) {
     return;
   }
 

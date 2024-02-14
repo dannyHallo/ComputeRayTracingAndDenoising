@@ -219,11 +219,8 @@ vec3 dayLightCalc(vec3 d) {
 }
 
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
-  vec2 screenSpaceUv = (vec2(gl_GlobalInvocationID.xy) + subpixOffset) /
-                       vec2(renderInfoUbo.data.swapchainWidth, renderInfoUbo.data.swapchainHeight);
-  screenSpaceUv.y = 1 - screenSpaceUv.y; // flip y axis (glm's origin is at the bottom-left corner,
-                                         // but vulkan's origin is at the top-left corner)
-
+  vec2 screenSpaceUv =
+      (vec2(gl_GlobalInvocationID.xy) + subpixOffset) / vec2(renderInfoUbo.data.swapchainSize);
   o = renderInfoUbo.data.camPosition;
   d = normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
                 renderInfoUbo.data.camPosition);
@@ -329,7 +326,7 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (uv.x >= renderInfoUbo.data.swapchainWidth || uv.y >= renderInfoUbo.data.swapchainHeight) {
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.swapchainSize)))) {
     return;
   }
 
