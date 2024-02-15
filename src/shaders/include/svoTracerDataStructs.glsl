@@ -20,6 +20,7 @@ struct G_RenderInfo {
   mat4 vpMatPrev;
   mat4 vpMatPrevInv;
   uvec2 swapchainSize;
+  vec2 swapchainSizeInv;
   float vfov;
   uint currentSample;
   float time;

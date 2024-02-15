@@ -7,7 +7,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/definitions.glsl"
 #include "include/packer.glsl"
-#include "include/projection.glsl"
 
 vec3 getAccumColor(ivec2 pUv) {
   ivec2 bound = ivec2(renderInfoUbo.data.swapchainSize);
@@ -41,8 +40,10 @@ void main() {
     return;
   }
 
-  vec2 pUv = projectWorldPosToScreenUv(imageLoad(positionImage, uv).xyz, true) *
-             vec2(renderInfoUbo.data.swapchainSize);
+  vec2 uv01     = vec2(uv) * vec2(renderInfoUbo.data.swapchainSizeInv);
+  vec2 motion01 = imageLoad(motionImage, uv).xy;
+  vec2 pUv      = (uv01 + motion01) * vec2(renderInfoUbo.data.swapchainSize);
+
   vec2 pBaseUv = floor(pUv - vec2(0.5));
   vec2 subpix  = fract(pUv - vec2(0.5) - pBaseUv);
 

@@ -150,6 +150,8 @@ void SvoTracer::_createFullSizedImages() {
   _temporalHistLengthImage =
       std::make_unique<Image>(w, h, 1, VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
+  _motionImage =
+      std::make_unique<Image>(w, h, 1, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
   _normalImage = std::make_unique<Image>(
       w, h, 1, VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _lastNormalImage = std::make_unique<Image>(
@@ -611,6 +613,8 @@ void SvoTracer::updateUboData(size_t currentFrame) {
       vpMatPrev,
       vpMatPrevInv,
       glm::uvec2(_appContext->getSwapchainExtentWidth(), _appContext->getSwapchainExtentHeight()),
+      glm::vec2(1.F / static_cast<float>(_appContext->getSwapchainExtentWidth()),
+                1.F / static_cast<float>(_appContext->getSwapchainExtentHeight())),
       _camera->getVFov(),
       currentSample,
       currentTime,
@@ -708,6 +712,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(8, _octreeVisualizationImage.get());
   _descriptorSetBundle->bindStorageImage(28, _hitImage.get());
   _descriptorSetBundle->bindStorageImage(30, _temporalHistLengthImage.get());
+  _descriptorSetBundle->bindStorageImage(32, _motionImage.get());
   _descriptorSetBundle->bindStorageImage(9, _normalImage.get());
   _descriptorSetBundle->bindStorageImage(10, _lastNormalImage.get());
   _descriptorSetBundle->bindStorageImage(7, _positionImage.get());

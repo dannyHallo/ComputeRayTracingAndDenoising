@@ -41,14 +41,13 @@ void preload() {
 }
 
 void main() {
-  if (gl_GlobalInvocationID.x >= fragmentListInfoBuffer.data.voxelResolution ||
-      gl_GlobalInvocationID.y >= fragmentListInfoBuffer.data.voxelResolution ||
-      gl_GlobalInvocationID.z >= fragmentListInfoBuffer.data.voxelResolution) {
-    return;
-  }
-
   preload();
   barrier();
+
+  if (any(greaterThanEqual(gl_GlobalInvocationID,
+                           ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
+    return;
+  }
 
   ivec3 noiseLookupPositions[8];
   for (int i = 0; i < 8; i++) {

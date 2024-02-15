@@ -8,9 +8,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 #include "include/perlinNoise.glsl"
 
 void main() {
-  if (gl_GlobalInvocationID.x >= fragmentListInfoBuffer.data.voxelResolution + 1 ||
-      gl_GlobalInvocationID.y >= fragmentListInfoBuffer.data.voxelResolution + 1 ||
-      gl_GlobalInvocationID.z >= fragmentListInfoBuffer.data.voxelResolution + 1) {
+  if (any(greaterThanEqual(gl_GlobalInvocationID,
+                           ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
     return;
   }
 

@@ -24,6 +24,7 @@ layout(binding = 6, r32f) uniform image2D depthImage;
 layout(binding = 8, r32ui) uniform uimage2D octreeVisualizationImage;
 layout(binding = 28, r8ui) uniform uimage2D hitImage;
 layout(binding = 30, r8ui) uniform uimage2D temporalHistLengthImage;
+layout(binding = 32, rgba16f) uniform image2D motionImage;
 layout(binding = 9, r32ui) uniform uimage2D normalImage;
 layout(binding = 10, r32ui) readonly uniform uimage2D lastNormalImage;
 layout(binding = 7, rgba32f) uniform image2D positionImage;

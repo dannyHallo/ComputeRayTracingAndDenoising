@@ -357,6 +357,10 @@ void main() {
   bool hit = tracePrimary(tMin, dhIterUsed, color, position, normal, voxHash, seed, o, d,
                           optimizedDistance);
 
+  vec2 pUv01  = projectWorldPosToScreenUv(position, true);
+  vec2 uv01   = uv * renderInfoUbo.data.swapchainSizeInv;
+  vec2 motion = pUv01 - uv01; // the motion vector points to the previous frame, and is normalized
+
   // the only image that is guaranteed to be written
   imageStore(hitImage, uv, uvec4(hit ? 1 : 0, 0, 0, 0));
   if (hit) {
@@ -365,6 +369,7 @@ void main() {
     imageStore(normalImage, uv, uvec4(packNormal(normal), 0, 0, 0));
     imageStore(voxHashImage, uv, uvec4(voxHash, 0, 0, 0));
     imageStore(depthImage, uv, vec4(tMin, 0, 0, 0));
+    imageStore(motionImage, uv, vec4(motion, 0, 0));
   } else {
     imageStore(backgroundImage, uv, uvec4(packRGBE(color), 0, 0, 0));
   }
