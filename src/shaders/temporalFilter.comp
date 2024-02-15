@@ -40,12 +40,11 @@ void main() {
     return;
   }
 
-  vec2 uv01     = vec2(uv) * vec2(renderInfoUbo.data.lowResSizeInv);
-  vec2 motion01 = imageLoad(motionImage, uv).xy;
-  vec2 pUv      = (uv01 + motion01) * vec2(renderInfoUbo.data.lowResSize);
+  vec2 motion01 = imageLoad(motionImage, uv).xy * vec2(renderInfoUbo.data.lowResSize);
+  vec2 pUv      = vec2(uv) + motion01;
 
-  vec2 pBaseUv = floor(pUv - vec2(0.5));
-  vec2 subpix  = fract(pUv - vec2(0.5) - pBaseUv);
+  vec2 pBaseUv = floor(pUv);
+  vec2 subpix  = fract(pUv - pBaseUv);
 
   const ivec2 off[4] = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
   float w[4]         = {(1.0 - subpix.x) * (1.0 - subpix.y), (subpix.x) * (1.0 - subpix.y),

@@ -218,9 +218,10 @@ vec3 dayLightCalc(vec3 d) {
   return environmentUbo.data.sunLuminance * environmentUbo.data.sunColor * angleDiff;
 }
 
+// subpixOffset ranges from -0.5 to 0.5
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
-  vec2 screenSpaceUv =
-      (vec2(gl_GlobalInvocationID.xy) + subpixOffset) / vec2(renderInfoUbo.data.lowResSize);
+  vec2 screenSpaceUv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5) + subpixOffset) /
+                       vec2(renderInfoUbo.data.lowResSize);
   o = renderInfoUbo.data.camPosition;
   d = normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
                 renderInfoUbo.data.camPosition);
@@ -333,9 +334,9 @@ void main() {
   uvec3 seed = getSeed();
 
   vec3 o, d;
-  rayGen(o, d, vec2(0.5));
+  // rayGen(o, d, vec2(0));
   // subpixOffset ranges from 0.0 to 1.0
-  // rayGen(o, d, renderInfoUbo.data.subpixOffset);
+  rayGen(o, d, renderInfoUbo.data.subpixOffset);
 
   float optimizedDistance = 0;
 
@@ -357,8 +358,12 @@ void main() {
   bool hit = tracePrimary(tMin, dhIterUsed, color, position, normal, voxHash, seed, o, d,
                           optimizedDistance);
 
-  vec2 pUv01  = projectWorldPosToScreenUv(position, true);
-  vec2 uv01   = uv * renderInfoUbo.data.lowResSizeInv;
+  // calculate the motion here avoids a store - load cycle for the position, and the motion vector
+  // can be reused in temporal filter and the taa filter, also, using a motion vector is easier for
+  // us to handle moving objects in the future
+  vec2 pUv01 = projectWorldPosToScreenUv(position, true);
+  // vec2 uv01  = uv * renderInfoUbo.data.lowResSizeInv;
+  vec2 uv01   = projectWorldPosToScreenUv(position, false);
   vec2 motion = pUv01 - uv01; // the motion vector points to the previous frame, and is normalized
 
   // the only image that is guaranteed to be written

@@ -7,6 +7,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "include/svoTracerDescriptorSetLayouts.glsl"
 
+#include "include/interpolation.glsl"
 #include "include/packer.glsl"
 #include "include/projection.glsl"
 
@@ -58,7 +59,78 @@ vec3 getDitherMask(ivec2 screenSpaceUv) {
   return 0.5 / 255.0 + dither_shift_RGB;
 }
 
-ivec2 highResToLowRes(ivec2 highResUv) { return highResUv / 2; }
+vec2 highResToLowRes(ivec2 highResUv) {
+  return (vec2(highResUv) + vec2(0.5)) *
+             (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.highResSize)) -
+         vec2(0.5) - renderInfoUbo.data.subpixOffset;
+}
+
+vec4 bilinearInterpolateImage(vec2 uv) {
+  // Calculate the integer coordinates (bottom-left corner)
+  ivec2 baseCoord = ivec2(uv);
+
+  // Calculate fractional part to determine interpolation weights
+  vec2 fractionalPart = fract(uv);
+
+  // Load the four nearest texels
+  vec4 bl = imageLoad(taaImage, baseCoord);               // Bottom left
+  vec4 br = imageLoad(taaImage, baseCoord + ivec2(1, 0)); // Bottom right
+  vec4 tl = imageLoad(taaImage, baseCoord + ivec2(0, 1)); // Top left
+  vec4 tr = imageLoad(taaImage, baseCoord + ivec2(1, 1)); // Top right
+
+  // Interpolate between the four texels
+  vec4 bottom     = mix(bl, br, fractionalPart.x);      // Interpolate along x (bottom)
+  vec4 top        = mix(tl, tr, fractionalPart.x);      // Interpolate along x (top)
+  vec4 finalColor = mix(bottom, top, fractionalPart.y); // Interpolate along y
+
+  return finalColor;
+}
+
+void getMoments(out vec3 mom1, out vec3 mom2, ivec2 uv) {
+  mom1            = vec3(0);
+  mom2            = vec3(0);
+  uint numSamples = 0;
+
+  for (int yy = -1; yy <= 1; yy++) {
+    for (int xx = -1; xx <= 1; xx++) {
+      ivec2 p = uv + ivec2(xx, yy);
+
+      // out of bound
+      if (any(lessThan(p, ivec2(0))) ||
+          any(greaterThanEqual(p, ivec2(renderInfoUbo.data.lowResSize)))) {
+        continue;
+      }
+
+      vec3 color = unpackRGBE(imageLoad(aTrousFinalResultImage, p).x);
+      mom1 += color;
+      mom2 += color * color;
+
+      numSamples++;
+    }
+  }
+
+  mom1 /= float(numSamples);
+  mom2 /= float(numSamples);
+}
+
+vec2 getLongestMotion(ivec2 uv) {
+  float len   = -1;
+  vec2 motion = vec2(0);
+
+  for (int yy = -1; yy <= 1; yy++) {
+    for (int xx = -1; xx <= 1; xx++) {
+      ivec2 p = uv + ivec2(xx, yy);
+      vec2 m  = imageLoad(motionImage, p).xy;
+      float l = dot(m, m);
+      if (l > len) {
+        len    = l;
+        motion = m;
+      }
+    }
+  }
+
+  return motion;
+}
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
@@ -66,13 +138,23 @@ void main() {
     return;
   }
 
-  ivec2 lowResUv = highResToLowRes(uv);
+  vec2 lowResUv = highResToLowRes(uv);
+
+  // // get moments
+  // vec3 mom1, mom2;
+  // getMoments(mom1, mom2, ivec2(lowResUv));
+
+  // // motion is normalized to 0 - 1, and points to the last frame
+  // vec2 motion = getLongestMotion(ivec2(lowResUv));
+  // motion *= vec2(renderInfoUbo.data.highResSize);
 
   vec3 writingCol = vec3(0);
-  bool hit        = imageLoad(hitImage, lowResUv).x != 0;
+  bool hit        = imageLoad(hitImage, ivec2(lowResUv)).x != 0;
+
+  writingCol = imageLoad(taaImage, uv).xyz;
 
   if (hit) {
-    writingCol = unpackRGBE(imageLoad(aTrousFinalResultImage, lowResUv).x);
+    writingCol = unpackRGBE(imageLoad(aTrousFinalResultImage, ivec2(lowResUv)).x);
 
     // float depth = imageLoad(depthImage, uv).x;
     // writingCol  = vec3(0.5, 0.2, 0.1) * exp(-depth);
@@ -82,12 +164,25 @@ void main() {
     // float histLength = imageLoad(temporalHistLengthImage, uv).x;
     // writingCol       = exp(-histLength * 0.1) * vec3(1);
   } else {
-    writingCol = unpackRGBE(imageLoad(backgroundImage, lowResUv).x);
+    writingCol = unpackRGBE(imageLoad(backgroundImage, ivec2(lowResUv)).x);
   }
 
   if (twickableParametersUbo.data.visualizeOctree) {
-    writingCol += unpackRGBE(imageLoad(octreeVisualizationImage, lowResUv).x);
+    writingCol += unpackRGBE(imageLoad(octreeVisualizationImage, ivec2(lowResUv)).x);
   }
+
+  // vec3 sum = vec3(0);
+  // vec2 sampleLocations[3], sampleWeights[3];
+  // bicubicCatmullRom(vec2(uv), sampleLocations, sampleWeights);
+  // for (int i = 0; i < 3; i++) {
+  //   for (int j = 0; j < 3; j++) {
+  //     vec2 uv = vec2(sampleLocations[j].x, sampleLocations[i].y);
+  //     // vec4 c  = imageLoad(tex, uv, 0);
+  //     vec3 c = bilinearInterpolateImage(uv).xyz;
+  //     sum += c * sampleWeights[j].x * sampleWeights[i].y;
+  //   }
+  // }
+  // writingCol = sum;
 
   writingCol += getDitherMask(uv);
 

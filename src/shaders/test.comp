@@ -1,0 +1,46 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#include "include/svoTracerDescriptorSetLayouts.glsl"
+
+void main() {
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.highResSize)))) {
+    return;
+  }
+
+  uint gridCountX = 10;
+  uint gridCountY = 10;
+
+  // Calculate the size of each grid cell
+  float cellSizeX = float(renderInfoUbo.data.highResSize.x) / float(gridCountX);
+  float cellSizeY = float(renderInfoUbo.data.highResSize.y) / float(gridCountY);
+
+  // Rotation angle in degrees and radians
+  float angleDegrees = 10.0;
+  float angleRadians = radians(angleDegrees);
+
+  // Rotation matrix components
+  float cosTheta = cos(angleRadians);
+  float sinTheta = sin(angleRadians);
+
+  // Apply rotation to UV coordinates
+  vec2 rotatedUv = vec2(cosTheta * float(uv.x) - sinTheta * float(uv.y),
+                        sinTheta * float(uv.x) + cosTheta * float(uv.y));
+
+  // Adjust the UV coordinates to be within the bounds of the highResSize
+  vec2 adjustedUv = rotatedUv + vec2(renderInfoUbo.data.highResSize) / 2.0;
+  adjustedUv      = mod(adjustedUv, vec2(renderInfoUbo.data.highResSize));
+
+  // Determine the grid cell indices for the rotated uv
+  uint cellIndexX = uint(adjustedUv.x / cellSizeX);
+  uint cellIndexY = uint(adjustedUv.y / cellSizeY);
+
+  // Compute stair-stepped color based on grid position
+  vec3 gridColor = vec3(float(cellIndexX) / float(gridCountX - 1),
+                        float(cellIndexY) / float(gridCountY - 1), 0.0);
+
+  imageStore(taaImage, uv, vec4(gridColor, 0.0));
+}

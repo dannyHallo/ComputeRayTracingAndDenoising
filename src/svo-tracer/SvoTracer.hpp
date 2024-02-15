@@ -108,6 +108,10 @@ private:
   std::unique_ptr<Image> _lastAccumedImage;
   std::unique_ptr<ImageForwardingPair> _accumedForwardingPair;
 
+  std::unique_ptr<Image> _taaImage;
+  std::unique_ptr<Image> _lastTaaImage;
+  std::unique_ptr<ImageForwardingPair> _taaForwardingPair;
+
   // std::unique_ptr<Image> _varianceHistImage;
   // std::unique_ptr<Image> _lastVarianceHistImage;
   // std::unique_ptr<ImageForwardingPair> _varianceHistForwardingPair;
@@ -183,6 +187,7 @@ private:
   std::unique_ptr<ComputePipeline> _temporalFilterPipeline;
   // std::unique_ptr<ComputePipeline> _variancePipeline;
   std::unique_ptr<ComputePipeline> _aTrousPipeline;
+  std::unique_ptr<ComputePipeline> _testPipeline;
   std::unique_ptr<ComputePipeline> _postProcessingPipeline;
 
   void _createDescriptorSetBundle();
