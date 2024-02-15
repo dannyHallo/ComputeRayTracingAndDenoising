@@ -58,17 +58,21 @@ vec3 getDitherMask(ivec2 screenSpaceUv) {
   return 0.5 / 255.0 + dither_shift_RGB;
 }
 
+ivec2 highResToLowRes(ivec2 highResUv) { return highResUv / 2; }
+
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.highResSize)))) {
     return;
   }
 
+  ivec2 lowResUv = highResToLowRes(uv);
+
   vec3 writingCol = vec3(0);
-  bool hit        = imageLoad(hitImage, uv).x != 0;
+  bool hit        = imageLoad(hitImage, lowResUv).x != 0;
 
   if (hit) {
-    writingCol = unpackRGBE(imageLoad(aTrousFinalResultImage, uv).x);
+    writingCol = unpackRGBE(imageLoad(aTrousFinalResultImage, lowResUv).x);
 
     // float depth = imageLoad(depthImage, uv).x;
     // writingCol  = vec3(0.5, 0.2, 0.1) * exp(-depth);
@@ -78,11 +82,11 @@ void main() {
     // float histLength = imageLoad(temporalHistLengthImage, uv).x;
     // writingCol       = exp(-histLength * 0.1) * vec3(1);
   } else {
-    writingCol = unpackRGBE(imageLoad(backgroundImage, uv).x);
+    writingCol = unpackRGBE(imageLoad(backgroundImage, lowResUv).x);
   }
 
   if (twickableParametersUbo.data.visualizeOctree) {
-    writingCol += unpackRGBE(imageLoad(octreeVisualizationImage, uv).x);
+    writingCol += unpackRGBE(imageLoad(octreeVisualizationImage, lowResUv).x);
   }
 
   writingCol += getDitherMask(uv);
