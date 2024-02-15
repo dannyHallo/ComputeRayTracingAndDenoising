@@ -41,7 +41,7 @@ float random(uint x) { return floatConstruct(hash(x)); }
 uint rngState = 0;
 float random(uvec3 seed) {
   if (rngState == 0) {
-    uint index = seed.x + renderInfoUbo.data.swapchainSize.x * seed.y + 1;
+    uint index = seed.x + renderInfoUbo.data.lowResSize.x * seed.y + 1;
     rngState   = index * renderInfoUbo.data.currentSample + 1;
   } else {
     rngState = hash(rngState);
@@ -66,7 +66,7 @@ const float invExp         = 1 / exp2(24.);
 const int alpha1Large      = 12664746;
 const int alpha2Large      = 9560334;
 vec2 ldsNoise(uvec3 seed, BaseDisturbance baseDisturbance) {
-  uint n = hash(seed.x + renderInfoUbo.data.swapchainSize.x * seed.y + baseDisturbance.d) + seed.z;
+  uint n = hash(seed.x + renderInfoUbo.data.lowResSize.x * seed.y + baseDisturbance.d) + seed.z;
   return fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
 }
 

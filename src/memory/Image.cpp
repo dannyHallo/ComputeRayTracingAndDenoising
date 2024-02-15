@@ -377,15 +377,13 @@ VkImageCopy imageCopyRegion(uint32_t width, uint32_t height) {
 }
 } // namespace
 
-ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2,
-                                         VkImageLayout image1BeforeCopy,
+ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2, uint32_t width,
+                                         uint32_t height, VkImageLayout image1BeforeCopy,
                                          VkImageLayout image2BeforeCopy,
                                          VkImageLayout image1AfterCopy,
                                          VkImageLayout image2AfterCopy)
     : _image1(image1), _image2(image2) {
-  _copyRegion =
-      imageCopyRegion(VulkanApplicationContext::getInstance()->getSwapchainExtentWidth(),
-                      VulkanApplicationContext::getInstance()->getSwapchainExtentHeight());
+  _copyRegion = imageCopyRegion(width, height);
 
   _image1BeforeCopy = getMemoryBarrier(
       image1, image1BeforeCopy, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,

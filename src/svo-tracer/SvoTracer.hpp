@@ -62,7 +62,14 @@ private:
 
   SvoTracerTweakingData _uboData;
 
+  uint32_t _lowResWidth   = 0;
+  uint32_t _lowResHeight  = 0;
+  uint32_t _highResWidth  = 0;
+  uint32_t _highResHeight = 0;
+
   std::vector<glm::vec2> _taaSamplingOffsets{};
+
+  void _updateImageResolutions();
 
   void _recordRenderingCommandBuffers();
   void _recordDeliveryCommandBuffers();
@@ -101,9 +108,9 @@ private:
   std::unique_ptr<Image> _lastAccumedImage;
   std::unique_ptr<ImageForwardingPair> _accumedForwardingPair;
 
-  std::unique_ptr<Image> _varianceHistImage;
-  std::unique_ptr<Image> _lastVarianceHistImage;
-  std::unique_ptr<ImageForwardingPair> _varianceHistForwardingPair;
+  // std::unique_ptr<Image> _varianceHistImage;
+  // std::unique_ptr<Image> _lastVarianceHistImage;
+  // std::unique_ptr<ImageForwardingPair> _varianceHistForwardingPair;
 
   std::unique_ptr<Image> _aTrousPingImage;
   std::unique_ptr<Image> _aTrousPongImage;

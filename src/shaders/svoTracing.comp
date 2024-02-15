@@ -220,7 +220,7 @@ vec3 dayLightCalc(vec3 d) {
 
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
   vec2 screenSpaceUv =
-      (vec2(gl_GlobalInvocationID.xy) + subpixOffset) / vec2(renderInfoUbo.data.swapchainSize);
+      (vec2(gl_GlobalInvocationID.xy) + subpixOffset) / vec2(renderInfoUbo.data.lowResSize);
   o = renderInfoUbo.data.camPosition;
   d = normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
                 renderInfoUbo.data.camPosition);
@@ -326,7 +326,7 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.swapchainSize)))) {
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
     return;
   }
 
@@ -358,7 +358,7 @@ void main() {
                           optimizedDistance);
 
   vec2 pUv01  = projectWorldPosToScreenUv(position, true);
-  vec2 uv01   = uv * renderInfoUbo.data.swapchainSizeInv;
+  vec2 uv01   = uv * renderInfoUbo.data.lowResSizeInv;
   vec2 motion = pUv01 - uv01; // the motion vector points to the previous frame, and is normalized
 
   // the only image that is guaranteed to be written

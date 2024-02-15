@@ -79,11 +79,10 @@ private:
 
 // storing the pointer of a pair of imgs, support for easy dumping
 class ImageForwardingPair {
-
 public:
-  ImageForwardingPair(VkImage image1, VkImage image2, VkImageLayout image1BeforeCopy,
-                      VkImageLayout image2BeforeCopy, VkImageLayout image1AfterCopy,
-                      VkImageLayout image2AfterCopy);
+  ImageForwardingPair(VkImage image1, VkImage image2, uint32_t width, uint32_t height,
+                      VkImageLayout image1BeforeCopy, VkImageLayout image2BeforeCopy,
+                      VkImageLayout image1AfterCopy, VkImageLayout image2AfterCopy);
 
   void forwardCopy(VkCommandBuffer commandBuffer);
 

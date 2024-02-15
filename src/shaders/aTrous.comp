@@ -26,7 +26,7 @@ ivec2 jittering(int stepSize) {
 }
 
 void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uv) {
-  ivec2 bound = ivec2(renderInfoUbo.data.swapchainSize);
+  ivec2 bound = ivec2(renderInfoUbo.data.lowResSize);
   // padding
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv = clamp(uv, ivec2(0), bound - ivec2(1));
@@ -39,7 +39,7 @@ void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
 }
 
 void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uv) {
-  ivec2 bound = ivec2(renderInfoUbo.data.swapchainSize);
+  ivec2 bound = ivec2(renderInfoUbo.data.lowResSize);
   if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
     uv = clamp(uv, ivec2(0), bound - ivec2(1));
   }
@@ -132,7 +132,7 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.swapchainSize)))) {
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
     return;
   }
 

@@ -152,7 +152,7 @@ vec3 rayGen(vec2 beamOffset) {
   vec2 screenSpaceUv =
       ((vec2(gl_GlobalInvocationID.xy + beamOffset) * sceneDataBuffer.data.beamResolution) +
        vec2(0.5)) /
-      vec2(renderInfoUbo.data.swapchainSize);
+      vec2(renderInfoUbo.data.lowResSize);
   return normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
                    renderInfoUbo.data.camPosition);
 }
