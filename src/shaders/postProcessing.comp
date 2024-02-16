@@ -60,9 +60,10 @@ vec3 getDitherMask(ivec2 screenSpaceUv) {
 }
 
 vec2 highResToLowRes(ivec2 highResUv) {
+  vec2 subpixOffset = twickableParametersUbo.data.taa ? renderInfoUbo.data.subpixOffset : vec2(0);
   return (vec2(highResUv) + vec2(0.5)) *
              (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.highResSize)) -
-         vec2(0.5) - renderInfoUbo.data.subpixOffset;
+         vec2(0.5) - subpixOffset;
 }
 
 vec4 bilinearInterpolateImage(vec2 uv) {
@@ -177,45 +178,49 @@ void main() {
 
   vec2 lowResUv     = highResToLowRes(uv);
   ivec2 intLowResUv = ivec2(lowResUv);
+  vec3 writingCol   = vec3(0);
+  if (twickableParametersUbo.data.taa) {
 
-  // get moments
-  vec3 mom1, mom2;
-  vec3 colorCenter;
-  getMoments(mom1, mom2, colorCenter, intLowResUv);
+    // get moments
+    vec3 mom1, mom2;
+    vec3 colorCenter;
+    getMoments(mom1, mom2, colorCenter, intLowResUv);
 
-  // motion points to the last frame
-  // look up for its motion on the low res image
-  vec2 motion = getLongestMotion(intLowResUv) * vec2(renderInfoUbo.data.highResSize);
-  vec2 pUv    = vec2(uv) + motion;
+    // motion points to the last frame
+    // look up for its motion on the low res image
+    vec2 motion = getLongestMotion(intLowResUv) * vec2(renderInfoUbo.data.highResSize);
+    vec2 pUv    = vec2(uv) + motion;
 
-  vec3 colorPrev = softwareTexelFetchColor(pUv);
+    vec3 colorPrev = softwareTexelFetchColor(pUv);
 
-  // neighborhood color clamping
-  float varianceScale = 3.0;
-  vec3 sigma          = sqrt(max(vec3(0), mom2 - mom1 * mom1));
-  vec3 mi             = mom1 - sigma * varianceScale;
-  vec3 ma             = mom1 + sigma * varianceScale;
-  colorPrev           = clamp(colorPrev, mi, ma);
+    // neighborhood color clamping
+    float varianceScale = 3.0;
+    vec3 sigma          = sqrt(max(vec3(0), mom2 - mom1 * mom1));
+    vec3 mi             = mom1 - sigma * varianceScale;
+    vec3 ma             = mom1 + sigma * varianceScale;
+    colorPrev           = clamp(colorPrev, mi, ma);
 
-  // mix the new color with the clamped previous color
-  float motionWeight = smoothstep(0, 1.0, length(motion));
-  float sampleWeight =
-      getSampleWeight(lowResUv - intLowResUv, float(renderInfoUbo.data.highResSize.x) /
-                                                  float(renderInfoUbo.data.lowResSize.x));
-  float pixelWeight = max(motionWeight, sampleWeight) * 0.1;
-  pixelWeight       = clamp(pixelWeight, 0, 1);
+    // mix the new color with the clamped previous color
+    float motionWeight = smoothstep(0, 1.0, length(motion));
+    float sampleWeight =
+        getSampleWeight(lowResUv - intLowResUv, float(renderInfoUbo.data.highResSize.x) /
+                                                    float(renderInfoUbo.data.lowResSize.x));
+    float pixelWeight = max(motionWeight, sampleWeight) * 0.1;
+    pixelWeight       = clamp(pixelWeight, 0, 1);
 
-  vec3 writingCol = vec3(0);
-  writingCol      = mix(colorPrev, colorCenter, pixelWeight);
+    writingCol = mix(colorPrev, colorCenter, pixelWeight);
 
+    imageStore(taaImage, uv, uvec4(packRGBE(writingCol), 0, 0, 0));
+  } else {
+    writingCol = unpackRGBE(imageLoad(blittedImage, intLowResUv).x).rgb;
+  }
+
+  // octree overlay
   if (twickableParametersUbo.data.visualizeOctree) {
     writingCol += unpackRGBE(imageLoad(octreeVisualizationImage, intLowResUv).x);
   }
 
-  imageStore(taaImage, uv, uvec4(packRGBE(writingCol), 0, 0, 0));
-
-  // writingCol = unpackRGBE(imageLoad(blittedImage, intLowResUv).x).rgb;
-
+  // dithering pattern, to reduce banding
   writingCol += getDitherMask(uv);
 
   // rgb to bgr

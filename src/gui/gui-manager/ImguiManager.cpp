@@ -292,6 +292,7 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::Checkbox("Visualize Octree", &_svoTracerTweakingData->visualizeOctree);
     ImGui::Checkbox("Beam Optimization", &_svoTracerTweakingData->beamOptimization);
     ImGui::Checkbox("Trace Secondary Ray", &_svoTracerTweakingData->traceSecondaryRay);
+    ImGui::Checkbox("TAA", &_svoTracerTweakingData->taa);
 
     ImGui::SeparatorText("Temporal Filter Info");
     ImGui::SliderFloat("Temporal Alpha", &_svoTracerTweakingData->temporalAlpha, 0.0F, 1.0F);

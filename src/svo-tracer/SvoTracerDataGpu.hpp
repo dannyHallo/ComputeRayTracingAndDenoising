@@ -23,10 +23,11 @@
 struct SvoTracerTweakingData {
   SvoTracerTweakingData() = default;
 
-  // for general info
+  // tweakable parameters
   bool visualizeOctree   = false;
   bool beamOptimization  = true;
   bool traceSecondaryRay = true;
+  bool taa               = true;
 
   // for env
   float sunAngle     = 0.0F;

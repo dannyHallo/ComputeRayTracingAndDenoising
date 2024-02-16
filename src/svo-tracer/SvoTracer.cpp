@@ -644,6 +644,7 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   twickableParameters.visualizeOctree   = _uboData.visualizeOctree;
   twickableParameters.beamOptimization  = _uboData.beamOptimization;
   twickableParameters.traceSecondaryRay = _uboData.traceSecondaryRay;
+  twickableParameters.taa               = _uboData.taa;
   _twickableParametersBufferBundle->getBuffer(currentFrame)->fillData(&twickableParameters);
 
   G_TemporalFilterInfo temporalFilterInfo{};

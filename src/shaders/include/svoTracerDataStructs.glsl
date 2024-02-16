@@ -39,6 +39,7 @@ struct G_TwickableParameters {
   bool visualizeOctree;
   bool beamOptimization;
   bool traceSecondaryRay;
+  bool taa;
 };
 
 struct G_SceneInfo {
