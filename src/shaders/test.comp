@@ -42,5 +42,5 @@ void main() {
   vec3 gridColor = vec3(float(cellIndexX) / float(gridCountX - 1),
                         float(cellIndexY) / float(gridCountY - 1), 0.0);
 
-  imageStore(taaImage, uv, vec4(gridColor, 0.0));
+  // imageStore(taaImage, uv, vec4(gridColor, 0.0));
 }

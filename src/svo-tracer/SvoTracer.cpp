@@ -93,9 +93,9 @@ void SvoTracer::onSwapchainResize() {
 }
 
 void SvoTracer::_createTaaSamplingOffsets() {
-  _taaSamplingOffsets.resize(kTaaSamplingOffsetSize);
+  _subpixOffsets.resize(kTaaSamplingOffsetSize);
   for (int i = 0; i < kTaaSamplingOffsetSize; i++) {
-    _taaSamplingOffsets[i] = {0, 0};
+    _subpixOffsets[i] = {halton(2, i + 1) - 0.5F, halton(3, i + 1) - 0.5F};
   }
 }
 
@@ -196,13 +196,15 @@ void SvoTracer::_createFullSizedImages() {
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _taaImage =
-      std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _taaImage = std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_R32_UINT,
+                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
   _lastTaaImage =
-      std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
+      std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  _blittedImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
+                                          VK_IMAGE_USAGE_STORAGE_BIT);
 
   // _varianceHistImage =
   //     std::make_unique<Image>(lw, lh, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -507,46 +509,7 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                            0, nullptr);
     }
 
-    // _PipelinesHolder->getGradientModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-
-    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                      nullptr);
-
-    // for (int j = 0; j < 6; j++) {
-    //   _PipelinesHolder->getStratumFilterModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-
-    //   vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                        nullptr);
-    // }
-
-    // _PipelinesHolder->getTemporalFilterModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-
-    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                      nullptr);
-
-    // _PipelinesHolder->getVarianceModel()->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-
-    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                      nullptr);
-
-    // for (int j = 0; j < kATrousSize; j++) {
-    //   // dispatch filter shader
-    //   _PipelinesHolder->getATrousModel(j)->computeCommand(cmdBuffer, imageIndex, w, h, 1);
-    //   vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                        nullptr);
-
-    //   // copy aTrousImage2 to aTrousImage1 (excluding the last transfer)
-    //   if (j != kATrousSize - 1) {
-    //     _SvoTracer->getATrousForwardingPair()->forwardCopy(cmdBuffer);
-    //   }
-    // }
-
-    _testPipeline->recordCommand(cmdBuffer, frameIndex, _highResWidth, _highResHeight, 1);
+    _backgroundBlitPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
@@ -640,7 +603,7 @@ void SvoTracer::updateUboData(size_t currentFrame) {
       _camera->getFront(),
       _camera->getUp(),
       _camera->getRight(),
-      _taaSamplingOffsets[currentSample % kTaaSamplingOffsetSize],
+      _subpixOffsets[currentSample % kTaaSamplingOffsetSize],
       vMat,
       vMatInv,
       vMatPrev,
@@ -767,6 +730,8 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(33, _taaImage.get());
   _descriptorSetBundle->bindStorageImage(34, _lastTaaImage.get());
 
+  _descriptorSetBundle->bindStorageImage(35, _blittedImage.get());
+
   // _descriptorSetBundle->bindStorageImage(15, _varianceHistImage.get());
   // _descriptorSetBundle->bindStorageImage(16, _lastVarianceHistImage.get());
 
@@ -810,11 +775,17 @@ void SvoTracer::_createPipelines() {
   _aTrousPipeline->buildAndCacheShaderModule(false);
   _aTrousPipeline->build();
 
-  _testPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "test.comp", WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(),
-      _shaderChangeListener);
-  _testPipeline->buildAndCacheShaderModule(false);
-  _testPipeline->build();
+  // _testPipeline = std::make_unique<ComputePipeline>(
+  //     _appContext, _logger, this, "test.comp", WorkGroupSize{8, 8, 1},
+  //     _descriptorSetBundle.get(), _shaderChangeListener);
+  // _testPipeline->buildAndCacheShaderModule(false);
+  // _testPipeline->build();
+
+  _backgroundBlitPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, "backgroundBlit.comp", WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderChangeListener);
+  _backgroundBlitPipeline->buildAndCacheShaderModule(false);
+  _backgroundBlitPipeline->build();
 
   _postProcessingPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "postProcessing.comp", WorkGroupSize{8, 8, 1},
@@ -828,6 +799,7 @@ void SvoTracer::_updatePipelinesDescriptorBundles() {
   _svoTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _temporalFilterPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _aTrousPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
-  _testPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  // _testPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  _backgroundBlitPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _postProcessingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
 }

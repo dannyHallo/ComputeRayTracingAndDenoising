@@ -86,7 +86,7 @@ vec4 bilinearInterpolateImage(vec2 uv) {
   return finalColor;
 }
 
-void getMoments(out vec3 mom1, out vec3 mom2, ivec2 uv) {
+void getMoments(out vec3 mom1, out vec3 mom2, out vec3 colorCenter, ivec2 uv) {
   mom1            = vec3(0);
   mom2            = vec3(0);
   uint numSamples = 0;
@@ -101,9 +101,13 @@ void getMoments(out vec3 mom1, out vec3 mom2, ivec2 uv) {
         continue;
       }
 
-      vec3 color = unpackRGBE(imageLoad(aTrousFinalResultImage, p).x);
+      vec3 color = unpackRGBE(imageLoad(blittedImage, p).x);
       mom1 += color;
       mom2 += color * color;
+
+      if (xx == 0 && yy == 0) {
+        colorCenter = color;
+      }
 
       numSamples++;
     }
@@ -132,57 +136,97 @@ vec2 getLongestMotion(ivec2 uv) {
   return motion;
 }
 
+vec3 getAccumColor(ivec2 pUv) {
+  ivec2 bound = ivec2(renderInfoUbo.data.highResSize);
+  if (any(lessThan(pUv, ivec2(0))) || any(greaterThanEqual(pUv, bound))) {
+    return vec3(0);
+  }
+  return unpackRGBE(imageLoad(lastTaaImage, pUv).x);
+}
+
+float getSampleWeight(vec2 delta, float scale) {
+  return clamp(1 - scale * dot(delta, delta), 0, 1);
+}
+
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.highResSize)))) {
     return;
   }
 
-  vec2 lowResUv = highResToLowRes(uv);
+  vec2 lowResUv     = highResToLowRes(uv);
+  ivec2 intLowResUv = ivec2((lowResUv));
 
-  // // get moments
-  // vec3 mom1, mom2;
-  // getMoments(mom1, mom2, ivec2(lowResUv));
+  // get moments
+  vec3 mom1, mom2;
+  vec3 colorCenter;
+  getMoments(mom1, mom2, colorCenter, intLowResUv);
 
-  // // motion is normalized to 0 - 1, and points to the last frame
-  // vec2 motion = getLongestMotion(ivec2(lowResUv));
-  // motion *= vec2(renderInfoUbo.data.highResSize);
+  // motion points to the last frame
+  // look up for its motion on the low res image
+  vec2 motion = getLongestMotion(intLowResUv) * vec2(renderInfoUbo.data.highResSize);
+  vec2 pUv    = vec2(uv) + motion;
+
+  vec2 pBaseUv = floor(pUv);
+  vec2 subpix  = fract(pUv - pBaseUv);
+
+  const ivec2 off[4] = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
+  float w[4]         = {(1.0 - subpix.x) * (1.0 - subpix.y), (subpix.x) * (1.0 - subpix.y),
+                        (1.0 - subpix.x) * (subpix.y), (subpix.x) * (subpix.y)};
+
+  float sumOfWeights       = 0;
+  vec3 sumOfWeightedColors = vec3(0);
+
+  // normal test is useful for edges (nearby disocclusions)
+  vec3 normal   = unpackNormal(imageLoad(normalImage, uv).x);
+  vec3 position = imageLoad(positionImage, uv).xyz;
+  for (int i = 0; i < 4; i++) {
+    ivec2 tappingUv = ivec2(pBaseUv) + off[i];
+
+    sumOfWeightedColors += w[i] * getAccumColor(tappingUv);
+    sumOfWeights += w[i];
+  }
+  vec3 colorPrev = sumOfWeightedColors / sumOfWeights;
+
+  // mix the new color with the clamped previous color
+  float motionWeight = smoothstep(0, 1.0, sqrt(dot(motion, motion)));
+  float sampleWeight =
+      getSampleWeight(lowResUv - intLowResUv, float(renderInfoUbo.data.highResSize.x) /
+                                                  float(renderInfoUbo.data.lowResSize.x));
+  float pixelWeight = max(motionWeight, sampleWeight) * 0.1;
+  pixelWeight       = clamp(pixelWeight, 0, 1);
 
   vec3 writingCol = vec3(0);
-  bool hit        = imageLoad(hitImage, ivec2(lowResUv)).x != 0;
+  writingCol      = mix(colorPrev, colorCenter, pixelWeight);
 
-  writingCol = imageLoad(taaImage, uv).xyz;
+  // // ensure the posPrev is in range
+  // if (all(greaterThanEqual(ivec2(posPrev), ivec2(1))) &&
+  //     all(lessThan(ivec2(posPrev), ivec2(renderInfoUbo.data.highResSize) - ivec2(1)))) {
+  //   posPrev = vec2(uv);
+  // }
 
-  if (hit) {
-    writingCol = unpackRGBE(imageLoad(aTrousFinalResultImage, ivec2(lowResUv)).x);
+  // bool hit = imageLoad(hitImage, intLowResUv).x != 0;
+  // if (hit) {
+  //   // writingCol = unpackRGBE(imageLoad(aTrousFinalResultImage, intLowResUv).x);
 
-    // float depth = imageLoad(depthImage, uv).x;
-    // writingCol  = vec3(0.5, 0.2, 0.1) * exp(-depth);
+  //   // float depth = imageLoad(depthImage, uv).x;
+  //   // writingCol  = vec3(0.5, 0.2, 0.1) * exp(-depth);
 
-    // writingCol = unpackNormal(imageLoad(normalImage, uv).x);
+  //   // writingCol = unpackNormal(imageLoad(normalImage, uv).x);
 
-    // float histLength = imageLoad(temporalHistLengthImage, uv).x;
-    // writingCol       = exp(-histLength * 0.1) * vec3(1);
-  } else {
-    writingCol = unpackRGBE(imageLoad(backgroundImage, ivec2(lowResUv)).x);
-  }
+  //   // float histLength = imageLoad(temporalHistLengthImage, uv).x;
+  //   // writingCol       = exp(-histLength * 0.1) * vec3(1);
+  // } else {
+  //   writingCol = unpackRGBE(imageLoad(backgroundImage, intLowResUv).x);
+  // }
 
   if (twickableParametersUbo.data.visualizeOctree) {
-    writingCol += unpackRGBE(imageLoad(octreeVisualizationImage, ivec2(lowResUv)).x);
+    writingCol += unpackRGBE(imageLoad(octreeVisualizationImage, intLowResUv).x);
   }
 
-  // vec3 sum = vec3(0);
-  // vec2 sampleLocations[3], sampleWeights[3];
-  // bicubicCatmullRom(vec2(uv), sampleLocations, sampleWeights);
-  // for (int i = 0; i < 3; i++) {
-  //   for (int j = 0; j < 3; j++) {
-  //     vec2 uv = vec2(sampleLocations[j].x, sampleLocations[i].y);
-  //     // vec4 c  = imageLoad(tex, uv, 0);
-  //     vec3 c = bilinearInterpolateImage(uv).xyz;
-  //     sum += c * sampleWeights[j].x * sampleWeights[i].y;
-  //   }
-  // }
-  // writingCol = sum;
+  imageStore(taaImage, uv, uvec4(packRGBE(writingCol), 0, 0, 0));
+
+  // writingCol = unpackRGBE(imageLoad(blittedImage, intLowResUv).x).rgb;
 
   writingCol += getDitherMask(uv);
 

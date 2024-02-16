@@ -40,8 +40,8 @@ void main() {
     return;
   }
 
-  vec2 motion01 = imageLoad(motionImage, uv).xy * vec2(renderInfoUbo.data.lowResSize);
-  vec2 pUv      = vec2(uv) + motion01;
+  vec2 motion = imageLoad(motionImage, uv).xy * vec2(renderInfoUbo.data.lowResSize);
+  vec2 pUv    = vec2(uv) + motion;
 
   vec2 pBaseUv = floor(pUv);
   vec2 subpix  = fract(pUv - pBaseUv);
@@ -50,11 +50,9 @@ void main() {
   float w[4]         = {(1.0 - subpix.x) * (1.0 - subpix.y), (subpix.x) * (1.0 - subpix.y),
                         (1.0 - subpix.x) * (subpix.y), (subpix.x) * (subpix.y)};
 
-  // sum of weights of bilinear interpolation is 1
   float sumOfWeights       = 0;
   float sumOfHistLengths   = 0;
   vec3 sumOfWeightedColors = vec3(0);
-  // float varianceBlending = 0;
 
   // normal test is useful for edges (nearby disocclusions)
   vec3 normal   = unpackNormal(imageLoad(normalImage, uv).x);

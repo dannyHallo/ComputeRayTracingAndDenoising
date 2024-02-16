@@ -67,7 +67,7 @@ private:
   uint32_t _highResWidth  = 0;
   uint32_t _highResHeight = 0;
 
-  std::vector<glm::vec2> _taaSamplingOffsets{};
+  std::vector<glm::vec2> _subpixOffsets{};
 
   void _updateImageResolutions();
 
@@ -111,6 +111,8 @@ private:
   std::unique_ptr<Image> _taaImage;
   std::unique_ptr<Image> _lastTaaImage;
   std::unique_ptr<ImageForwardingPair> _taaForwardingPair;
+
+  std::unique_ptr<Image> _blittedImage;
 
   // std::unique_ptr<Image> _varianceHistImage;
   // std::unique_ptr<Image> _lastVarianceHistImage;
@@ -188,6 +190,7 @@ private:
   // std::unique_ptr<ComputePipeline> _variancePipeline;
   std::unique_ptr<ComputePipeline> _aTrousPipeline;
   std::unique_ptr<ComputePipeline> _testPipeline;
+  std::unique_ptr<ComputePipeline> _backgroundBlitPipeline;
   std::unique_ptr<ComputePipeline> _postProcessingPipeline;
 
   void _createDescriptorSetBundle();
