@@ -40,6 +40,8 @@ SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_
 }
 
 SvoTracer::~SvoTracer() {
+  vkDestroySampler(_appContext->getDevice(), _defaultSampler, nullptr);
+
   for (auto &commandBuffer : _tracingCommandBuffers) {
     vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                          &commandBuffer);
@@ -57,6 +59,8 @@ void SvoTracer::_updateImageResolutions() {
 
 void SvoTracer::init(SvoBuilder *svoBuilder) {
   _svoBuilder = svoBuilder;
+
+  _createDefaultSampler();
 
   // images
   _createImages();
@@ -100,6 +104,30 @@ void SvoTracer::_createTaaSamplingOffsets() {
 }
 
 void SvoTracer::update() { _recordRenderingCommandBuffers(); }
+
+void SvoTracer::_createDefaultSampler() {
+  VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+  samplerInfo.magFilter               = VK_FILTER_LINEAR; // For bilinear interpolation
+  samplerInfo.minFilter               = VK_FILTER_LINEAR; // For bilinear interpolation
+  samplerInfo.addressModeU            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.addressModeV            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.addressModeW            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.anisotropyEnable        = VK_FALSE;
+  samplerInfo.maxAnisotropy           = 1;
+  samplerInfo.borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+  samplerInfo.unnormalizedCoordinates = VK_FALSE;
+  samplerInfo.compareEnable           = VK_FALSE;
+  samplerInfo.compareOp               = VK_COMPARE_OP_ALWAYS;
+  samplerInfo.mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  samplerInfo.mipLodBias              = 0.0F;
+  samplerInfo.minLod                  = 0.0F;
+  samplerInfo.maxLod                  = 0.0F;
+
+  if (vkCreateSampler(_appContext->getDevice(), &samplerInfo, nullptr, &_defaultSampler) !=
+      VK_SUCCESS) {
+    throw std::runtime_error("failed to create texture sampler!");
+  }
+}
 
 void SvoTracer::_createImages() {
   _createResourseImages();
@@ -196,12 +224,14 @@ void SvoTracer::_createFullSizedImages() {
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _taaImage = std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_R32_UINT,
-                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _taaImage =
+      std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
-  _lastTaaImage =
-      std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _lastTaaImage = std::make_unique<Image>(
+      _highResWidth, _highResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+      _defaultSampler);
 
   _blittedImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                                           VK_IMAGE_USAGE_STORAGE_BIT);
@@ -732,6 +762,8 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(34, _lastTaaImage.get());
 
   _descriptorSetBundle->bindStorageImage(35, _blittedImage.get());
+
+  _descriptorSetBundle->bindImageSampler(36, _lastTaaImage.get());
 
   // _descriptorSetBundle->bindStorageImage(15, _varianceHistImage.get());
   // _descriptorSetBundle->bindStorageImage(16, _lastVarianceHistImage.get());

@@ -32,6 +32,7 @@ public:
 
   void bindUniformBufferBundle(uint32_t bindingSlot, BufferBundle *bufferBundle);
   void bindStorageImage(uint32_t bindingSlot, Image *storageImage);
+  void bindImageSampler(uint32_t bindingSlot, Image *storageImage);
   void bindStorageBuffer(uint32_t bindingSlot, Buffer *buffer);
 
   void create();
@@ -48,6 +49,7 @@ private:
   std::unordered_set<uint32_t> _boundedSlots{}; // used to check for duplicated bindings
   std::vector<std::pair<uint32_t, BufferBundle *>> _uniformBufferBundles{};
   std::vector<std::pair<uint32_t, Image *>> _storageImages{};
+  std::vector<std::pair<uint32_t, Image *>> _imageSamplers{};
   std::vector<std::pair<uint32_t, Buffer *>> _storageBuffers{};
 
   std::vector<VkDescriptorSet> _descriptorSets{};

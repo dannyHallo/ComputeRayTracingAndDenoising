@@ -78,6 +78,8 @@ private:
 
   /// IMAGES
 
+  VkSampler _defaultSampler = VK_NULL_HANDLE;
+
   // spatial-temporal blue noise (arrays of images)
   std::unique_ptr<Image> _vec2BlueNoise;
   std::unique_ptr<Image> _weightedCosineBlueNoise;
@@ -146,6 +148,8 @@ private:
   // std::unique_ptr<Image> _aTrousInputImage;
   // std::unique_ptr<Image> _aTrousOutputImage;
   // std::unique_ptr<ImageForwardingPair> _aTrousForwardingPair;
+
+  void _createDefaultSampler();
 
   void _createImages();
   void _createResourseImages();

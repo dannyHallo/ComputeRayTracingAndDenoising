@@ -66,27 +66,6 @@ vec2 highResToLowRes(ivec2 highResUv) {
          vec2(0.5) - subpixOffset;
 }
 
-vec4 bilinearInterpolateImage(vec2 uv) {
-  // Calculate the integer coordinates (bottom-left corner)
-  ivec2 baseCoord = ivec2(uv);
-
-  // Calculate fractional part to determine interpolation weights
-  vec2 fractionalPart = fract(uv);
-
-  // Load the four nearest texels
-  vec4 bl = imageLoad(taaImage, baseCoord);               // Bottom left
-  vec4 br = imageLoad(taaImage, baseCoord + ivec2(1, 0)); // Bottom right
-  vec4 tl = imageLoad(taaImage, baseCoord + ivec2(0, 1)); // Top left
-  vec4 tr = imageLoad(taaImage, baseCoord + ivec2(1, 1)); // Top right
-
-  // Interpolate between the four texels
-  vec4 bottom     = mix(bl, br, fractionalPart.x);      // Interpolate along x (bottom)
-  vec4 top        = mix(tl, tr, fractionalPart.x);      // Interpolate along x (top)
-  vec4 finalColor = mix(bottom, top, fractionalPart.y); // Interpolate along y
-
-  return finalColor;
-}
-
 void getMoments(out vec3 mom1, out vec3 mom2, out vec3 colorCenter, ivec2 uv) {
   mom1            = vec3(0);
   mom2            = vec3(0);
@@ -142,32 +121,11 @@ vec3 getAccumColor(ivec2 pUv) {
   if (any(lessThan(pUv, ivec2(0))) || any(greaterThanEqual(pUv, bound))) {
     return vec3(0);
   }
-  return unpackRGBE(imageLoad(lastTaaImage, pUv).x);
+  return imageLoad(lastTaaImage, pUv).xyz;
 }
 
 float getSampleWeight(vec2 delta, float scale) {
   return clamp(1 - scale * dot(delta, delta), 0, 1);
-}
-
-// TODO: use texelFetch to use hardware bilinear interpolation, so does the temporalFilter
-// uv is in low res space
-vec3 softwareTexelFetchColor(vec2 uv) {
-  vec2 pBaseUv = floor(uv);
-  vec2 subpix  = fract(uv - pBaseUv);
-
-  const ivec2 off[4] = {{0, 0}, {1, 0}, {0, 1}, {1, 1}};
-  float w[4]         = {(1.0 - subpix.x) * (1.0 - subpix.y), (subpix.x) * (1.0 - subpix.y),
-                        (1.0 - subpix.x) * (subpix.y), (subpix.x) * (subpix.y)};
-
-  float sumOfWeights       = 0;
-  vec3 sumOfWeightedColors = vec3(0);
-
-  for (int i = 0; i < 4; i++) {
-    ivec2 tappingUv = ivec2(pBaseUv) + off[i];
-    sumOfWeightedColors += w[i] * getAccumColor(tappingUv);
-    sumOfWeights += w[i];
-  }
-  return sumOfWeightedColors / sumOfWeights;
 }
 
 void main() {
@@ -188,9 +146,9 @@ void main() {
     // motion points to the last frame
     // look up for its motion on the low res image
     vec2 motion = getLongestMotion(intLowResUv) * vec2(renderInfoUbo.data.highResSize);
-    vec2 pUv    = vec2(uv) + motion;
+    vec2 pUv    = vec2(uv) + vec2(0.5) + motion;
 
-    vec3 colorPrev = softwareTexelFetchColor(pUv);
+    vec3 colorPrev = textureLod(lastTaaTexture, pUv * renderInfoUbo.data.highResSizeInv, 0).xyz;
 
     // neighborhood color clamping using variance
     float varianceScale = 3.0;
@@ -200,7 +158,7 @@ void main() {
     colorPrev           = clamp(colorPrev, mi, ma);
 
     // mix the new color with the clamped previous color
-    float motionWeight = smoothstep(0, 1.0, length(motion));
+    float motionWeight = smoothstep(0.0, 1.0, length(motion));
     float sampleWeight =
         getSampleWeight(lowResUv - intLowResUv, float(renderInfoUbo.data.highResSize.x) /
                                                     float(renderInfoUbo.data.lowResSize.x));
@@ -209,7 +167,7 @@ void main() {
 
     writingCol = mix(colorPrev, colorCenter, pixelWeight);
 
-    imageStore(taaImage, uv, uvec4(packRGBE(writingCol), 0, 0, 0));
+    imageStore(taaImage, uv, vec4(writingCol, 0));
   } else {
     writingCol = unpackRGBE(imageLoad(blittedImage, intLowResUv).x).rgb;
   }

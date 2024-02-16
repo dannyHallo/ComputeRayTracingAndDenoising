@@ -49,10 +49,10 @@ void _freeImageData(unsigned char *imageData) { stbi_image_free(imageData); }
 } // namespace
 
 Image::Image(uint32_t width, uint32_t height, uint32_t depth, VkFormat format,
-             VkImageUsageFlags usage, VkImageLayout initialImageLayout,
+             VkImageUsageFlags usage, VkSampler sampler, VkImageLayout initialImageLayout,
              VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags)
-    : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1), _format(format),
-      _width(width), _height(height), _depth(depth) {
+    : _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1),
+      _format(format), _width(width), _height(height), _depth(depth) {
   _createImage(numSamples, tiling, usage);
 
   if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
@@ -71,9 +71,10 @@ Image::Image(uint32_t width, uint32_t height, uint32_t depth, VkFormat format,
   // endSingleTimeCommands(device, commandPool, queue, commandBuffer);
 }
 
-Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout initialImageLayout,
-             VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags)
-    : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1),
+Image::Image(const std::string &filename, VkImageUsageFlags usage, VkSampler sampler,
+             VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
+             VkImageTiling tiling, VkImageAspectFlags aspectFlags)
+    : _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1),
       _format(VK_FORMAT_R8G8B8A8_UNORM) {
   // load image from path
   int width       = 0;
@@ -106,11 +107,11 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkImageLayout
                                  _format, aspectFlags, _depth, _layerCount);
 }
 
-Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
+Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage, VkSampler sampler,
              VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
              VkImageTiling tiling, VkImageAspectFlags aspectFlags)
-    : _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(filenames.size()),
-      _format(VK_FORMAT_R8G8B8A8_UNORM) {
+    : _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED),
+      _layerCount(filenames.size()), _format(VK_FORMAT_R8G8B8A8_UNORM) {
   std::vector<unsigned char *> imageDatas{};
 
   int width    = 0;
@@ -277,6 +278,9 @@ VkDescriptorImageInfo Image::getDescriptorInfo(VkImageLayout imageLayout) const 
   VkDescriptorImageInfo imageInfo{};
   imageInfo.imageLayout = imageLayout;
   imageInfo.imageView   = _vkImageView;
+  if (_vkSampler != VK_NULL_HANDLE) {
+    imageInfo.sampler = _vkSampler;
+  }
   return imageInfo;
 }
 

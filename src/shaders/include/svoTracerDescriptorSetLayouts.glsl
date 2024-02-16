@@ -33,15 +33,22 @@ layout(binding = 11, r32ui) uniform uimage2D voxHashImage;
 layout(binding = 12, r32ui) readonly uniform uimage2D lastVoxHashImage;
 layout(binding = 13, r32ui) uniform uimage2D accumedImage;
 layout(binding = 14, r32ui) readonly uniform uimage2D lastAccumedImage;
-layout(binding = 33, r32ui) uniform uimage2D taaImage;
-layout(binding = 34, r32ui) uniform uimage2D lastTaaImage;
+
+// these are not uint encoded because they need to be sampled
+layout(binding = 33, rgba16f) uniform image2D taaImage;
+layout(binding = 34, rgba16f) uniform image2D lastTaaImage;
+
 layout(binding = 35, r32ui) uniform uimage2D blittedImage;
+
 // layout(binding = 15, rgba32f) uniform image2D varianceHistImage;
 // layout(binding = 16, rgba32f) readonly uniform image2D lastVarianceHistImage;
+
 layout(binding = 17, r32ui) uniform uimage2D aTrousPingImage;
 layout(binding = 18, r32ui) uniform uimage2D aTrousPongImage;
 layout(binding = 25, r32ui) uniform uimage2D aTrousFinalResultImage;
 layout(binding = 19, rgba8) uniform image2D renderTargetImage;
+
+layout(binding = 36) uniform sampler2D lastTaaTexture;
 
 layout(std430, binding = 20) readonly buffer SceneDataBuffer { G_SceneInfo data; }
 sceneDataBuffer;

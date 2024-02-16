@@ -28,6 +28,14 @@ void DescriptorSetBundle::bindStorageImage(uint32_t bindingSlot, Image *storageI
   _storageImages.emplace_back(bindingSlot, storageImage);
 }
 
+void DescriptorSetBundle::bindImageSampler(uint32_t bindingSlot, Image *storageImage) {
+  // just like the func above
+  assert(_boundedSlots.find(bindingSlot) == _boundedSlots.end() && "binding socket duplicated");
+
+  _boundedSlots.insert(bindingSlot);
+  _imageSamplers.emplace_back(bindingSlot, storageImage);
+}
+
 // storage buffers are only changed by GPU rather than CPU, and their size is big, they cannot be
 // bundled
 void DescriptorSetBundle::bindStorageBuffer(uint32_t bindingSlot, Buffer *buffer) {
@@ -62,6 +70,12 @@ void DescriptorSetBundle::_createDescriptorPool() {
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, storageImageSize});
   }
 
+  uint32_t imageSamplerSize = _imageSamplers.size();
+  if (imageSamplerSize > 0) {
+    poolSizes.emplace_back(
+        VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerSize});
+  }
+
   uint32_t storageBufferSize = _storageBuffers.size();
   if (storageBufferSize > 0) {
     poolSizes.emplace_back(
@@ -84,7 +98,7 @@ void DescriptorSetBundle::_createDescriptorSetLayout() {
   // reused in descriptor set creation
   std::vector<VkDescriptorSetLayoutBinding> bindings{};
 
-  for (auto const &[bindingNo, bufferBundle] : _uniformBufferBundles) {
+  for (auto const &[bindingNo, _] : _uniformBufferBundles) {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding         = bindingNo;
     uboLayoutBinding.descriptorCount = 1;
@@ -93,7 +107,7 @@ void DescriptorSetBundle::_createDescriptorSetLayout() {
     bindings.push_back(uboLayoutBinding);
   }
 
-  for (auto const &[bindingNo, storageImage] : _storageImages) {
+  for (auto const &[bindingNo, _] : _storageImages) {
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding         = bindingNo;
     samplerLayoutBinding.descriptorCount = 1;
@@ -102,7 +116,16 @@ void DescriptorSetBundle::_createDescriptorSetLayout() {
     bindings.push_back(samplerLayoutBinding);
   }
 
-  for (auto const &[bindingNo, storageBuffer] : _storageBuffers) {
+  for (auto const &[bindingNo, _] : _imageSamplers) {
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding         = bindingNo;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    samplerLayoutBinding.stageFlags      = _shaderStageFlags;
+    bindings.push_back(samplerLayoutBinding);
+  }
+
+  for (auto const &[bindingNo, _] : _storageBuffers) {
     VkDescriptorSetLayoutBinding storageBufferBinding{};
     storageBufferBinding.binding         = bindingNo;
     storageBufferBinding.descriptorCount = 1;
@@ -133,8 +156,7 @@ void DescriptorSetBundle::_createDescriptorSet(uint32_t descriptorSetIndex) {
   }
   for (uint32_t i = 0; i < _uniformBufferBundles.size(); i++) {
     auto const &[bindingNo, _] = _uniformBufferBundles[i];
-    VkWriteDescriptorSet descriptorWrite{};
-    descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    VkWriteDescriptorSet descriptorWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
     descriptorWrite.dstSet          = dstSet;
     descriptorWrite.dstBinding      = bindingNo;
     descriptorWrite.dstArrayElement = 0;
@@ -151,14 +173,31 @@ void DescriptorSetBundle::_createDescriptorSet(uint32_t descriptorSetIndex) {
   }
   for (uint32_t i = 0; i < _storageImages.size(); i++) {
     auto const &[bindingNo, storageImage] = _storageImages[i];
-    VkWriteDescriptorSet descriptorWrite{};
-    descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    VkWriteDescriptorSet descriptorWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
     descriptorWrite.dstSet          = dstSet;
     descriptorWrite.dstBinding      = bindingNo;
     descriptorWrite.dstArrayElement = 0;
     descriptorWrite.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     descriptorWrite.descriptorCount = 1;
     descriptorWrite.pImageInfo      = &storageImageInfos[i];
+    descriptorWrites.push_back(descriptorWrite);
+  }
+
+  std::vector<VkDescriptorImageInfo> imageSamplerInfos{};
+  imageSamplerInfos.reserve(_imageSamplers.size());
+  for (auto const &[_, storageImage] : _imageSamplers) {
+    // or VK_IMAGE_LAYOUT_GENERAL TODO: check
+    imageSamplerInfos.push_back(storageImage->getDescriptorInfo(VK_IMAGE_LAYOUT_GENERAL));
+  }
+  for (uint32_t i = 0; i < _imageSamplers.size(); i++) {
+    auto const &[bindingNo, storageImage] = _imageSamplers[i];
+    VkWriteDescriptorSet descriptorWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    descriptorWrite.dstSet          = dstSet;
+    descriptorWrite.dstBinding      = bindingNo;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pImageInfo      = &imageSamplerInfos[i];
     descriptorWrites.push_back(descriptorWrite);
   }
 
@@ -169,8 +208,7 @@ void DescriptorSetBundle::_createDescriptorSet(uint32_t descriptorSetIndex) {
   }
   for (uint32_t i = 0; i < _storageBuffers.size(); i++) {
     auto const &[bindingNo, buffer] = _storageBuffers[i];
-    VkWriteDescriptorSet descriptorWrite{};
-    descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    VkWriteDescriptorSet descriptorWrite{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
     descriptorWrite.dstSet          = dstSet;
     descriptorWrite.dstBinding      = bindingNo;
     descriptorWrite.dstArrayElement = 0;
