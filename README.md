@@ -4,9 +4,7 @@ This ray tracer is loosely based on the [Ray Tracing in One Weekend series](http
 
 # Todos
 
-- [ ] TAA
 - [ ] Chunking
-- [ ] Variance calculation
 - [ ] Vma Virtual Allocator https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/virtual_allocator.html
 
 # Design Decisions
