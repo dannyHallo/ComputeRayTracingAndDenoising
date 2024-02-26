@@ -2,11 +2,10 @@
 
 #include "SvoTracerDataGpu.hpp"
 #include "scheduler/Scheduler.hpp"
-#include "utils/incl/Glm.hpp"
-#include "utils/incl/Vulkan.hpp"
+#include "utils/incl/Glm.hpp" // IWYU pragma: export
+#include "volk/volk.h"
 
 #include <memory>
-#include <utility>
 
 class Logger;
 class VulkanApplicationContext;

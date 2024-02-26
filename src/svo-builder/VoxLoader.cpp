@@ -7,7 +7,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
-#include <iomanip>
 #include <iostream>
 #include <vector>
 
@@ -76,11 +75,11 @@ uint32_t _getVoxelResolution(ogt_vox_scene const *scene,
 
   uint32_t resolution = std::max(deltaX, std::max(deltaY, deltaZ));
   // assert((resolution & (resolution - 1)) == 0 && "resolution must be a power of 2");
-  std::cout << "resolution: " << resolution << std::endl;
+  std::cout << "resolution: " << resolution << '\n';
   // now ceil that to the next power of 2
   resolution = static_cast<uint32_t>(std::pow(2, std::ceil(std::log(resolution) / std::log(2))));
 
-  std::cout << "ceiled resolution: " << resolution << std::endl;
+  std::cout << "ceiled resolution: " << resolution << '\n';
 
   return resolution;
 }
@@ -149,7 +148,7 @@ VoxData _parseSceneInstances(ogt_vox_scene const *scene,
     }
   }
 
-  std::cout << "fragment list size: " << voxData.fragmentList.size() << std::endl;
+  std::cout << "fragment list size: " << voxData.fragmentList.size() << '\n';
 
   return voxData;
 }

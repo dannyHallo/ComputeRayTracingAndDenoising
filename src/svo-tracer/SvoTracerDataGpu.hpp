@@ -1,6 +1,4 @@
-#include "utils/incl/Glm.hpp"
-
-#include <cstdint>
+#include "utils/incl/Glm.hpp" // IWYU pragma: export
 
 // alignment rule:
 // https://www.oreilly.com/library/view/opengl-programming-guide/9780132748445/app09lev1sec3.html
@@ -11,7 +9,7 @@
 #define bool alignas(4) bool
 #define uint uint32_t
 
-#include "shaders/include/svoTracerDataStructs.glsl"
+#include "shaders/include/svoTracerDataStructs.glsl" // IWYU pragma: export
 
 #undef vec3
 #undef vec2

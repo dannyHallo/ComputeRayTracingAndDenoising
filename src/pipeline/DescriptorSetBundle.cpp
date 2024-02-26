@@ -58,25 +58,25 @@ void DescriptorSetBundle::_createDescriptorPool() {
   // pool sizes info indicates how many descriptors of a certain type can be
   // allocated from the pool - NOT THE SET!
 
-  uint32_t uniformBufferSize = _uniformBufferBundles.size() * _bundleSize;
+  auto uniformBufferSize = static_cast<uint32_t>(_uniformBufferBundles.size() * _bundleSize);
   if (uniformBufferSize > 0) {
     poolSizes.emplace_back(
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, uniformBufferSize});
   }
 
-  uint32_t storageImageSize = _storageImages.size();
+  auto storageImageSize = static_cast<uint32_t>(_storageImages.size());
   if (storageImageSize > 0) {
     poolSizes.emplace_back(
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, storageImageSize});
   }
 
-  uint32_t imageSamplerSize = _imageSamplers.size();
+  auto imageSamplerSize = static_cast<uint32_t>(_imageSamplers.size());
   if (imageSamplerSize > 0) {
     poolSizes.emplace_back(
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imageSamplerSize});
   }
 
-  uint32_t storageBufferSize = _storageBuffers.size();
+  auto storageBufferSize = static_cast<uint32_t>(_storageBuffers.size());
   if (storageBufferSize > 0) {
     poolSizes.emplace_back(
         VkDescriptorPoolSize{VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, storageBufferSize});
@@ -85,9 +85,9 @@ void DescriptorSetBundle::_createDescriptorPool() {
   VkDescriptorPoolCreateInfo poolInfo{};
   poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
   // the max number of descriptor sets that can be allocated from this pool
-  poolInfo.maxSets       = _bundleSize;
+  poolInfo.maxSets       = static_cast<uint32_t>(_bundleSize);
   poolInfo.pPoolSizes    = poolSizes.data();
-  poolInfo.poolSizeCount = poolSizes.size();
+  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 
   vkCreateDescriptorPool(_appContext->getDevice(), &poolInfo, nullptr, &_descriptorPool);
 }
@@ -229,7 +229,7 @@ void DescriptorSetBundle::_createDescriptorSets() {
   VkDescriptorSetAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   allocInfo.descriptorPool     = _descriptorPool;
-  allocInfo.descriptorSetCount = _bundleSize;
+  allocInfo.descriptorSetCount = static_cast<uint32_t>(_bundleSize);
   allocInfo.pSetLayouts        = layouts.data();
 
   _descriptorSets.resize(_bundleSize);

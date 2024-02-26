@@ -7,9 +7,7 @@
 #include "utils/file-io/ShaderFileReader.hpp"
 #include "utils/shader-compiler/ShaderCompiler.hpp"
 
-#include <cassert>
 #include <memory>
-#include <vector>
 
 ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *logger,
                                  Scheduler *scheduler, std::string shaderFileName,
@@ -76,9 +74,9 @@ void ComputePipeline::recordCommand(VkCommandBuffer commandBuffer, uint32_t curr
                                     uint32_t threadCountX, uint32_t threadCountY,
                                     uint32_t threadCountZ) {
   _bind(commandBuffer, currentFrame);
-  vkCmdDispatch(commandBuffer, std::ceil((float)threadCountX / (float)_workGroupSize.x),
-                std::ceil((float)threadCountY / (float)_workGroupSize.y),
-                std::ceil((float)threadCountZ / (float)_workGroupSize.z));
+  vkCmdDispatch(commandBuffer, static_cast<uint32_t>(std::ceil((float)threadCountX / (float)_workGroupSize.x)),
+                static_cast<uint32_t>(std::ceil((float)threadCountY / (float)_workGroupSize.y)),
+                static_cast<uint32_t>(std::ceil((float)threadCountZ / (float)_workGroupSize.z)));
 }
 
 void ComputePipeline::recordIndirectCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame,

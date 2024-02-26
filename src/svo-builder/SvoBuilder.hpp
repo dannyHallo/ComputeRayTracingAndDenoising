@@ -1,12 +1,9 @@
 #pragma once
 
-#include "SvoBuilderDataGpu.hpp"
 #include "scheduler/Scheduler.hpp"
-#include "utils/incl/Vulkan.hpp"
+#include "volk/volk.h"
 
-#include <array>
 #include <memory>
-#include <vector>
 
 struct VoxData;
 

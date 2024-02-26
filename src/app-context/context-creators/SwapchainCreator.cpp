@@ -116,7 +116,7 @@ void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
     // images can be used across multiple queue families without explicit
     // ownership transfers.
     swapchainCreateInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
-    swapchainCreateInfo.queueFamilyIndexCount = queueFamilyIndicesArray.size();
+    swapchainCreateInfo.queueFamilyIndexCount = static_cast<uint32_t>(queueFamilyIndicesArray.size());
     swapchainCreateInfo.pQueueFamilyIndices   = queueFamilyIndicesArray.data();
   } else {
     // an image is owned by one queue family at a time and ownership must be

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstdint>
+#include <cstdint> // IWYU pragma: export
 
 #define uint uint32_t
 
-#include "shaders/include/svoBuilderDataStructs.glsl"
+#include "shaders/include/svoBuilderDataStructs.glsl" // IWYU pragma: export
 
 #undef vec3
 #undef mat4

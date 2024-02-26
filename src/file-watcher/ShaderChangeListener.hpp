@@ -4,7 +4,6 @@
 #include "efsw/efsw.hpp"
 
 #include <memory>
-#include <queue>
 #include <unordered_map>
 #include <unordered_set>
 

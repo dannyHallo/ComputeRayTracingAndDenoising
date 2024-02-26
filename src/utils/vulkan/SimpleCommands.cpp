@@ -1,6 +1,3 @@
-#include <memory>
-#include <vector>
-
 #include "SimpleCommands.hpp"
 
 VkCommandBuffer beginSingleTimeCommands(VkDevice device, VkCommandPool commandPool) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/incl/Vulkan.hpp"
+#include "volk/volk.h"
 
 #include <cstdint>
 #include <vector>
@@ -8,10 +8,10 @@
 namespace ContextCreator {
 // stores the indices of the each queue family, they might not overlap
 struct QueueFamilyIndices {
-  uint32_t graphicsFamily = -1;
-  uint32_t presentFamily  = -1;
-  uint32_t computeFamily  = -1;
-  uint32_t transferFamily = -1;
+  uint32_t graphicsFamily = 0;
+  uint32_t presentFamily  = 0;
+  uint32_t computeFamily  = 0;
+  uint32_t transferFamily = 0;
 };
 
 struct SwapchainSupportDetails {

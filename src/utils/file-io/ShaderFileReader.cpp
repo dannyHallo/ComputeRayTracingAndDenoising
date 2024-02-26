@@ -2,6 +2,8 @@
 
 #include "utils/logger/Logger.hpp"
 
+#include <fstream>
+
 namespace ShaderFileReader {
 std::string readShaderSourceCode(const std::string &filename, Logger *logger) {
   std::ifstream file(filename);

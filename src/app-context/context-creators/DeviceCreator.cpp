@@ -4,7 +4,6 @@
 #include "utils/logger/Logger.hpp"
 
 #include <set>
-
 namespace {
 bool _queueIndicesAreFilled(const ContextCreator::QueueFamilyIndices &indices) {
   return indices.computeFamily != -1 && indices.transferFamily != -1 &&

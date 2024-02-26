@@ -2,17 +2,13 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-#include "Buffer.hpp"
-#include "utils/incl/Vulkan.hpp"
-#include "utils/logger/Logger.hpp"
+#include "volk/volk.h"
 #include "utils/vulkan/SimpleCommands.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb-image/stb_image.h"
 
 #include <cassert>
-#include <cmath>
-#include <iostream>
 #include <string>
 #include <unordered_map>
 
@@ -111,7 +107,7 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
              VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
              VkImageTiling tiling, VkImageAspectFlags aspectFlags)
     : _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED),
-      _layerCount(filenames.size()), _format(VK_FORMAT_R8G8B8A8_UNORM) {
+      _layerCount(static_cast<uint32_t>(filenames.size())), _format(VK_FORMAT_R8G8B8A8_UNORM) {
   std::vector<unsigned char *> imageDatas{};
 
   int width    = 0;

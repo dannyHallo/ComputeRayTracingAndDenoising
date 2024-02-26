@@ -1,11 +1,7 @@
 #pragma once
 
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
+#include "utils/incl/Glm.hpp" // IWYU pragma: export
 #include "window/Window.hpp"
-
-#include <iostream>
-#include <vector>
 
 // An abstract camera class that processes input and calculates the
 // corresponding Euler Angles, Vectors and Matrices for use in OpenGL

@@ -1,20 +1,15 @@
 #include "SvoBuilder.hpp"
 
-#include "SvoBuilderDataGpu.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "memory/Buffer.hpp"
 #include "memory/Image.hpp"
 #include "pipeline/ComputePipeline.hpp"
 #include "pipeline/DescriptorSetBundle.hpp"
 #include "svo-builder/VoxLoader.hpp"
-#include "utils/config/RootDir.h"
 #include "utils/file-io/ShaderFileReader.hpp"
 #include "utils/logger/Logger.hpp"
 
-#include <chrono>
 #include <cmath>
-#include <iostream>
-#include <stack>
 
 static uint32_t constexpr kChunkSize = 256;
 

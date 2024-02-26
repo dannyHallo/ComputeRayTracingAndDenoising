@@ -2,7 +2,15 @@
 
 #include "utils/logger/Logger.hpp"
 
+// glfw3 will define APIENTRY if it is not defined yet
+#include "GLFW/glfw3.h"
+#ifdef APIENTRY
+#undef APIENTRY
+#endif
+// we undefine this to solve conflict with systemLog
+
 #include <cassert>
+#include <iostream>
 #include <set>
 
 namespace {
@@ -19,7 +27,7 @@ _debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT /*messageSeverity*/,
   // if (messageSeverity >=
   // VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT){...}
 
-  std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+  std::cerr << "validation layer: " << pCallbackData->pMessage << '\n';
   return VK_FALSE;
 }
 

@@ -1,7 +1,6 @@
 // Copyright(c) 2015-present, Gabi Melman & spdlog contributors.
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
-#pragma GCC system_header
 #pragma once
 
 #ifdef _WIN32

@@ -3,7 +3,15 @@ set_project("Voxel Lab")
 set_arch("x64")
 set_warnings("all")
 set_languages("c++20")
-set_toolchains("clang")
+
+-- https://xmake.io/mirror/manual/custom_toolchain.html
+-- clang 17 is explicitly used here to because the compiler might not be in the PATH
+toolchain("clang17")
+    set_kind("standalone")
+    set_bindir("D:/LLVM17/bin/clang.exe")
+toolchain_end()
+
+set_toolchains("clang17")
 
 add_rules("mode.debug", "mode.release")
 add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})

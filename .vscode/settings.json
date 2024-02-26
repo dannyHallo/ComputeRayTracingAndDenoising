@@ -1,4 +1,5 @@
 {
+  "clangd.path": "D:/LLVM17/bin/clangd.exe",
   "clangd.arguments": [
     // number of async workers used by clangd. background index also uses this many workers
     "-j=16",

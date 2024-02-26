@@ -3,7 +3,6 @@
 #include "pipeline/Pipeline.hpp"
 
 #include <memory>
-#include <vector>
 
 struct WorkGroupSize {
   uint32_t x;

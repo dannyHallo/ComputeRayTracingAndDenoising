@@ -5,8 +5,6 @@
 #include "utils/event/EventType.hpp"
 #include "utils/logger/Logger.hpp"
 
-
-#include <cstdint>
 #include <memory>
 #include <vector>
 

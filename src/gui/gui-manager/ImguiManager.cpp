@@ -156,9 +156,9 @@ void ImguiManager::_createGuiDescripterPool() {
   // descriptor sets to be de-allocated
   poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
   // imgui actually uses only 1 descriptor set
-  poolInfo.maxSets       = kMaxDescriptorCount * poolSizes.size();
+  poolInfo.maxSets       = static_cast<uint32_t>(kMaxDescriptorCount * poolSizes.size());
   poolInfo.pPoolSizes    = poolSizes.data();
-  poolInfo.poolSizeCount = poolSizes.size();
+  poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 
   vkCreateDescriptorPool(_appContext->getDevice(), &poolInfo, nullptr, &_guiDescriptorPool);
 }

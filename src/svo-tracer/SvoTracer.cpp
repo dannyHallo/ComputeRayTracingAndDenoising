@@ -448,7 +448,7 @@ void SvoTracer::_recordRenderingCommandBuffers() {
   memoryBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
   memoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
-  for (size_t frameIndex = 0; frameIndex < _tracingCommandBuffers.size(); frameIndex++) {
+  for (uint32_t frameIndex = 0; frameIndex < _tracingCommandBuffers.size(); frameIndex++) {
     auto &cmdBuffer = _tracingCommandBuffers[frameIndex];
 
     VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};

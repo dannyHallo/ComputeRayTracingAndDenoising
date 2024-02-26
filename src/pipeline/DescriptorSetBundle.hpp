@@ -2,7 +2,7 @@
 
 #include "memory/Image.hpp"
 
-#include "utils/incl/Vulkan.hpp"
+#include "volk/volk.h"
 
 #include <unordered_set>
 #include <utility>
@@ -23,7 +23,7 @@ public:
   // default copy and move
   DescriptorSetBundle(const DescriptorSetBundle &)            = default;
   DescriptorSetBundle &operator=(const DescriptorSetBundle &) = default;
-  DescriptorSetBundle(DescriptorSetBundle &&)                 = default;
+  DescriptorSetBundle(DescriptorSetBundle &&)                  noexcept = default;
   DescriptorSetBundle &operator=(DescriptorSetBundle &&)      = default;
 
   [[nodiscard]] size_t getBundleSize() const { return _bundleSize; }

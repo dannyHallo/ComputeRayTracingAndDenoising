@@ -6,7 +6,6 @@
 #include "utils/logger/Logger.hpp"
 
 #include <map>
-#include <memory>
 #include <vector>
 
 static const std::map<VkShaderStageFlags, VkPipelineBindPoint> kShaderStageFlagsToBindPoint{

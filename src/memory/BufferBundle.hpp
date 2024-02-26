@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Buffer.hpp"
-#include "app-context/VulkanApplicationContext.hpp"
 
 #include <memory>
 #include <vector>
