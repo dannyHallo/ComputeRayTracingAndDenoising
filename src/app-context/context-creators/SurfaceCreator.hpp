@@ -3,7 +3,7 @@
 #include "volk/volk.h"
 
 // glfw3 will define APIENTRY if it is not defined yet
-#include "GLFW/glfw3.h"
+#include "glfw/glfw3.h"
 #ifdef APIENTRY
 #undef APIENTRY
 #endif

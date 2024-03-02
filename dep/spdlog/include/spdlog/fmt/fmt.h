@@ -3,6 +3,7 @@
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 //
 
+#pragma system_header
 #pragma once
 
 //

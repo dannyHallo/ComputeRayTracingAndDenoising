@@ -2,8 +2,8 @@
 
 #include "utils/incl/Glm.hpp" // IWYU pragma: export
 
-#include "spdlog/spdlog.h" // IWYU pragma: export
 #include "spdlog/sinks/stdout_color_sinks.h"
+#include "spdlog/spdlog.h" // IWYU pragma: export
 
 #include "volk/volk.h"
 
@@ -19,10 +19,10 @@ public:
   Logger() {
     // the normal logger is designed to showcase the log level
     _spdLogger = spdlog::stdout_color_mt("normalLogger");
-    // %^ marks the beginning of the colorized section.
-    // %l specifies that the log level should be inserted here.
-    // %$ marks the end of the colorized section.
-    _spdLogger->set_pattern("%^[%l] %v%$");
+    // %^ marks the beginning of the colorized section
+    // %l will be replaced by the current log level
+    // %$ marks the end of the colorized section
+    _spdLogger->set_pattern("%^[%l]%$ %v");
 
     // the println logger is designed to print without any log level
     _printlnSpdLogger = spdlog::stdout_color_mt("printlnLogger");

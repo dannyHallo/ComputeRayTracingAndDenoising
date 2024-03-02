@@ -185,6 +185,8 @@
         #include "path/to/ogt_vox.h"
 */
 
+#pragma system_header
+
 #ifndef OGT_VOX_H__
 #define OGT_VOX_H__
 
