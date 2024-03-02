@@ -8,7 +8,7 @@ set_languages("c++20")
 -- clang 17 is explicitly used here to because the compiler might not be in the PATH
 toolchain("clang17")
     set_kind("standalone")
-    set_bindir("D:/LLVM17/bin")
+    set_bindir("D:/LLVM17/bin/")
     set_toolset("cc", "clang")
     set_toolset("cxx", "clang")
 toolchain_end()
