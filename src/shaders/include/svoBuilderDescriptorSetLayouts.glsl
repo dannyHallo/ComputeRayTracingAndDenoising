@@ -4,6 +4,7 @@
 #include "include/svoBuilderDataStructs.glsl"
 
 layout(binding = 6, r32f) uniform image3D chunkFieldImage;
+layout(binding = 8, r32ui) uniform uimage3D chunksImage;
 
 layout(std430, binding = 7) writeonly buffer IndirectFragLengthBuffer {
   G_IndirectDispatchInfo data;
@@ -21,5 +22,7 @@ layout(std430, binding = 4) writeonly buffer IndirectAllocNumBuffer { G_Indirect
 indirectAllocNumBuffer;
 layout(std430, binding = 5) buffer FragmentListInfoBuffer { G_FragmentListInfo data; }
 fragmentListInfoBuffer;
+layout(std430, binding = 9) buffer ChunksInfoUniformBuffer { G_ChunksInfo data; }
+chunksInfoBuffer;
 
 #endif // SVO_BUILDER_DESCRIPTOR_SET_GLSL

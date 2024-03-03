@@ -1,6 +1,10 @@
 #ifndef SVO_BUILDER_DATA_STRUCTS_GLSL
 #define SVO_BUILDER_DATA_STRUCTS_GLSL
 
+struct G_ChunksInfo {
+  uvec3 chunksDim;
+};
+
 struct G_FragmentListEntry {
   uint coordinates;
   uint properties;

@@ -20,6 +20,7 @@ ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *l
 
 ComputePipeline::~ComputePipeline() = default;
 
+// the shader module must be cached before this step
 void ComputePipeline::build() {
   _cleanupPipelineAndLayout();
 
@@ -52,7 +53,7 @@ void ComputePipeline::build() {
                            nullptr, &_pipeline);
 }
 
-bool ComputePipeline::buildAndCacheShaderModule(bool allowBuildFail) {
+bool ComputePipeline::compileAndCacheShaderModule(bool allowBuildFail) {
   auto const shaderSourceCode =
       ShaderFileReader::readShaderSourceCode(kRootDir + "src/shaders/" + _shaderFileName, _logger);
   auto const _shaderCode = _shaderCompiler->compileComputeShader(_shaderFileName, shaderSourceCode);
@@ -74,7 +75,8 @@ void ComputePipeline::recordCommand(VkCommandBuffer commandBuffer, uint32_t curr
                                     uint32_t threadCountX, uint32_t threadCountY,
                                     uint32_t threadCountZ) {
   _bind(commandBuffer, currentFrame);
-  vkCmdDispatch(commandBuffer, static_cast<uint32_t>(std::ceil((float)threadCountX / (float)_workGroupSize.x)),
+  vkCmdDispatch(commandBuffer,
+                static_cast<uint32_t>(std::ceil((float)threadCountX / (float)_workGroupSize.x)),
                 static_cast<uint32_t>(std::ceil((float)threadCountY / (float)_workGroupSize.y)),
                 static_cast<uint32_t>(std::ceil((float)threadCountZ / (float)_workGroupSize.z)));
 }

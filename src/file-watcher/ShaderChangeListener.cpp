@@ -61,7 +61,7 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
   for (auto const &pipeline : _pipelinesToRebuild) {
     // if shader module is rebuilt, then rebuild the pipeline, this is fail safe, because a valid
     // shader module is previously built and cached when initializing
-    if (pipeline->buildAndCacheShaderModule(true)) {
+    if (pipeline->compileAndCacheShaderModule(true)) {
       pipeline->build();
       schedulersNeededToBeUpdated.insert(pipeline->getScheduler());
       continue;

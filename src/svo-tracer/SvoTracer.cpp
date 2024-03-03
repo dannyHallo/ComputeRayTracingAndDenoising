@@ -787,43 +787,43 @@ void SvoTracer::_createPipelines() {
   _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "svoCoarseBeam.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
-  _svoCourseBeamPipeline->buildAndCacheShaderModule(false);
+  _svoCourseBeamPipeline->compileAndCacheShaderModule(false);
   _svoCourseBeamPipeline->build();
 
   _svoTracingPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "svoTracing.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
-  _svoTracingPipeline->buildAndCacheShaderModule(false);
+  _svoTracingPipeline->compileAndCacheShaderModule(false);
   _svoTracingPipeline->build();
 
   _temporalFilterPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "temporalFilter.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
-  _temporalFilterPipeline->buildAndCacheShaderModule(false);
+  _temporalFilterPipeline->compileAndCacheShaderModule(false);
   _temporalFilterPipeline->build();
 
   _aTrousPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "aTrous.comp", WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(),
       _shaderChangeListener);
-  _aTrousPipeline->buildAndCacheShaderModule(false);
+  _aTrousPipeline->compileAndCacheShaderModule(false);
   _aTrousPipeline->build();
 
   // _testPipeline = std::make_unique<ComputePipeline>(
   //     _appContext, _logger, this, "test.comp", WorkGroupSize{8, 8, 1},
   //     _descriptorSetBundle.get(), _shaderChangeListener);
-  // _testPipeline->buildAndCacheShaderModule(false);
+  // _testPipeline->compileAndCacheShaderModule(false);
   // _testPipeline->build();
 
   _backgroundBlitPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "backgroundBlit.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
-  _backgroundBlitPipeline->buildAndCacheShaderModule(false);
+  _backgroundBlitPipeline->compileAndCacheShaderModule(false);
   _backgroundBlitPipeline->build();
 
   _postProcessingPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "postProcessing.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
-  _postProcessingPipeline->buildAndCacheShaderModule(false);
+  _postProcessingPipeline->compileAndCacheShaderModule(false);
   _postProcessingPipeline->build();
 }
 

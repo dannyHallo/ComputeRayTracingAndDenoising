@@ -29,7 +29,7 @@ public:
   ComputePipeline &operator=(ComputePipeline &&)      = delete;
 
   void build() override;
-  bool buildAndCacheShaderModule(bool allowBuildFail) override;
+  bool compileAndCacheShaderModule(bool allowBuildFail) override;
 
   void recordCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame, uint32_t threadCountX,
                      uint32_t threadCountY, uint32_t threadCountZ);

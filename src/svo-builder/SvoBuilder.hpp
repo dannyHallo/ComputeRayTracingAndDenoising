@@ -51,10 +51,13 @@ private:
 
   /// IMAGES
   std::unique_ptr<Image> _chunkFieldImage;
+  std::unique_ptr<Image> _chunksImage;
 
   void _createImages();
 
   /// BUFFERS
+  std::unique_ptr<Buffer> _chunksInfoBuffer;
+
   std::unique_ptr<Buffer> _indirectFragLengthBuffer;
   std::unique_ptr<Buffer> _counterBuffer;
   std::unique_ptr<Buffer> _octreeBuffer;
@@ -67,6 +70,8 @@ private:
   void _initBufferData();
 
   /// PIPELINES
+
+  std::unique_ptr<ComputePipeline> _chunksBuilderPipeline;
 
   std::unique_ptr<ComputePipeline> _chunkFieldConstructionPipeline;
   std::unique_ptr<ComputePipeline> _chunkVoxelCreationPipeline;

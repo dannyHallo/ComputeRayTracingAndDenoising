@@ -1,3 +1,5 @@
+#pragma once
+
 #include "utils/incl/Glm.hpp" // IWYU pragma: export
 
 // alignment rule:
