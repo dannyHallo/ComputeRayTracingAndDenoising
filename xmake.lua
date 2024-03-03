@@ -12,6 +12,7 @@ toolchain("clang17")
     set_toolset("cc", "clang")
     set_toolset("cxx", "clang")
 toolchain_end()
+-- you have to use clang, rather than vs proviced cl.exe, to fully enable the cache compiling features
 
 set_toolchains("clang17")
 
