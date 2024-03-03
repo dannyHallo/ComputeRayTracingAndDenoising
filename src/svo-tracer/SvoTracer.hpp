@@ -184,6 +184,8 @@ private:
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
+  std::unique_ptr<ComputePipeline> _chunksTracingPipeline;
+
   // std::unique_ptr<ComputePipeline> _gradientProjectionPipeline;
   std::unique_ptr<ComputePipeline> _svoCourseBeamPipeline;
   std::unique_ptr<ComputePipeline> _svoTracingPipeline;

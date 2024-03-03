@@ -6,13 +6,14 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 #include "include/svoBuilderDescriptorSetLayouts.glsl"
 
 void main() {
-  if (any(greaterThanEqual(gl_GlobalInvocationID, ivec3(chunksInfoBuffer.data.chunksDim)))) {
+  ivec3 uv = ivec3(gl_GlobalInvocationID);
+  if (any(greaterThanEqual(uv, ivec3(chunksInfoBuffer.data.chunksDim)))) {
     return;
   }
 
-  // now the chunksDim is 3
-  if (gl_GlobalInvocationID.x == 1 && gl_GlobalInvocationID.y == 1 &&
-      gl_GlobalInvocationID.z == 1) {
-    imageStore(chunksImage, ivec3(gl_GlobalInvocationID), uvec4(1, 0, 0, 0));
+  // chunksDim is odd, if the thread is at middle...
+  uint mid = uint(chunksInfoBuffer.data.chunksDim / 2.0);
+  if (uv.x == mid && uv.y == mid && uv.z == mid) {
+    imageStore(chunksImage, uv, uvec4(1, 0, 0, 0));
   }
 }

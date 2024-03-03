@@ -56,6 +56,8 @@ SvoBuilder::~SvoBuilder() {
   vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1, &_commandBuffer);
 }
 
+glm::uvec3 SvoBuilder::getChunksDim() { return {kChunkDim, kChunkDim, kChunkDim}; }
+
 void SvoBuilder::init() {
   _voxelLevelCount = static_cast<uint32_t>(std::log2(kChunkVoxelDim));
 
@@ -173,7 +175,7 @@ void SvoBuilder::_initBufferData() {
   _fragmentListInfoBuffer->fillData(&fragmentListInfo);
 
   G_ChunksInfo chunksInfo{};
-  chunksInfo.chunksDim = glm::uvec3(kChunkDim, kChunkDim, kChunkDim);
+  chunksInfo.chunksDim = getChunksDim();
   _chunksInfoBuffer->fillData(&chunksInfo);
 }
 

@@ -17,6 +17,8 @@ spatialFilterInfoUbo;
 layout(binding = 2, rgba8) readonly uniform image2DArray vec2BlueNoise;
 layout(binding = 3, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
 
+layout(binding = 37, r32ui) uniform uimage3D chunksImage;
+
 layout(binding = 29, r32ui) uniform uimage2D backgroundImage;
 layout(binding = 4, r32f) uniform image2D beamDepthImage;
 layout(binding = 5, r32ui) uniform uimage2D rawImage;
@@ -50,8 +52,8 @@ layout(binding = 19, rgba8) uniform image2D renderTargetImage;
 
 layout(binding = 36) uniform sampler2D lastTaaTexture;
 
-layout(std430, binding = 20) readonly buffer SceneDataBuffer { G_SceneInfo data; }
-sceneDataBuffer;
+layout(std430, binding = 20) readonly buffer SceneInfoBuffer { G_SceneInfo data; }
+sceneInfoBuffer;
 layout(std430, binding = 21) readonly buffer OctreeBuffer { uint[] octreeBuffer; };
 // layout(std430, binding = 22) readonly buffer PaletteBuffer { uint[] paletteBuffer; };
 layout(binding = 24) readonly buffer ATrousIterationBuffer { uint data; }

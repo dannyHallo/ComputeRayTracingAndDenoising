@@ -3,6 +3,8 @@
 #include "scheduler/Scheduler.hpp"
 #include "volk/volk.h"
 
+#include "utils/incl/Glm.hpp" // IWYU pragma: export
+
 #include <memory>
 
 struct VoxData;
@@ -33,8 +35,10 @@ public:
   void build(VkFence svoBuildingDoneFence);
 
   Buffer *getOctreeBuffer() { return _octreeBuffer.get(); }
+  Image *getChunksImage() { return _chunksImage.get(); }
 
   [[nodiscard]] uint32_t getVoxelLevelCount() const { return _voxelLevelCount; }
+  [[nodiscard]] static glm::uvec3 getChunksDim();
 
 private:
   VulkanApplicationContext *_appContext;

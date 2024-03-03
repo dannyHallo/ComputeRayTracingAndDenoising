@@ -414,7 +414,8 @@ void SvoTracer::_createBuffersAndBufferBundles() {
 }
 
 void SvoTracer::_initBufferData() {
-  G_SceneInfo sceneData = {kBeamResolution, _svoBuilder->getVoxelLevelCount()};
+  G_SceneInfo sceneData = {kBeamResolution, _svoBuilder->getVoxelLevelCount(),
+                           SvoBuilder::getChunksDim()};
   _sceneInfoBuffer->fillData(&sceneData);
 
   for (uint32_t i = 0; i < kATrousSize; i++) {
@@ -467,22 +468,7 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          nullptr                               // image memory barriers
     );
 
-    _renderTargetImage->clearImage(cmdBuffer);
-    // _aTrousInputImage->clearImage(cmdBuffer);
-    // _aTrousOutputImage->clearImage(cmdBuffer);
-    // _stratumOffsetImage->clearImage(cmdBuffer);
-    // _perStratumLockingImage->clearImage(cmdBuffer);
-    // _visibilityImage->clearImage(cmdBuffer);
-    // _seedVisibilityImage->clearImage(cmdBuffer);
-    // _temporalGradientNormalizationImagePing->clearImage(cmdBuffer);
-    // _temporalGradientNormalizationImagePong->clearImage(cmdBuffer);
-
-    // _PipelinesHolder->getGradientProjectionModel()->computeCommand(cmdBuffer, imageIndex, w, h,
-    // 1);
-
-    // vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-    //                      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 0,
-    //                      nullptr);
+    // _renderTargetImage->clearImage(cmdBuffer);
 
     _svoCourseBeamPipeline->recordCommand(
         cmdBuffer, frameIndex,
@@ -499,6 +485,16 @@ void SvoTracer::_recordRenderingCommandBuffers() {
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
+
+    // TODO: remove this
+
+    _chunksTracingPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
+
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
+                         nullptr);
+
+    // TODO: remove this
 
     _temporalFilterPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
 
@@ -741,6 +737,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(2, _vec2BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(3, _weightedCosineBlueNoise.get());
 
+  _descriptorSetBundle->bindStorageImage(37, _svoBuilder->getChunksImage());
   _descriptorSetBundle->bindStorageImage(29, _backgroundImage.get());
   _descriptorSetBundle->bindStorageImage(4, _beamDepthImage.get());
   _descriptorSetBundle->bindStorageImage(5, _rawImage.get());
@@ -784,6 +781,12 @@ void SvoTracer::_createDescriptorSetBundle() {
 }
 
 void SvoTracer::_createPipelines() {
+  _chunksTracingPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, "chunksTracing.comp", WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderChangeListener);
+  _chunksTracingPipeline->compileAndCacheShaderModule(false);
+  _chunksTracingPipeline->build();
+
   _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "svoCoarseBeam.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
@@ -828,11 +831,11 @@ void SvoTracer::_createPipelines() {
 }
 
 void SvoTracer::_updatePipelinesDescriptorBundles() {
+  _chunksTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _svoCourseBeamPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _svoTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _temporalFilterPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _aTrousPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
-  // _testPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _backgroundBlitPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _postProcessingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
 }

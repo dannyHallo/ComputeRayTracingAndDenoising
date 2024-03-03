@@ -45,6 +45,7 @@ struct G_TwickableParameters {
 struct G_SceneInfo {
   uint beamResolution;
   uint voxelLevelCount;
+  uvec3 chunksDim;
 };
 
 struct G_TemporalFilterInfo {

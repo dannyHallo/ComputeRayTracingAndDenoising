@@ -1,0 +1,105 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#include "include/svoTracerDescriptorSetLayouts.glsl"
+
+#include "include/packer.glsl"
+#include "include/projection.glsl"
+
+bool getVoxel(ivec3 pos) {
+  // offset here
+  pos -= ivec3(sceneInfoBuffer.data.chunksDim);
+  return imageLoad(chunksImage, pos).x > 0;
+}
+
+// subpixOffset ranges from -0.5 to 0.5
+void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
+  vec2 screenSpaceUv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5) + subpixOffset) /
+                       vec2(renderInfoUbo.data.lowResSize);
+  o = renderInfoUbo.data.camPosition;
+  d = normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
+                renderInfoUbo.data.camPosition);
+}
+
+#define USE_BRANCHLESS_DDA false
+
+void main() {
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
+    return;
+  }
+
+  vec3 o, d;
+  rayGen(o, d, vec2(0));
+
+  ivec3 mapPos   = ivec3(floor(o));
+  vec3 deltaDist = 1.0 / abs(d);
+  ivec3 rayStep  = ivec3(sign(d));
+  vec3 sideDist  = (((sign(d) * 0.5) + 0.5) + sign(d) * (vec3(mapPos) - o)) * deltaDist;
+
+  bvec3 mask;
+
+  for (int i = 0; i < 100; i++) {
+    if (getVoxel(mapPos)) break;
+
+    if (USE_BRANCHLESS_DDA) {
+      // Thanks kzy for the suggestion!
+      mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
+      /*bvec3 b1 = lessThan(sideDist.xyz, sideDist.yzx);
+      bvec3 b2 = lessThanEqual(sideDist.xyz, sideDist.zxy);
+      mask.x = b1.x && b2.x;
+      mask.y = b1.y && b2.y;
+      mask.z = b1.z && b2.z;*/
+      // Would've done mask = b1 && b2 but the compiler is making me do it component wise.
+
+      // All components of mask are false except for the corresponding largest component
+      // of sideDist, which is the axis along which the ray should be incremented.
+
+      sideDist += vec3(mask) * deltaDist;
+      mapPos += ivec3(vec3(mask)) * rayStep;
+    } else {
+      if (sideDist.x < sideDist.y) {
+        // x is the smallest
+        if (sideDist.x < sideDist.z) {
+          sideDist.x += deltaDist.x;
+          mapPos.x += rayStep.x;
+          mask = bvec3(true, false, false);
+        }
+        // z is the smallest
+        else {
+          sideDist.z += deltaDist.z;
+          mapPos.z += rayStep.z;
+          mask = bvec3(false, false, true);
+        }
+      } else {
+        // y is the smallest
+        if (sideDist.y < sideDist.z) {
+          sideDist.y += deltaDist.y;
+          mapPos.y += rayStep.y;
+          mask = bvec3(false, true, false);
+        }
+        // z is the smallest
+        else {
+          sideDist.z += deltaDist.z;
+          mapPos.z += rayStep.z;
+          mask = bvec3(false, false, true);
+        }
+      }
+    }
+  }
+
+  vec3 color;
+  if (mask.x) {
+    color = vec3(0.5, 0, 0);
+  }
+  if (mask.y) {
+    color = vec3(0, 0.5, 0);
+  }
+  if (mask.z) {
+    color = vec3(0, 0, 0.5);
+  }
+  uint packedColor = packRGBE(color);
+  imageStore(rawImage, uv, uvec4(packedColor, 0, 0, 0));
+}
