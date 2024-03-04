@@ -334,7 +334,7 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
 // branchless DDA
 // originally from https://www.shadertoy.com/view/4dX3zl
 // my fork: https://www.shadertoy.com/view/l3fXWH
-bool hitChunk(out ivec3 oHitChunkOffset, out float oNextHitStartingOffset, vec3 o, vec3 d) {
+bool hitChunk(out ivec3 oHitChunkOffset, uint skippingNum, vec3 o, vec3 d) {
   oHitChunkOffset = ivec3(0);
 
   ivec3 mapPos   = ivec3(floor(o));
@@ -344,20 +344,20 @@ bool hitChunk(out ivec3 oHitChunkOffset, out float oNextHitStartingOffset, vec3 
 
   bvec3 mask;
   for (int i = 0; i <= MAX_DDA_ITERATION; i++) {
-    if (getVoxel(mapPos)) {
+    if (i >= skippingNum && getVoxel(mapPos)) {
       oHitChunkOffset = mapPos;
 
-      // lastly, use the same algorithm to decide the final offset to the next voxel
-      mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
-      sideDist += vec3(mask) * deltaDist;
-      // to avoid more than 1 component of mask is true...
-      if (mask.x) {
-        oNextHitStartingOffset = sideDist.x;
-      } else if (mask.y) {
-        oNextHitStartingOffset = sideDist.y;
-      } else {
-        oNextHitStartingOffset = sideDist.z;
-      }
+      // // lastly, use the same algorithm to decide the final offset to the next voxel
+      // mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
+      // sideDist += vec3(mask) * deltaDist;
+      // // to avoid more than 1 component of mask is true...
+      // if (mask.x) {
+      //   oNextHitStartingOffset = sideDist.x;
+      // } else if (mask.y) {
+      //   oNextHitStartingOffset = sideDist.y;
+      // } else {
+      //   oNextHitStartingOffset = sideDist.z;
+      // }
       return true;
     }
 
@@ -389,11 +389,11 @@ void main() {
   rayGen(o, d, subpixOffset);
 
   ivec3 hitChunkOffset;
-  float nextHitStartingOffset;
-  bool hitVoxel = false;
+  uint skippingNum = 0;
+  bool hitVoxel    = false;
   vec3 position, color;
   uint primaryRayIterUsed = 0;
-  while (hitChunk(hitChunkOffset, nextHitStartingOffset, o, d)) {
+  while (hitChunk(hitChunkOffset, skippingNum, o, d)) {
     float optimizedDistance = 0;
 
     // beam optimization
@@ -425,7 +425,7 @@ void main() {
     }
 
     // if the voxel is not hit, we need to continue the ray to trace along chunks
-    o += d * (nextHitStartingOffset + 1e-3);
+    skippingNum += 1;
   }
 
   if (!hitVoxel) {

@@ -14,7 +14,7 @@
 // the voxel dimension within a chunk
 static uint32_t constexpr kChunkVoxelDim = 256;
 // the chunk dimension, this is worth expanding
-static uint32_t constexpr kChunkDim = 3;
+static uint32_t constexpr kChunkDim = 1001;
 
 namespace {
 
