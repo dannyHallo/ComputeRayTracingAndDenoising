@@ -134,12 +134,12 @@ void main() {
     return;
   }
 
-  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
-    return;
-  }
-  vec3 readingCol = unpackRGBE(imageLoad(rawImage, uv).x).rgb;
-  imageStore(renderTargetImage, uv, vec4(readingCol.zyx, 1));
-  return;
+  // if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
+  //   return;
+  // }
+  // vec3 readingCol = unpackRGBE(imageLoad(rawImage, uv).x).rgb;
+  // imageStore(renderTargetImage, uv, vec4(readingCol.zyx, 1));
+  // return;
 
   vec2 lowResUv     = highResToLowRes(uv);
   ivec2 intLowResUv = ivec2(lowResUv);

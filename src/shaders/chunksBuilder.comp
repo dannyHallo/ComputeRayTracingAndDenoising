@@ -13,13 +13,12 @@ void main() {
 
   // only operate on the first thread, this is for debugging
   if (uv == ivec3(0)) {
-    const ivec3 activeChunkCoord = ivec3(1);
-    imageStore(chunksImage, activeChunkCoord, uvec4(1, 0, 0, 0));
-  }
+    const ivec3 activeChunkCoord = ivec3(0);
 
-  // // chunksDim is odd, if the thread is at middle...
-  // uint mid = uint(chunksInfoBuffer.data.chunksDim / 2.0);
-  // if (uv.x == mid && uv.y == mid && uv.z == mid) {
-  //   imageStore(chunksImage, uv, uvec4(1, 0, 0, 0));
-  // }
+    for (uint x = 0; x < chunksInfoBuffer.data.chunksDim.x; x++) {
+      for (uint z = 0; z < chunksInfoBuffer.data.chunksDim.z; z++) {
+        imageStore(chunksImage, ivec3(x, 1, z), uvec4(1, 0, 0, 0));
+      }
+    }
+  }
 }

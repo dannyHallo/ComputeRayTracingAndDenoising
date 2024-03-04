@@ -480,16 +480,6 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    // TODO: remove this
-
-    _chunksTracingPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
-
-    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
-                         nullptr);
-
-    // TODO: remove this
-
     _svoTracingPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -781,12 +771,6 @@ void SvoTracer::_createDescriptorSetBundle() {
 }
 
 void SvoTracer::_createPipelines() {
-  _chunksTracingPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "chunksTracing.comp", WorkGroupSize{8, 8, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener);
-  _chunksTracingPipeline->compileAndCacheShaderModule(false);
-  _chunksTracingPipeline->build();
-
   _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, "svoCoarseBeam.comp", WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderChangeListener);
@@ -831,7 +815,6 @@ void SvoTracer::_createPipelines() {
 }
 
 void SvoTracer::_updatePipelinesDescriptorBundles() {
-  _chunksTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _svoCourseBeamPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _svoTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _temporalFilterPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
