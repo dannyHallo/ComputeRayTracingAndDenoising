@@ -480,12 +480,6 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    _svoTracingPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
-
-    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
-                         nullptr);
-
     // TODO: remove this
 
     _chunksTracingPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
@@ -495,6 +489,12 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          nullptr);
 
     // TODO: remove this
+
+    _svoTracingPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
+
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
+                         nullptr);
 
     _temporalFilterPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
 

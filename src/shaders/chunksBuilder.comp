@@ -11,9 +11,15 @@ void main() {
     return;
   }
 
-  // chunksDim is odd, if the thread is at middle...
-  uint mid = uint(chunksInfoBuffer.data.chunksDim / 2.0);
-  if (uv.x == mid && uv.y == mid && uv.z == mid) {
-    imageStore(chunksImage, uv, uvec4(1, 0, 0, 0));
+  // only operate on the first thread, this is for debugging
+  if (uv == ivec3(0)) {
+    const ivec3 activeChunkCoord = ivec3(1);
+    imageStore(chunksImage, activeChunkCoord, uvec4(1, 0, 0, 0));
   }
+
+  // // chunksDim is odd, if the thread is at middle...
+  // uint mid = uint(chunksInfoBuffer.data.chunksDim / 2.0);
+  // if (uv.x == mid && uv.y == mid && uv.z == mid) {
+  //   imageStore(chunksImage, uv, uvec4(1, 0, 0, 0));
+  // }
 }
