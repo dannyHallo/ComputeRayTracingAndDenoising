@@ -328,11 +328,14 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
   return true;
 }
 
-#define USE_BRANCHLESS_DDA false
+#define USE_BRANCHLESS_DDA true
 #define MAX_DDA_ITERATION 100
 
-bool hitChunk(out ivec3 hitChunkOffset, vec3 o, vec3 d) {
-  hitChunkOffset = ivec3(0);
+// branchless DDA
+// originally from https://www.shadertoy.com/view/4dX3zl
+// my fork: https://www.shadertoy.com/view/l3fXWH
+bool hitChunk(out ivec3 oHitChunkOffset, out float oNextHitStartingOffset, vec3 o, vec3 d) {
+  oHitChunkOffset = ivec3(0);
 
   ivec3 mapPos   = ivec3(floor(o));
   vec3 deltaDist = 1.0 / abs(d);
@@ -342,7 +345,19 @@ bool hitChunk(out ivec3 hitChunkOffset, vec3 o, vec3 d) {
   bvec3 mask;
   for (int i = 0; i <= MAX_DDA_ITERATION; i++) {
     if (getVoxel(mapPos)) {
-      hitChunkOffset = mapPos;
+      oHitChunkOffset = mapPos;
+
+      // lastly, use the same algorithm to decide the final offset to the next voxel
+      mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
+      sideDist += vec3(mask) * deltaDist;
+      // to avoid more than 1 component of mask is true...
+      if (mask.x) {
+        oNextHitStartingOffset = sideDist.x;
+      } else if (mask.y) {
+        oNextHitStartingOffset = sideDist.y;
+      } else {
+        oNextHitStartingOffset = sideDist.z;
+      }
       return true;
     }
 
@@ -351,57 +366,12 @@ bool hitChunk(out ivec3 hitChunkOffset, vec3 o, vec3 d) {
       return false;
     }
 
-    if (USE_BRANCHLESS_DDA) {
-      // Thanks kzy for the suggestion!
-      mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
-      /*bvec3 b1 = lessThan(sideDist.xyz, sideDist.yzx);
-      bvec3 b2 = lessThanEqual(sideDist.xyz, sideDist.zxy);
-      mask.x = b1.x && b2.x;
-      mask.y = b1.y && b2.y;
-      mask.z = b1.z && b2.z;*/
-      // Would've done mask = b1 && b2 but the compiler is making me do it component wise.
-
-      // All components of mask are false except for the corresponding largest component
-      // of sideDist, which is the axis along which the ray should be incremented.
-
-      sideDist += vec3(mask) * deltaDist;
-      mapPos += ivec3(vec3(mask)) * rayStep;
-    } else {
-      if (sideDist.x < sideDist.y) {
-        // x is the smallest
-        if (sideDist.x < sideDist.z) {
-          sideDist.x += deltaDist.x;
-          mapPos.x += rayStep.x;
-          mask = bvec3(true, false, false);
-        }
-        // z is the smallest
-        else {
-          sideDist.z += deltaDist.z;
-          mapPos.z += rayStep.z;
-          mask = bvec3(false, false, true);
-        }
-      } else {
-        // y is the smallest
-        if (sideDist.y < sideDist.z) {
-          sideDist.y += deltaDist.y;
-          mapPos.y += rayStep.y;
-          mask = bvec3(false, true, false);
-        }
-        // z is the smallest
-        else {
-          sideDist.z += deltaDist.z;
-          mapPos.z += rayStep.z;
-          mask = bvec3(false, false, true);
-        }
-      }
-    }
+    // hereby "branchless"
+    mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
+    sideDist += vec3(mask) * deltaDist;
+    mapPos += ivec3(vec3(mask)) * rayStep;
   }
 }
-
-// bool hitVoxel(ivec3 hitChunkOffset, vec3 o, vec3 d) {
-//   const int startingOctreeBufferOffset = 0;
-//   return false;
-// }
 
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
@@ -419,10 +389,11 @@ void main() {
   rayGen(o, d, subpixOffset);
 
   ivec3 hitChunkOffset;
+  float nextHitStartingOffset;
   bool hitVoxel = false;
   vec3 position, color;
   uint primaryRayIterUsed = 0;
-  if (hitChunk(hitChunkOffset, o, d)) {
+  while (hitChunk(hitChunkOffset, nextHitStartingOffset, o, d)) {
     float optimizedDistance = 0;
 
     // beam optimization
@@ -450,7 +421,11 @@ void main() {
       imageStore(normalImage, uv, uvec4(packNormal(normal), 0, 0, 0));
       imageStore(voxHashImage, uv, uvec4(voxHash, 0, 0, 0));
       imageStore(depthImage, uv, vec4(tMin, 0, 0, 0));
+      break;
     }
+
+    // if the voxel is not hit, we need to continue the ray to trace along chunks
+    o += d * (nextHitStartingOffset + 1e-3);
   }
 
   if (!hitVoxel) {
