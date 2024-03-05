@@ -15,7 +15,8 @@ void main() {
 
   ivec3 uv = ivec3(gl_GlobalInvocationID);
 
-  vec3 noiseLookupPos = vec3(uv) / float(fragmentListInfoBuffer.data.voxelResolution);
+  vec3 noiseLookupPos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
+                        vec3(uv) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   float floorHeight = fragmentListInfoBuffer.data.voxelResolution * 0.2;
   float noise = (floorHeight - gl_GlobalInvocationID.y) - floorHeight * cnoise(noiseLookupPos * 4);

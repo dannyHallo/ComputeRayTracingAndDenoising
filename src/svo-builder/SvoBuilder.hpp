@@ -32,7 +32,7 @@ public:
   void init();
   void update() override;
 
-  void build(VkFence svoBuildingDoneFence);
+  void buildScene();
 
   Buffer *getOctreeBuffer() { return _octreeBuffer.get(); }
   Image *getChunksImage() { return _chunksImage.get(); }
@@ -49,9 +49,14 @@ private:
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
+  VkFence _timelineFence         = VK_NULL_HANDLE;
   VkCommandBuffer _commandBuffer = VK_NULL_HANDLE;
 
   void _recordCommandBuffer();
+
+  void _buildChunk(glm::uvec3 currentlyWritingChunk);
+
+  void _createFence();
 
   /// IMAGES
   std::unique_ptr<Image> _chunkFieldImage;
@@ -61,6 +66,7 @@ private:
 
   /// BUFFERS
   std::unique_ptr<Buffer> _chunksInfoBuffer;
+  std::unique_ptr<Buffer> _octreeBufferUsedSizeInfoBuffer;
 
   std::unique_ptr<Buffer> _indirectFragLengthBuffer;
   std::unique_ptr<Buffer> _counterBuffer;
@@ -70,8 +76,11 @@ private:
   std::unique_ptr<Buffer> _indirectAllocNumBuffer;
   std::unique_ptr<Buffer> _fragmentListInfoBuffer;
 
+  std::unique_ptr<Buffer> _octreeBufferUsedSizeInfoStagingBuffer; // for showing data on CPU side
+
   void _createBuffers();
-  void _initBufferData();
+  void _resetBufferDataForOctreeGeneration();
+  void _resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWritingChunk);
 
   /// PIPELINES
 
@@ -85,6 +94,7 @@ private:
   std::unique_ptr<ComputePipeline> _tagNodePipeline;
   std::unique_ptr<ComputePipeline> _allocNodePipeline;
   std::unique_ptr<ComputePipeline> _modifyArgPipeline;
+  std::unique_ptr<ComputePipeline> _lastModifyArgPipeline;
 
   void _createDescriptorSetBundle();
   void _createPipelines();

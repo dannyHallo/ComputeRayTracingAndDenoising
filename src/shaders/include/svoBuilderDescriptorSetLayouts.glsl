@@ -22,7 +22,9 @@ layout(std430, binding = 4) writeonly buffer IndirectAllocNumBuffer { G_Indirect
 indirectAllocNumBuffer;
 layout(std430, binding = 5) buffer FragmentListInfoBuffer { G_FragmentListInfo data; }
 fragmentListInfoBuffer;
-layout(std430, binding = 9) buffer ChunksInfoUniformBuffer { G_ChunksInfo data; }
+layout(std430, binding = 9) buffer ChunksInfoBuffer { G_ChunksInfo data; }
 chunksInfoBuffer;
+layout(std430, binding = 10) buffer OctreeBufferUsedSizeInfoBuffer { G_OctreeBufferSizeInfo data; }
+octreeBufferUsedSizeInfoBuffer;
 
 #endif // SVO_BUILDER_DESCRIPTOR_SET_GLSL

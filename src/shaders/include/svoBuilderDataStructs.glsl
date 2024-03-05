@@ -3,6 +3,7 @@
 
 struct G_ChunksInfo {
   uvec3 chunksDim;
+  uvec3 currentlyWritingChunk;
 };
 
 struct G_FragmentListEntry {
@@ -24,6 +25,11 @@ struct G_IndirectDispatchInfo {
 struct G_FragmentListInfo {
   uint voxelResolution;
   uint voxelFragmentCount;
+};
+
+struct G_OctreeBufferSizeInfo {
+  uint octreeBufferSize;
+  uint octreeBufferSizeToLastChunk;
 };
 
 #endif // SVO_BUILDER_DATA_STRUCTS_GLSL

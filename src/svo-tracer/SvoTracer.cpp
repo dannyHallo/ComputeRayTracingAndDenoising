@@ -378,7 +378,7 @@ void SvoTracer::_createImageForwardingPairs() {
 void SvoTracer::_createBuffersAndBufferBundles() {
   // buffers
   _sceneInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_SceneInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuOnce);
+      sizeof(G_SceneInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuRare);
 
   _aTrousIterationBuffer = std::make_unique<Buffer>(
       sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
@@ -388,7 +388,7 @@ void SvoTracer::_createBuffersAndBufferBundles() {
   _aTrousIterationStagingBuffers.reserve(kATrousSize);
   for (int i = 0; i < kATrousSize; i++) {
     _aTrousIterationStagingBuffers.emplace_back(std::make_unique<Buffer>(
-        sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryAccessingStyle::kCpuToGpuOnce));
+        sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryAccessingStyle::kCpuToGpuRare));
   }
 
   // buffer bundles

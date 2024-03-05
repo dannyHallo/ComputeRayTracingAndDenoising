@@ -52,7 +52,6 @@ void Application::run() {
 void Application::_cleanup() {
   _logger->info("application is cleaning up resources...");
 
-  vkDestroyFence(_appContext->getDevice(), _svoBuildingDoneFence, nullptr);
   for (size_t i = 0; i < kFramesInFlight; i++) {
     vkDestroySemaphore(_appContext->getDevice(), _renderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(_appContext->getDevice(), _imageAvailableSemaphores[i], nullptr);
@@ -78,11 +77,6 @@ void Application::_createSemaphoresAndFences() {
 
   VkSemaphoreCreateInfo semaphoreInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
-  VkFenceCreateInfo fenceCreateInfoNotSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-  vkCreateFence(_appContext->getDevice(), &fenceCreateInfoNotSignalled, nullptr,
-                &_svoBuildingDoneFence);
-
-  // make sure the fences are ready for the first frames of execution
   VkFenceCreateInfo fenceCreateInfoPreSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
   fenceCreateInfoPreSignalled.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
@@ -182,7 +176,7 @@ void Application::_mainLoop() {
       // then some rebuilding will happen
 
       if (_blockState == BlockState::kBlockedAndNeedToRebuildSvo) {
-        _buildSvo();
+        _buildScene();
       }
       _blockState = BlockState::kUnblocked;
     }
@@ -249,13 +243,12 @@ void Application::_init() {
     _camera->handleMouseMovement(mouseDeltaX, mouseDeltaY);
   });
 
-  _buildSvo();
+  _buildScene();
 }
 
-void Application::_buildSvo() {
+void Application::_buildScene() {
   auto startTime = std::chrono::steady_clock::now();
-  _svoBuilder->build(_svoBuildingDoneFence);
-  vkWaitForFences(_appContext->getDevice(), 1, &_svoBuildingDoneFence, VK_TRUE, UINT64_MAX);
+  _svoBuilder->buildScene();
   auto endTime = std::chrono::steady_clock::now();
   auto duration =
       std::chrono::duration<double, std::chrono::seconds::period>(endTime - startTime).count();

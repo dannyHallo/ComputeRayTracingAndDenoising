@@ -1,9 +1,6 @@
 #include "Buffer.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
-#include "utils/logger/Logger.hpp"
 #include "utils/vulkan/SimpleCommands.hpp"
-
-#include <unordered_map>
 
 // https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/usage_patterns.html
 
@@ -13,7 +10,7 @@ VmaAllocationCreateFlags _decideAllocationCreateFlags(MemoryAccessingStyle memor
   VmaAllocationCreateFlags allocFlags = 0;
   switch (memoryAccessingStyle) {
   case MemoryAccessingStyle::kGpuOnly:
-  case MemoryAccessingStyle::kCpuToGpuOnce:
+  case MemoryAccessingStyle::kCpuToGpuRare:
     allocFlags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
     break;
   case MemoryAccessingStyle::kCpuToGpuEveryFrame:
@@ -51,7 +48,7 @@ void Buffer::_allocate(VkBufferUsageFlags bufferUsageFlags,
   VmaAllocator allocator = VulkanApplicationContext::getInstance()->getAllocator();
 
   // this kind of buffer should be optimized to be copied by staging buffer
-  if (memoryAccessingStyle == MemoryAccessingStyle::kCpuToGpuOnce) {
+  if (memoryAccessingStyle == MemoryAccessingStyle::kCpuToGpuRare) {
     bufferUsageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
   }
 
@@ -73,7 +70,7 @@ void Buffer::_allocate(VkBufferUsageFlags bufferUsageFlags,
     _mainBufferMappedAddr = allocInfo.pMappedData;
   }
 
-  if (memoryAccessingStyle == MemoryAccessingStyle::kCpuToGpuOnce) {
+  if (memoryAccessingStyle == MemoryAccessingStyle::kCpuToGpuRare) {
     // allocation ended up in a non-mappable memory - need to transfer using a staging buffer
     VkBufferCreateInfo stagingBufCreateInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
     stagingBufCreateInfo.size               = _size;
@@ -119,6 +116,7 @@ void Buffer::fillData(const void *data) {
     return;
   }
 
+  // fixed staging buffer
   if (_stagingBufferMappedAddr != nullptr) {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
 

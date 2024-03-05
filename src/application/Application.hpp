@@ -52,7 +52,6 @@ private:
   std::unique_ptr<SvoTracer> _svoTracer;
 
   // semaphores and fences for synchronization
-  VkFence _svoBuildingDoneFence = VK_NULL_HANDLE;
   std::vector<VkSemaphore> _imageAvailableSemaphores;
   std::vector<VkSemaphore> _renderFinishedSemaphores;
   std::vector<VkFence> _framesInFlightFences;
@@ -69,6 +68,5 @@ private:
   bool _needToToggleWindowStyle();
 
   void _onRenderLoopBlockRequest(E_RenderLoopBlockRequest const &event);
-
-  void _buildSvo();
+  void _buildScene();
 };

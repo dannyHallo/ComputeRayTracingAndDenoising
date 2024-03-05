@@ -4,7 +4,7 @@
 
 enum class MemoryAccessingStyle {
   kGpuOnly,
-  kCpuToGpuOnce,
+  kCpuToGpuRare,
   kCpuToGpuEveryFrame,
 };
 
@@ -25,14 +25,15 @@ public:
   // data size must be equal to buffer size
   void fillData(const void *data = nullptr);
 
+  [[nodiscard]] VmaAllocation getMainBufferAllocation() const { return _mainBufferAllocation; }
+
   inline VkBuffer &getVkBuffer() { return _mainVkBuffer; }
 
   inline VmaAllocation &getAllocation() { return _mainBufferAllocation; }
 
   [[nodiscard]] inline VkDeviceSize getSize() const { return _size; }
 
-   VkBufferMemoryBarrier getMemoryBarrier(VkAccessFlags srcAccessMask,
-                                                VkAccessFlags dstAccessMask);
+  VkBufferMemoryBarrier getMemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
 
   inline VkDescriptorBufferInfo getDescriptorInfo() {
     VkDescriptorBufferInfo descriptorInfo{};
