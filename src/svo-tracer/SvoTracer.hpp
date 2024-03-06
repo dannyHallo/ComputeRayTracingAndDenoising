@@ -18,12 +18,14 @@ class SvoBuilder;
 class DescriptorSetBundle;
 class ComputePipeline;
 class Camera;
+class ShaderCompiler;
 class ShaderChangeListener;
 
 class SvoTracer : public Scheduler {
 public:
   SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
-            Camera *camera, ShaderChangeListener *shaderChangeListener);
+            Camera *camera, ShaderCompiler *shaderCompiler,
+            ShaderChangeListener *shaderChangeListener);
   ~SvoTracer() override;
 
   // disable copy and move
@@ -52,6 +54,7 @@ private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
   Camera *_camera;
+  ShaderCompiler *_shaderCompiler;
   ShaderChangeListener *_shaderChangeListener;
   SvoBuilder *_svoBuilder = nullptr;
 

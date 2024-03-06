@@ -9,6 +9,7 @@
 #include "utils/event/GlobalEventDispatcher.hpp"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
+#include "utils/shader-compiler/ShaderCompiler.hpp"
 #include "window/Window.hpp"
 
 #include <chrono>
@@ -20,16 +21,17 @@ static int constexpr kFramesInFlight = 2;
 Camera *Application::getCamera() { return _camera.get(); }
 
 Application::Application(Logger *logger)
-    : _logger(logger), _appContext(VulkanApplicationContext::getInstance()) {
-  _shaderFileWatchListener = std::make_unique<ShaderChangeListener>(_logger);
-
+    : _appContext(VulkanApplicationContext::getInstance()), _logger(logger),
+      _shaderCompiler(std::make_unique<ShaderCompiler>(logger)),
+      _shaderFileWatchListener(std::make_unique<ShaderChangeListener>(_logger)) {
   _window = std::make_unique<Window>(WindowStyle::kMaximized);
   _appContext->init(_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 
-  _svoBuilder = std::make_unique<SvoBuilder>(_appContext, _logger, _shaderFileWatchListener.get());
+  _svoBuilder = std::make_unique<SvoBuilder>(_appContext, _logger, _shaderCompiler.get(),
+                                             _shaderFileWatchListener.get());
   _svoTracer  = std::make_unique<SvoTracer>(_appContext, _logger, kFramesInFlight, _camera.get(),
-                                           _shaderFileWatchListener.get());
+                                           _shaderCompiler.get(), _shaderFileWatchListener.get());
 
   _imguiManager = std::make_unique<ImguiManager>(_appContext, _window.get(), _logger,
                                                  kFramesInFlight, &_svoTracer->getUboData());

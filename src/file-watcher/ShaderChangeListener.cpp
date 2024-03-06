@@ -6,8 +6,25 @@
 #include "utils/event/GlobalEventDispatcher.hpp"
 #include "utils/logger/Logger.hpp"
 
-#include <chrono>
+namespace {
+// input a/b/\c/d.xxx
+// output a/b/c/d.xxx
+std::string _normalizePath(const std::string &path) {
+  std::string normalizedPath = path;
 
+  // replace backslashes with forward slashes
+  std::replace(normalizedPath.begin(), normalizedPath.end(), '\\', '/');
+
+  // remove any double slashes
+  std::string::size_type pos = 0;
+  while ((pos = normalizedPath.find("//", pos)) != std::string::npos) {
+    normalizedPath.erase(pos, 1);
+    // Do not advance pos to ensure we check the new position in case of consecutive slashes
+  }
+
+  return normalizedPath;
+}
+}; // namespace
 ShaderChangeListener::ShaderChangeListener(Logger *logger)
     : _logger(logger), _fileWatcher(std::make_unique<efsw::FileWatcher>()) {
   _fileWatcher->addWatch(kRootDir + "src/shaders/", this, true);
@@ -20,14 +37,16 @@ ShaderChangeListener::ShaderChangeListener(Logger *logger)
 
 ShaderChangeListener::~ShaderChangeListener() = default;
 
-void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std::string & /*dir*/,
+void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std::string &dir,
                                             const std::string &filename, efsw::Action action,
                                             std::string /*oldFilename*/) {
   if (action != efsw::Actions::Modified) {
     return;
   }
 
-  auto it = _watchingShaderFiles.find(filename);
+  std::string normalizedPathToFile = _normalizePath(dir + filename);
+
+  auto it = _watchingShaderFiles.find(normalizedPathToFile);
   if (it == _watchingShaderFiles.end()) {
     return;
   }
@@ -35,9 +54,8 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
   // here, is some editors, (vscode, notepad++), when a file is saved, it will be saved twice, so
   // the block request is sent twice, however, when the render loop is blocked, the pipelines will
   // be rebuilt only once, a caching mechanism is used to avoid avoid duplicates
-  // _logger->info("changes to {} is detected", filename);
 
-  _pipelinesToRebuild.insert(_shaderFileNameToPipeline[filename]);
+  _pipelinesToRebuild.insert(_shaderFileNameToPipeline[normalizedPathToFile]);
 
   // request to block the render loop, when the render loop is blocked, the pipelines will be
   // rebuilt
@@ -49,7 +67,7 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
   // logging
   std::string pipelineNames;
   for (auto const &pipeline : _pipelinesToRebuild) {
-    pipelineNames += pipeline->getShaderFileName() + " ";
+    pipelineNames += pipeline->getFullPathToShaderSourceCode() + " ";
   }
   _logger->info("rebuilding shaders due to changes: {}", pipelineNames);
 
@@ -66,7 +84,7 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
       schedulersNeededToBeUpdated.insert(pipeline->getScheduler());
       continue;
     }
-    rebuildFailedNames += pipeline->getShaderFileName() + " ";
+    rebuildFailedNames += pipeline->getFullPathToShaderSourceCode() + " ";
   }
 
   if (!rebuildFailedNames.empty()) {
@@ -85,21 +103,21 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
 }
 
 void ShaderChangeListener::addWatchingItem(Pipeline *pipeline, bool needToRebuildSvo) {
-  auto const shaderFileName = pipeline->getShaderFileName();
+  auto const fullPathToFile = pipeline->getFullPathToShaderSourceCode();
 
-  _watchingShaderFiles[shaderFileName] = needToRebuildSvo;
+  _watchingShaderFiles[fullPathToFile] = needToRebuildSvo;
 
-  if (_shaderFileNameToPipeline.find(shaderFileName) != _shaderFileNameToPipeline.end()) {
-    _logger->error("shader file: {} called to be watched twice!", shaderFileName);
+  if (_shaderFileNameToPipeline.find(fullPathToFile) != _shaderFileNameToPipeline.end()) {
+    _logger->error("shader file: {} called to be watched twice!", fullPathToFile);
     exit(0);
   }
 
-  _shaderFileNameToPipeline[shaderFileName] = pipeline;
+  _shaderFileNameToPipeline[fullPathToFile] = pipeline;
 }
 
 void ShaderChangeListener::removeWatchingItem(Pipeline *pipeline) {
-  auto const shaderFileName = pipeline->getShaderFileName();
+  auto const fullPathToFile = pipeline->getFullPathToShaderSourceCode();
 
-  _watchingShaderFiles.erase(shaderFileName);
-  _shaderFileNameToPipeline.erase(shaderFileName);
+  _watchingShaderFiles.erase(fullPathToFile);
+  _shaderFileNameToPipeline.erase(fullPathToFile);
 }

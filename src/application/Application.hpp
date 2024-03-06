@@ -15,6 +15,7 @@ class SvoTracer;
 class ImguiManager;
 class Camera;
 class FpsSink;
+class ShaderCompiler;
 class ShaderChangeListener;
 
 enum class BlockState {
@@ -38,15 +39,15 @@ public:
   void run();
 
 private:
+  VulkanApplicationContext *_appContext;
   Logger *_logger;
 
   std::unique_ptr<FpsSink> _fpsSink;
   std::unique_ptr<ImguiManager> _imguiManager;
   std::unique_ptr<Camera> _camera;
   std::unique_ptr<Window> _window;
+  std::unique_ptr<ShaderCompiler> _shaderCompiler;
   std::unique_ptr<ShaderChangeListener> _shaderFileWatchListener;
-
-  VulkanApplicationContext *_appContext;
 
   std::unique_ptr<SvoBuilder> _svoBuilder;
   std::unique_ptr<SvoTracer> _svoTracer;
