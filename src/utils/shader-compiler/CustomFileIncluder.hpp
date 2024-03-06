@@ -2,6 +2,8 @@
 
 #include "shaderc/shaderc.hpp"
 
+#include <string>
+
 class Logger;
 
 class CustomFileIncluder : public shaderc::CompileOptions::IncluderInterface {
@@ -14,6 +16,10 @@ public:
   // for memory release of raw pointers
   void ReleaseInclude(shaderc_include_result *include_result) override;
 
+  // custom function can be added here
+  void setIncludeDir(const std::string &includeDir) { _includeDir = includeDir; }
+
 private:
   Logger *_logger;
+  std::string _includeDir;
 };

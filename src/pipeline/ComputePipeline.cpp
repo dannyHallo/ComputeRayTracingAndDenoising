@@ -3,20 +3,18 @@
 #include "pipeline/DescriptorSetBundle.hpp"
 #include "utils/logger/Logger.hpp"
 
-#include "utils/config/RootDir.h"
 #include "utils/file-io/ShaderFileReader.hpp"
 #include "utils/shader-compiler/ShaderCompiler.hpp"
-
-#include <memory>
 
 ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *logger,
                                  Scheduler *scheduler, std::string shaderFileName,
                                  WorkGroupSize workGroupSize,
                                  DescriptorSetBundle *descriptorSetBundle,
+                                 ShaderCompiler *shaderCompiler,
                                  ShaderChangeListener *shaderChangeListener, bool needToRebuildSvo)
     : Pipeline(appContext, logger, scheduler, std::move(shaderFileName), descriptorSetBundle,
                VK_SHADER_STAGE_COMPUTE_BIT, shaderChangeListener, needToRebuildSvo),
-      _workGroupSize(workGroupSize), _shaderCompiler(std::make_unique<ShaderCompiler>(logger)) {}
+      _workGroupSize(workGroupSize), _shaderCompiler(shaderCompiler) {}
 
 ComputePipeline::~ComputePipeline() = default;
 
@@ -34,7 +32,7 @@ void ComputePipeline::build() {
 
   if (_cachedShaderModule == VK_NULL_HANDLE) {
     _logger->error("failed to build the pipeline because of a null shader module: {}",
-                   _shaderFileName);
+                   _fullPathToShaderSourceCode);
   }
 
   VkPipelineShaderStageCreateInfo shaderStageInfo{};
@@ -54,18 +52,20 @@ void ComputePipeline::build() {
 }
 
 bool ComputePipeline::compileAndCacheShaderModule(bool allowBuildFail) {
-  auto const shaderSourceCode =
-      ShaderFileReader::readShaderSourceCode(kRootDir + "src/shaders/" + _shaderFileName, _logger);
-  auto const _shaderCode = _shaderCompiler->compileComputeShader(_shaderFileName, shaderSourceCode);
 
-  if (!allowBuildFail && !_shaderCode.has_value()) {
-    _logger->error("failed to compile the shader: {}", _shaderFileName);
+  auto const sourceCode =
+      ShaderFileReader::readShaderSourceCode(_fullPathToShaderSourceCode, _logger);
+  auto const compiledCode =
+      _shaderCompiler->compileComputeShader(_fullPathToShaderSourceCode, sourceCode);
+
+  if (!allowBuildFail && !compiledCode.has_value()) {
+    _logger->error("failed to compile the shader: {}", _fullPathToShaderSourceCode);
     exit(0);
   }
 
-  if (_shaderCode.has_value()) {
+  if (compiledCode.has_value()) {
     _cleanupShaderModule();
-    _cachedShaderModule = _createShaderModule(_shaderCode.value());
+    _cachedShaderModule = _createShaderModule(compiledCode.value());
     return true;
   }
   return false;

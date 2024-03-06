@@ -5,10 +5,10 @@
 #include <fstream>
 
 namespace ShaderFileReader {
-std::string readShaderSourceCode(const std::string &filename, Logger *logger) {
-  std::ifstream file(filename);
+std::string readShaderSourceCode(const std::string &fullPathToFile, Logger *logger) {
+  std::ifstream file(fullPathToFile);
   if (!file.is_open()) {
-    logger->error("shader file: {} not found", filename);
+    logger->error("shader file: {} not found", fullPathToFile);
     exit(0);
   }
   std::stringstream buffer;
@@ -17,10 +17,10 @@ std::string readShaderSourceCode(const std::string &filename, Logger *logger) {
   return buffer.str();
 }
 
-std::vector<char> readShaderBinary(const std::string &filename, Logger *logger) {
-  std::ifstream file(filename, std::ios::ate | std::ios::binary);
+std::vector<char> readShaderBinary(const std::string &fullPathToFile, Logger *logger) {
+  std::ifstream file(fullPathToFile, std::ios::ate | std::ios::binary);
   if (!file.is_open()) {
-    logger->error("shader file: {} not found", filename);
+    logger->error("shader file: {} not found", fullPathToFile);
     exit(0);
   }
   std::streamsize fileSize = static_cast<std::streamsize>(file.tellg());

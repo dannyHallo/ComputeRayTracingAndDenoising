@@ -17,7 +17,7 @@ class ShaderChangeListener;
 class Pipeline {
 public:
   Pipeline(VulkanApplicationContext *appContext, Logger *logger, Scheduler *scheduler,
-           std::string shaderFileName, DescriptorSetBundle *descriptorSetBundle,
+           std::string fullPathToShaderSourceCode, DescriptorSetBundle *descriptorSetBundle,
            VkShaderStageFlags shaderStageFlags,
            ShaderChangeListener *shaderChangeListener = nullptr, bool needToRebuildSvo = false);
   virtual ~Pipeline();
@@ -38,7 +38,10 @@ public:
 
   void updateDescriptorSetBundle(DescriptorSetBundle *descriptorSetBundle);
 
-  [[nodiscard]] std::string getShaderFileName() const { return _shaderFileName; }
+  [[nodiscard]] std::string getFullPathToShaderSourceCode() const {
+    return _fullPathToShaderSourceCode;
+  }
+
   [[nodiscard]] Scheduler *getScheduler() const { return _scheduler; }
 
 protected:
@@ -49,7 +52,7 @@ protected:
   VkShaderModule _cachedShaderModule = VK_NULL_HANDLE;
 
   DescriptorSetBundle *_descriptorSetBundle;
-  std::string _shaderFileName;
+  std::string _fullPathToShaderSourceCode;
 
   std::vector<BufferBundle *> _uniformBufferBundles; // buffer bundles for uniform data
   std::vector<BufferBundle *> _storageBufferBundles; // buffer bundles for storage data

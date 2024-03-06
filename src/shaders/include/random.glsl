@@ -1,9 +1,9 @@
 #ifndef RANDOM_GLSL
 #define RANDOM_GLSL
 
-#include "include/svoTracerDescriptorSetLayouts.glsl"
+#include "../include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "include/definitions.glsl"
+#include "../include/definitions.glsl"
 
 // for easier searching
 struct BaseDisturbance {

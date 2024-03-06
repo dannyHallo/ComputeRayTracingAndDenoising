@@ -3,10 +3,10 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-#include "include/svoTracerDescriptorSetLayouts.glsl"
+#include "../include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "include/definitions.glsl"
-#include "include/packer.glsl"
+#include "../include/definitions.glsl"
+#include "../include/packer.glsl"
 
 vec3 getAccumColor(ivec2 pUv) {
   ivec2 bound = ivec2(renderInfoUbo.data.lowResSize);

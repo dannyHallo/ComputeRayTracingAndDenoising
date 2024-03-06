@@ -3,7 +3,7 @@
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-#include "include/svoBuilderDescriptorSetLayouts.glsl"
+#include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
 uvec4 LeafToUvec4(uint val) {
   return uvec4((val & 0xffu), ((val >> 8u) & 0xffu), ((val >> 16u) & 0xffu),

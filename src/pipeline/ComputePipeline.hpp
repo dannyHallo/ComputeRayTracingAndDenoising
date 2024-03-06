@@ -2,8 +2,6 @@
 
 #include "pipeline/Pipeline.hpp"
 
-#include <memory>
-
 struct WorkGroupSize {
   uint32_t x;
   uint32_t y;
@@ -15,8 +13,8 @@ class ShaderCompiler;
 class ComputePipeline : public Pipeline {
 public:
   ComputePipeline(VulkanApplicationContext *appContext, Logger *logger, Scheduler *scheduler,
-                  std::string shaderFileName, WorkGroupSize workGroupSize,
-                  DescriptorSetBundle *descriptorSetBundle,
+                  std::string fullPathToShaderSourceCode, WorkGroupSize workGroupSize,
+                  DescriptorSetBundle *descriptorSetBundle, ShaderCompiler *shaderCompiler,
                   ShaderChangeListener *shaderChangeListener = nullptr,
                   bool needToRebuildSvo                      = false);
 
@@ -40,5 +38,5 @@ public:
 private:
   WorkGroupSize _workGroupSize;
 
-  std::unique_ptr<ShaderCompiler> _shaderCompiler;
+  ShaderCompiler *_shaderCompiler;
 };

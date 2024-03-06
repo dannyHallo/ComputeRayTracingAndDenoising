@@ -9,6 +9,8 @@
 #include "utils/file-io/ShaderFileReader.hpp"
 #include "utils/logger/Logger.hpp"
 
+#include "utils/config/RootDir.h"
+
 #include <cmath>
 
 // the voxel dimension within a chunk
@@ -46,11 +48,17 @@ namespace {
 
 //   return maximumSize;
 // }
+
+std::string _makeShaderFullPath(std::string const &shaderName) {
+  return kRootDir + "src/shaders/svo-builder/" + shaderName;
+}
+
 } // namespace
 
 SvoBuilder::SvoBuilder(VulkanApplicationContext *appContext, Logger *logger,
-                       ShaderChangeListener *shaderChangeListener)
-    : _appContext(appContext), _logger(logger), _shaderChangeListener(shaderChangeListener) {
+                       ShaderCompiler *shaderCompiler, ShaderChangeListener *shaderChangeListener)
+    : _appContext(appContext), _logger(logger), _shaderCompiler(shaderCompiler),
+      _shaderChangeListener(shaderChangeListener) {
   _createFence();
 }
 
@@ -260,56 +268,64 @@ void SvoBuilder::_createDescriptorSetBundle() {
 
 void SvoBuilder::_createPipelines() {
   _chunksBuilderPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "chunksBuilder.comp", WorkGroupSize{8, 8, 8},
-      _descriptorSetBundle.get(), _shaderChangeListener, true);
+      _appContext, _logger, this, _makeShaderFullPath("chunksBuilder.comp"), WorkGroupSize{8, 8, 8},
+      _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener, true);
   _chunksBuilderPipeline->compileAndCacheShaderModule(false);
   _chunksBuilderPipeline->build();
 
   _chunkFieldConstructionPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "chunkFieldConstruction.comp", WorkGroupSize{8, 8, 8},
-      _descriptorSetBundle.get(), _shaderChangeListener, true);
+      _appContext, _logger, this, _makeShaderFullPath("chunkFieldConstruction.comp"),
+      WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
+      true);
   _chunkFieldConstructionPipeline->compileAndCacheShaderModule(false);
   _chunkFieldConstructionPipeline->build();
 
   _chunkVoxelCreationPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "chunkVoxelCreation.comp", WorkGroupSize{8, 8, 8},
-      _descriptorSetBundle.get(), _shaderChangeListener, true);
+      _appContext, _logger, this, _makeShaderFullPath("chunkVoxelCreation.comp"),
+      WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
+      true);
   _chunkVoxelCreationPipeline->compileAndCacheShaderModule(false);
   _chunkVoxelCreationPipeline->build();
 
   _chunkModifyArgPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "chunkModifyArg.comp", WorkGroupSize{1, 1, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener, true);
+      _appContext, _logger, this, _makeShaderFullPath("chunkModifyArg.comp"),
+      WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
+      true);
   _chunkModifyArgPipeline->compileAndCacheShaderModule(false);
   _chunkModifyArgPipeline->build();
 
   _initNodePipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "octreeInitNode.comp", WorkGroupSize{64, 1, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener, true);
+      _appContext, _logger, this, _makeShaderFullPath("octreeInitNode.comp"),
+      WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
+      true);
   _initNodePipeline->compileAndCacheShaderModule(false);
   _initNodePipeline->build();
 
   _tagNodePipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "octreeTagNode.comp", WorkGroupSize{64, 1, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener, true);
+      _appContext, _logger, this, _makeShaderFullPath("octreeTagNode.comp"),
+      WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
+      true);
   _tagNodePipeline->compileAndCacheShaderModule(false);
   _tagNodePipeline->build();
 
   _allocNodePipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "octreeAllocNode.comp", WorkGroupSize{64, 1, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener, true);
+      _appContext, _logger, this, _makeShaderFullPath("octreeAllocNode.comp"),
+      WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
+      true);
   _allocNodePipeline->compileAndCacheShaderModule(false);
   _allocNodePipeline->build();
 
   _modifyArgPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "octreeModifyArg.comp", WorkGroupSize{1, 1, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener, true);
+      _appContext, _logger, this, _makeShaderFullPath("octreeModifyArg.comp"),
+      WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
+      true);
   _modifyArgPipeline->compileAndCacheShaderModule(false);
   _modifyArgPipeline->build();
 
   _lastModifyArgPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "octreeLastModifyArg.comp", WorkGroupSize{1, 1, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener, true);
+      _appContext, _logger, this, _makeShaderFullPath("octreeLastModifyArg.comp"),
+      WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
+      true);
   _lastModifyArgPipeline->compileAndCacheShaderModule(false);
   _lastModifyArgPipeline->build();
 }

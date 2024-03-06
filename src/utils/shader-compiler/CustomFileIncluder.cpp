@@ -1,6 +1,5 @@
 #include "CustomFileIncluder.hpp"
 
-#include "utils/config/RootDir.h"
 #include "utils/file-io/ShaderFileReader.hpp"
 #include "utils/logger/Logger.hpp"
 
@@ -19,9 +18,10 @@ shaderc_include_result *CustomFileIncluder::GetInclude(const char *requested_sou
                                                        shaderc_include_type /*include_type*/,
                                                        const char * /*requesting_source*/,
                                                        size_t /*include_depth*/) {
-  std::string fullPath = kRootDir + "src/shaders/" + requested_source;
+  std::string fullPath = _includeDir + requested_source;
   std::string content  = ShaderFileReader::readShaderSourceCode(fullPath, _logger);
-  auto *info           = new FileInfo{fullPath, content};
+  // store the pointer created in a pointer for destroying later on, eww!
+  auto *info = new FileInfo{fullPath, content};
   return new shaderc_include_result{fullPath.c_str(), fullPath.size(), info->content.c_str(),
                                     info->content.length(), info};
 }

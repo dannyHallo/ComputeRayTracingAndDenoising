@@ -1,7 +1,7 @@
 #ifndef SVO_BUILDER_DESCRIPTOR_SET_GLSL
 #define SVO_BUILDER_DESCRIPTOR_SET_GLSL
 
-#include "include/svoBuilderDataStructs.glsl"
+#include "../include/svoBuilderDataStructs.glsl"
 
 layout(binding = 6, r32f) uniform image3D chunkFieldImage;
 layout(binding = 8, r32ui) uniform uimage3D chunksImage;

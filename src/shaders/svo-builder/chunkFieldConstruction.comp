@@ -3,9 +3,9 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
-#include "include/svoBuilderDescriptorSetLayouts.glsl"
+#include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
-#include "include/perlinNoise.glsl"
+#include "../include/perlinNoise.glsl"
 
 void main() {
   if (any(greaterThanEqual(gl_GlobalInvocationID,

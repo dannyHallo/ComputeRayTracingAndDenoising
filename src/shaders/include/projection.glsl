@@ -1,7 +1,7 @@
 #ifndef PROJECTION_GLSL
 #define PROJECTION_GLSL
 
-#include "include/svoTracerDescriptorSetLayouts.glsl"
+#include "../include/svoTracerDescriptorSetLayouts.glsl"
 
 vec2 projectWorldPosToScreenUv(vec3 worldPos, bool previous) {
   vec4 screenBoxCoord = previous ? renderInfoUbo.data.vpMatPrev * vec4(worldPos, 1)

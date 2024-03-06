@@ -3,7 +3,7 @@
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-#include "include/svoBuilderDescriptorSetLayouts.glsl"
+#include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
 uint group_x_64(uint x) { return uint(ceil(float(x) / 64.0)); }
 

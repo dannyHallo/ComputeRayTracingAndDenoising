@@ -6,7 +6,6 @@
 class Logger;
 
 namespace ShaderFileReader {
-std::string readShaderSourceCode(const std::string &fileName, Logger *logger);
-std::vector<char> readFile(const std::string &filename, Logger *logger);
-std::vector<char> readShaderBinary(const std::string &fileName, Logger *logger);
+std::string readShaderSourceCode(const std::string &fullPathToFile, Logger *logger);
+std::vector<char> readShaderBinary(const std::string &fullPathToFile, Logger *logger);
 }; // namespace ShaderFileReader

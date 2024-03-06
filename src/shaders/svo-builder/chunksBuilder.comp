@@ -3,7 +3,7 @@
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
-#include "include/svoBuilderDescriptorSetLayouts.glsl"
+#include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
 void main() {
   ivec3 uv = ivec3(gl_GlobalInvocationID);

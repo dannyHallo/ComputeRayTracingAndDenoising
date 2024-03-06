@@ -14,12 +14,13 @@ static const std::map<VkShaderStageFlags, VkPipelineBindPoint> kShaderStageFlags
     {VK_SHADER_STAGE_COMPUTE_BIT, VK_PIPELINE_BIND_POINT_COMPUTE}};
 
 Pipeline::Pipeline(VulkanApplicationContext *appContext, Logger *logger, Scheduler *scheduler,
-                   std::string shaderFileName, DescriptorSetBundle *descriptorSetBundle,
+                   std::string fullPathToShaderSourceCode, DescriptorSetBundle *descriptorSetBundle,
                    VkShaderStageFlags shaderStageFlags, ShaderChangeListener *shaderChangeListener,
                    bool needToRebuildSvo)
     : _appContext(appContext), _logger(logger), _scheduler(scheduler),
       _shaderChangeListener(shaderChangeListener), _descriptorSetBundle(descriptorSetBundle),
-      _shaderFileName(std::move(shaderFileName)), _shaderStageFlags(shaderStageFlags) {
+      _fullPathToShaderSourceCode(std::move(fullPathToShaderSourceCode)),
+      _shaderStageFlags(shaderStageFlags) {
   if (_shaderChangeListener != nullptr) {
     _shaderChangeListener->addWatchingItem(this, needToRebuildSvo);
   }

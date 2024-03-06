@@ -12,6 +12,8 @@
 #include "utils/config/RootDir.h"
 #include "utils/file-io/ShaderFileReader.hpp"
 
+#include <string>
+
 // static int constexpr kStratumFilterSize   = 6;
 static int constexpr kATrousSize                 = 5;
 static uint32_t constexpr kBeamResolution        = 8;
@@ -30,11 +32,17 @@ float halton(int base, int index) {
   }
   return r;
 };
+
+std::string _makeShaderFullPath(std::string const &shaderName) {
+  return kRootDir + "src/shaders/svo-tracer/" + shaderName;
+}
+
 }; // namespace
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
-                     Camera *camera, ShaderChangeListener *shaderChangeListener)
-    : _appContext(appContext), _logger(logger), _camera(camera),
+                     Camera *camera, ShaderCompiler *shaderCompiler,
+                     ShaderChangeListener *shaderChangeListener)
+    : _appContext(appContext), _logger(logger), _camera(camera), _shaderCompiler(shaderCompiler),
       _shaderChangeListener(shaderChangeListener), _framesInFlight(framesInFlight) {
   _updateImageResolutions();
 }
@@ -681,36 +689,6 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   spatialFilterInfo.useJittering                    = _uboData.useJittering;
   _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
 
-  // _gradientProjectionBufferBundle->getBuffer(currentFrame)->fillData(&gpUbo);
-
-  // for (int i = 0; i < kStratumFilterSize; i++) {
-  //   StratumFilterUniformBufferObject sfUbo = {i,
-  //   static_cast<int>(!_uboData._useStratumFiltering)};
-  //   _stratumFilterBufferBundle[i]->getBuffer(currentFrame)->fillData(&sfUbo);
-  // }
-
-  // TemporalFilterUniformBufferObject tfUbo = {
-  //     static_cast<int>(!_uboData._useTemporalBlend),
-  //     static_cast<int>(_uboData._useNormalTest),
-  //     _uboData._normalThreshold,
-  //     _uboData._blendingAlpha,
-  //     lastMvpe,
-  // };
-  // _temperalFilterBufferBundle->getBuffer(currentFrame)->fillData(&tfUbo);
-
-  // VarianceUniformBufferObject varianceUbo = {
-  //     static_cast<int>(!_uboData._useVarianceEstimation),
-  //     static_cast<int>(_uboData._skipStoppingFunctions),
-  //     static_cast<int>(_uboData._useTemporalVariance),
-  //     _uboData._varianceKernelSize,
-  //     _uboData._variancePhiGaussian,
-  //     _uboData._variancePhiDepth,
-  // };
-  // _varianceBufferBundle->getBuffer(currentFrame)->fillData(&varianceUbo);
-
-  // PostProcessingUniformBufferObject postProcessingUbo = {_uboData._displayType};
-  // _postProcessingBufferBundle->getBuffer(currentFrame)->fillData(&postProcessingUbo);
-
   currentSample++;
 }
 
@@ -772,44 +750,38 @@ void SvoTracer::_createDescriptorSetBundle() {
 
 void SvoTracer::_createPipelines() {
   _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "svoCoarseBeam.comp", WorkGroupSize{8, 8, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener);
+      _appContext, _logger, this, _makeShaderFullPath("svoCoarseBeam.comp"), WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
   _svoCourseBeamPipeline->compileAndCacheShaderModule(false);
   _svoCourseBeamPipeline->build();
 
   _svoTracingPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "svoTracing.comp", WorkGroupSize{8, 8, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener);
+      _appContext, _logger, this, _makeShaderFullPath("svoTracing.comp"), WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
   _svoTracingPipeline->compileAndCacheShaderModule(false);
   _svoTracingPipeline->build();
 
   _temporalFilterPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "temporalFilter.comp", WorkGroupSize{8, 8, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener);
+      _appContext, _logger, this, _makeShaderFullPath("temporalFilter.comp"),
+      WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
   _temporalFilterPipeline->compileAndCacheShaderModule(false);
   _temporalFilterPipeline->build();
 
   _aTrousPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "aTrous.comp", WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(),
-      _shaderChangeListener);
+      _appContext, _logger, this, _makeShaderFullPath("aTrous.comp"), WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
   _aTrousPipeline->compileAndCacheShaderModule(false);
   _aTrousPipeline->build();
 
-  // _testPipeline = std::make_unique<ComputePipeline>(
-  //     _appContext, _logger, this, "test.comp", WorkGroupSize{8, 8, 1},
-  //     _descriptorSetBundle.get(), _shaderChangeListener);
-  // _testPipeline->compileAndCacheShaderModule(false);
-  // _testPipeline->build();
-
   _backgroundBlitPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "backgroundBlit.comp", WorkGroupSize{8, 8, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener);
+      _appContext, _logger, this, _makeShaderFullPath("backgroundBlit.comp"),
+      WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
   _backgroundBlitPipeline->compileAndCacheShaderModule(false);
   _backgroundBlitPipeline->build();
 
   _postProcessingPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, "postProcessing.comp", WorkGroupSize{8, 8, 1},
-      _descriptorSetBundle.get(), _shaderChangeListener);
+      _appContext, _logger, this, _makeShaderFullPath("postProcessing.comp"),
+      WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
   _postProcessingPipeline->compileAndCacheShaderModule(false);
   _postProcessingPipeline->build();
 }
