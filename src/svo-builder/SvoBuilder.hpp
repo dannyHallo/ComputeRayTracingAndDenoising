@@ -67,6 +67,8 @@ private:
   void _createImages();
 
   /// BUFFERS
+  std::unique_ptr<Buffer> _chunkSvoStagingBuffer;
+
   std::unique_ptr<Buffer> _chunksInfoBuffer;
   std::unique_ptr<Buffer> _octreeBufferUsedSizeInfoBuffer;
 
@@ -96,7 +98,6 @@ private:
   std::unique_ptr<ComputePipeline> _tagNodePipeline;
   std::unique_ptr<ComputePipeline> _allocNodePipeline;
   std::unique_ptr<ComputePipeline> _modifyArgPipeline;
-  std::unique_ptr<ComputePipeline> _lastModifyArgPipeline;
 
   void _createDescriptorSetBundle();
   void _createPipelines();

@@ -201,6 +201,17 @@ void SvoBuilder::_createBuffers() {
   // *
   //                                              kChunkSize * kChunkSize * 8.F / 7.F);
 
+  uint32_t sizeInWorstCase =
+      std::ceil(static_cast<float>(kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim) *
+                sizeof(uint32_t) * 8.F / 7.F);
+
+  _logger->info("estimated chunk staging buffer size : {} mb",
+                static_cast<float>(sizeInWorstCase) / (1024 * 1024));
+
+  _chunkSvoStagingBuffer = std::make_unique<Buffer>(
+      sizeof(uint32_t) * kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim,
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
+
   uint32_t gb                      = 1024 * 1024 * 1024;
   uint32_t maximumOctreeBufferSize = 2 * gb;
   _indirectFragLengthBuffer        = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
@@ -321,13 +332,6 @@ void SvoBuilder::_createPipelines() {
       true);
   _modifyArgPipeline->compileAndCacheShaderModule(false);
   _modifyArgPipeline->build();
-
-  _lastModifyArgPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, _makeShaderFullPath("octreeLastModifyArg.comp"),
-      WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
-      true);
-  _lastModifyArgPipeline->compileAndCacheShaderModule(false);
-  _lastModifyArgPipeline->build();
 }
 
 void SvoBuilder::_recordCommandBuffer() {
@@ -410,12 +414,6 @@ void SvoBuilder::_recordCommandBuffer() {
                            nullptr, 0, nullptr);
 
       if (level == _voxelLevelCount - 2) {
-        _lastModifyArgPipeline->recordCommand(_commandBuffer, 0, 1, 1, 1);
-
-        vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
-                             nullptr, 0, nullptr);
-
         VkMemoryBarrier transferReadBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
         transferReadBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
         transferReadBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_READ_BIT;
