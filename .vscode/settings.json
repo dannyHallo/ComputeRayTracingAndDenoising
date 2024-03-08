@@ -18,5 +18,6 @@
 
     // enable clang tidy
     "--clang-tidy"
-  ]
+  ],
+  "shaderc-lint.glslcArgs": "--target-spv=spv1.5"
 }
