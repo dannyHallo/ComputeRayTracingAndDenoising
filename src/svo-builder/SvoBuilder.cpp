@@ -183,10 +183,11 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   vkCmdCopyBuffer(commandBuffer, _chunkOctreeBuffer->getVkBuffer(),
                   _appendedOctreeBuffer->getVkBuffer(), 1, &bufCopy);
 
-  _octreeBufferAccumLengthBuffer->fillData(&octreeBufferAccumulatedLength);
-
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), commandBuffer);
+
+  _logger->info("filling octreebufferaccumlength buffer with {}", octreeBufferAccumulatedLength);
+  _octreeBufferAccumLengthBuffer->fillData(&octreeBufferAccumulatedLength);
 
   octreeBufferAccumulatedLength += octreeBufferLength;
 
@@ -284,6 +285,7 @@ void SvoBuilder::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageBuffer(5, _fragmentListInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(9, _chunksInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(10, _octreeBufferLengthBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(11, _octreeBufferAccumLengthBuffer.get());
 
   _descriptorSetBundle->create();
 }
@@ -391,7 +393,7 @@ void SvoBuilder::_recordCommandBuffer() {
   // write the chunks image, according to the accumulated buffer offset
   // we should do it here, since we can cull null chunks here after the voxels are decided
   // TODO: do the culling later on
-  _chunksBuilderPipeline->recordCommand(_commandBuffer, 0, kChunkDim, kChunkDim, kChunkDim);
+  _chunksBuilderPipeline->recordCommand(_commandBuffer, 0, 1, 1, 1);
 
   vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
