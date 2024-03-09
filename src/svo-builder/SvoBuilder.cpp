@@ -8,6 +8,7 @@
 #include "svo-builder/VoxLoader.hpp"
 #include "utils/file-io/ShaderFileReader.hpp"
 #include "utils/logger/Logger.hpp"
+#include "utils/vulkan/SimpleCommands.hpp"
 
 #include "utils/config/RootDir.h"
 
@@ -122,8 +123,9 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   chunksInfo.currentlyWritingChunk = currentlyWritingChunk;
   _chunksInfoBuffer->fillData(&chunksInfo);
 
-  uint32_t octreeBufferSize = 0;
-  _octreeBufferSizeBuffer->fillData(&octreeBufferSize);
+  // the first 8 are not calculated, so pre-allocate them
+  uint32_t octreeBufferSize = 8;
+  _octreeBufferLengthBuffer->fillData(&octreeBufferSize);
 }
 
 void SvoBuilder::buildScene() {
@@ -160,9 +162,24 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   // after the fence, all work submitted to GPU has been finished, and we can read the buffer size
   // data back from the staging buffer
 
-  // map memory, copy data, unmap memory
   uint32_t octreeBufferUsedSize = 0;
-  _octreeBufferSizeBuffer->fetchData(&octreeBufferUsedSize);
+  _octreeBufferLengthBuffer->fetchData(&octreeBufferUsedSize);
+
+  VkCommandBuffer commandBuffer =
+      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+
+  VkBufferCopy bufCopy = {
+      0,                                       // srcOffset
+      0,                                       // dstOffset,
+      octreeBufferUsedSize * sizeof(uint32_t), // size
+  };
+
+  // copy staging buffer to main buffer
+  vkCmdCopyBuffer(commandBuffer, _chunkOctreeBuffer->getVkBuffer(),
+                  _appendedOctreeBuffer->getVkBuffer(), 1, &bufCopy);
+
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), commandBuffer);
 
   // log
   _logger->info("used octree buffer size: {} mb",
@@ -235,7 +252,7 @@ void SvoBuilder::_createBuffers() {
   _chunksInfoBuffer = std::make_unique<Buffer>(
       sizeof(G_ChunksInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
-  _octreeBufferSizeBuffer = std::make_unique<Buffer>(
+  _octreeBufferLengthBuffer = std::make_unique<Buffer>(
       sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       MemoryStyle::kDedicated);
 }
@@ -255,7 +272,7 @@ void SvoBuilder::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageBuffer(4, _indirectAllocNumBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(5, _fragmentListInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(9, _chunksInfoBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(10, _octreeBufferSizeBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(10, _octreeBufferLengthBuffer.get());
 
   _descriptorSetBundle->create();
 }

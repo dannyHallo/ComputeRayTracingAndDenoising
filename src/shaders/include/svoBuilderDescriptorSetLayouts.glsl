@@ -24,7 +24,7 @@ layout(std430, binding = 5) buffer FragmentListInfoBuffer { G_FragmentListInfo d
 fragmentListInfoBuffer;
 layout(std430, binding = 9) buffer ChunksInfoBuffer { G_ChunksInfo data; }
 chunksInfoBuffer;
-layout(std430, binding = 10) buffer OctreeBufferUsedSizeInfoBuffer { uint data; }
-octreeBufferUsedSizeInfoBuffer;
+layout(std430, binding = 10) buffer OctreeBufferLengthBuffer { uint data; }
+octreeBufferLengthBuffer;
 
 #endif // SVO_BUILDER_DESCRIPTOR_SET_GLSL
