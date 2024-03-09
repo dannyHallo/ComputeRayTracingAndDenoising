@@ -6,6 +6,6 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
 void main() {
-  if (gl_GlobalInvocationID.x >= buildInfoBuffer.data.allocNum) return;
-  octreeBuffer.data[gl_GlobalInvocationID.x + buildInfoBuffer.data.allocBegin] = 0u;
+  if (gl_GlobalInvocationID.x >= octreeBuildInfoBuffer.data.allocNum) return;
+  octreeBuffer.data[gl_GlobalInvocationID.x + octreeBuildInfoBuffer.data.allocBegin] = 0u;
 }

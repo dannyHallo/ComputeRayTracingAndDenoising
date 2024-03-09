@@ -70,12 +70,13 @@ private:
   std::unique_ptr<Buffer> _appendedOctreeBuffer;
   std::unique_ptr<Buffer> _chunksInfoBuffer;
   std::unique_ptr<Buffer> _octreeBufferLengthBuffer;
+  std::unique_ptr<Buffer> _octreeBufferAccumLengthBuffer;
 
   std::unique_ptr<Buffer> _indirectFragLengthBuffer;
   std::unique_ptr<Buffer> _counterBuffer;
   std::unique_ptr<Buffer> _chunkOctreeBuffer;
   std::unique_ptr<Buffer> _fragmentListBuffer;
-  std::unique_ptr<Buffer> _buildInfoBuffer;
+  std::unique_ptr<Buffer> _octreeBuildInfoBuffer;
   std::unique_ptr<Buffer> _indirectAllocNumBuffer;
   std::unique_ptr<Buffer> _fragmentListInfoBuffer;
 

@@ -16,8 +16,8 @@ layout(std430, binding = 1) buffer OctreeBuffer { uint data[]; }
 octreeBuffer;
 layout(std430, binding = 2) buffer FragmentListBuffer { G_FragmentListEntry datas[]; }
 fragmentListBuffer;
-layout(std430, binding = 3) buffer BuildInfoBuffer { G_BuildInfo data; }
-buildInfoBuffer;
+layout(std430, binding = 3) buffer OctreeBuildInfoBuffer { G_OctreeBuildInfo data; }
+octreeBuildInfoBuffer;
 layout(std430, binding = 4) writeonly buffer IndirectAllocNumBuffer { G_IndirectDispatchInfo data; }
 indirectAllocNumBuffer;
 layout(std430, binding = 5) buffer FragmentListInfoBuffer { G_FragmentListInfo data; }
@@ -26,5 +26,7 @@ layout(std430, binding = 9) buffer ChunksInfoBuffer { G_ChunksInfo data; }
 chunksInfoBuffer;
 layout(std430, binding = 10) buffer OctreeBufferLengthBuffer { uint data; }
 octreeBufferLengthBuffer;
+layout(std430, binding = 11) buffer OctreeBufferAccumLengthBuffer { uint data; }
+octreeBufferAccumLengthBuffer;
 
 #endif // SVO_BUILDER_DESCRIPTOR_SET_GLSL

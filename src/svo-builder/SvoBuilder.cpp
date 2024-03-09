@@ -102,10 +102,10 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   uint32_t atomicCounterInitData = 1;
   _counterBuffer->fillData(&atomicCounterInitData);
 
-  G_BuildInfo buildInfo{};
+  G_OctreeBuildInfo buildInfo{};
   buildInfo.allocBegin = 0;
   buildInfo.allocNum   = 8;
-  _buildInfoBuffer->fillData(&buildInfo);
+  _octreeBuildInfoBuffer->fillData(&buildInfo);
 
   G_IndirectDispatchInfo indirectDispatchInfo{};
   indirectDispatchInfo.dispatchX = 1;
@@ -127,12 +127,15 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   // the first 8 are not calculated, so pre-allocate them
   uint32_t octreeBufferSize = 8;
   _octreeBufferLengthBuffer->fillData(&octreeBufferSize);
+
+  uint32_t zero = 0;
+  _octreeBufferAccumLengthBuffer->fillData(&zero);
 }
 
 void SvoBuilder::buildScene() {
-  for (uint32_t x = 0; x < kChunkDim; x++) {
+  for (uint32_t z = 0; z < kChunkDim; z++) {
     for (uint32_t y = 0; y < kChunkDim; y++) {
-      for (uint32_t z = 0; z < kChunkDim; z++) {
+      for (uint32_t x = 0; x < kChunkDim; x++) {
         _buildChunk({x, y, z});
       }
     }
@@ -179,6 +182,8 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   // copy staging buffer to main buffer
   vkCmdCopyBuffer(commandBuffer, _chunkOctreeBuffer->getVkBuffer(),
                   _appendedOctreeBuffer->getVkBuffer(), 1, &bufCopy);
+
+  _octreeBufferAccumLengthBuffer->fillData(&octreeBufferAccumulatedLength);
 
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), commandBuffer);
@@ -242,8 +247,8 @@ void SvoBuilder::_createBuffers() {
   _logger->info("fragment list buffer size: {} mb",
                 static_cast<float>(maximumFragmentListBufferSize) / (1024 * 1024));
 
-  _buildInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_BuildInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+  _octreeBuildInfoBuffer = std::make_unique<Buffer>(
+      sizeof(G_OctreeBuildInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   _indirectAllocNumBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
                                                      VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
@@ -257,8 +262,10 @@ void SvoBuilder::_createBuffers() {
       sizeof(G_ChunksInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   _octreeBufferLengthBuffer = std::make_unique<Buffer>(
-      sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      MemoryStyle::kDedicated);
+      sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+
+  _octreeBufferAccumLengthBuffer = std::make_unique<Buffer>(
+      sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 }
 
 void SvoBuilder::_createDescriptorSetBundle() {
@@ -272,7 +279,7 @@ void SvoBuilder::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageBuffer(0, _counterBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(1, _chunkOctreeBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(2, _fragmentListBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(3, _buildInfoBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(3, _octreeBuildInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(4, _indirectAllocNumBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(5, _fragmentListInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(9, _chunksInfoBuffer.get());
@@ -381,6 +388,15 @@ void SvoBuilder::_recordCommandBuffer() {
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
                        0, nullptr);
 
+  // write the chunks image, according to the accumulated buffer offset
+  // we should do it here, since we can cull null chunks here after the voxels are decided
+  // TODO: do the culling later on
+  _chunksBuilderPipeline->recordCommand(_commandBuffer, 0, kChunkDim, kChunkDim, kChunkDim);
+
+  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
+                       0, nullptr);
+
   vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        0, 1, &indirectReadBarrier, 0, nullptr, 0, nullptr);
@@ -423,9 +439,6 @@ void SvoBuilder::_recordCommandBuffer() {
                            0, 1, &indirectReadBarrier, 0, nullptr, 0, nullptr);
     }
   }
-
-  // (temporary): build the chunks
-  _chunksBuilderPipeline->recordCommand(_commandBuffer, 0, kChunkDim, kChunkDim, kChunkDim);
 
   vkEndCommandBuffer(_commandBuffer);
 }

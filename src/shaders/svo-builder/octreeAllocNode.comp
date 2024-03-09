@@ -9,9 +9,9 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 #define USE_BALLOT true
 
 void main() {
-  if (gl_GlobalInvocationID.x >= buildInfoBuffer.data.allocNum) return;
+  if (gl_GlobalInvocationID.x >= octreeBuildInfoBuffer.data.allocNum) return;
 
-  uint idx = buildInfoBuffer.data.allocBegin + gl_GlobalInvocationID.x;
+  uint idx = octreeBuildInfoBuffer.data.allocBegin + gl_GlobalInvocationID.x;
 
   // if being tagged
   if ((octreeBuffer.data[idx] & 0x80000000u) > 0u) {

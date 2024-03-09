@@ -8,9 +8,10 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 uint group_x_64(uint x) { return uint(ceil(float(x) / 64.0)); }
 
 void main() {
-  buildInfoBuffer.data.allocBegin += buildInfoBuffer.data.allocNum;
+  octreeBuildInfoBuffer.data.allocBegin += octreeBuildInfoBuffer.data.allocNum;
   // counterBuffer stores accumulated tagged node count
-  buildInfoBuffer.data.allocNum = (counterBuffer.data << 3u) - buildInfoBuffer.data.allocBegin;
-  octreeBufferLengthBuffer.data += buildInfoBuffer.data.allocNum;
-  indirectAllocNumBuffer.data.dispatchX = group_x_64(buildInfoBuffer.data.allocNum);
+  octreeBuildInfoBuffer.data.allocNum =
+      (counterBuffer.data << 3u) - octreeBuildInfoBuffer.data.allocBegin;
+  octreeBufferLengthBuffer.data += octreeBuildInfoBuffer.data.allocNum;
+  indirectAllocNumBuffer.data.dispatchX = group_x_64(octreeBuildInfoBuffer.data.allocNum);
 }

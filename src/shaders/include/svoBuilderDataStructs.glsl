@@ -11,7 +11,7 @@ struct G_FragmentListEntry {
   uint properties;
 };
 
-struct G_BuildInfo {
+struct G_OctreeBuildInfo {
   uint allocBegin;
   uint allocNum;
 };
