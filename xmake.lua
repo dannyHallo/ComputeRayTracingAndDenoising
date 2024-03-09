@@ -8,12 +8,13 @@ set_languages("c++20")
 -- clang 17 is explicitly used here to because the compiler might not be in the PATH
 toolchain("clang17")
     set_kind("standalone")
-    set_bindir("D:/LLVM17/bin/")
-    set_toolset("cc", "clang")
-    set_toolset("cxx", "clang")
-toolchain_end()
+    set_bindir("D:/LLVM17/bin/") 
+    set_toolset("cc", "clang") 
+    set_toolset("cxx", "clang++")
+toolchain_end() 
 -- you have to use clang, rather than vs proviced cl.exe, to fully enable the cache compiling features
 
+-- the entire build requires clang17
 set_toolchains("clang17")
 
 add_rules("mode.debug", "mode.release")
