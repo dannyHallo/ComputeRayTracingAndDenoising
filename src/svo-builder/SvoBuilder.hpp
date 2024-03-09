@@ -83,7 +83,6 @@ private:
   std::unique_ptr<Buffer> _octreeBufferUsedSizeInfoStagingBuffer; // for showing data on CPU side
 
   void _createBuffers();
-  void _resetBufferDataForOctreeGeneration();
   void _resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWritingChunk);
 
   /// PIPELINES

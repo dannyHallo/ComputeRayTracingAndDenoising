@@ -27,9 +27,4 @@ struct G_FragmentListInfo {
   uint voxelFragmentCount;
 };
 
-struct G_OctreeBufferSizeInfo {
-  uint octreeBufferSize;
-  uint octreeBufferSizeToLastChunk;
-};
-
 #endif // SVO_BUILDER_DATA_STRUCTS_GLSL

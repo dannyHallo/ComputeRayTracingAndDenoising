@@ -11,6 +11,6 @@ void main() {
   buildInfoBuffer.data.allocBegin += buildInfoBuffer.data.allocNum;
   // counterBuffer stores accumulated tagged node count
   buildInfoBuffer.data.allocNum = (counterBuffer.data << 3u) - buildInfoBuffer.data.allocBegin;
-  octreeBufferUsedSizeInfoBuffer.data.octreeBufferSize += buildInfoBuffer.data.allocNum;
+  octreeBufferUsedSizeInfoBuffer.data += buildInfoBuffer.data.allocNum;
   indirectAllocNumBuffer.data.dispatchX = group_x_64(buildInfoBuffer.data.allocNum);
 }

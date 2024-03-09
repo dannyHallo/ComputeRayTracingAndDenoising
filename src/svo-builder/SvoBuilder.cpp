@@ -92,16 +92,8 @@ void SvoBuilder::init() {
 }
 
 void SvoBuilder::update() {
-  // _initBufferData(); // FIXME:
+  // _initBufferData(); // FIXME: update this logic
   _recordCommandBuffer();
-}
-
-// call me once before building the octree
-void SvoBuilder::_resetBufferDataForOctreeGeneration() {
-  G_OctreeBufferSizeInfo octreeBufferUsedSize{};
-  octreeBufferUsedSize.octreeBufferSize            = 0;
-  octreeBufferUsedSize.octreeBufferSizeToLastChunk = 0;
-  _octreeBufferUsedSizeInfoBuffer->fillData(&octreeBufferUsedSize);
 }
 
 // call me every time before building a new chunk
@@ -129,11 +121,12 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   chunksInfo.chunksDim             = getChunksDim();
   chunksInfo.currentlyWritingChunk = currentlyWritingChunk;
   _chunksInfoBuffer->fillData(&chunksInfo);
+
+  uint32_t octreeBufferSize = 0;
+  _octreeBufferUsedSizeInfoBuffer->fillData(&octreeBufferSize);
 }
 
 void SvoBuilder::buildScene() {
-  _resetBufferDataForOctreeGeneration();
-
   for (uint32_t x = 0; x < kChunkDim; x++) {
     for (uint32_t y = 0; y < kChunkDim; y++) {
       for (uint32_t z = 0; z < kChunkDim; z++) {
@@ -164,21 +157,22 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   vkWaitForFences(_appContext->getDevice(), 1, &_timelineFence, VK_TRUE, UINT64_MAX);
   vkResetFences(_appContext->getDevice(), 1, &_timelineFence);
 
+  // after the fence, all work submitted to GPU has been finished, and we can read the buffer size
+  // data back from the staging buffer
+
   // map memory, copy data, unmap memory
-  G_OctreeBufferSizeInfo octreeBufferUsedSizeInfo{};
+  uint32_t octreeBufferUsedSize = 0;
 
   void *mappedData = nullptr;
   vmaMapMemory(VulkanApplicationContext::getInstance()->getAllocator(),
                _octreeBufferUsedSizeInfoStagingBuffer->getAllocation(), &mappedData);
-  memcpy(&octreeBufferUsedSizeInfo, mappedData, sizeof(G_OctreeBufferSizeInfo));
+  memcpy(&octreeBufferUsedSize, mappedData, sizeof(uint32_t));
   vmaUnmapMemory(VulkanApplicationContext::getInstance()->getAllocator(),
                  _octreeBufferUsedSizeInfoStagingBuffer->getAllocation());
 
   // log
-  _logger->info(
-      "used octree buffer size: {} mb",
-      static_cast<float>(sizeof(uint32_t) * octreeBufferUsedSizeInfo.octreeBufferSizeToLastChunk) /
-          (1024 * 1024));
+  _logger->info("used octree buffer size: {} mb",
+                static_cast<float>(sizeof(uint32_t) * octreeBufferUsedSize) / (1024 * 1024));
 }
 
 void SvoBuilder::_createImages() {
@@ -247,13 +241,12 @@ void SvoBuilder::_createBuffers() {
       std::make_unique<Buffer>(sizeof(G_ChunksInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                MemoryAccessingStyle::kCpuToGpuRare);
 
-  _octreeBufferUsedSizeInfoBuffer = std::make_unique<Buffer>(sizeof(G_OctreeBufferSizeInfo),
-                                                             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-                                                                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                                             MemoryAccessingStyle::kCpuToGpuRare);
+  _octreeBufferUsedSizeInfoBuffer = std::make_unique<Buffer>(
+      sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      MemoryAccessingStyle::kCpuToGpuRare);
 
   _octreeBufferUsedSizeInfoStagingBuffer =
-      std::make_unique<Buffer>(sizeof(G_OctreeBufferSizeInfo), VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      std::make_unique<Buffer>(sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                MemoryAccessingStyle::kCpuToGpuEveryFrame);
 }
 
