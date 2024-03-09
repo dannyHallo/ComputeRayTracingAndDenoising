@@ -112,6 +112,7 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   indirectDispatchInfo.dispatchY = 1;
   indirectDispatchInfo.dispatchZ = 1;
   _indirectAllocNumBuffer->fillData(&indirectDispatchInfo);
+  _indirectFragLengthBuffer->fillData(&indirectDispatchInfo);
 
   G_FragmentListInfo fragmentListInfo{};
   fragmentListInfo.voxelResolution    = kChunkVoxelDim;
@@ -162,16 +163,17 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   // after the fence, all work submitted to GPU has been finished, and we can read the buffer size
   // data back from the staging buffer
 
-  uint32_t octreeBufferUsedSize = 0;
-  _octreeBufferLengthBuffer->fetchData(&octreeBufferUsedSize);
+  static uint32_t octreeBufferAccumulatedLength = 0;
+  uint32_t octreeBufferLength                   = 0;
+  _octreeBufferLengthBuffer->fetchData(&octreeBufferLength);
 
   VkCommandBuffer commandBuffer =
       beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
 
   VkBufferCopy bufCopy = {
-      0,                                       // srcOffset
-      0,                                       // dstOffset,
-      octreeBufferUsedSize * sizeof(uint32_t), // size
+      0,                                                // srcOffset
+      octreeBufferAccumulatedLength * sizeof(uint32_t), // dstOffset,
+      octreeBufferLength * sizeof(uint32_t),            // size
   };
 
   // copy staging buffer to main buffer
@@ -181,9 +183,11 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), commandBuffer);
 
+  octreeBufferAccumulatedLength += octreeBufferLength;
+
   // log
   _logger->info("used octree buffer size: {} mb",
-                static_cast<float>(sizeof(uint32_t) * octreeBufferUsedSize) / (1024 * 1024));
+                static_cast<float>(sizeof(uint32_t) * octreeBufferLength) / (1024 * 1024));
 }
 
 void SvoBuilder::_createImages() {

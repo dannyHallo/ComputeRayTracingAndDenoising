@@ -8,9 +8,6 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 uint group_x_64(uint x) { return uint(ceil(float(x) / 64.0)); }
 
 void main() {
-  G_IndirectDispatchInfo indirectDispatchInfo;
-  indirectDispatchInfo.dispatchX = group_x_64(fragmentListInfoBuffer.data.voxelFragmentCount);
-  indirectDispatchInfo.dispatchY = 1;
-  indirectDispatchInfo.dispatchZ = 1;
-  indirectFragLengthBuffer.data  = indirectDispatchInfo;
+  indirectFragLengthBuffer.data.dispatchX =
+      group_x_64(fragmentListInfoBuffer.data.voxelFragmentCount);
 }
