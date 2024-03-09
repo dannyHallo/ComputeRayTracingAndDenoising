@@ -386,39 +386,39 @@ void SvoTracer::_createImageForwardingPairs() {
 void SvoTracer::_createBuffersAndBufferBundles() {
   // buffers
   _sceneInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_SceneInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuRare);
+      sizeof(G_SceneInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   _aTrousIterationBuffer = std::make_unique<Buffer>(
       sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-      MemoryAccessingStyle::kGpuOnly);
+      MemoryStyle::kDedicated);
 
   _aTrousIterationStagingBuffers.clear();
   _aTrousIterationStagingBuffers.reserve(kATrousSize);
   for (int i = 0; i < kATrousSize; i++) {
     _aTrousIterationStagingBuffers.emplace_back(std::make_unique<Buffer>(
-        sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryAccessingStyle::kCpuToGpuRare));
+        sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryStyle::kDedicated));
   }
 
   // buffer bundles
-  _renderInfoBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(G_RenderInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+  _renderInfoBufferBundle =
+      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_RenderInfo),
+                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
-  _environmentInfoBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(G_EnvironmentInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+  _environmentInfoBufferBundle =
+      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_EnvironmentInfo),
+                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
-  _twickableParametersBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(G_TwickableParameters), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+  _twickableParametersBufferBundle =
+      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_TwickableParameters),
+                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
-  _temporalFilterInfoBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(G_TemporalFilterInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+  _temporalFilterInfoBufferBundle =
+      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_TemporalFilterInfo),
+                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
-  _spatialFilterInfoBufferBundle = std::make_unique<BufferBundle>(
-      _framesInFlight, sizeof(G_SpatialFilterInfo), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      MemoryAccessingStyle::kCpuToGpuEveryFrame);
+  _spatialFilterInfoBufferBundle =
+      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_SpatialFilterInfo),
+                                     VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 }
 
 void SvoTracer::_initBufferData() {

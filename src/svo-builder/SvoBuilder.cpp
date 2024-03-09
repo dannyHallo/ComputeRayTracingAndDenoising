@@ -123,7 +123,7 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   _chunksInfoBuffer->fillData(&chunksInfo);
 
   uint32_t octreeBufferSize = 0;
-  _octreeBufferUsedSizeInfoBuffer->fillData(&octreeBufferSize);
+  _octreeBufferSizeBuffer->fillData(&octreeBufferSize);
 }
 
 void SvoBuilder::buildScene() {
@@ -165,10 +165,10 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
 
   void *mappedData = nullptr;
   vmaMapMemory(VulkanApplicationContext::getInstance()->getAllocator(),
-               _octreeBufferUsedSizeInfoStagingBuffer->getAllocation(), &mappedData);
+               _octreeBufferSizeStagingBuffer->getAllocation(), &mappedData);
   memcpy(&octreeBufferUsedSize, mappedData, sizeof(uint32_t));
   vmaUnmapMemory(VulkanApplicationContext::getInstance()->getAllocator(),
-                 _octreeBufferUsedSizeInfoStagingBuffer->getAllocation());
+                 _octreeBufferSizeStagingBuffer->getAllocation());
 
   // log
   _logger->info("used octree buffer size: {} mb",
@@ -187,7 +187,7 @@ void SvoBuilder::_createImages() {
 // voxData is passed in to decide the size of some buffers dureing allocation
 void SvoBuilder::_createBuffers() {
   _counterBuffer = std::make_unique<Buffer>(sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                            MemoryAccessingStyle::kCpuToGpuRare);
+                                            MemoryStyle::kDedicated);
 
   // uint32_t estimatedOctreeBufferSize = sizeof(uint32_t) * _getMaximumNodeCountOfOctree(voxData);
 
@@ -202,52 +202,48 @@ void SvoBuilder::_createBuffers() {
   _logger->info("estimated chunk staging buffer size : {} mb",
                 static_cast<float>(sizeInWorstCase) / (1024 * 1024));
 
-  _chunkSvoStagingBuffer = std::make_unique<Buffer>(
-      sizeof(uint32_t) * kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim,
-      VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryAccessingStyle::kCpuToGpuEveryFrame);
+  _chunkSvoStagingBuffer =
+      std::make_unique<Buffer>(sizeof(uint32_t) * kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim,
+                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryStyle::kHostVisible);
 
   uint32_t gb                      = 1024 * 1024 * 1024;
   uint32_t maximumOctreeBufferSize = 2 * gb;
   _indirectFragLengthBuffer        = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
                                                        VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
                                                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                                       MemoryAccessingStyle::kGpuOnly);
+                                                       MemoryStyle::kDedicated);
 
   _octreeBuffer = std::make_unique<Buffer>(
-      maximumOctreeBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kGpuOnly);
+      maximumOctreeBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   uint32_t maximumFragmentListBufferSize =
       sizeof(G_FragmentListEntry) * kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim;
-  _fragmentListBuffer =
-      std::make_unique<Buffer>(maximumFragmentListBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                               MemoryAccessingStyle::kGpuOnly);
+  _fragmentListBuffer = std::make_unique<Buffer>(
+      maximumFragmentListBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   _logger->info("fragment list buffer size: {} mb",
                 static_cast<float>(maximumFragmentListBufferSize) / (1024 * 1024));
 
   _buildInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_BuildInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryAccessingStyle::kCpuToGpuRare);
+      sizeof(G_BuildInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   _indirectAllocNumBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
                                                      VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
                                                          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                                     MemoryAccessingStyle::kCpuToGpuRare);
+                                                     MemoryStyle::kDedicated);
 
-  _fragmentListInfoBuffer =
-      std::make_unique<Buffer>(sizeof(G_FragmentListInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                               MemoryAccessingStyle::kCpuToGpuRare);
+  _fragmentListInfoBuffer = std::make_unique<Buffer>(
+      sizeof(G_FragmentListInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
-  _chunksInfoBuffer =
-      std::make_unique<Buffer>(sizeof(G_ChunksInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                               MemoryAccessingStyle::kCpuToGpuRare);
+  _chunksInfoBuffer = std::make_unique<Buffer>(
+      sizeof(G_ChunksInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
-  _octreeBufferUsedSizeInfoBuffer = std::make_unique<Buffer>(
+  _octreeBufferSizeBuffer = std::make_unique<Buffer>(
       sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      MemoryAccessingStyle::kCpuToGpuRare);
+      MemoryStyle::kDedicated);
 
-  _octreeBufferUsedSizeInfoStagingBuffer =
-      std::make_unique<Buffer>(sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                               MemoryAccessingStyle::kCpuToGpuEveryFrame);
+  _octreeBufferSizeStagingBuffer = std::make_unique<Buffer>(
+      sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT, MemoryStyle::kHostVisible);
 }
 
 void SvoBuilder::_createDescriptorSetBundle() {
@@ -265,7 +261,7 @@ void SvoBuilder::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageBuffer(4, _indirectAllocNumBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(5, _fragmentListInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(9, _chunksInfoBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(10, _octreeBufferUsedSizeInfoBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(10, _octreeBufferSizeBuffer.get());
 
   _descriptorSetBundle->create();
 }
@@ -416,14 +412,14 @@ void SvoBuilder::_recordCommandBuffer() {
                              0, nullptr);
 
         VkBufferCopy bufCopy = {
-            0,                                          // srcOffset
-            0,                                          // dstOffset,
-            _octreeBufferUsedSizeInfoBuffer->getSize(), // size
+            0,                                  // srcOffset
+            0,                                  // dstOffset,
+            _octreeBufferSizeBuffer->getSize(), // size
         };
 
         // this step doesn't need syncronization here, since we have fences
-        vkCmdCopyBuffer(_commandBuffer, _octreeBufferUsedSizeInfoBuffer->getVkBuffer(),
-                        _octreeBufferUsedSizeInfoStagingBuffer->getVkBuffer(), 1, &bufCopy);
+        vkCmdCopyBuffer(_commandBuffer, _octreeBufferSizeBuffer->getVkBuffer(),
+                        _octreeBufferSizeStagingBuffer->getVkBuffer(), 1, &bufCopy);
       }
 
       vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,

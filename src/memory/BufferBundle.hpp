@@ -8,7 +8,7 @@
 class BufferBundle {
 public:
   BufferBundle(size_t bundleSize, VkDeviceSize perBufferSize, VkBufferUsageFlags bufferUsageFlags,
-               MemoryAccessingStyle memoryAccessingStyle) {
+               MemoryStyle memoryAccessingStyle) {
     _buffers.reserve(bundleSize);
     for (size_t i = 0; i < bundleSize; i++) {
       _buffers.emplace_back(

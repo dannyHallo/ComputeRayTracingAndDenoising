@@ -70,7 +70,7 @@ private:
   std::unique_ptr<Buffer> _chunkSvoStagingBuffer;
 
   std::unique_ptr<Buffer> _chunksInfoBuffer;
-  std::unique_ptr<Buffer> _octreeBufferUsedSizeInfoBuffer;
+  std::unique_ptr<Buffer> _octreeBufferSizeBuffer;
 
   std::unique_ptr<Buffer> _indirectFragLengthBuffer;
   std::unique_ptr<Buffer> _counterBuffer;
@@ -80,7 +80,7 @@ private:
   std::unique_ptr<Buffer> _indirectAllocNumBuffer;
   std::unique_ptr<Buffer> _fragmentListInfoBuffer;
 
-  std::unique_ptr<Buffer> _octreeBufferUsedSizeInfoStagingBuffer; // for showing data on CPU side
+  std::unique_ptr<Buffer> _octreeBufferSizeStagingBuffer; // for showing data on CPU side
 
   void _createBuffers();
   void _resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWritingChunk);

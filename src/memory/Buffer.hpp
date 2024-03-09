@@ -2,17 +2,15 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-enum class MemoryAccessingStyle {
-  kGpuOnly,
-  kCpuToGpuRare,
-  kCpuToGpuEveryFrame,
+enum class MemoryStyle {
+  kDedicated,
+  kHostVisible,
 };
 
 // the wrapper class of VkBuffer, handles memory allocation and data filling
 class Buffer {
 public:
-  Buffer(VkDeviceSize size, VkBufferUsageFlags bufferUsageFlags,
-         MemoryAccessingStyle memoryAccessingStyle);
+  Buffer(VkDeviceSize size, VkBufferUsageFlags bufferUsageFlags, MemoryStyle memoryStyle);
   ~Buffer();
 
   // default copy and move
@@ -46,14 +44,19 @@ public:
 private:
   VkDeviceSize _size; // total size of buffer
 
+  MemoryStyle _memoryStyle;
+
   VkBuffer _mainVkBuffer              = VK_NULL_HANDLE;
   VmaAllocation _mainBufferAllocation = VK_NULL_HANDLE;
   void *_mainBufferMappedAddr         = nullptr;
 
-  VkBuffer _stagingVkBuffer              = VK_NULL_HANDLE;
-  VmaAllocation _stagingBufferAllocation = VK_NULL_HANDLE;
-  void *_stagingBufferMappedAddr         = nullptr;
+  void _allocate(VkBufferUsageFlags bufferUsageFlags);
 
-  // buffer allocation is only allowed during construction
-  void _allocate(VkBufferUsageFlags bufferUsageFlagse, MemoryAccessingStyle memoryAccessingStyle);
+  struct StagingBufferHandle {
+    VkBuffer vkBuffer              = VK_NULL_HANDLE;
+    VmaAllocation bufferAllocation = VK_NULL_HANDLE;
+    void *mappedAddr               = nullptr;
+  };
+  [[nodiscard]] StagingBufferHandle _createStagingBuffer() const;
+  static void _destroyStagingBuffer(StagingBufferHandle &stagingBufferHandle);
 };
