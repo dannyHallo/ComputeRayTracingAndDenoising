@@ -22,7 +22,6 @@ VmaAllocationCreateFlags _decideAllocationCreateFlags(MemoryStyle memoryAccessin
   }
   return allocFlags;
 }
-
 } // namespace
 
 Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags bufferUsageFlags, MemoryStyle memoryStyle)
@@ -31,10 +30,10 @@ Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags bufferUsageFlags, MemorySty
 }
 
 Buffer::~Buffer() {
-  if (_mainVkBuffer != VK_NULL_HANDLE) {
-    vmaDestroyBuffer(VulkanApplicationContext::getInstance()->getAllocator(), _mainVkBuffer,
-                     _mainBufferAllocation);
-    _mainVkBuffer = VK_NULL_HANDLE;
+  if (_vkBuffer != VK_NULL_HANDLE) {
+    vmaDestroyBuffer(VulkanApplicationContext::getInstance()->getAllocator(), _vkBuffer,
+                     _bufferAllocation);
+    _vkBuffer = VK_NULL_HANDLE;
   }
 }
 
@@ -57,11 +56,11 @@ void Buffer::_allocate(VkBufferUsageFlags bufferUsageFlags) {
   allocCreateInfo.flags = vmaAlloationCreateFlags;
 
   VmaAllocationInfo allocInfo{};
-  vmaCreateBuffer(allocator, &bufferCreateInfo, &allocCreateInfo, &_mainVkBuffer,
-                  &_mainBufferAllocation, &allocInfo);
+  vmaCreateBuffer(allocator, &bufferCreateInfo, &allocCreateInfo, &_vkBuffer, &_bufferAllocation,
+                  &allocInfo);
 
   if (_memoryStyle == MemoryStyle::kHostVisible) {
-    _mainBufferMappedAddr = allocInfo.pMappedData;
+    _mappedAddr = allocInfo.pMappedData;
   }
 }
 
@@ -70,7 +69,7 @@ VkBufferMemoryBarrier Buffer::getMemoryBarrier(VkAccessFlags srcAccessMask,
   VkBufferMemoryBarrier memoryBarrier{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
   memoryBarrier.srcAccessMask = srcAccessMask;
   memoryBarrier.dstAccessMask = dstAccessMask;
-  memoryBarrier.buffer        = _mainVkBuffer;
+  memoryBarrier.buffer        = _vkBuffer;
   memoryBarrier.size          = _size;
   memoryBarrier.offset        = 0;
   memoryBarrier.srcQueueFamilyIndex =
@@ -118,8 +117,8 @@ void Buffer::fillData(const void *data) {
 
   switch (_memoryStyle) {
   case MemoryStyle::kHostVisible: {
-    assert(_mainBufferMappedAddr != nullptr && "buffer is not host visible");
-    memcpy(_mainBufferMappedAddr, data, _size);
+    assert(_mappedAddr != nullptr && "buffer is not host visible");
+    memcpy(_mappedAddr, data, _size);
     return;
   }
   case MemoryStyle::kDedicated: {
@@ -153,7 +152,7 @@ void Buffer::fillData(const void *data) {
     };
 
     // copy staging to main buffer
-    vkCmdCopyBuffer(commandBuffer, stagingBufferHandle.vkBuffer, _mainVkBuffer, 1, &bufCopy);
+    vkCmdCopyBuffer(commandBuffer, stagingBufferHandle.vkBuffer, _vkBuffer, 1, &bufCopy);
 
     VkMemoryBarrier memoryBarrier2{};
     memoryBarrier2.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;

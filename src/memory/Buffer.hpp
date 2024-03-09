@@ -23,11 +23,11 @@ public:
   // data size must be equal to buffer size
   void fillData(const void *data = nullptr);
 
-  [[nodiscard]] VmaAllocation getMainBufferAllocation() const { return _mainBufferAllocation; }
+  [[nodiscard]] VmaAllocation getMainBufferAllocation() const { return _bufferAllocation; }
 
-  inline VkBuffer &getVkBuffer() { return _mainVkBuffer; }
+  inline VkBuffer &getVkBuffer() { return _vkBuffer; }
 
-  inline VmaAllocation &getAllocation() { return _mainBufferAllocation; }
+  inline VmaAllocation &getAllocation() { return _bufferAllocation; }
 
   [[nodiscard]] inline VkDeviceSize getSize() const { return _size; }
 
@@ -35,7 +35,7 @@ public:
 
   inline VkDescriptorBufferInfo getDescriptorInfo() {
     VkDescriptorBufferInfo descriptorInfo{};
-    descriptorInfo.buffer = _mainVkBuffer;
+    descriptorInfo.buffer = _vkBuffer;
     descriptorInfo.offset = 0;
     descriptorInfo.range  = _size;
     return descriptorInfo;
@@ -46,9 +46,9 @@ private:
 
   MemoryStyle _memoryStyle;
 
-  VkBuffer _mainVkBuffer              = VK_NULL_HANDLE;
-  VmaAllocation _mainBufferAllocation = VK_NULL_HANDLE;
-  void *_mainBufferMappedAddr         = nullptr;
+  VkBuffer _vkBuffer              = VK_NULL_HANDLE;
+  VmaAllocation _bufferAllocation = VK_NULL_HANDLE;
+  void *_mappedAddr               = nullptr;
 
   void _allocate(VkBufferUsageFlags bufferUsageFlags);
 
