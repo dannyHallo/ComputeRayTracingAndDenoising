@@ -86,7 +86,7 @@ Buffer::StagingBufferHandle Buffer::_createStagingBuffer() const {
 
   VkBufferCreateInfo stagingBufCreateInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
   stagingBufCreateInfo.size               = _size;
-  stagingBufCreateInfo.usage              = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  stagingBufCreateInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
   VmaAllocationCreateInfo stagingAllocCreateInfo = {};
   stagingAllocCreateInfo.usage                   = VMA_MEMORY_USAGE_AUTO;
@@ -119,31 +119,13 @@ void Buffer::fillData(const void *data) {
   case MemoryStyle::kHostVisible: {
     assert(_mappedAddr != nullptr && "buffer is not host visible");
     memcpy(_mappedAddr, data, _size);
-    return;
+    break;
   }
   case MemoryStyle::kDedicated: {
     StagingBufferHandle stagingBufferHandle = _createStagingBuffer();
-
-    // fill data to staging
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
-
     memcpy(stagingBufferHandle.mappedAddr, data, _size);
 
-    VkMemoryBarrier memoryBarrier{};
-    memoryBarrier.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    memoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-    memoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    vkCmdPipelineBarrier(commandBuffer,
-                         VK_PIPELINE_STAGE_HOST_BIT,     // source stage
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, // destination stage
-                         0,                              // dependency flags
-                         1,                              // memory barrier count
-                         &memoryBarrier,                 // memory barriers
-                         0,                              // buffer memory barrier count
-                         nullptr,                        // buffer memory barriers
-                         0,                              // image memory barrier count
-                         nullptr                         // image memory barriers
-    );
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
 
     VkBufferCopy bufCopy = {
         0,     // srcOffset
@@ -151,36 +133,47 @@ void Buffer::fillData(const void *data) {
         _size, // size
     };
 
-    // copy staging to main buffer
+    // copy staging buffer to main buffer
     vkCmdCopyBuffer(commandBuffer, stagingBufferHandle.vkBuffer, _vkBuffer, 1, &bufCopy);
 
-    VkMemoryBarrier memoryBarrier2{};
-    memoryBarrier2.sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    memoryBarrier2.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    memoryBarrier2.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    endSingleTimeCommands(device, commandPool, queue, commandBuffer);
+    _destroyStagingBuffer(stagingBufferHandle);
+    break;
+  }
+  }
+}
 
-    vkCmdPipelineBarrier(commandBuffer,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT,        // source stage
-                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, // destination stage
-                         0,                                     // dependency flags
-                         1,                                     // memory barrier count
-                         &memoryBarrier2,                       // memory barriers
-                         0,                                     // buffer memory barrier count
-                         nullptr,                               // buffer memory barriers
-                         0,                                     // image memory barrier count
-                         nullptr                                // image memory barriers
-    );
+void Buffer::fetchData(void *data) {
+  auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
+  auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
+  auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
 
+  switch (_memoryStyle) {
+  case MemoryStyle::kHostVisible: {
+    assert(_mappedAddr != nullptr && "_mappedAddr is nullptr");
+    memcpy(data, _mappedAddr, _size);
+    return;
+  }
+
+  case MemoryStyle::kDedicated: {
+    StagingBufferHandle stagingBufferHandle = _createStagingBuffer();
+
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
+
+    VkBufferCopy bufCopy = {
+        0,     // srcOffset
+        0,     // dstOffset,
+        _size, // size
+    };
+
+    // copy main buffer to staging buffer
+    vkCmdCopyBuffer(commandBuffer, _vkBuffer, stagingBufferHandle.vkBuffer, 1, &bufCopy);
     endSingleTimeCommands(device, commandPool, queue, commandBuffer);
 
-    _destroyStagingBuffer(stagingBufferHandle);
-  }
-  }
+    memcpy(data, stagingBufferHandle.mappedAddr, _size);
 
-  // // map memory, copy data, unmap memory
-  // void *mappedData = nullptr;
-  // vmaMapMemory(VulkanApplicationContext::getInstance()->getAllocator(), _mainBufferAllocation,
-  //              &mappedData);
-  // memcpy(mappedData, data, _size);
-  // vmaUnmapMemory(VulkanApplicationContext::getInstance()->getAllocator(), _mainBufferAllocation);
+    _destroyStagingBuffer(stagingBufferHandle);
+    break;
+  }
+  }
 }

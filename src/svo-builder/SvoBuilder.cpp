@@ -162,13 +162,7 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
 
   // map memory, copy data, unmap memory
   uint32_t octreeBufferUsedSize = 0;
-
-  void *mappedData = nullptr;
-  vmaMapMemory(VulkanApplicationContext::getInstance()->getAllocator(),
-               _octreeBufferSizeStagingBuffer->getAllocation(), &mappedData);
-  memcpy(&octreeBufferUsedSize, mappedData, sizeof(uint32_t));
-  vmaUnmapMemory(VulkanApplicationContext::getInstance()->getAllocator(),
-                 _octreeBufferSizeStagingBuffer->getAllocation());
+  _octreeBufferSizeBuffer->fetchData(&octreeBufferUsedSize);
 
   // log
   _logger->info("used octree buffer size: {} mb",
@@ -202,9 +196,10 @@ void SvoBuilder::_createBuffers() {
   _logger->info("estimated chunk staging buffer size : {} mb",
                 static_cast<float>(sizeInWorstCase) / (1024 * 1024));
 
-  _chunkSvoStagingBuffer =
-      std::make_unique<Buffer>(sizeof(uint32_t) * kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim,
-                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryStyle::kHostVisible);
+  _chunkOctreeBuffer = std::make_unique<Buffer>(
+      sizeof(uint32_t) * kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim,
+      VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      MemoryStyle::kHostVisible);
 
   uint32_t gb                      = 1024 * 1024 * 1024;
   uint32_t maximumOctreeBufferSize = 2 * gb;
@@ -213,8 +208,10 @@ void SvoBuilder::_createBuffers() {
                                                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                                        MemoryStyle::kDedicated);
 
-  _octreeBuffer = std::make_unique<Buffer>(
-      maximumOctreeBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+  _appendedOctreeBuffer = std::make_unique<Buffer>(maximumOctreeBufferSize,
+                                                   VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                       VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                                   MemoryStyle::kDedicated);
 
   uint32_t maximumFragmentListBufferSize =
       sizeof(G_FragmentListEntry) * kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim;
@@ -241,9 +238,6 @@ void SvoBuilder::_createBuffers() {
   _octreeBufferSizeBuffer = std::make_unique<Buffer>(
       sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       MemoryStyle::kDedicated);
-
-  _octreeBufferSizeStagingBuffer = std::make_unique<Buffer>(
-      sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT, MemoryStyle::kHostVisible);
 }
 
 void SvoBuilder::_createDescriptorSetBundle() {
@@ -255,7 +249,7 @@ void SvoBuilder::_createDescriptorSetBundle() {
 
   _descriptorSetBundle->bindStorageBuffer(7, _indirectFragLengthBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(0, _counterBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(1, _octreeBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(1, _chunkOctreeBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(2, _fragmentListBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(3, _buildInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(4, _indirectAllocNumBuffer.get());
@@ -402,26 +396,6 @@ void SvoBuilder::_recordCommandBuffer() {
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
                            nullptr, 0, nullptr);
 
-      if (level == _voxelLevelCount - 2) {
-        VkMemoryBarrier transferReadBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-        transferReadBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-        transferReadBarrier.dstAccessMask   = VK_ACCESS_TRANSFER_READ_BIT;
-
-        vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &transferReadBarrier, 0, nullptr,
-                             0, nullptr);
-
-        VkBufferCopy bufCopy = {
-            0,                                  // srcOffset
-            0,                                  // dstOffset,
-            _octreeBufferSizeBuffer->getSize(), // size
-        };
-
-        // this step doesn't need syncronization here, since we have fences
-        vkCmdCopyBuffer(_commandBuffer, _octreeBufferSizeBuffer->getVkBuffer(),
-                        _octreeBufferSizeStagingBuffer->getVkBuffer(), 1, &bufCopy);
-      }
-
       vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT |
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -429,8 +403,7 @@ void SvoBuilder::_recordCommandBuffer() {
     }
   }
 
-  // step 3 (temporary): build the chunks
-
+  // (temporary): build the chunks
   _chunksBuilderPipeline->recordCommand(_commandBuffer, 0, kChunkDim, kChunkDim, kChunkDim);
 
   vkEndCommandBuffer(_commandBuffer);

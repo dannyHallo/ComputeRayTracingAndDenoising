@@ -19,9 +19,13 @@ public:
   Buffer(Buffer &&)                 = default;
   Buffer &operator=(Buffer &&)      = default;
 
-  // fill buffer with data, if data is nullptr, buffer will be zero-initialized
-  // data size must be equal to buffer size
+  // fill buffer with data
+  //  buffer will be zero-initialized if data is nullptr
   void fillData(const void *data = nullptr);
+  void fetchData(void *data);
+
+  void *mapMemory();
+  void unmapMemory();
 
   [[nodiscard]] VmaAllocation getMainBufferAllocation() const { return _bufferAllocation; }
 
@@ -57,6 +61,8 @@ private:
     VmaAllocation bufferAllocation = VK_NULL_HANDLE;
     void *mappedAddr               = nullptr;
   };
+
+  // create a staging buffer that is both allowed to be transferred to and from
   [[nodiscard]] StagingBufferHandle _createStagingBuffer() const;
   static void _destroyStagingBuffer(StagingBufferHandle &stagingBufferHandle);
 };

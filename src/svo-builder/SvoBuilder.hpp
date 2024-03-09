@@ -35,7 +35,7 @@ public:
 
   void buildScene();
 
-  Buffer *getOctreeBuffer() { return _octreeBuffer.get(); }
+  Buffer *getAppendedOctreeBuffer() { return _appendedOctreeBuffer.get(); }
   Image *getChunksImage() { return _chunksImage.get(); }
 
   [[nodiscard]] uint32_t getVoxelLevelCount() const { return _voxelLevelCount; }
@@ -67,20 +67,17 @@ private:
   void _createImages();
 
   /// BUFFERS
-  std::unique_ptr<Buffer> _chunkSvoStagingBuffer;
-
+  std::unique_ptr<Buffer> _appendedOctreeBuffer;
   std::unique_ptr<Buffer> _chunksInfoBuffer;
   std::unique_ptr<Buffer> _octreeBufferSizeBuffer;
 
   std::unique_ptr<Buffer> _indirectFragLengthBuffer;
   std::unique_ptr<Buffer> _counterBuffer;
-  std::unique_ptr<Buffer> _octreeBuffer;
+  std::unique_ptr<Buffer> _chunkOctreeBuffer;
   std::unique_ptr<Buffer> _fragmentListBuffer;
   std::unique_ptr<Buffer> _buildInfoBuffer;
   std::unique_ptr<Buffer> _indirectAllocNumBuffer;
   std::unique_ptr<Buffer> _fragmentListInfoBuffer;
-
-  std::unique_ptr<Buffer> _octreeBufferSizeStagingBuffer; // for showing data on CPU side
 
   void _createBuffers();
   void _resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWritingChunk);
