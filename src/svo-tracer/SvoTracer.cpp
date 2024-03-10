@@ -34,7 +34,7 @@ float halton(int base, int index) {
 };
 
 std::string _makeShaderFullPath(std::string const &shaderName) {
-  return kRootDir + "src/shaders/svo-tracer/" + shaderName;
+  return kPathToResourceFolder + "shaders/svo-tracer/" + shaderName;
 }
 
 }; // namespace

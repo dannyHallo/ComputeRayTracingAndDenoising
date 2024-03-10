@@ -2,7 +2,8 @@
 
 #include <string>
 
-static const std::string kRootDir = "C:/Users/danny/Desktop/VoxelLab/";
-// static const std::string kRootDir                     = "../../../../";
+// release mode, the resources folder is copied to the build folder
+static const std::string kRootDir = "./";
+
 static const std::string kPathToResourceFolder        = kRootDir + "resources/";
 static const std::string KPathToCompiledShadersFolder = kPathToResourceFolder + "compiled-shaders/";

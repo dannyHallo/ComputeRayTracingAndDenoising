@@ -64,7 +64,8 @@ target("main")
     )
     add_includedirs(
         "./",
-        "src/",
+        "src/", 
+        "resources/shaders/include/",
         "dep/",
         "dep/spdlog/include/",
         "dep/imgui/",

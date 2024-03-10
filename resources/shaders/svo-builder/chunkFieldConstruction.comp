@@ -26,10 +26,6 @@ void main() {
   const float floorChangeVar  = 2.5;
   float yPosition             = float(chunkPosition.y) - 0.5 +
                     float(uv.y) / float(fragmentListInfoBuffer.data.voxelResolution);
-  // float noise = -yPosition;
-  // float floorHeight = fragmentListInfoBuffer.data.voxelResolution * 0.2;
-  // float noise = (floorHeight - gl_GlobalInvocationID.y) - floorHeight * cnoise(noiseLookupPos *
-  // 4);
 
   float noise = (floorHeightMean - yPosition) + floorChangeVar * cnoise(noiseLookupPos * 2);
 

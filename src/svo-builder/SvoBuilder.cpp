@@ -52,9 +52,8 @@ namespace {
 // }
 
 std::string _makeShaderFullPath(std::string const &shaderName) {
-  return kRootDir + "src/shaders/svo-builder/" + shaderName;
+  return kPathToResourceFolder + "shaders/svo-builder/" + shaderName;
 }
-
 } // namespace
 
 SvoBuilder::SvoBuilder(VulkanApplicationContext *appContext, Logger *logger,

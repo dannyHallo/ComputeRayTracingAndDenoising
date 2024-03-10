@@ -20,7 +20,7 @@
 #define bool alignas(4) bool
 #define uint uint32_t
 
-#include "shaders/include/svoTracerDataStructs.glsl" // IWYU pragma: export
+#include "svoTracerDataStructs.glsl" // IWYU pragma: export
 
 #undef vec3
 #undef uvec3
