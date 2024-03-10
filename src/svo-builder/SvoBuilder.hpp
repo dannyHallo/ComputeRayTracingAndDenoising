@@ -47,7 +47,8 @@ private:
   ShaderCompiler *_shaderCompiler;
   ShaderChangeListener *_shaderChangeListener;
 
-  uint32_t _voxelLevelCount = 0;
+  uint32_t _voxelLevelCount         = 0;
+  uint32_t _octreeBufferAccumLength = 0;
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 

@@ -23,7 +23,7 @@ void main() {
       vec3(chunkPosition) + vec3(uv) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   const float floorHeightMean = 0.0;
-  const float floorChangeVar  = 1.0;
+  const float floorChangeVar  = 2.5;
   float yPosition             = float(chunkPosition.y) - 0.5 +
                     float(uv.y) / float(fragmentListInfoBuffer.data.voxelResolution);
   // float noise = -yPosition;
@@ -31,7 +31,7 @@ void main() {
   // float noise = (floorHeight - gl_GlobalInvocationID.y) - floorHeight * cnoise(noiseLookupPos *
   // 4);
 
-  float noise = (floorHeightMean - yPosition) + floorChangeVar * cnoise(noiseLookupPos * 4);
+  float noise = (floorHeightMean - yPosition) + floorChangeVar * cnoise(noiseLookupPos * 2);
 
   imageStore(chunkFieldImage, uv, vec4(noise, 0, 0, 0));
 }
