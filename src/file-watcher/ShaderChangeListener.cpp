@@ -27,7 +27,7 @@ std::string _normalizePath(const std::string &path) {
 }; // namespace
 ShaderChangeListener::ShaderChangeListener(Logger *logger)
     : _logger(logger), _fileWatcher(std::make_unique<efsw::FileWatcher>()) {
-  _fileWatcher->addWatch(kRootDir + "src/shaders/", this, true);
+  _fileWatcher->addWatch(kPathToResourceFolder + "shaders/", this, true);
   _fileWatcher->watch();
 
   GlobalEventDispatcher::get()
@@ -105,6 +105,7 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
 void ShaderChangeListener::addWatchingItem(Pipeline *pipeline, bool needToRebuildSvo) {
   auto const fullPathToFile = pipeline->getFullPathToShaderSourceCode();
 
+  _logger->info("watching shader file: {}", fullPathToFile);
   _watchingShaderFiles[fullPathToFile] = needToRebuildSvo;
 
   if (_shaderFileNameToPipeline.find(fullPathToFile) != _shaderFileNameToPipeline.end()) {

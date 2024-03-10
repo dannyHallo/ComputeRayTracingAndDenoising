@@ -21,6 +21,7 @@ Pipeline::Pipeline(VulkanApplicationContext *appContext, Logger *logger, Schedul
       _shaderChangeListener(shaderChangeListener), _descriptorSetBundle(descriptorSetBundle),
       _fullPathToShaderSourceCode(std::move(fullPathToShaderSourceCode)),
       _shaderStageFlags(shaderStageFlags) {
+
   if (_shaderChangeListener != nullptr) {
     _shaderChangeListener->addWatchingItem(this, needToRebuildSvo);
   }

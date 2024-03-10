@@ -7,13 +7,14 @@
 #include "utils/shader-compiler/ShaderCompiler.hpp"
 
 ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *logger,
-                                 Scheduler *scheduler, std::string shaderFileName,
+                                 Scheduler *scheduler, std::string fullPathToShaderSourceCode,
                                  WorkGroupSize workGroupSize,
                                  DescriptorSetBundle *descriptorSetBundle,
                                  ShaderCompiler *shaderCompiler,
                                  ShaderChangeListener *shaderChangeListener, bool needToRebuildSvo)
-    : Pipeline(appContext, logger, scheduler, std::move(shaderFileName), descriptorSetBundle,
-               VK_SHADER_STAGE_COMPUTE_BIT, shaderChangeListener, needToRebuildSvo),
+    : Pipeline(appContext, logger, scheduler, std::move(fullPathToShaderSourceCode),
+               descriptorSetBundle, VK_SHADER_STAGE_COMPUTE_BIT, shaderChangeListener,
+               needToRebuildSvo),
       _workGroupSize(workGroupSize), _shaderCompiler(shaderCompiler) {}
 
 ComputePipeline::~ComputePipeline() = default;
