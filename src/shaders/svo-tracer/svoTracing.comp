@@ -23,48 +23,26 @@ vec3 decompressNormal(uint packed) {
   return normal;
 }
 
-bool getVoxel(ivec3 pos) { return imageLoad(chunksImage, pos).x > 0; }
-
-#define MAX_DDA_ITERATION 100
-
-// branchless DDA
-// originally from https://www.shadertoy.com/view/4dX3zl
-// my fork: https://www.shadertoy.com/view/l3fXWH
-bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uint skippingNum,
-                 vec3 o, vec3 d) {
-  oHitChunkPosOffset    = ivec3(0);
-  oHitChunkLookupOffset = uvec3(0);
-
-  ivec3 mapPos   = ivec3(floor(o));
-  vec3 deltaDist = 1.0 / abs(d);
-  ivec3 rayStep  = ivec3(sign(d));
-  vec3 sideDist  = (((sign(d) * 0.5) + 0.5) + sign(d) * (vec3(mapPos) - o)) * deltaDist;
-
-  bvec3 mask;
-  for (int i = 0; i <= MAX_DDA_ITERATION; i++) {
-    if (i >= skippingNum && getVoxel(mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2))) {
-      oHitChunkPosOffset    = mapPos;
-      oHitChunkLookupOffset = mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2);
-      return true;
-    }
-
-    if (i == MAX_DDA_ITERATION) {
-      mask = bvec3(false);
-      return false;
-    }
-
-    // hereby "branchless"
-    mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
-    sideDist += vec3(mask) * deltaDist;
-    mapPos += ivec3(vec3(mask)) * rayStep;
-  }
-}
-
 const uint STACK_SIZE = 23;
 struct StackItem {
   uint node;
   float t_max;
 } stack[STACK_SIZE + 1];
+
+// this algorithm is from here:
+// https://research.nvidia.com/sites/default/files/pubs/2010-02_Efficient-Sparse-Voxel/laine2010tr1_paper.pdf
+
+// code reference:
+// https://code.google.com/archive/p/efficient-sparse-voxel-octrees/
+// https://github.com/AdamYuan/SparseVoxelOctree
+
+// design decisions:
+// 1. the position range of the octree is [1, 2], because the POP function need that bit
+// comparison from the floating points ranged from [0, 1]
+// 2. the traversing reduces branching by mirroring the coordinate system
+// 3. all eight childrens are stored if at least one is active, so the parent node masks only need
+// two bits (isLeaf and hasChild), this is different from the paper, which needs 16 bits for
+// that
 
 bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPosition,
                  out vec3 oNextTracingPosition, out vec3 oNormal, out uint oVoxHash,
@@ -104,7 +82,7 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   }
 
   uint scale       = STACK_SIZE - 1;
-  float scale_exp2 = 0.5f;
+  float scale_exp2 = 0.5;
 
   while (scale < STACK_SIZE) {
     ++iter;
@@ -229,20 +207,42 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   return scale < STACK_SIZE && t_min <= t_max;
 }
 
-// this algorithm is from here:
-// https://research.nvidia.com/sites/default/files/pubs/2010-02_Efficient-Sparse-Voxel/laine2010tr1_paper.pdf
+bool getVoxel(ivec3 pos) { return imageLoad(chunksImage, pos).x > 0; }
 
-// code reference:
-// https://code.google.com/archive/p/efficient-sparse-voxel-octrees/
-// https://github.com/AdamYuan/SparseVoxelOctree
+#define MAX_DDA_ITERATION 100
 
-// design decisions:
-// 1. the position range of the octree is [1, 2], because the POP function need that bit
-// comparison from the floating points ranged from [0, 1]
-// 2. the traversing reduces branching by mirroring the coordinate system
-// 3. all eight childrens are stored if at least one is active, so the parent node masks only need
-// two bits (isLeaf and hasChild), this is different from the paper, which needs 16 bits for
-// that
+// branchless DDA
+// originally from https://www.shadertoy.com/view/4dX3zl
+// my fork: https://www.shadertoy.com/view/l3fXWH
+bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uint skippingNum,
+                 vec3 o, vec3 d) {
+  oHitChunkPosOffset    = ivec3(0);
+  oHitChunkLookupOffset = uvec3(0);
+
+  ivec3 mapPos   = ivec3(floor(o));
+  vec3 deltaDist = 1.0 / abs(d);
+  ivec3 rayStep  = ivec3(sign(d));
+  vec3 sideDist  = (((sign(d) * 0.5) + 0.5) + sign(d) * (vec3(mapPos) - o)) * deltaDist;
+
+  bvec3 mask;
+  for (int i = 0; i <= MAX_DDA_ITERATION; i++) {
+    if (i >= skippingNum && getVoxel(mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2))) {
+      oHitChunkPosOffset    = mapPos;
+      oHitChunkLookupOffset = mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2);
+      return true;
+    }
+
+    if (i == MAX_DDA_ITERATION) {
+      mask = bvec3(false);
+      return false;
+    }
+
+    // hereby "branchless"
+    mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
+    sideDist += vec3(mask) * deltaDist;
+    mapPos += ivec3(vec3(mask)) * rayStep;
+  }
+}
 
 // this marching algorithm fetches leaf properties
 bool cascatedMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPosition,
@@ -396,15 +396,15 @@ void main() {
   float optimizedDistance = 0;
 
   // beam optimization
-  // if (twickableParametersUbo.data.beamOptimization) {
-  //   ivec2 beamUv      = ivec2(gl_GlobalInvocationID.xy / sceneInfoBuffer.data.beamResolution);
-  //   float t1          = imageLoad(beamDepthImage, beamUv).r;
-  //   float t2          = imageLoad(beamDepthImage, beamUv + ivec2(1, 0)).r;
-  //   float t3          = imageLoad(beamDepthImage, beamUv + ivec2(0, 1)).r;
-  //   float t4          = imageLoad(beamDepthImage, beamUv + ivec2(1, 1)).r;
-  //   float t           = min(min(t1, t2), min(t3, t4));
-  //   optimizedDistance = t;
-  // }
+  if (twickableParametersUbo.data.beamOptimization) {
+    ivec2 beamUv      = ivec2(gl_GlobalInvocationID.xy / sceneInfoBuffer.data.beamResolution);
+    float t1          = imageLoad(beamDepthImage, beamUv).r;
+    float t2          = imageLoad(beamDepthImage, beamUv + ivec2(1, 0)).r;
+    float t3          = imageLoad(beamDepthImage, beamUv + ivec2(0, 1)).r;
+    float t4          = imageLoad(beamDepthImage, beamUv + ivec2(1, 1)).r;
+    float t           = min(min(t1, t2), min(t3, t4));
+    optimizedDistance = t;
+  }
 
   uint voxHash;
   uint primaryRayIterUsed;
