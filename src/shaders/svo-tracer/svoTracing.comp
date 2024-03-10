@@ -13,7 +13,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 vec3 decompressNormal(uint packed) {
   // extract the components
   uvec3 quantized;
-  quantized.r = (packed) & 0x7F;
+  quantized.r = (packed)&0x7F;
   quantized.g = (packed >> 7) & 0x7F;
   quantized.b = (packed >> 14) & 0x7F;
 
@@ -394,7 +394,6 @@ void main() {
   vec3 position, color;
   uint primaryRayIterUsed = 0;
   while (hitChunk(hitChunkOffset, hitChunkLookupOffset, skippingNum, o, d)) {
-    hitChunkLookupOffset = uvec3(1, 2, 1);
     // don't forget to de-offset by one, since 0 is used to encode the empty space
     uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
 

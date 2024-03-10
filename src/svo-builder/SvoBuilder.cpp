@@ -119,7 +119,6 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   fragmentListInfo.voxelFragmentCount = 0;
   _fragmentListInfoBuffer->fillData(&fragmentListInfo);
 
-  // TODO: fix this
   G_ChunksInfo chunksInfo{};
   chunksInfo.chunksDim             = getChunksDim();
   chunksInfo.currentlyWritingChunk = currentlyWritingChunk;
@@ -128,12 +127,12 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   // the first 8 are not calculated, so pre-allocate them
   uint32_t octreeBufferSize = 8;
   _octreeBufferLengthBuffer->fillData(&octreeBufferSize);
-
-  uint32_t zero = 0;
-  _octreeBufferAccumLengthBuffer->fillData(&zero);
 }
 
 void SvoBuilder::buildScene() {
+  uint32_t zero = 0;
+  _octreeBufferAccumLengthBuffer->fillData(&zero);
+
   for (uint32_t z = 0; z < kChunkDim; z++) {
     for (uint32_t y = 0; y < kChunkDim; y++) {
       for (uint32_t x = 0; x < kChunkDim; x++) {
@@ -187,10 +186,10 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), commandBuffer);
 
+  octreeBufferAccumulatedLength += octreeBufferLength;
+
   _logger->info("filling octreebufferaccumlength buffer with {}", octreeBufferAccumulatedLength);
   _octreeBufferAccumLengthBuffer->fillData(&octreeBufferAccumulatedLength);
-
-  octreeBufferAccumulatedLength += octreeBufferLength;
 
   // log
   _logger->info("used octree buffer size: {} mb",
