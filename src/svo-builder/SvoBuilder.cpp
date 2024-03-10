@@ -119,6 +119,7 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   fragmentListInfo.voxelFragmentCount = 0;
   _fragmentListInfoBuffer->fillData(&fragmentListInfo);
 
+  // TODO: fix this
   G_ChunksInfo chunksInfo{};
   chunksInfo.chunksDim             = getChunksDim();
   chunksInfo.currentlyWritingChunk = currentlyWritingChunk;

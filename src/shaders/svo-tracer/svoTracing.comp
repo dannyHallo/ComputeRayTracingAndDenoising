@@ -330,8 +330,10 @@ bool getVoxel(ivec3 pos) { return imageLoad(chunksImage, pos).x > 0; }
 // branchless DDA
 // originally from https://www.shadertoy.com/view/4dX3zl
 // my fork: https://www.shadertoy.com/view/l3fXWH
-bool hitChunk(out ivec3 oHitChunkOffset, uint skippingNum, vec3 o, vec3 d) {
-  oHitChunkOffset = ivec3(0);
+bool hitChunk(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uint skippingNum,
+              vec3 o, vec3 d) {
+  oHitChunkPosOffset    = ivec3(0);
+  oHitChunkLookupOffset = uvec3(0);
 
   ivec3 mapPos   = ivec3(floor(o));
   vec3 deltaDist = 1.0 / abs(d);
@@ -341,7 +343,8 @@ bool hitChunk(out ivec3 oHitChunkOffset, uint skippingNum, vec3 o, vec3 d) {
   bvec3 mask;
   for (int i = 0; i <= MAX_DDA_ITERATION; i++) {
     if (i >= skippingNum && getVoxel(mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2))) {
-      oHitChunkOffset = mapPos;
+      oHitChunkPosOffset    = mapPos;
+      oHitChunkLookupOffset = mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2);
 
       // // lastly, use the same algorithm to decide the final offset to the next voxel
       // mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
@@ -385,13 +388,15 @@ void main() {
   rayGen(o, d, subpixOffset);
 
   ivec3 hitChunkOffset;
+  uvec3 hitChunkLookupOffset;
   uint skippingNum = 0;
   bool hitVoxel    = false;
   vec3 position, color;
   uint primaryRayIterUsed = 0;
-  while (hitChunk(hitChunkOffset, skippingNum, o, d)) {
+  while (hitChunk(hitChunkOffset, hitChunkLookupOffset, skippingNum, o, d)) {
+    hitChunkLookupOffset = uvec3(1, 2, 1);
     // don't forget to de-offset by one, since 0 is used to encode the empty space
-    uint chunkBufferOffset = imageLoad(chunksImage, hitChunkOffset).x - 1;
+    uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
 
     float optimizedDistance = 0;
 

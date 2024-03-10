@@ -8,5 +8,6 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 void main() {
   // store the octree buffer offset in the chunks image
   uvec3 chunkIndex = chunksInfoBuffer.data.currentlyWritingChunk;
-  imageStore(chunksImage, ivec3(chunkIndex), uvec4(4307928 + 1, 0, 0, 0));
+  imageStore(chunksImage, ivec3(chunkIndex),
+             uvec4(int(octreeBufferAccumLengthBuffer.data) + 1, 0, 0, 0));
 }
