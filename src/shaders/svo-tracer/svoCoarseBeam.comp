@@ -200,7 +200,7 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
 }
 
 // this marching algorithm fetches leaf properties
-bool cascatedMarching(out float oT, out float oSize, vec3 o, vec3 d, float originalSize,
+bool cascadedMarching(out float oT, out float oSize, vec3 o, vec3 d, float originalSize,
                       float directionalSize) {
   ivec3 hitChunkOffset;
   uvec3 hitChunkLookupOffset;
@@ -264,7 +264,7 @@ void main() {
   float t, size;
   float lowestLevelVoxSize = exp2(1.0 - sceneInfoBuffer.data.voxelLevelCount);
 
-  bool hitOrReachedDetails = cascatedMarching(t, size, o, d, lowestLevelVoxSize, dirSz);
+  bool hitOrReachedDetails = cascadedMarching(t, size, o, d, lowestLevelVoxSize, dirSz);
   float dist               = hitOrReachedDetails ? max(0.0, t - size) : 1e10;
   imageStore(beamDepthImage, uv, vec4(dist, 0, 0, 0));
 }

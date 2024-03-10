@@ -245,7 +245,7 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
 }
 
 // this marching algorithm fetches leaf properties
-bool cascatedMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPosition,
+bool cascadedMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPosition,
                       out vec3 oNextTracingPosition, out vec3 oNormal, out uint oVoxHash,
                       out bool oLightSourceHit, vec3 o, vec3 d) {
   ivec3 hitChunkOffset;
@@ -305,7 +305,7 @@ vec3 traceTerminate(uvec3 seed, vec3 o, vec3 d) {
   uint iter, voxHash;
   bool lightSourceHit;
   float tMin;
-  bool hit = cascatedMarching(tMin, iter, color, position, nextTracingPosition, normal, voxHash,
+  bool hit = cascadedMarching(tMin, iter, color, position, nextTracingPosition, normal, voxHash,
                               lightSourceHit, o, d);
   if (!hit) {
     return dayLightCalc(d);
@@ -323,7 +323,7 @@ vec3 traceSecondary(uvec3 seed, vec3 o, vec3 d) {
   uint iter, voxHash;
   bool lightSourceHit;
   float tMin;
-  bool hit = cascatedMarching(tMin, iter, color, position, nextTracingPosition, normal, voxHash,
+  bool hit = cascadedMarching(tMin, iter, color, position, nextTracingPosition, normal, voxHash,
                               lightSourceHit, o, d);
   if (!hit) {
     return dayLightCalc(d);
@@ -355,7 +355,7 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
   o += d * optimizedDistance;
   bool lightSourceHit;
   vec3 nextTracingPosition;
-  bool hit = cascatedMarching(oT, oPrimaryRayIterUsed, oColor, oPosition, nextTracingPosition,
+  bool hit = cascadedMarching(oT, oPrimaryRayIterUsed, oColor, oPosition, nextTracingPosition,
                               oNormal, oVoxHash, lightSourceHit, o, d);
   oT += optimizedDistance;
 

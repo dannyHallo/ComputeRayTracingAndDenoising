@@ -15,11 +15,23 @@ void main() {
 
   ivec3 uv = ivec3(gl_GlobalInvocationID);
 
-  vec3 noiseLookupPos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
-                        vec3(uv) / float(fragmentListInfoBuffer.data.voxelResolution);
+  uvec3 currentlyWritingChunk = chunksInfoBuffer.data.currentlyWritingChunk;
+  ivec3 chunkPosition =
+      ivec3(currentlyWritingChunk) - ivec3((chunksInfoBuffer.data.chunksDim - 1) / 2);
 
-  float floorHeight = fragmentListInfoBuffer.data.voxelResolution * 0.2;
-  float noise = (floorHeight - gl_GlobalInvocationID.y) - floorHeight * cnoise(noiseLookupPos * 4);
+  vec3 noiseLookupPos =
+      vec3(chunkPosition) + vec3(uv) / float(fragmentListInfoBuffer.data.voxelResolution);
+
+  const float floorHeightMean = 0.0;
+  const float floorChangeVar  = 1.0;
+  float yPosition             = float(chunkPosition.y) - 0.5 +
+                    float(uv.y) / float(fragmentListInfoBuffer.data.voxelResolution);
+  // float noise = -yPosition;
+  // float floorHeight = fragmentListInfoBuffer.data.voxelResolution * 0.2;
+  // float noise = (floorHeight - gl_GlobalInvocationID.y) - floorHeight * cnoise(noiseLookupPos *
+  // 4);
+
+  float noise = (floorHeightMean - yPosition) + floorChangeVar * cnoise(noiseLookupPos * 4);
 
   imageStore(chunkFieldImage, uv, vec4(noise, 0, 0, 0));
 }
