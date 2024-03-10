@@ -252,6 +252,7 @@ bool cascatedMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oP
   uvec3 hitChunkLookupOffset;
   bool hitVoxel = false;
 
+  oIter  = 0;
   oColor = vec3(0);
 
   uint skippingNum = 0;
@@ -262,11 +263,14 @@ bool cascatedMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oP
 
     uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
 
-    hitVoxel = svoMarching(oT, oIter, oColor, oPosition, oNextTracingPosition, oNormal, oVoxHash,
-                           oLightSourceHit, o + originOffset, d, chunkBufferOffset);
+    uint thisSvoIteration;
+    hitVoxel = svoMarching(oT, thisSvoIteration, oColor, oPosition, oNextTracingPosition, oNormal,
+                           oVoxHash, oLightSourceHit, o + originOffset, d, chunkBufferOffset);
 
     oPosition -= originOffset;
     oNextTracingPosition -= originOffset;
+
+    oIter += thisSvoIteration;
 
     if (hitVoxel) {
       break;
@@ -403,7 +407,7 @@ void main() {
   // }
 
   uint voxHash;
-  uint primaryRayIterUsed = 0;
+  uint primaryRayIterUsed;
   vec3 normal, position, color;
   float tMin;
   bool hitVoxel = tracePrimary(tMin, primaryRayIterUsed, color, position, normal, voxHash, seed, o,
