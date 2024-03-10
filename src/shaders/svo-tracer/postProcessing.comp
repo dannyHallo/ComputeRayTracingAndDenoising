@@ -124,18 +124,22 @@ float getSampleWeight(vec2 delta, float scale) {
   return clamp(1 - scale * dot(delta, delta), 0, 1);
 }
 
+// #define RAW_DIRECT_OUTPUT
+
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.highResSize)))) {
     return;
   }
 
-  // if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
-  //   return;
-  // }
-  // vec3 readingCol = unpackRGBE(imageLoad(rawImage, uv).x).rgb;
-  // imageStore(renderTargetImage, uv, vec4(readingCol.zyx, 1));
-  // return;
+#ifdef RAW_DIRECT_OUTPUT
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
+    return;
+  }
+  vec3 readingCol = unpackRGBE(imageLoad(rawImage, uv).x).rgb;
+  imageStore(renderTargetImage, uv, vec4(readingCol.zyx, 1));
+  return;
+#endif
 
   vec2 lowResUv     = highResToLowRes(uv);
   ivec2 intLowResUv = ivec2(lowResUv);

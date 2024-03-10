@@ -17,6 +17,7 @@
 // the voxel dimension within a chunk
 static uint32_t constexpr kChunkVoxelDim = 256;
 // the chunk dimension, this is worth expanding
+// TODO: change 3D image into a flattened storage buffer, to support 1x1x1 chunk
 static uint32_t constexpr kChunkDim = 3;
 
 namespace {

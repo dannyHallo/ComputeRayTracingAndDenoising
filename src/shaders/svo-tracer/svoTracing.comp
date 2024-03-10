@@ -25,15 +25,13 @@ vec3 decompressNormal(uint packed) {
 
 bool getVoxel(ivec3 pos) { return imageLoad(chunksImage, pos).x > 0; }
 
+#define MAX_DDA_ITERATION 100
+
 // branchless DDA
 // originally from https://www.shadertoy.com/view/4dX3zl
 // my fork: https://www.shadertoy.com/view/l3fXWH
-
-#define USE_BRANCHLESS_DDA true
-#define MAX_DDA_ITERATION 100
-
-bool hitChunk(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uint skippingNum,
-              vec3 o, vec3 d) {
+bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uint skippingNum,
+                 vec3 o, vec3 d) {
   oHitChunkPosOffset    = ivec3(0);
   oHitChunkLookupOffset = uvec3(0);
 
@@ -47,6 +45,7 @@ bool hitChunk(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uin
     if (i >= skippingNum && getVoxel(mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2))) {
       oHitChunkPosOffset    = mapPos;
       oHitChunkLookupOffset = mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2);
+      return true;
     }
 
     if (i == MAX_DDA_ITERATION) {
@@ -214,17 +213,14 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   // oNormal = norm;
 
   // scale_exp2 is the length of the edges of the voxel
-  vec3 voxNormal       = decompressNormal((cur & 0x1FFFFF00u) >> 8u);
-  oNextTracingPosition = pos + scale_exp2 * 0.5 + 0.87 * scale_exp2 * voxNormal;
-  oNormal              = voxNormal;
+  oNormal              = decompressNormal((cur & 0x1FFFFF00u) >> 8u);
+  oNextTracingPosition = pos + scale_exp2 * 0.5 + 0.87 * scale_exp2 * oNormal;
 
   // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
   // uint colorIndex = cur & 0x000000FFu;
   oLightSourceHit = false;
   // oColor         = vec3(236, 177, 89) / 255.0;
   oColor = oNormal * 0.5 + 0.5;
-
-  // oColor = voxNormal;
 
   oIter    = iter;
   oVoxHash = voxHash;
@@ -252,29 +248,29 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
 bool cascatedMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPosition,
                       out vec3 oNextTracingPosition, out vec3 oNormal, out uint oVoxHash,
                       out bool oLightSourceHit, vec3 o, vec3 d) {
-  uint skippingNum = 0;
   ivec3 hitChunkOffset;
   uvec3 hitChunkLookupOffset;
   bool hitVoxel = false;
 
-  while (hitChunk(hitChunkOffset, hitChunkLookupOffset, skippingNum, o, d)) {
+  oColor = vec3(0);
+
+  uint skippingNum = 0;
+  while (ddaMarching(hitChunkOffset, hitChunkLookupOffset, skippingNum++, o, d)) {
     // preOffset is to offset the octree tracing position, which works best with the range of [1, 2]
     const ivec3 preOffset   = ivec3(1);
     const vec3 originOffset = preOffset - hitChunkOffset;
 
-    uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x;
+    uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
 
-    o += originOffset;
     hitVoxel = svoMarching(oT, oIter, oColor, oPosition, oNextTracingPosition, oNormal, oVoxHash,
-                           oLightSourceHit, o, d, chunkBufferOffset);
+                           oLightSourceHit, o + originOffset, d, chunkBufferOffset);
+
     oPosition -= originOffset;
+    oNextTracingPosition -= originOffset;
 
     if (hitVoxel) {
       break;
     }
-
-    // if the voxel is not hit, we need to continue the ray to trace along chunks
-    skippingNum += 1;
   }
 
   return hitVoxel;
@@ -412,8 +408,6 @@ void main() {
   float tMin;
   bool hitVoxel = tracePrimary(tMin, primaryRayIterUsed, color, position, normal, voxHash, seed, o,
                                d, optimizedDistance);
-
-  color = hitVoxel ? vec3(1) : dayLightCalc(d);
 
   if (!hitVoxel) {
     position = o + d * 1e10;
