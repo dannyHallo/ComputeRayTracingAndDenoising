@@ -294,11 +294,6 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
   oPrimaryRayIterUsed = iter;
 
   if (!hit) {
-    // oColor    = dayLightCalc(d);
-    // oPosition = vec3(0);
-    // oNormal   = vec3(0);
-    // oVoxHash  = 0;
-    // oT        = 1e10;
     return false;
   }
 
@@ -345,19 +340,6 @@ bool hitChunk(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uin
     if (i >= skippingNum && getVoxel(mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2))) {
       oHitChunkPosOffset    = mapPos;
       oHitChunkLookupOffset = mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2);
-
-      // // lastly, use the same algorithm to decide the final offset to the next voxel
-      // mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
-      // sideDist += vec3(mask) * deltaDist;
-      // // to avoid more than 1 component of mask is true...
-      // if (mask.x) {
-      //   oNextHitStartingOffset = sideDist.x;
-      // } else if (mask.y) {
-      //   oNextHitStartingOffset = sideDist.y;
-      // } else {
-      //   oNextHitStartingOffset = sideDist.z;
-      // }
-      return true;
     }
 
     if (i == MAX_DDA_ITERATION) {
