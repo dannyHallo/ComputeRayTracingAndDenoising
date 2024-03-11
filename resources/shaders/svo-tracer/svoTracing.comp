@@ -5,6 +5,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
+#include "../include/ddaMarching.glsl"
 #include "../include/definitions.glsl"
 #include "../include/packer.glsl"
 #include "../include/projection.glsl"
@@ -13,7 +14,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 vec3 decompressNormal(uint packed) {
   // extract the components
   uvec3 quantized;
-  quantized.r = (packed)&0x7F;
+  quantized.r = packed & 0x7F;
   quantized.g = (packed >> 7) & 0x7F;
   quantized.b = (packed >> 14) & 0x7F;
 
@@ -205,43 +206,6 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   oT       = t_min;
 
   return scale < STACK_SIZE && t_min <= t_max;
-}
-
-bool getVoxel(ivec3 pos) { return imageLoad(chunksImage, pos).x > 0; }
-
-#define MAX_DDA_ITERATION 100
-
-// branchless DDA
-// originally from https://www.shadertoy.com/view/4dX3zl
-// my fork: https://www.shadertoy.com/view/l3fXWH
-bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uint skippingNum,
-                 vec3 o, vec3 d) {
-  oHitChunkPosOffset    = ivec3(0);
-  oHitChunkLookupOffset = uvec3(0);
-
-  ivec3 mapPos   = ivec3(floor(o));
-  vec3 deltaDist = 1.0 / abs(d);
-  ivec3 rayStep  = ivec3(sign(d));
-  vec3 sideDist  = (((sign(d) * 0.5) + 0.5) + sign(d) * (vec3(mapPos) - o)) * deltaDist;
-
-  bvec3 mask;
-  for (int i = 0; i <= MAX_DDA_ITERATION; i++) {
-    if (i >= skippingNum && getVoxel(mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2))) {
-      oHitChunkPosOffset    = mapPos;
-      oHitChunkLookupOffset = mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2);
-      return true;
-    }
-
-    if (i == MAX_DDA_ITERATION) {
-      mask = bvec3(false);
-      return false;
-    }
-
-    // hereby "branchless"
-    mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
-    sideDist += vec3(mask) * deltaDist;
-    mapPos += ivec3(vec3(mask)) * rayStep;
-  }
 }
 
 // this marching algorithm fetches leaf properties

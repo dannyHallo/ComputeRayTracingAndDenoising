@@ -1,4 +1,4 @@
-set_project("Voxel Lab")
+set_project("voxel-lab")
 
 set_arch("x64")
 set_warnings("all")
