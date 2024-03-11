@@ -12,13 +12,16 @@
 
 #include "utils/config/RootDir.h"
 
+#include <chrono>
 #include <cmath>
 
 // the voxel dimension within a chunk
 static uint32_t constexpr kChunkVoxelDim = 256;
 // the chunk dimension, this is worth expanding
 // TODO: change 3D image into a flattened storage buffer, to support 1x1x1 chunk
-static uint32_t constexpr kChunkDim = 11;
+static uint32_t constexpr kChunkDimX = 11;
+static uint32_t constexpr kChunkDimY = 5;
+static uint32_t constexpr kChunkDimZ = 11;
 
 namespace {
 
@@ -75,7 +78,7 @@ void SvoBuilder::_createFence() {
   vkCreateFence(_appContext->getDevice(), &fenceCreateInfoNotSignalled, nullptr, &_timelineFence);
 }
 
-glm::uvec3 SvoBuilder::getChunksDim() { return {kChunkDim, kChunkDim, kChunkDim}; }
+glm::uvec3 SvoBuilder::getChunksDim() { return {kChunkDimX, kChunkDimY, kChunkDimZ}; }
 
 void SvoBuilder::init() {
   _voxelLevelCount = static_cast<uint32_t>(std::log2(kChunkVoxelDim));
@@ -133,13 +136,26 @@ void SvoBuilder::buildScene() {
   uint32_t zero = 0;
   _octreeBufferAccumLengthBuffer->fillData(&zero);
 
-  for (uint32_t z = 0; z < kChunkDim; z++) {
-    for (uint32_t y = 0; y < kChunkDim; y++) {
-      for (uint32_t x = 0; x < kChunkDim; x++) {
+  uint32_t minTimeMs = std::numeric_limits<uint32_t>::max();
+  uint32_t maxTimeMs = 0;
+  uint32_t avgTimeMs = 0;
+  for (uint32_t z = 0; z < kChunkDimZ; z++) {
+    for (uint32_t y = 0; y < kChunkDimY; y++) {
+      for (uint32_t x = 0; x < kChunkDimX; x++) {
+        auto start = std::chrono::steady_clock::now();
         _buildChunk({x, y, z});
+        auto end      = std::chrono::steady_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        minTimeMs     = std::min(minTimeMs, static_cast<uint32_t>(duration));
+        maxTimeMs     = std::max(maxTimeMs, static_cast<uint32_t>(duration));
+        avgTimeMs += static_cast<uint32_t>(duration);
       }
     }
   }
+  avgTimeMs /= kChunkDimX * kChunkDimY * kChunkDimZ;
+
+  _logger->info("min time: {} ms, max time: {} ms, avg time: {} ms", minTimeMs, maxTimeMs,
+                avgTimeMs);
 
   _logger->info("build done! used octree buffer size: {} mb",
                 static_cast<float>(sizeof(uint32_t) * _octreeBufferAccumLength) / (1024 * 1024));
@@ -198,7 +214,7 @@ void SvoBuilder::_createImages() {
       std::make_unique<Image>(kChunkVoxelDim + 1, kChunkVoxelDim + 1, kChunkVoxelDim + 1,
                               VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _chunksImage = std::make_unique<Image>(kChunkDim, kChunkDim, kChunkDim, VK_FORMAT_R32_UINT,
+  _chunksImage = std::make_unique<Image>(kChunkDimX, kChunkDimY, kChunkDimZ, VK_FORMAT_R32_UINT,
                                          VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
