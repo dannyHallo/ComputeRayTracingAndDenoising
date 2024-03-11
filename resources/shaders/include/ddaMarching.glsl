@@ -4,7 +4,7 @@ bool inChunkRange(ivec3 pos) {
 
 bool hasChunk(ivec3 pos) { return imageLoad(chunksImage, pos).x > 0; }
 
-#define MAX_DDA_ITERATION 100
+#define MAX_DDA_ITERATION 50
 #define SMART_MARCHING
 
 #ifdef SMART_MARCHING
