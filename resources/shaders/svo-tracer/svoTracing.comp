@@ -336,7 +336,9 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
   float pdf = dot(indirectRayDir, oNormal) / kPi;
   vec3 brdf = kInvPi * oColor;
 
-  oColor = traceSecondary(seed, nextTracingPosition, indirectRayDir) * brdf *
+  vec3 ambient = 0.1 * environmentUbo.data.sunLuminance * environmentUbo.data.sunColor;
+
+  oColor = (ambient + traceSecondary(seed, nextTracingPosition, indirectRayDir)) * brdf *
            dot(indirectRayDir, oNormal) / pdf;
 
   return true;
