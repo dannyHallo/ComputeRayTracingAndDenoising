@@ -47,9 +47,9 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
 // my fork: https://www.shadertoy.com/view/l3fXWH
 bool ddaMarchingWithSave(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset,
                          inout ivec3 mapPos, inout vec3 sideDist, inout bool enteredBigBoundingBox,
-                         vec3 deltaDist, ivec3 rayStep, vec3 o, vec3 d) {
+                         inout uint it, vec3 deltaDist, ivec3 rayStep, vec3 o, vec3 d) {
   bvec3 mask;
-  for (int i = 0; i < MAX_DDA_ITERATION; i++) {
+  while (it++ < MAX_DDA_ITERATION) {
     ivec3 lookupPos = mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2);
 
     mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
