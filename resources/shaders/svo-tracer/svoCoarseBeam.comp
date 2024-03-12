@@ -170,8 +170,8 @@ bool cascadedMarching(out float oT, out float oSize, vec3 o, vec3 d, float origi
   uvec3 hitChunkLookupOffset;
   bool hitOrReachedDetails = false;
 
-  float optimizedDistance = 0;
-  while (ddaMarching(hitChunkOffset, hitChunkLookupOffset, optimizedDistance, o, d)) {
+  uint skippingNum = 0;
+  while (ddaMarching(hitChunkOffset, hitChunkLookupOffset, skippingNum++, o, d)) {
     // preOffset is to offset the octree tracing position, which works best with the range of [1, 2]
     const ivec3 preOffset   = ivec3(1);
     const vec3 originOffset = preOffset - hitChunkOffset;
