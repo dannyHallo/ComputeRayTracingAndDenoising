@@ -14,10 +14,9 @@
 
 #include <string>
 
-// static int constexpr kStratumFilterSize   = 6;
 static int constexpr kATrousSize                 = 5;
 static uint32_t constexpr kBeamResolution        = 8;
-static uint32_t constexpr kTaaSamplingOffsetSize = 128;
+static uint32_t constexpr kTaaSamplingOffsetSize = 64;
 
 namespace {
 float halton(int base, int index) {
