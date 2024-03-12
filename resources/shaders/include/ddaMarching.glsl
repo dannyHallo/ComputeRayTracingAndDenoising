@@ -6,11 +6,10 @@ bool hasChunk(ivec3 pos) { return imageLoad(chunksImage, pos).x > 0; }
 
 #define MAX_DDA_ITERATION 50
 
-// branchless DDA
-// originally from https://www.shadertoy.com/view/4dX3zl
-// my fork: https://www.shadertoy.com/view/l3fXWH
-bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uint skippingNum,
-                 vec3 o, vec3 d) {
+// classical branchless DDA
+// this function is deprecated and is kept for reference
+// the algorithm is originally from https://www.shadertoy.com/view/4dX3zl
+bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, vec3 o, vec3 d) {
   ivec3 mapPos   = ivec3(floor(o));
   vec3 deltaDist = 1.0 / abs(d);
   ivec3 rayStep  = ivec3(sign(d));
@@ -23,7 +22,7 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
 
     if (inChunkRange(lookupPos)) {
       enteredBigBoundingBox = true;
-      if (i >= skippingNum && hasChunk(lookupPos)) {
+      if (hasChunk(lookupPos)) {
         oHitChunkPosOffset    = mapPos;
         oHitChunkLookupOffset = lookupPos;
         return true;
@@ -34,7 +33,6 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
       return false;
     }
 
-    // hereby "branchless"
     mask = lessThanEqual(sideDist.xyz, min(sideDist.yzx, sideDist.zxy));
     sideDist += vec3(mask) * deltaDist;
     mapPos += ivec3(vec3(mask)) * rayStep;
@@ -42,9 +40,7 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
   return false;
 }
 
-// branchless DDA
-// originally from https://www.shadertoy.com/view/4dX3zl
-// my fork: https://www.shadertoy.com/view/l3fXWH
+// this function if used for continuous raymarching, where we need to save the last hit chunk
 bool ddaMarchingWithSave(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset,
                          inout ivec3 mapPos, inout vec3 sideDist, inout bool enteredBigBoundingBox,
                          inout uint it, vec3 deltaDist, ivec3 rayStep, vec3 o, vec3 d) {
@@ -66,7 +62,8 @@ bool ddaMarchingWithSave(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookup
         return true;
       }
     }
-    // used to be inside the outer chunk range, but now outside, no need to check further
+
+    // went outside the outer bounding box
     else if (enteredBigBoundingBox) {
       return false;
     }

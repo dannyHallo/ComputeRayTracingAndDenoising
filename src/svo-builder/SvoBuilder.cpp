@@ -186,13 +186,10 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   vkWaitForFences(_appContext->getDevice(), 1, &_timelineFence, VK_TRUE, UINT64_MAX);
   vkResetFences(_appContext->getDevice(), 1, &_timelineFence);
 
-  // intermediate step: check if the fragment list is empty
+  // intermediate step: check if the fragment list is empty, if so, we can skip the octree creation
   G_FragmentListInfo fragmentListInfo{};
   _fragmentListInfoBuffer->fetchData(&fragmentListInfo);
-  uint32_t fragmentCount = fragmentListInfo.voxelFragmentCount;
-  _logger->info("fragment count: {}", fragmentCount);
-  if (fragmentCount == 0) {
-    _logger->info("empty chunk, skip");
+  if (fragmentListInfo.voxelFragmentCount == 0) {
     return;
   }
 
