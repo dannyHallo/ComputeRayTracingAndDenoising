@@ -74,7 +74,8 @@ target("main")
         "dep/vulkan-memory-allocator/",
         "dep/efsw/include/",
         "dep/shaderc/include",
-        "dep/entt/include"
+        "dep/entt/include",
+        "dep/tomlplusplus/include/"
     )
 
     add_deps("imgui")
