@@ -11,9 +11,6 @@ bool hasChunk(ivec3 pos) { return imageLoad(chunksImage, pos).x > 0; }
 // my fork: https://www.shadertoy.com/view/l3fXWH
 bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, uint skippingNum,
                  vec3 o, vec3 d) {
-  oHitChunkPosOffset    = ivec3(0);
-  oHitChunkLookupOffset = uvec3(0);
-
   ivec3 mapPos   = ivec3(floor(o));
   vec3 deltaDist = 1.0 / abs(d);
   ivec3 rayStep  = ivec3(sign(d));
@@ -21,7 +18,7 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
 
   bvec3 mask;
   bool enteredBigBoundingBox = false;
-  for (int i = 0; i <= MAX_DDA_ITERATION; i++) {
+  for (int i = 0; i < MAX_DDA_ITERATION; i++) {
     ivec3 lookupPos = mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2);
 
     if (inChunkRange(lookupPos)) {
@@ -33,14 +30,7 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
       }
     }
     // used to be inside the outer chunk range, but now outside, no need to check further
-    else {
-      if (enteredBigBoundingBox) {
-        return false;
-      }
-    }
-
-    if (i == MAX_DDA_ITERATION) {
-      mask = bvec3(false);
+    else if (enteredBigBoundingBox) {
       return false;
     }
 
@@ -49,4 +39,5 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
     sideDist += vec3(mask) * deltaDist;
     mapPos += ivec3(vec3(mask)) * rayStep;
   }
+  return false;
 }
