@@ -68,7 +68,10 @@ SvoBuilder::SvoBuilder(VulkanApplicationContext *appContext, Logger *logger,
 
 SvoBuilder::~SvoBuilder() {
   vkDestroyFence(_appContext->getDevice(), _timelineFence, nullptr);
-  vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1, &_commandBuffer);
+  vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
+                       &_fragmentListCreationCommandBuffer);
+  vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
+                       &_octreeCreationCommandBuffer);
 }
 
 void SvoBuilder::_createFence() {
@@ -92,12 +95,12 @@ void SvoBuilder::init() {
   // pipelines
   _createDescriptorSetBundle();
   _createPipelines();
-  _recordCommandBuffer();
+  _recordCommandBuffers();
 }
 
 void SvoBuilder::update() {
-  // _initBufferData(); // FIXME: update this logic
-  _recordCommandBuffer();
+  // _initBufferData(); // FIXME: update this logic so we can update the shaders at runtime
+  _recordCommandBuffers();
 }
 
 // call me every time before building a new chunk
@@ -173,9 +176,30 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   VkPipelineStageFlags waitStages{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
   submitInfo.pWaitDstStageMask = &waitStages;
 
-  std::vector<VkCommandBuffer> commandBuffersToSubmit{_commandBuffer};
-  submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit.size());
-  submitInfo.pCommandBuffers    = commandBuffersToSubmit.data();
+  // step 1: fragment list creation
+  std::vector<VkCommandBuffer> commandBuffersToSubmit1{_fragmentListCreationCommandBuffer};
+  submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit1.size());
+  submitInfo.pCommandBuffers    = commandBuffersToSubmit1.data();
+
+  vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo, _timelineFence);
+
+  vkWaitForFences(_appContext->getDevice(), 1, &_timelineFence, VK_TRUE, UINT64_MAX);
+  vkResetFences(_appContext->getDevice(), 1, &_timelineFence);
+
+  // intermediate step: check if the fragment list is empty
+  G_FragmentListInfo fragmentListInfo{};
+  _fragmentListInfoBuffer->fetchData(&fragmentListInfo);
+  uint32_t fragmentCount = fragmentListInfo.voxelFragmentCount;
+  _logger->info("fragment count: {}", fragmentCount);
+  if (fragmentCount == 0) {
+    _logger->info("empty chunk, skip");
+    return;
+  }
+
+  // step 2: octree construction (optional)
+  std::vector<VkCommandBuffer> commandBuffersToSubmit2{_octreeCreationCommandBuffer};
+  submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit2.size());
+  submitInfo.pCommandBuffers    = commandBuffersToSubmit2.data();
 
   vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo, _timelineFence);
 
@@ -204,8 +228,8 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), commandBuffer);
 
+  // update accum length
   _octreeBufferAccumLength += octreeBufferLength;
-
   _octreeBufferAccumLengthBuffer->fillData(&_octreeBufferAccumLength);
 }
 
@@ -360,17 +384,58 @@ void SvoBuilder::_createPipelines() {
   _modifyArgPipeline->build();
 }
 
-void SvoBuilder::_recordCommandBuffer() {
+void SvoBuilder::_recordCommandBuffers() {
+  _recordFragmentListCreationCommandBuffer();
+  _recordOctreeCreationCommandBuffer();
+}
+
+void SvoBuilder::_recordFragmentListCreationCommandBuffer() {
   VkCommandBufferAllocateInfo allocInfo{};
   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
   allocInfo.commandPool        = _appContext->getCommandPool();
   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   allocInfo.commandBufferCount = 1;
 
-  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, &_commandBuffer);
+  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo,
+                           &_fragmentListCreationCommandBuffer);
 
   VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-  vkBeginCommandBuffer(_commandBuffer, &beginInfo);
+  vkBeginCommandBuffer(_fragmentListCreationCommandBuffer, &beginInfo);
+
+  // create the standard memory barrier
+  VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
+  shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+
+  _chunkFieldConstructionPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0,
+                                                 kChunkVoxelDim + 1, kChunkVoxelDim + 1,
+                                                 kChunkVoxelDim + 1);
+
+  vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
+                       0, nullptr);
+
+  _chunkVoxelCreationPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0, kChunkVoxelDim,
+                                             kChunkVoxelDim, kChunkVoxelDim);
+
+  vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
+                       0, nullptr);
+
+  vkEndCommandBuffer(_fragmentListCreationCommandBuffer);
+}
+
+void SvoBuilder::_recordOctreeCreationCommandBuffer() {
+  VkCommandBufferAllocateInfo allocInfo{};
+  allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.commandPool        = _appContext->getCommandPool();
+  allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandBufferCount = 1;
+
+  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, &_octreeCreationCommandBuffer);
+
+  VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+  vkBeginCommandBuffer(_octreeCreationCommandBuffer, &beginInfo);
 
   // create the standard memory barrier
   VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
@@ -381,79 +446,62 @@ void SvoBuilder::_recordCommandBuffer() {
   indirectReadBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
   indirectReadBarrier.dstAccessMask   = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
 
-  // step 1: field creation and voxel fragment list construction
+  _chunkModifyArgPipeline->recordCommand(_octreeCreationCommandBuffer, 0, 1, 1, 1);
 
-  _chunkFieldConstructionPipeline->recordCommand(_commandBuffer, 0, kChunkVoxelDim + 1,
-                                                 kChunkVoxelDim + 1, kChunkVoxelDim + 1);
-
-  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
-                       0, nullptr);
-
-  _chunkVoxelCreationPipeline->recordCommand(_commandBuffer, 0, kChunkVoxelDim, kChunkVoxelDim,
-                                             kChunkVoxelDim);
-
-  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
-                       0, nullptr);
-
-  _chunkModifyArgPipeline->recordCommand(_commandBuffer, 0, 1, 1, 1);
-
-  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+  vkCmdPipelineBarrier(_octreeCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
                        0, nullptr);
 
   // write the chunks image, according to the accumulated buffer offset
   // we should do it here, since we can cull null chunks here after the voxels are decided
-  // TODO: do the culling later on
-  _chunksBuilderPipeline->recordCommand(_commandBuffer, 0, 1, 1, 1);
+  _chunksBuilderPipeline->recordCommand(_octreeCreationCommandBuffer, 0, 1, 1, 1);
 
-  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+  vkCmdPipelineBarrier(_octreeCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
                        0, nullptr);
 
-  vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+  vkCmdPipelineBarrier(_octreeCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        0, 1, &indirectReadBarrier, 0, nullptr, 0, nullptr);
 
   // step 2: octree construction
 
   for (uint32_t level = 0; level < _voxelLevelCount; level++) {
-    _initNodePipeline->recordIndirectCommand(_commandBuffer, 0,
+    _initNodePipeline->recordIndirectCommand(_octreeCreationCommandBuffer, 0,
                                              _indirectAllocNumBuffer->getVkBuffer());
-    vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+    vkCmdPipelineBarrier(_octreeCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
                          nullptr, 0, nullptr);
 
     // that indirect buffer will no longer be updated, and it is made available by the previous
     // barrier
-    _tagNodePipeline->recordIndirectCommand(_commandBuffer, 0,
+    _tagNodePipeline->recordIndirectCommand(_octreeCreationCommandBuffer, 0,
                                             _indirectFragLengthBuffer->getVkBuffer());
 
     // not last level
     if (level != _voxelLevelCount - 1) {
-      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      vkCmdPipelineBarrier(_octreeCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
                            nullptr, 0, nullptr);
 
-      _allocNodePipeline->recordIndirectCommand(_commandBuffer, 0,
+      _allocNodePipeline->recordIndirectCommand(_octreeCreationCommandBuffer, 0,
                                                 _indirectAllocNumBuffer->getVkBuffer());
-      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      vkCmdPipelineBarrier(_octreeCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
                            nullptr, 0, nullptr);
 
-      _modifyArgPipeline->recordCommand(_commandBuffer, 0, 1, 1, 1);
+      _modifyArgPipeline->recordCommand(_octreeCreationCommandBuffer, 0, 1, 1, 1);
 
-      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      vkCmdPipelineBarrier(_octreeCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
                            nullptr, 0, nullptr);
 
-      vkCmdPipelineBarrier(_commandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      vkCmdPipelineBarrier(_octreeCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT |
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            0, 1, &indirectReadBarrier, 0, nullptr, 0, nullptr);
     }
   }
 
-  vkEndCommandBuffer(_commandBuffer);
+  vkEndCommandBuffer(_octreeCreationCommandBuffer);
 }

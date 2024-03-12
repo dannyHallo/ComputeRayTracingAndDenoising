@@ -52,10 +52,13 @@ private:
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
-  VkFence _timelineFence         = VK_NULL_HANDLE;
-  VkCommandBuffer _commandBuffer = VK_NULL_HANDLE;
+  VkFence _timelineFence                             = VK_NULL_HANDLE;
+  VkCommandBuffer _fragmentListCreationCommandBuffer = VK_NULL_HANDLE;
+  VkCommandBuffer _octreeCreationCommandBuffer       = VK_NULL_HANDLE;
 
-  void _recordCommandBuffer();
+  void _recordCommandBuffers();
+  void _recordFragmentListCreationCommandBuffer();
+  void _recordOctreeCreationCommandBuffer();
 
   void _buildChunk(glm::uvec3 currentlyWritingChunk);
 
