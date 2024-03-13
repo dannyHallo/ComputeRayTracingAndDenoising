@@ -29,7 +29,8 @@ struct G_RenderInfo {
 };
 
 struct G_EnvironmentInfo {
-  float sunAngle;
+  float sunAngleA;
+  float sunAngleB;
   vec3 sunColor;
   float sunLuminance;
   float sunSize;

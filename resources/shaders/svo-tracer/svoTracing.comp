@@ -251,9 +251,12 @@ bool cascadedMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oP
 }
 
 vec3 dayLightCalc(vec3 d) {
-  float sunAngle  = environmentUbo.data.sunAngle * kDeg2Rad;
+  float sunAngleA = environmentUbo.data.sunAngleA * kDeg2Rad;
+  float sunAngleB = environmentUbo.data.sunAngleB * kDeg2Rad;
   float sunSize   = environmentUbo.data.sunSize;
-  float angleDiff = max(0, pow(dot(d, vec3(sin(sunAngle), cos(sunAngle), 0)), sunSize));
+  float angleDiff = max(0, pow(dot(d, vec3(sin(sunAngleA) * cos(sunAngleB), cos(sunAngleA),
+                                           sin(sunAngleA) * sin(sunAngleB))),
+                               sunSize));
   return environmentUbo.data.sunLuminance * environmentUbo.data.sunColor * angleDiff;
 }
 

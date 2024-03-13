@@ -40,7 +40,8 @@ struct SvoTracerTweakingData {
   bool taa               = true;
 
   // for env
-  float sunAngle     = 0.0F;
+  float sunAngleA    = 0.F;
+  float sunAngleB    = 0.F;
   glm::vec3 sunColor = glm::vec3(255.F / 255.F, 208.F / 255.F, 173.F / 255.F);
   float sunLuminance = 1.F;
   float sunSize      = 0.5F;
@@ -56,7 +57,7 @@ struct SvoTracerTweakingData {
   float phiC                           = 0.01F;
   float phiN                           = 20.F;
   float phiP                           = 0.01F;
-  float phiZ                           = 0.1F;
+  float phiZ                           = 0.8F;
   bool ignoreLuminanceAtFirstIteration = true;
   bool changingLuminancePhi            = true;
   bool useJittering                    = false;

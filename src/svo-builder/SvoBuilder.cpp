@@ -244,12 +244,6 @@ void SvoBuilder::_createBuffers() {
   _counterBuffer = std::make_unique<Buffer>(sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                             MemoryStyle::kDedicated);
 
-  // uint32_t estimatedOctreeBufferSize = sizeof(uint32_t) * _getMaximumNodeCountOfOctree(voxData);
-
-  // uint32_t maximumOctreeBufferSize = std::ceil(static_cast<float>(sizeof(uint32_t)) * kChunkSize
-  // *
-  //                                              kChunkSize * kChunkSize * 8.F / 7.F);
-
   uint32_t sizeInWorstCase =
       std::ceil(static_cast<float>(kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim) *
                 sizeof(uint32_t) * 8.F / 7.F);

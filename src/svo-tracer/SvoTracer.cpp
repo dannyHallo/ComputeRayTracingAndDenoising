@@ -17,6 +17,7 @@
 static int constexpr kATrousSize                 = 5;
 static uint32_t constexpr kBeamResolution        = 8;
 static uint32_t constexpr kTaaSamplingOffsetSize = 64;
+static float constexpr kLowResScale              = 0.5F;
 
 namespace {
 float halton(int base, int index) {
@@ -55,10 +56,10 @@ SvoTracer::~SvoTracer() {
 }
 
 void SvoTracer::_updateImageResolutions() {
-  _lowResWidth =
-      static_cast<uint32_t>(static_cast<float>(_appContext->getSwapchainExtentWidth()) / 2.F);
-  _lowResHeight =
-      static_cast<uint32_t>(static_cast<float>(_appContext->getSwapchainExtentHeight()) / 2.F);
+  _lowResWidth  = static_cast<uint32_t>(static_cast<float>(_appContext->getSwapchainExtentWidth()) *
+                                       kLowResScale);
+  _lowResHeight = static_cast<uint32_t>(
+      static_cast<float>(_appContext->getSwapchainExtentHeight()) * kLowResScale);
   _highResWidth  = _appContext->getSwapchainExtentWidth();
   _highResHeight = _appContext->getSwapchainExtentHeight();
 }
@@ -656,7 +657,8 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   vpMatPrevInv = vpMatInv;
 
   G_EnvironmentInfo environmentInfo{};
-  environmentInfo.sunAngle     = _uboData.sunAngle;
+  environmentInfo.sunAngleA    = _uboData.sunAngleA;
+  environmentInfo.sunAngleB    = _uboData.sunAngleB;
   environmentInfo.sunColor     = _uboData.sunColor;
   environmentInfo.sunLuminance = _uboData.sunLuminance;
   environmentInfo.sunSize      = _uboData.sunSize;
