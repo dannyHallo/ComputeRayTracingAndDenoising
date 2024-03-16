@@ -64,7 +64,6 @@ struct G_SpatialFilterInfo {
   float phiZ;
   bool ignoreLuminanceAtFirstIteration;
   bool changingLuminancePhi;
-  bool useJittering;
 };
 
 #endif // SVO_TRACER_DATA_STRUCTS_GLSL

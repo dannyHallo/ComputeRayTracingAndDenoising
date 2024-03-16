@@ -1,0 +1,41 @@
+# It is not recommended to modify this file directly. 
+# You should create UserConfig.toml in the same directory and override the values there.
+
+title = "default config"
+
+[Application]
+frames_in_flight = 2
+
+[SvoBuilder]
+voxel_dim = 256
+chunk_dim_x = 11
+chunk_dim_y = 5
+chunk_dim_z = 11
+
+[SvoTracer]
+a_trous_size = 5
+beam_resolution = 8
+taa_sampling_offset_size = 64
+low_res_scale = 0.5
+
+[SvoTracerTweakingData]
+visualize_octree = false
+beam_optimization = true
+trace_secondary_ray = true
+taa = true
+sun_angle_a = 0.0
+sun_angle_b = 0.0
+sun_color = [1.0, 0.815, 0.678]
+sun_luminance = 1.0
+sun_size = 0.5
+temporal_alpha = 0.05
+temporal_position_phi = 0.99
+atrous_iteration_count = 3
+use_variance_guided_filtering = true
+use_gradient_in_depth = true
+phi_c = 0.01
+phi_n = 20.0
+phi_p = 0.01
+phi_z = 0.8
+ignore_luminance_at_first_iteration = true
+changing_luminance_phi = true

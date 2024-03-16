@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/incl/Glm.hpp" // IWYU pragma: export
+#include "utils/incl/GlmIncl.hpp" // IWYU pragma: export
 
 #include <cstdint> // IWYU pragma: export
 

@@ -2,7 +2,7 @@
 
 #include "SvoTracerDataGpu.hpp"
 #include "scheduler/Scheduler.hpp"
-#include "utils/incl/Glm.hpp" // IWYU pragma: export
+#include "utils/incl/GlmIncl.hpp" // IWYU pragma: export
 #include "volk/volk.h"
 
 #include <memory>

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/incl/Glm.hpp" // IWYU pragma: export
+#include "utils/incl/GlmIncl.hpp" // IWYU pragma: export
 
 #include <cstdint> // IWYU pragma: export
 
@@ -60,27 +60,4 @@ struct SvoTracerTweakingData {
   float phiZ                           = 0.8F;
   bool ignoreLuminanceAtFirstIteration = true;
   bool changingLuminancePhi            = true;
-  bool useJittering                    = false;
-
-  // bool _useStratumFiltering = false;
-  // bool _useDepthTest     = false;
-  // float _depthThreshold  = 0.07F;
-
-  // bool _useGradientProjection = true;
-
-  // bool _movingLightSource = false;
-  // uint32_t _outputType    = 1; // combined, direct only, indirect only
-  // float _offsetX          = 0.F;
-  // float _offsetY          = 0.F;
-
-  // // VarianceUniformBufferObject
-  // bool _useVarianceEstimation = true;
-  // bool _skipStoppingFunctions = false;
-  // bool _useTemporalVariance   = true;
-  // int _varianceKernelSize     = 4;
-  // float _variancePhiGaussian  = 1.F;
-  // float _variancePhiDepth     = 0.2F;
-
-  // // PostProcessingUniformBufferObject
-  // uint32_t _displayType = 0;
 };

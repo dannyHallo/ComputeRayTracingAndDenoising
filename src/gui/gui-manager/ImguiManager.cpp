@@ -315,54 +315,6 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::Checkbox("Ignore Luminance At First Iteration",
                     &_svoTracerTweakingData->ignoreLuminanceAtFirstIteration);
     ImGui::Checkbox("Changing Luminance Phi", &_svoTracerTweakingData->changingLuminancePhi);
-    ImGui::Checkbox("Use Jittering", &_svoTracerTweakingData->useJittering);
-
-    // ImGui::SeparatorText("Gradient Projection");
-    // ImGui::Checkbox("Use Gradient Projection", &_useGradientProjection);
-
-    // ImGui::SeparatorText("Rtx");
-    // ImGui::Checkbox("Moving Light Source", &_movingLightSource);
-    // std::vector<std::string> const outputItems{"Combined", "Direct Only", "Indirect Only"};
-    // comboSelector("Output Type", outputItems, _outputType);
-    // float constexpr kDragSpeed = 0.01F;
-    // ImGui::DragFloat("Offset X", &_offsetX, kDragSpeed, -1.0F, 1.0F);
-    // ImGui::DragFloat("Offset Y", &_offsetY, kDragSpeed, -1.0F, 1.0F);
-
-    // ImGui::SeparatorText("Stratum Filter");
-    // ImGui::Checkbox("Use Stratum Filter", &_useStratumFiltering);
-
-    // ImGui::SeparatorText("Temporal Blend");
-    // ImGui::Checkbox("Temporal Accumulation", &_useTemporalBlend);
-    // ImGui::Checkbox("Use normal test", &_useNormalTest);
-    // ImGui::SliderFloat("Normal threhold", &_normalThreshold, 0.0F, 1.0F);
-    // ImGui::SliderFloat("Blending Alpha", &_blendingAlpha, 0.0F, 1.0F);
-
-    // ImGui::SeparatorText("Variance Estimation");
-    // ImGui::Checkbox("Variance Calculation", &_useVarianceEstimation);
-    // ImGui::Checkbox("Skip Stopping Functions", &_skipStoppingFunctions);
-    // ImGui::Checkbox("Use Temporal Variance", &_useTemporalVariance);
-    // int constexpr kMaxVarianceKernalSize = 15;
-    // ImGui::SliderInt("Variance Kernel Size", &_varianceKernelSize, 1, kMaxVarianceKernalSize);
-    // ImGui::SliderFloat("Variance Phi Gaussian", &_variancePhiGaussian, 0.0F, 1.0F);
-    // ImGui::SliderFloat("Variance Phi Depth", &_variancePhiDepth, 0.0F, 1.0F);
-
-    // ImGui::SeparatorText("A-Trous");
-    // ImGui::Checkbox("A-Trous", &_useATrous);
-    // ImGui::SliderInt("A-Trous times", &_iCap, 0, kATrousSize);
-    // ImGui::Checkbox("Use variance guided filtering", &_useVarianceGuidedFiltering);
-    // ImGui::Checkbox("Use gradient in depth", &_useGradientInDepth);
-    // ImGui::SliderFloat("Luminance Phi", &_phiLuminance, 0.0F, 1.0F);
-    // ImGui::SliderFloat("Phi Depth", &_phiDepth, 0.0F, 1.0F);
-    // float constexpr kPhiNormalMax = 200.0F;
-    // ImGui::SliderFloat("Phi Normal", &_phiNormal, 0.0F, kPhiNormalMax);
-    // ImGui::Checkbox("Ignore Luminance For First Iteration", &_ignoreLuminanceAtFirstIteration);
-    // ImGui::Checkbox("Changing luminance phi", &_changingLuminancePhi);
-    // ImGui::Checkbox("Use jitter", &_useJittering);
-
-    // ImGui::SeparatorText("Post Processing");
-    // std::vector<std::string> displayItems{"Color",      "Variance", "RawCol", "Stratum",
-    //                                       "Visibility", "Gradient", "Custom"};
-    // comboSelector("Display Type", displayItems, _displayType);
 
     ImGui::EndMenu();
   }

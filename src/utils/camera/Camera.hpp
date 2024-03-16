@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/incl/Glm.hpp" // IWYU pragma: export
+#include "utils/incl/GlmIncl.hpp" // IWYU pragma: export
 #include "window/Window.hpp"
 
 // An abstract camera class that processes input and calculates the

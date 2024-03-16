@@ -17,6 +17,7 @@ class Camera;
 class FpsSink;
 class ShaderCompiler;
 class ShaderChangeListener;
+class TomlConfigReader;
 
 enum class BlockState {
   kUnblocked,
@@ -48,6 +49,7 @@ private:
   std::unique_ptr<Window> _window;
   std::unique_ptr<ShaderCompiler> _shaderCompiler;
   std::unique_ptr<ShaderChangeListener> _shaderFileWatchListener;
+  std::unique_ptr<TomlConfigReader> _tomlConfigReader;
 
   std::unique_ptr<SvoBuilder> _svoBuilder;
   std::unique_ptr<SvoTracer> _svoTracer;

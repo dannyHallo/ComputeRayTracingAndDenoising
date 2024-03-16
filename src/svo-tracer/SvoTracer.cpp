@@ -17,7 +17,7 @@
 static int constexpr kATrousSize                 = 5;
 static uint32_t constexpr kBeamResolution        = 8;
 static uint32_t constexpr kTaaSamplingOffsetSize = 64;
-static float constexpr kLowResScale              = 0.5F;
+static float constexpr kLowResScale              = 0.1F;
 
 namespace {
 float halton(int base, int index) {
@@ -686,7 +686,6 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   spatialFilterInfo.phiZ                            = _uboData.phiZ;
   spatialFilterInfo.ignoreLuminanceAtFirstIteration = _uboData.ignoreLuminanceAtFirstIteration;
   spatialFilterInfo.changingLuminancePhi            = _uboData.changingLuminancePhi;
-  spatialFilterInfo.useJittering                    = _uboData.useJittering;
   _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
 
   currentSample++;

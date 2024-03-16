@@ -56,11 +56,7 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
   int stepSize   = 1 << currentIteration;
   ivec2 offsetXY = dispatchXY * stepSize;
 
-  // this noise calculation will hugely affect the performance, and we are only using 3 iterations,
-  // so the jitter is not that useful
-  if (spatialFilterInfoUbo.data.useJittering && dispatchXY != ivec2(0)) {
-    offsetXY += jittering(stepSize);
-  }
+  // jittering is heavy and no longer applied here to avoid divergence withing the same warp
 
   float weightK = kernel3x3[abs(dispatchXY.x)][abs(dispatchXY.y)];
 

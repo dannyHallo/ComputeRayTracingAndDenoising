@@ -10,6 +10,7 @@
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
 #include "utils/shader-compiler/ShaderCompiler.hpp"
+#include "utils/toml-config/TomlConfigReader.hpp"
 #include "window/Window.hpp"
 
 #include <chrono>
@@ -23,7 +24,9 @@ Camera *Application::getCamera() { return _camera.get(); }
 Application::Application(Logger *logger)
     : _appContext(VulkanApplicationContext::getInstance()), _logger(logger),
       _shaderCompiler(std::make_unique<ShaderCompiler>(logger)),
-      _shaderFileWatchListener(std::make_unique<ShaderChangeListener>(_logger)) {
+      _shaderFileWatchListener(std::make_unique<ShaderChangeListener>(_logger)),
+      _tomlConfigReader(std::make_unique<TomlConfigReader>(_logger)) {
+  return;
   _window = std::make_unique<Window>(WindowStyle::kMaximized);
   _appContext->init(_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());

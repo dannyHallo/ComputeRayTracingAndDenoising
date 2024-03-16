@@ -3,7 +3,7 @@
 #include "scheduler/Scheduler.hpp"
 #include "volk/volk.h"
 
-#include "utils/incl/Glm.hpp" // IWYU pragma: export
+#include "utils/incl/GlmIncl.hpp" // IWYU pragma: export
 
 #include <memory>
 
