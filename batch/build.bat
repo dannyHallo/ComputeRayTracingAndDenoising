@@ -44,13 +44,13 @@ echo xmake success
 
 if %BUILD_TYPE%==release (
     echo:
-    echo coping resources for release mode...
+    echo copying resources for release mode...
     if exist "build/windows/x64/%BUILD_TYPE%/resources" rd /s /q "build/windows/x64/%BUILD_TYPE%/resources"
     mkdir "build/windows/x64/%BUILD_TYPE%/resources"
     robocopy "resources" "build/windows/x64/%BUILD_TYPE%/resources" /E /IS /NFL /NDL /NJH /NJS /nc /ns /np
 ) else (
     echo:
-    echo debug mode, skip resources coping for shader hot-reloading...
+    echo debug mode, skip resources copying for shader hot-reloading...
 )
 
 @REM ---------------------------------------------------------------------------------------
