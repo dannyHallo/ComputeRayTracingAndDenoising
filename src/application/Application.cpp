@@ -37,9 +37,10 @@ Application::Application(Logger *logger)
                                            _shaderCompiler.get(), _shaderFileWatchListener.get(),
                                            _tomlConfigReader.get());
 
-  _imguiManager = std::make_unique<ImguiManager>(_appContext, _window.get(), _logger,
-                                                 _framesInFlight, &_svoTracer->getUboData());
-  _fpsSink      = std::make_unique<FpsSink>();
+  _imguiManager =
+      std::make_unique<ImguiManager>(_appContext, _window.get(), _logger, _tomlConfigReader.get(),
+                                     _framesInFlight, &_svoTracer->getUboData());
+  _fpsSink = std::make_unique<FpsSink>();
 
   _init();
 

@@ -50,10 +50,10 @@ private:
   TomlConfigReader *_tomlConfigReader;
 
   // config
-  uint32_t _chunkVoxelDim = 0;
-  uint32_t _chunkDimX     = 0;
-  uint32_t _chunkDimY     = 0;
-  uint32_t _chunkDimZ     = 0;
+  uint32_t _chunkVoxelDim{};
+  uint32_t _chunkDimX{};
+  uint32_t _chunkDimY{};
+  uint32_t _chunkDimZ{};
   void _loadConfig();
 
   uint32_t _voxelLevelCount         = 0;

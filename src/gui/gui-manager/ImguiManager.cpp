@@ -2,16 +2,15 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 #include "gui/gui-elements/FpsGui.hpp"
-#include "svo-tracer/SvoTracerDataGpu.hpp"
+#include "svo-tracer/SvoTracerTwickingData.hpp"
 #include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/incl/ImguiIncl.hpp"
 #include "utils/logger/Logger.hpp"
+#include "utils/toml-config/TomlConfigReader.hpp"
 #include "utils/vulkan/SimpleCommands.hpp"
 #include "window/Window.hpp"
-
-float constexpr kImguiFontSize = 20.0F;
 
 namespace {
 // void comboSelector(std::string const &comboLabel, std::vector<std::string> const &outputItems,
@@ -36,9 +35,13 @@ namespace {
 } // namespace
 
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
-                           int framesInFlight, SvoTracerTweakingData *SvoTracerDataGpu)
-    : _appContext(appContext), _window(window), _logger(logger), _framesInFlight(framesInFlight),
-      _svoTracerTweakingData(SvoTracerDataGpu), _colorPalette(std::make_unique<ColorPalette>()) {}
+                           TomlConfigReader *tomlConfigReader, int framesInFlight,
+                           SvoTracerTweakingData *SvoTracerDataGpu)
+    : _appContext(appContext), _window(window), _logger(logger),
+      _tomlConfigReader(tomlConfigReader), _framesInFlight(framesInFlight),
+      _svoTracerTweakingData(SvoTracerDataGpu), _colorPalette(std::make_unique<ColorPalette>()) {
+  _loadConfig();
+}
 
 ImguiManager::~ImguiManager() {
 
@@ -56,6 +59,10 @@ ImguiManager::~ImguiManager() {
 
   ImPlot::DestroyContext();
   ImGui::DestroyContext();
+}
+
+void ImguiManager::_loadConfig() {
+  _fontSize = _tomlConfigReader->getConfig<float>("ImguiManager.fontSize");
 }
 
 void ImguiManager::_buildColorPalette() {
@@ -94,7 +101,7 @@ void ImguiManager::init() {
 
   ImGuiIO &io = ImGui::GetIO();
   io.Fonts->AddFontFromFileTTF((kPathToResourceFolder + "/fonts/editundo/editundo.ttf").c_str(),
-                               kImguiFontSize);
+                               _fontSize);
 
   io.ConfigFlags |= ImGuiWindowFlags_NoNavInputs;
 

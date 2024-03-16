@@ -29,35 +29,3 @@
 #undef uvec2
 #undef bool
 #undef uint
-
-struct SvoTracerTweakingData {
-  SvoTracerTweakingData() = default;
-
-  // tweakable parameters
-  bool visualizeOctree   = false;
-  bool beamOptimization  = true;
-  bool traceSecondaryRay = true;
-  bool taa               = true;
-
-  // for env
-  float sunAngleA    = 0.F;
-  float sunAngleB    = 0.F;
-  glm::vec3 sunColor = glm::vec3(255.F / 255.F, 208.F / 255.F, 173.F / 255.F);
-  float sunLuminance = 1.F;
-  float sunSize      = 0.5F;
-
-  // for temporal filter info
-  float temporalAlpha       = 0.05F;
-  float temporalPositionPhi = 0.99F;
-
-  // for spatial filter info
-  int aTrousIterationCount             = 3;
-  bool useVarianceGuidedFiltering      = true;
-  bool useGradientInDepth              = true;
-  float phiC                           = 0.01F;
-  float phiN                           = 20.F;
-  float phiP                           = 0.01F;
-  float phiZ                           = 0.8F;
-  bool ignoreLuminanceAtFirstIteration = true;
-  bool changingLuminancePhi            = true;
-};

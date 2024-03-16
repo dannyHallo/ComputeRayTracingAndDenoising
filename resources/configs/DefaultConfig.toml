@@ -6,6 +6,9 @@ title = "default config"
 [Application]
 framesInFlight = 2
 
+[ImguiManager]
+fontSize = 20
+
 [SvoBuilder]
 # the voxel dimension within a chunk
 chunkVoxelDim = 256
@@ -14,7 +17,7 @@ chunkDimY = 5
 chunkDimZ = 11
 
 [SvoTracer]
-aTrousSize = 5
+aTrousSizeMax = 5
 beamResolution = 8
 taaSamplingOffsetSize = 64
 lowResScale = 0.5
@@ -26,12 +29,14 @@ traceSecondaryRay = true
 taa = true
 sunAngleA = 0.0
 sunAngleB = 0.0
-sunColor = [1.0, 0.815, 0.678]
+sunColorR = 1.0
+sunColorG = 0.815
+sunColorB = 0.678
 sunLuminance = 1.0
 sunSize = 0.5
 temporalAlpha = 0.05
 temporalPositionPhi = 0.99
-atrousIterationCount = 3
+aTrousIterationCount = 3
 useVarianceGuidedFiltering = true
 useGradientInDepth = true
 phiC = 0.01

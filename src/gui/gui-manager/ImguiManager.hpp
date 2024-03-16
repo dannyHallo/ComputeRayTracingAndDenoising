@@ -14,10 +14,13 @@ class Window;
 class Logger;
 class FpsSink;
 class ColorPalette;
+class TomlConfigReader;
+
 class ImguiManager {
 public:
   ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
-               int framesInFlight, SvoTracerTweakingData *SvoTracerDataGpu);
+               TomlConfigReader *tomlConfigReader, int framesInFlight,
+               SvoTracerTweakingData *SvoTracerDataGpu);
   ~ImguiManager();
 
   // delete copy and move
@@ -42,10 +45,16 @@ private:
   VulkanApplicationContext *_appContext;
   Window *_window;
   Logger *_logger;
+  TomlConfigReader *_tomlConfigReader;
+
   int _framesInFlight;
   bool _showFpsGraph = true;
 
   SvoTracerTweakingData *_svoTracerTweakingData;
+
+  // config
+  float _fontSize{};
+  void _loadConfig();
 
   std::unique_ptr<FpsGui> _fpsGui;
   std::unique_ptr<ColorPalette> _colorPalette;

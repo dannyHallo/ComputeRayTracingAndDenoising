@@ -6,7 +6,7 @@ This voxel tracing project is originally inspired by John Lin's work here [https
 
 - [ ] Vma Virtual Allocator https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/virtual_allocator.html
 - [ ] Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
-- [ ] TOML configuration file
+- [ ] More spp at unoccluded areas
 
 # Screenshots
 

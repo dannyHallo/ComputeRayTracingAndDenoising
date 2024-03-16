@@ -44,7 +44,7 @@ private:
   Logger *_logger;
 
   // config
-  uint32_t _framesInFlight = 0;
+  uint32_t _framesInFlight{};
   void _loadConfig();
 
   std::unique_ptr<FpsSink> _fpsSink;

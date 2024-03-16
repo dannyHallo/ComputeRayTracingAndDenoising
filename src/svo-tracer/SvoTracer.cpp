@@ -1,5 +1,6 @@
 #include "SvoTracer.hpp"
 
+#include "SvoTracerDataGpu.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "memory/Buffer.hpp"
@@ -39,7 +40,7 @@ SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_
                      ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader)
     : _appContext(appContext), _logger(logger), _camera(camera), _shaderCompiler(shaderCompiler),
       _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader),
-      _framesInFlight(framesInFlight) {
+      _uboData(tomlConfigReader), _framesInFlight(framesInFlight) {
   _loadConfig();
   _updateImageResolutions();
 }
@@ -54,7 +55,7 @@ SvoTracer::~SvoTracer() {
 }
 
 void SvoTracer::_loadConfig() {
-  _aTrousSize     = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.aTrousSize");
+  _aTrousSizeMax  = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.aTrousSizeMax");
   _beamResolution = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.beamResolution");
   _taaSamplingOffsetSize =
       _tomlConfigReader->getConfig<uint32_t>("SvoTracer.taaSamplingOffsetSize");
@@ -398,8 +399,8 @@ void SvoTracer::_createBuffersAndBufferBundles() {
       MemoryStyle::kDedicated);
 
   _aTrousIterationStagingBuffers.clear();
-  _aTrousIterationStagingBuffers.reserve(_aTrousSize);
-  for (int i = 0; i < _aTrousSize; i++) {
+  _aTrousIterationStagingBuffers.reserve(_aTrousSizeMax);
+  for (int i = 0; i < _aTrousSizeMax; i++) {
     _aTrousIterationStagingBuffers.emplace_back(std::make_unique<Buffer>(
         sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryStyle::kDedicated));
   }
@@ -431,7 +432,7 @@ void SvoTracer::_initBufferData() {
                            _svoBuilder->getChunksDim()};
   _sceneInfoBuffer->fillData(&sceneData);
 
-  for (uint32_t i = 0; i < _aTrousSize; i++) {
+  for (uint32_t i = 0; i < _aTrousSizeMax; i++) {
     uint32_t aTrousIteration = i;
     _aTrousIterationStagingBuffers[i]->fillData(&aTrousIteration);
   }
@@ -509,7 +510,7 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    for (int i = 0; i < _aTrousSize; i++) {
+    for (int i = 0; i < _aTrousSizeMax; i++) {
       VkBufferCopy bufCopy = {
           0,                                 // srcOffset
           0,                                 // dstOffset,

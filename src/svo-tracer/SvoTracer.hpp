@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SvoTracerDataGpu.hpp"
+#include "SvoTracerTwickingData.hpp"
 #include "scheduler/Scheduler.hpp"
 #include "utils/incl/GlmIncl.hpp" // IWYU pragma: export
 #include "volk/volk.h"
@@ -59,20 +59,20 @@ private:
   ShaderChangeListener *_shaderChangeListener;
   TomlConfigReader *_tomlConfigReader;
 
+  SvoTracerTweakingData _uboData;
+
   SvoBuilder *_svoBuilder = nullptr;
 
   // config
-  uint32_t _aTrousSize            = 0;
-  uint32_t _beamResolution        = 0;
-  uint32_t _taaSamplingOffsetSize = 0;
-  float _lowResScale              = 0;
+  uint32_t _aTrousSizeMax{};
+  uint32_t _beamResolution{};
+  uint32_t _taaSamplingOffsetSize{};
+  float _lowResScale{};
   void _loadConfig();
 
   size_t _framesInFlight;
   std::vector<VkCommandBuffer> _tracingCommandBuffers{};
   std::vector<VkCommandBuffer> _deliveryCommandBuffers{};
-
-  SvoTracerTweakingData _uboData;
 
   uint32_t _lowResWidth   = 0;
   uint32_t _lowResHeight  = 0;
