@@ -11,13 +11,9 @@
 #include "utils/camera/Camera.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/file-io/ShaderFileReader.hpp"
+#include "utils/toml-config/TomlConfigReader.hpp"
 
 #include <string>
-
-static int constexpr kATrousSize                 = 5;
-static uint32_t constexpr kBeamResolution        = 8;
-static uint32_t constexpr kTaaSamplingOffsetSize = 64;
-static float constexpr kLowResScale              = 0.1F;
 
 namespace {
 float halton(int base, int index) {
@@ -40,9 +36,11 @@ std::string _makeShaderFullPath(std::string const &shaderName) {
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
                      Camera *camera, ShaderCompiler *shaderCompiler,
-                     ShaderChangeListener *shaderChangeListener)
+                     ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader)
     : _appContext(appContext), _logger(logger), _camera(camera), _shaderCompiler(shaderCompiler),
-      _shaderChangeListener(shaderChangeListener), _framesInFlight(framesInFlight) {
+      _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader),
+      _framesInFlight(framesInFlight) {
+  _loadConfig();
   _updateImageResolutions();
 }
 
@@ -55,11 +53,19 @@ SvoTracer::~SvoTracer() {
   }
 }
 
+void SvoTracer::_loadConfig() {
+  _aTrousSize     = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.aTrousSize");
+  _beamResolution = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.beamResolution");
+  _taaSamplingOffsetSize =
+      _tomlConfigReader->getConfig<uint32_t>("SvoTracer.taaSamplingOffsetSize");
+  _lowResScale = _tomlConfigReader->getConfig<float>("SvoTracer.lowResScale");
+}
+
 void SvoTracer::_updateImageResolutions() {
   _lowResWidth  = static_cast<uint32_t>(static_cast<float>(_appContext->getSwapchainExtentWidth()) *
-                                       kLowResScale);
+                                       _lowResScale);
   _lowResHeight = static_cast<uint32_t>(
-      static_cast<float>(_appContext->getSwapchainExtentHeight()) * kLowResScale);
+      static_cast<float>(_appContext->getSwapchainExtentHeight()) * _lowResScale);
   _highResWidth  = _appContext->getSwapchainExtentWidth();
   _highResHeight = _appContext->getSwapchainExtentHeight();
 }
@@ -104,8 +110,8 @@ void SvoTracer::onSwapchainResize() {
 }
 
 void SvoTracer::_createTaaSamplingOffsets() {
-  _subpixOffsets.resize(kTaaSamplingOffsetSize);
-  for (int i = 0; i < kTaaSamplingOffsetSize; i++) {
+  _subpixOffsets.resize(_taaSamplingOffsetSize);
+  for (int i = 0; i < _taaSamplingOffsetSize; i++) {
     _subpixOffsets[i] = {halton(2, i + 1) - 0.5F, halton(3, i + 1) - 0.5F};
   }
 }
@@ -179,10 +185,10 @@ void SvoTracer::_createFullSizedImages() {
                                              VK_IMAGE_USAGE_STORAGE_BIT);
 
   // w = 16 -> 3, w = 17 -> 4
-  _beamDepthImage =
-      std::make_unique<Image>(std::ceil(static_cast<float>(_lowResWidth) / kBeamResolution) + 1,
-                              std::ceil(static_cast<float>(_lowResHeight) / kBeamResolution) + 1, 1,
-                              VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+  _beamDepthImage = std::make_unique<Image>(
+      std::ceil(static_cast<float>(_lowResWidth) / static_cast<float>(_beamResolution)) + 1,
+      std::ceil(static_cast<float>(_lowResHeight) / static_cast<float>(_beamResolution)) + 1, 1,
+      VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _rawImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                                       VK_IMAGE_USAGE_STORAGE_BIT);
@@ -392,8 +398,8 @@ void SvoTracer::_createBuffersAndBufferBundles() {
       MemoryStyle::kDedicated);
 
   _aTrousIterationStagingBuffers.clear();
-  _aTrousIterationStagingBuffers.reserve(kATrousSize);
-  for (int i = 0; i < kATrousSize; i++) {
+  _aTrousIterationStagingBuffers.reserve(_aTrousSize);
+  for (int i = 0; i < _aTrousSize; i++) {
     _aTrousIterationStagingBuffers.emplace_back(std::make_unique<Buffer>(
         sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryStyle::kDedicated));
   }
@@ -421,11 +427,11 @@ void SvoTracer::_createBuffersAndBufferBundles() {
 }
 
 void SvoTracer::_initBufferData() {
-  G_SceneInfo sceneData = {kBeamResolution, _svoBuilder->getVoxelLevelCount(),
-                           SvoBuilder::getChunksDim()};
+  G_SceneInfo sceneData = {_beamResolution, _svoBuilder->getVoxelLevelCount(),
+                           _svoBuilder->getChunksDim()};
   _sceneInfoBuffer->fillData(&sceneData);
 
-  for (uint32_t i = 0; i < kATrousSize; i++) {
+  for (uint32_t i = 0; i < _aTrousSize; i++) {
     uint32_t aTrousIteration = i;
     _aTrousIterationStagingBuffers[i]->fillData(&aTrousIteration);
   }
@@ -479,8 +485,12 @@ void SvoTracer::_recordRenderingCommandBuffers() {
 
     _svoCourseBeamPipeline->recordCommand(
         cmdBuffer, frameIndex,
-        static_cast<uint32_t>(std::ceil(static_cast<float>(_lowResWidth) / kBeamResolution)) + 1,
-        static_cast<uint32_t>(std::ceil(static_cast<float>(_lowResHeight) / kBeamResolution)) + 1,
+        static_cast<uint32_t>(
+            std::ceil(static_cast<float>(_lowResWidth) / static_cast<float>(_beamResolution))) +
+            1,
+        static_cast<uint32_t>(
+            std::ceil(static_cast<float>(_lowResHeight) / static_cast<float>(_beamResolution))) +
+            1,
         1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -499,7 +509,7 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    for (int i = 0; i < kATrousSize; i++) {
+    for (int i = 0; i < _aTrousSize; i++) {
       VkBufferCopy bufCopy = {
           0,                                 // srcOffset
           0,                                 // dstOffset,
@@ -626,7 +636,7 @@ void SvoTracer::updateUboData(size_t currentFrame) {
       _camera->getFront(),
       _camera->getUp(),
       _camera->getRight(),
-      _subpixOffsets[currentSample % kTaaSamplingOffsetSize],
+      _subpixOffsets[currentSample % _taaSamplingOffsetSize],
       vMat,
       vMatInv,
       vMatPrev,

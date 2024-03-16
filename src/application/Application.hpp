@@ -43,6 +43,10 @@ private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
 
+  // config
+  uint32_t _framesInFlight = 0;
+  void _loadConfig();
+
   std::unique_ptr<FpsSink> _fpsSink;
   std::unique_ptr<ImguiManager> _imguiManager;
   std::unique_ptr<Camera> _camera;

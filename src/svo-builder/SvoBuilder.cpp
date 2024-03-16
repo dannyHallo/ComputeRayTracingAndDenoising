@@ -6,22 +6,16 @@
 #include "pipeline/ComputePipeline.hpp"
 #include "pipeline/DescriptorSetBundle.hpp"
 #include "svo-builder/VoxLoader.hpp"
+#include "utils/config/RootDir.h"
 #include "utils/file-io/ShaderFileReader.hpp"
 #include "utils/logger/Logger.hpp"
+#include "utils/toml-config/TomlConfigReader.hpp"
 #include "utils/vulkan/SimpleCommands.hpp"
-
-#include "utils/config/RootDir.h"
 
 #include <chrono>
 #include <cmath>
 
-// the voxel dimension within a chunk
-static uint32_t constexpr kChunkVoxelDim = 256;
-// the chunk dimension, this is worth expanding
 // TODO: change 3D image into a flattened storage buffer, to support 1x1x1 chunk
-static uint32_t constexpr kChunkDimX = 11;
-static uint32_t constexpr kChunkDimY = 5;
-static uint32_t constexpr kChunkDimZ = 11;
 
 namespace {
 
@@ -60,9 +54,11 @@ std::string _makeShaderFullPath(std::string const &shaderName) {
 } // namespace
 
 SvoBuilder::SvoBuilder(VulkanApplicationContext *appContext, Logger *logger,
-                       ShaderCompiler *shaderCompiler, ShaderChangeListener *shaderChangeListener)
+                       ShaderCompiler *shaderCompiler, ShaderChangeListener *shaderChangeListener,
+                       TomlConfigReader *tomlConfigReader)
     : _appContext(appContext), _logger(logger), _shaderCompiler(shaderCompiler),
-      _shaderChangeListener(shaderChangeListener) {
+      _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader) {
+  _loadConfig();
   _createFence();
 }
 
@@ -74,6 +70,13 @@ SvoBuilder::~SvoBuilder() {
                        &_octreeCreationCommandBuffer);
 }
 
+void SvoBuilder::_loadConfig() {
+  _chunkVoxelDim = _tomlConfigReader->getConfig<uint32_t>("SvoBuilder.chunkVoxelDim");
+  _chunkDimX     = _tomlConfigReader->getConfig<uint32_t>("SvoBuilder.chunkDimX");
+  _chunkDimY     = _tomlConfigReader->getConfig<uint32_t>("SvoBuilder.chunkDimY");
+  _chunkDimZ     = _tomlConfigReader->getConfig<uint32_t>("SvoBuilder.chunkDimZ");
+}
+
 void SvoBuilder::_createFence() {
   VkFenceCreateInfo fenceCreateInfoNotSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
   // VkFenceCreateInfo fenceCreateInfoPreSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
@@ -81,10 +84,10 @@ void SvoBuilder::_createFence() {
   vkCreateFence(_appContext->getDevice(), &fenceCreateInfoNotSignalled, nullptr, &_timelineFence);
 }
 
-glm::uvec3 SvoBuilder::getChunksDim() { return {kChunkDimX, kChunkDimY, kChunkDimZ}; }
+glm::uvec3 SvoBuilder::getChunksDim() const { return {_chunkDimX, _chunkDimY, _chunkDimZ}; }
 
 void SvoBuilder::init() {
-  _voxelLevelCount = static_cast<uint32_t>(std::log2(kChunkVoxelDim));
+  _voxelLevelCount = static_cast<uint32_t>(std::log2(_chunkVoxelDim));
 
   // images
   _createImages();
@@ -121,7 +124,7 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   _indirectFragLengthBuffer->fillData(&indirectDispatchInfo);
 
   G_FragmentListInfo fragmentListInfo{};
-  fragmentListInfo.voxelResolution    = kChunkVoxelDim;
+  fragmentListInfo.voxelResolution    = _chunkVoxelDim;
   fragmentListInfo.voxelFragmentCount = 0;
   _fragmentListInfoBuffer->fillData(&fragmentListInfo);
 
@@ -142,9 +145,9 @@ void SvoBuilder::buildScene() {
   uint32_t minTimeMs = std::numeric_limits<uint32_t>::max();
   uint32_t maxTimeMs = 0;
   uint32_t avgTimeMs = 0;
-  for (uint32_t z = 0; z < kChunkDimZ; z++) {
-    for (uint32_t y = 0; y < kChunkDimY; y++) {
-      for (uint32_t x = 0; x < kChunkDimX; x++) {
+  for (uint32_t z = 0; z < _chunkDimZ; z++) {
+    for (uint32_t y = 0; y < _chunkDimY; y++) {
+      for (uint32_t x = 0; x < _chunkDimX; x++) {
         auto start = std::chrono::steady_clock::now();
         _buildChunk({x, y, z});
         auto end      = std::chrono::steady_clock::now();
@@ -155,7 +158,7 @@ void SvoBuilder::buildScene() {
       }
     }
   }
-  avgTimeMs /= kChunkDimX * kChunkDimY * kChunkDimZ;
+  avgTimeMs /= _chunkDimX * _chunkDimY * _chunkDimZ;
 
   _logger->info("min time: {} ms, max time: {} ms, avg time: {} ms", minTimeMs, maxTimeMs,
                 avgTimeMs);
@@ -232,10 +235,10 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
 
 void SvoBuilder::_createImages() {
   _chunkFieldImage =
-      std::make_unique<Image>(kChunkVoxelDim + 1, kChunkVoxelDim + 1, kChunkVoxelDim + 1,
+      std::make_unique<Image>(_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1,
                               VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _chunksImage = std::make_unique<Image>(kChunkDimX, kChunkDimY, kChunkDimZ, VK_FORMAT_R32_UINT,
+  _chunksImage = std::make_unique<Image>(_chunkDimX, _chunkDimY, _chunkDimZ, VK_FORMAT_R32_UINT,
                                          VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
@@ -245,14 +248,14 @@ void SvoBuilder::_createBuffers() {
                                             MemoryStyle::kDedicated);
 
   uint32_t sizeInWorstCase =
-      std::ceil(static_cast<float>(kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim) *
+      std::ceil(static_cast<float>(_chunkVoxelDim * _chunkVoxelDim * _chunkVoxelDim) *
                 sizeof(uint32_t) * 8.F / 7.F);
 
   _logger->info("estimated chunk staging buffer size : {} mb",
                 static_cast<float>(sizeInWorstCase) / (1024 * 1024));
 
   _chunkOctreeBuffer = std::make_unique<Buffer>(
-      sizeof(uint32_t) * kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim,
+      sizeof(uint32_t) * _chunkVoxelDim * _chunkVoxelDim * _chunkVoxelDim,
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       MemoryStyle::kHostVisible);
 
@@ -269,7 +272,7 @@ void SvoBuilder::_createBuffers() {
                                                    MemoryStyle::kDedicated);
 
   uint32_t maximumFragmentListBufferSize =
-      sizeof(G_FragmentListEntry) * kChunkVoxelDim * kChunkVoxelDim * kChunkVoxelDim;
+      sizeof(G_FragmentListEntry) * _chunkVoxelDim * _chunkVoxelDim * _chunkVoxelDim;
   _fragmentListBuffer = std::make_unique<Buffer>(
       maximumFragmentListBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
@@ -399,15 +402,15 @@ void SvoBuilder::_recordFragmentListCreationCommandBuffer() {
   shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
   _chunkFieldConstructionPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0,
-                                                 kChunkVoxelDim + 1, kChunkVoxelDim + 1,
-                                                 kChunkVoxelDim + 1);
+                                                 _chunkVoxelDim + 1, _chunkVoxelDim + 1,
+                                                 _chunkVoxelDim + 1);
 
   vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
                        0, nullptr);
 
-  _chunkVoxelCreationPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0, kChunkVoxelDim,
-                                             kChunkVoxelDim, kChunkVoxelDim);
+  _chunkVoxelCreationPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0, _chunkVoxelDim,
+                                             _chunkVoxelDim, _chunkVoxelDim);
 
   vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,

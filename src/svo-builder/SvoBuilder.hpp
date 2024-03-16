@@ -17,11 +17,12 @@ class Buffer;
 class Image;
 class ShaderCompiler;
 class ShaderChangeListener;
+class TomlConfigReader;
 
 class SvoBuilder : public Scheduler {
 public:
   SvoBuilder(VulkanApplicationContext *appContext, Logger *logger, ShaderCompiler *shaderCompiler,
-             ShaderChangeListener *shaderChangeListener);
+             ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader);
   ~SvoBuilder() override;
 
   // disable copy and move
@@ -39,13 +40,21 @@ public:
   Image *getChunksImage() { return _chunksImage.get(); }
 
   [[nodiscard]] uint32_t getVoxelLevelCount() const { return _voxelLevelCount; }
-  [[nodiscard]] static glm::uvec3 getChunksDim();
+  [[nodiscard]] glm::uvec3 getChunksDim() const;
 
 private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
   ShaderCompiler *_shaderCompiler;
   ShaderChangeListener *_shaderChangeListener;
+  TomlConfigReader *_tomlConfigReader;
+
+  // config
+  uint32_t _chunkVoxelDim = 0;
+  uint32_t _chunkDimX     = 0;
+  uint32_t _chunkDimY     = 0;
+  uint32_t _chunkDimZ     = 0;
+  void _loadConfig();
 
   uint32_t _voxelLevelCount         = 0;
   uint32_t _octreeBufferAccumLength = 0;

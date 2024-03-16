@@ -17,8 +17,6 @@
 
 // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
 
-static int constexpr kFramesInFlight = 2;
-
 Camera *Application::getCamera() { return _camera.get(); }
 
 Application::Application(Logger *logger)
@@ -26,18 +24,21 @@ Application::Application(Logger *logger)
       _shaderCompiler(std::make_unique<ShaderCompiler>(logger)),
       _shaderFileWatchListener(std::make_unique<ShaderChangeListener>(_logger)),
       _tomlConfigReader(std::make_unique<TomlConfigReader>(_logger)) {
-  return;
+  _loadConfig();
+
   _window = std::make_unique<Window>(WindowStyle::kMaximized);
   _appContext->init(_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 
-  _svoBuilder = std::make_unique<SvoBuilder>(_appContext, _logger, _shaderCompiler.get(),
-                                             _shaderFileWatchListener.get());
-  _svoTracer  = std::make_unique<SvoTracer>(_appContext, _logger, kFramesInFlight, _camera.get(),
-                                           _shaderCompiler.get(), _shaderFileWatchListener.get());
+  _svoBuilder =
+      std::make_unique<SvoBuilder>(_appContext, _logger, _shaderCompiler.get(),
+                                   _shaderFileWatchListener.get(), _tomlConfigReader.get());
+  _svoTracer = std::make_unique<SvoTracer>(_appContext, _logger, _framesInFlight, _camera.get(),
+                                           _shaderCompiler.get(), _shaderFileWatchListener.get(),
+                                           _tomlConfigReader.get());
 
   _imguiManager = std::make_unique<ImguiManager>(_appContext, _window.get(), _logger,
-                                                 kFramesInFlight, &_svoTracer->getUboData());
+                                                 _framesInFlight, &_svoTracer->getUboData());
   _fpsSink      = std::make_unique<FpsSink>();
 
   _init();
@@ -49,6 +50,10 @@ Application::Application(Logger *logger)
 
 Application::~Application() { GlobalEventDispatcher::get().disconnect<>(this); }
 
+void Application::_loadConfig() {
+  _framesInFlight = _tomlConfigReader->getConfig<uint32_t>("Application.framesInFlight");
+}
+
 void Application::run() {
   _mainLoop();
   _cleanup();
@@ -57,7 +62,7 @@ void Application::run() {
 void Application::_cleanup() {
   _logger->info("application is cleaning up resources...");
 
-  for (size_t i = 0; i < kFramesInFlight; i++) {
+  for (size_t i = 0; i < _framesInFlight; i++) {
     vkDestroySemaphore(_appContext->getDevice(), _renderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(_appContext->getDevice(), _imageAvailableSemaphores[i], nullptr);
     vkDestroyFence(_appContext->getDevice(), _framesInFlightFences[i], nullptr);
@@ -76,16 +81,16 @@ void Application::_onSwapchainResize() {
 }
 
 void Application::_createSemaphoresAndFences() {
-  _imageAvailableSemaphores.resize(kFramesInFlight);
-  _renderFinishedSemaphores.resize(kFramesInFlight);
-  _framesInFlightFences.resize(kFramesInFlight);
+  _imageAvailableSemaphores.resize(_framesInFlight);
+  _renderFinishedSemaphores.resize(_framesInFlight);
+  _framesInFlightFences.resize(_framesInFlight);
 
   VkSemaphoreCreateInfo semaphoreInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
   VkFenceCreateInfo fenceCreateInfoPreSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
   fenceCreateInfoPreSignalled.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  for (size_t i = 0; i < kFramesInFlight; i++) {
+  for (size_t i = 0; i < _framesInFlight; i++) {
     vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
                       &_imageAvailableSemaphores[i]);
     vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
@@ -156,7 +161,7 @@ void Application::_drawFrame() {
 
   // Commented this out for playing around with it later :)
   // vkQueueWaitIdle(context.getPresentQueue());
-  currentFrame = (currentFrame + 1) % kFramesInFlight;
+  currentFrame = (currentFrame + 1) % _framesInFlight;
 }
 
 void Application::_waitForTheWindowToBeResumed() {

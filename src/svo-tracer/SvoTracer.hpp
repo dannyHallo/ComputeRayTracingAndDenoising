@@ -20,12 +20,13 @@ class ComputePipeline;
 class Camera;
 class ShaderCompiler;
 class ShaderChangeListener;
+class TomlConfigReader;
 
 class SvoTracer : public Scheduler {
 public:
   SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
             Camera *camera, ShaderCompiler *shaderCompiler,
-            ShaderChangeListener *shaderChangeListener);
+            ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader);
   ~SvoTracer() override;
 
   // disable copy and move
@@ -56,7 +57,16 @@ private:
   Camera *_camera;
   ShaderCompiler *_shaderCompiler;
   ShaderChangeListener *_shaderChangeListener;
+  TomlConfigReader *_tomlConfigReader;
+
   SvoBuilder *_svoBuilder = nullptr;
+
+  // config
+  uint32_t _aTrousSize            = 0;
+  uint32_t _beamResolution        = 0;
+  uint32_t _taaSamplingOffsetSize = 0;
+  float _lowResScale              = 0;
+  void _loadConfig();
 
   size_t _framesInFlight;
   std::vector<VkCommandBuffer> _tracingCommandBuffers{};

@@ -1,3 +1,5 @@
+#pragma system_header
+
 #pragma once
 
 // disable exceptions for clang compiler
