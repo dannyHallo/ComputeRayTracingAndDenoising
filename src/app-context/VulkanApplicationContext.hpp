@@ -1,19 +1,14 @@
 #pragma once
 
-// use stl version of std::min(), std::max(), and ignore the macro function with
-// the same name provided by windows.h
-#define NOMINMAX
-
 // this should be defined first for the definition of VK_VERSION_1_0, which is
 // used in glfw3.h
 #include "context-creators/ContextCreators.hpp"
+#include "utils/incl/VolkIncl.hpp" // IWYU pragma: export
 
 // glfw3 will define APIENTRY if it is not defined yet
 #include "GLFW/glfw3.h"
 
-// we undefine this to solve conflict with systemLog
-
-#include "vk_mem_alloc.h"
+#include "utils/incl/VkMemoryAllocIncl.hpp"
 
 #include <vector>
 

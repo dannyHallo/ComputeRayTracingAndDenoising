@@ -12,7 +12,7 @@ toolchain("clang17")
     set_toolset("cc", "clang") 
     set_toolset("cxx", "clang++")
 toolchain_end() 
--- you have to use clang, rather than vs proviced cl.exe, to fully enable the cache compiling features
+-- clang is preferred for its compatibility to fully enable the cache compiling features
 
 -- the entire build requires clang17
 set_toolchains("clang17")
@@ -49,19 +49,23 @@ target("main")
     -- https://github.com/KhronosGroup/Vulkan-Loader/issues/552#issuecomment-791983003
     add_defines("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1")
     add_defines("DISABLE_LAYER_NV_OPTIMUS_1=1")
+
+    -- use stl version of std::min(), std::max(), rather than the same named macros provided by windows.h
+    add_defines("NOMINMAX")
+
+    -- disable validation layers in release mode
     if is_mode("release") then
         add_defines("NVALIDATIONLAYERS")
     end
-    -- add_defines("NDEBUG")
+
+    -- RootDir.h generation
     set_configvar("PROJECT_DIR", (os.projectdir():gsub("\\", "/")))
     set_configdir("src/utils/config/")
     add_configfiles("src/utils/config/RootDir.h.in")
+
     -- recursivelly add all cpp files in src, to make compile units
     add_files("src/**.cpp")
-    add_files(
-        "dep/imgui/backends/imgui_impl_glfw.cpp", 
-        "dep/imgui/backends/imgui_impl_vulkan.cpp"
-    )
+
     add_includedirs(
         "./",
         "src/", 

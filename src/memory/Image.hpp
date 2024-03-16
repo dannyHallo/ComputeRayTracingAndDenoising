@@ -1,10 +1,8 @@
 #pragma once
 
+#include "utils/incl/VkMemoryAllocIncl.hpp"
 #include "volk/volk.h"
-#include "vk_mem_alloc.h"
 
-#include <iostream>
-#include <memory>
 #include <string>
 #include <vector>
 

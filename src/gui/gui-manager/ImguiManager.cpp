@@ -6,14 +6,10 @@
 #include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
+#include "utils/incl/ImguiIncl.hpp"
 #include "utils/logger/Logger.hpp"
 #include "utils/vulkan/SimpleCommands.hpp"
 #include "window/Window.hpp"
-
-#include "imgui.h"
-#include "imgui/backends/imgui_impl_glfw.h"
-#include "imgui/backends/imgui_impl_vulkan.h"
-#include "implot.h"
 
 float constexpr kImguiFontSize = 20.0F;
 

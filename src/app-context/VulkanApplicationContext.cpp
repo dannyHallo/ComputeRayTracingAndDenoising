@@ -2,17 +2,9 @@
 #define VMA_STATIC_VULKAN_FUNCTIONS 0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 0
 
-// VOLK_IMPLEMENTATION lets volk define the functions, by letting volk.h include
-// volk.c this must only be defined in one translation unit
-#define VOLK_IMPLEMENTATION
 #include "app-context/VulkanApplicationContext.hpp"
 
-#include "memory/Image.hpp"
 #include "utils/logger/Logger.hpp"
-
-#include <algorithm>
-#include <cstdint>
-#include <set>
 
 static const std::vector<const char *> validationLayers         = {"VK_LAYER_KHRONOS_validation"};
 static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -21,16 +13,16 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
   _logger = logger;
   _logger->info("Initiating VulkanApplicationContext");
 #ifndef NVALIDATIONLAYERS
-  _logger->info("DEBUG mode is enabled");
+  _logger->info("Validation layers are enabled");
 #else
-  _logger->info("DEBUG mode is disabled");
-#endif // NDEBUG
+  _logger->info("Validation layers are disabled");
+#endif // NVLIDATIONLAYERS
 
   _glWindow = window;
   volkInitialize();
 
   VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
-  appInfo.pApplicationName   = "Compute Ray Tracing";
+  appInfo.pApplicationName   = "Voxel Lab";
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   appInfo.pEngineName        = "No Engine";
   appInfo.engineVersion      = VK_MAKE_VERSION(1, 0, 0);
