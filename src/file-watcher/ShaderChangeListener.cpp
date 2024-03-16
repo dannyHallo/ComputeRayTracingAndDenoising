@@ -105,7 +105,7 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
 void ShaderChangeListener::addWatchingItem(Pipeline *pipeline, bool needToRebuildSvo) {
   auto const fullPathToFile = pipeline->getFullPathToShaderSourceCode();
 
-  _logger->info("watching shader file: {}", fullPathToFile);
+  _logger->info("{} is added to file change watch list", fullPathToFile);
   _watchingShaderFiles[fullPathToFile] = needToRebuildSvo;
 
   if (_shaderFileNameToPipeline.find(fullPathToFile) != _shaderFileNameToPipeline.end()) {
