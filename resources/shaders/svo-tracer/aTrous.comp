@@ -98,9 +98,6 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
   // } else {
   float weightC = exp(-colDiff / phiC);
   // }
-  if (spatialFilterInfoUbo.data.ignoreLuminanceAtFirstIteration && currentIteration == 0) {
-    weightC = 1.0;
-  }
 
   // WEIGHT_N
   float weightN = max(0., pow(dot(normalAtUv, normalAtSample), spatialFilterInfoUbo.data.phiN));

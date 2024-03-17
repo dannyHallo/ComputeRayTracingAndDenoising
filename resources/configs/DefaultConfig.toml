@@ -20,7 +20,7 @@ chunkDimZ = 11
 aTrousSizeMax = 5
 beamResolution = 8
 taaSamplingOffsetSize = 64
-lowResScale = 0.5
+lowResScale = 0.1
 
 [SvoTracerTweakingData]
 visualizeOctree = false
@@ -36,12 +36,11 @@ sunLuminance = 1.0
 sunSize = 0.5
 temporalAlpha = 0.05
 temporalPositionPhi = 0.99
-aTrousIterationCount = 3
+aTrousIterationCount = 4
 useVarianceGuidedFiltering = true
 useGradientInDepth = true
-phiC = 0.01
-phiN = 20.0
-phiP = 0.01
+phiC = 0.1
+phiN = 20.0 
+phiP = 0.05
 phiZ = 0.8
-ignoreLuminanceAtFirstIteration = true
 changingLuminancePhi = true

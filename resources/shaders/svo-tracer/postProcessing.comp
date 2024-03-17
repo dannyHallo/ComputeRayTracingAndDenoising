@@ -96,6 +96,7 @@ void getMoments(out vec3 mom1, out vec3 mom2, out vec3 colorCenter, ivec2 uv) {
 vec2 getLongestMotion(ivec2 uv) {
   float len   = -1;
   vec2 motion = vec2(0);
+  return imageLoad(motionImage, uv).xy;
 
   for (int yy = -1; yy <= 1; yy++) {
     for (int xx = -1; xx <= 1; xx++) {
@@ -151,7 +152,6 @@ void main() {
     getMoments(mom1, mom2, colorCenter, intLowResUv);
 
     // motion points to the last frame
-    // look up for its motion on the low res image
     vec2 motion = getLongestMotion(intLowResUv) * vec2(renderInfoUbo.data.highResSize);
     vec2 pUv    = vec2(uv) + vec2(0.5) + motion;
 

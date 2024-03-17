@@ -62,7 +62,6 @@ struct G_SpatialFilterInfo {
   float phiN;
   float phiP;
   float phiZ;
-  bool ignoreLuminanceAtFirstIteration;
   bool changingLuminancePhi;
 };
 

@@ -315,8 +315,6 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SliderFloat("Phi P", &_svoTracerTweakingData->phiP, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Z", &_svoTracerTweakingData->phiZ, 0.0F, 1.0F);
 
-    ImGui::Checkbox("Ignore Luminance At First Iteration",
-                    &_svoTracerTweakingData->ignoreLuminanceAtFirstIteration);
     ImGui::Checkbox("Changing Luminance Phi", &_svoTracerTweakingData->changingLuminancePhi);
 
     ImGui::EndMenu();

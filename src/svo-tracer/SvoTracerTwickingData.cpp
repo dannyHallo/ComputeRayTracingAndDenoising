@@ -38,8 +38,6 @@ void SvoTracerTweakingData::_loadConfig() {
   phiN = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiN");
   phiP = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiP");
   phiZ = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZ");
-  ignoreLuminanceAtFirstIteration =
-      _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.ignoreLuminanceAtFirstIteration");
   changingLuminancePhi =
       _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.changingLuminancePhi");
 

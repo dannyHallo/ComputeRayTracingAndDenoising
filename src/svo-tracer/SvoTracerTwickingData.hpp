@@ -33,7 +33,6 @@ struct SvoTracerTweakingData {
   float phiN{};
   float phiP{};
   float phiZ{};
-  bool ignoreLuminanceAtFirstIteration{};
   bool changingLuminancePhi{};
 
 private:
