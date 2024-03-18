@@ -7,6 +7,23 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/perlinNoise.glsl"
 
+float computeNoise(vec3 p) {
+  float total       = 0.0;
+  float amplitude   = 0.5;
+  float frequency   = 1.0;
+  float persistence = 0.4;
+  float lacunarity  = 2.0;
+  int octaves       = 5;
+
+  for (int i = 0; i < octaves; i++) {
+    total += cnoise(p * frequency) * amplitude;
+    frequency *= lacunarity;
+    amplitude *= persistence;
+  }
+
+  return total;
+}
+
 void main() {
   if (any(greaterThanEqual(gl_GlobalInvocationID,
                            ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
@@ -27,7 +44,7 @@ void main() {
   float yPosition             = float(chunkPosition.y) - 0.5 +
                     float(uv.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
-  float noise = (floorHeightMean - yPosition) + floorChangeVar * cnoise(noiseLookupPos * 2);
+  float noise = (floorHeightMean - yPosition) + floorChangeVar * computeNoise(noiseLookupPos);
 
   imageStore(chunkFieldImage, uv, vec4(noise, 0, 0, 0));
 }

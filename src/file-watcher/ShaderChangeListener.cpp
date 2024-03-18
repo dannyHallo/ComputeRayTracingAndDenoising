@@ -99,7 +99,7 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
   // clear the cache
   _pipelinesToRebuild.clear();
 
-  // then the render loop can continue
+  // then the render loop can be continued
 }
 
 void ShaderChangeListener::addWatchingItem(Pipeline *pipeline, bool needToRebuildSvo) {

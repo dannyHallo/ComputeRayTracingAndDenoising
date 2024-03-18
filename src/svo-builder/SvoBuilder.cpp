@@ -102,8 +102,9 @@ void SvoBuilder::init() {
 }
 
 void SvoBuilder::update() {
-  // _initBufferData(); // FIXME: update this logic so we can update the shaders at runtime
+  _octreeBufferAccumLength = 0;
   _recordCommandBuffers();
+  buildScene();
 }
 
 // call me every time before building a new chunk

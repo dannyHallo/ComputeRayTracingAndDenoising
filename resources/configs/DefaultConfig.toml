@@ -12,15 +12,15 @@ fontSize = 20
 [SvoBuilder]
 # the voxel dimension within a chunk
 chunkVoxelDim = 256
-chunkDimX = 11
-chunkDimY = 5
-chunkDimZ = 11
+chunkDimX = 3
+chunkDimY = 3
+chunkDimZ = 3
 
 [SvoTracer]
 aTrousSizeMax = 5
 beamResolution = 8
 taaSamplingOffsetSize = 64
-lowResScale = 0.1
+lowResScale = 0.5
 
 [SvoTracerTweakingData]
 visualizeOctree = false
