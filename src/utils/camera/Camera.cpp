@@ -2,7 +2,7 @@
 
 namespace {
 
-float constexpr kMovementSpeed    = .3F;
+float constexpr kMovementSpeed    = .2F;
 float constexpr kMouseSensitivity = 0.06F;
 
 } // namespace
@@ -26,9 +26,9 @@ void Camera::processInput(double deltaTime) {
     return;
   }
 
-  if (_window->isInputBitActive(GLFW_KEY_TAB)) {
+  if (_window->isInputBitActive(GLFW_KEY_E)) {
     _window->toggleCursor();
-    _window->disableInputBit(GLFW_KEY_TAB);
+    _window->disableInputBit(GLFW_KEY_E);
     return;
   }
 
