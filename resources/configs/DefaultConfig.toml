@@ -42,5 +42,5 @@ useGradientInDepth = true
 phiC = 0.1
 phiN = 20.0 
 phiP = 0.05
-phiZ = 0.8
+phiZ = 0.6
 changingLuminancePhi = true
