@@ -104,6 +104,13 @@ void SvoBuilder::init() {
 void SvoBuilder::update() {
   _octreeBufferAccumLength = 0;
   _recordCommandBuffers();
+
+  VkCommandBuffer commandBuffer =
+      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  _chunksImage->clearImage(commandBuffer);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), commandBuffer);
+
   buildScene();
 }
 
