@@ -67,7 +67,8 @@ private:
   uint32_t _aTrousSizeMax{};
   uint32_t _beamResolution{};
   uint32_t _taaSamplingOffsetSize{};
-  float _lowResScale{};
+  float _taaUpscaleRatio{};
+  float _nearestUpscaleRatio{};
   void _loadConfig();
 
   size_t _framesInFlight;
@@ -76,6 +77,8 @@ private:
 
   uint32_t _lowResWidth   = 0;
   uint32_t _lowResHeight  = 0;
+  uint32_t _midResWidth   = 0;
+  uint32_t _midResHeight  = 0;
   uint32_t _highResWidth  = 0;
   uint32_t _highResHeight = 0;
 
@@ -128,38 +131,12 @@ private:
 
   std::unique_ptr<Image> _blittedImage;
 
-  // std::unique_ptr<Image> _varianceHistImage;
-  // std::unique_ptr<Image> _lastVarianceHistImage;
-  // std::unique_ptr<ImageForwardingPair> _varianceHistForwardingPair;
-
   std::unique_ptr<Image> _aTrousPingImage;
   std::unique_ptr<Image> _aTrousPongImage;
   std::unique_ptr<Image> _aTrousFinalResultImage;
 
   std::unique_ptr<Image> _renderTargetImage;
   std::vector<std::unique_ptr<ImageForwardingPair>> _targetForwardingPairs;
-
-  // std::unique_ptr<Image> _varianceImage;
-
-  // std::unique_ptr<Image> _stratumOffsetImage;
-  // std::unique_ptr<Image> _perStratumLockingImage;
-
-  // std::unique_ptr<Image> _visibilityImage;
-  // std::unique_ptr<Image> _visibilitySeedImage;
-
-  // std::unique_ptr<Image> _seedImage;
-  // std::unique_ptr<Image> _seedVisibilityImage;
-
-  // std::unique_ptr<Image> _temporalGradientNormalizationImagePing;
-  // std::unique_ptr<Image> _temporalGradientNormalizationImagePong;
-
-  // std::unique_ptr<Image> _gradientImage;
-  // std::unique_ptr<Image> _gradientImagePrev;
-  // std::unique_ptr<ImageForwardingPair> _gradientForwardingPair;
-
-  // std::unique_ptr<Image> _aTrousInputImage;
-  // std::unique_ptr<Image> _aTrousOutputImage;
-  // std::unique_ptr<ImageForwardingPair> _aTrousForwardingPair;
 
   void _createDefaultSampler();
 
@@ -197,17 +174,14 @@ private:
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
-  // std::unique_ptr<ComputePipeline> _gradientProjectionPipeline;
   std::unique_ptr<ComputePipeline> _svoCourseBeamPipeline;
   std::unique_ptr<ComputePipeline> _svoTracingPipeline;
-  // std::unique_ptr<ComputePipeline> _gradientPipeline;
-  // std::vector<std::unique_ptr<ComputePipeline>> _stratumFilterPipelines;
   std::unique_ptr<ComputePipeline> _temporalFilterPipeline;
-  // std::unique_ptr<ComputePipeline> _variancePipeline;
   std::unique_ptr<ComputePipeline> _aTrousPipeline;
   std::unique_ptr<ComputePipeline> _testPipeline;
   std::unique_ptr<ComputePipeline> _backgroundBlitPipeline;
-  std::unique_ptr<ComputePipeline> _postProcessingPipeline;
+  std::unique_ptr<ComputePipeline> _taaUpscalingPipeline;
+  std::unique_ptr<ComputePipeline> _nearestUpscalingPipeline;
 
   void _createDescriptorSetBundle();
   void _createPipelines();

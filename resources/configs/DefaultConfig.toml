@@ -20,7 +20,8 @@ chunkDimZ = 5
 aTrousSizeMax = 5
 beamResolution = 8
 taaSamplingOffsetSize = 64
-lowResScale = 0.5
+taaUpscaleRatio = 2.0
+nearestUpscaleRatio = 2.0
 
 [SvoTracerTweakingData]
 visualizeOctree = false

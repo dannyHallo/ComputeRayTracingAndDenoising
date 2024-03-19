@@ -1,0 +1,108 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+#define STRATUM_SIZE 3
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#include "../include/svoTracerDescriptorSetLayouts.glsl"
+
+#include "../include/packer.glsl"
+
+#define DISPLAY_TYPE_RAW 0
+
+vec2 midResToLowRes(ivec2 midResUv) {
+  vec2 subpixOffset = twickableParametersUbo.data.taa ? renderInfoUbo.data.subpixOffset : vec2(0);
+  return (vec2(midResUv) + vec2(0.5)) *
+             (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.midResSize)) -
+         vec2(0.5) - subpixOffset;
+}
+
+void getMoments(out vec3 mom1, out vec3 mom2, out vec3 colorCenter, ivec2 uv) {
+  mom1            = vec3(0);
+  mom2            = vec3(0);
+  uint numSamples = 0;
+
+  for (int yy = -1; yy <= 1; yy++) {
+    for (int xx = -1; xx <= 1; xx++) {
+      ivec2 p = uv + ivec2(xx, yy);
+
+      // out of bound
+      if (any(lessThan(p, ivec2(0))) ||
+          any(greaterThanEqual(p, ivec2(renderInfoUbo.data.lowResSize)))) {
+        continue;
+      }
+
+      vec3 color = unpackRGBE(imageLoad(blittedImage, p).x);
+      mom1 += color;
+      mom2 += color * color;
+
+      if (xx == 0 && yy == 0) {
+        colorCenter = color;
+      }
+
+      numSamples++;
+    }
+  }
+
+  mom1 /= float(numSamples);
+  mom2 /= float(numSamples);
+}
+
+vec2 getMotion(ivec2 uv) {
+  float len   = -1;
+  vec2 motion = vec2(0);
+  return imageLoad(motionImage, uv).xy;
+}
+
+float getSampleWeight(vec2 delta, float scale) {
+  return clamp(1 - scale * dot(delta, delta), 0, 1);
+}
+
+void main() {
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.midResSize)))) {
+    return;
+  }
+
+  vec2 lowResUv     = midResToLowRes(uv);
+  ivec2 intLowResUv = ivec2(lowResUv);
+
+  if (!twickableParametersUbo.data.taa) {
+    vec3 writingCol = unpackRGBE(imageLoad(blittedImage, intLowResUv).x).rgb;
+    imageStore(taaImage, uv, vec4(writingCol, 0));
+    return;
+  }
+
+  vec3 writingCol = vec3(0);
+
+  // get moments
+  vec3 mom1, mom2;
+  vec3 colorCenter;
+  getMoments(mom1, mom2, colorCenter, intLowResUv);
+
+  // motion points to the last frame
+  vec2 motion = getMotion(intLowResUv) * vec2(renderInfoUbo.data.midResSize);
+  vec2 pUv    = vec2(uv) + vec2(0.5) + motion;
+
+  vec3 colorPrev = textureLod(lastTaaTexture, pUv * renderInfoUbo.data.midResSizeInv, 0).xyz;
+
+  // neighborhood color clamping using variance
+  float varianceScale = 3.0;
+  vec3 sigma          = sqrt(max(vec3(0), mom2 - mom1 * mom1));
+  vec3 mi             = mom1 - sigma * varianceScale;
+  vec3 ma             = mom1 + sigma * varianceScale;
+  colorPrev           = clamp(colorPrev, mi, ma);
+
+  // mix the new color with the clamped previous color
+  float motionWeight = smoothstep(0.0, 1.0, length(motion));
+  float sampleWeight =
+      getSampleWeight(lowResUv - intLowResUv, float(renderInfoUbo.data.midResSize.x) /
+                                                  float(renderInfoUbo.data.lowResSize.x));
+  float pixelWeight = max(motionWeight, sampleWeight) * 0.1;
+  pixelWeight       = clamp(pixelWeight, 0, 1);
+
+  writingCol = mix(colorPrev, colorCenter, pixelWeight);
+
+  imageStore(taaImage, uv, vec4(writingCol, 0));
+}
