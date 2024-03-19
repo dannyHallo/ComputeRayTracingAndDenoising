@@ -32,12 +32,11 @@ void SvoTracerTweakingData::_loadConfig() {
       _tomlConfigReader->getConfig<int>("SvoTracerTweakingData.aTrousIterationCount");
   useVarianceGuidedFiltering =
       _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.useVarianceGuidedFiltering");
-  useGradientInDepth =
-      _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.useGradientInDepth");
-  phiC = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiC");
-  phiN = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiN");
-  phiP = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiP");
-  phiZ = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZ");
+  phiC          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiC");
+  phiN          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiN");
+  phiP          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiP");
+  phiZ          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZ");
+  phiZTolerance = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZTolerance");
   changingLuminancePhi =
       _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.changingLuminancePhi");
 

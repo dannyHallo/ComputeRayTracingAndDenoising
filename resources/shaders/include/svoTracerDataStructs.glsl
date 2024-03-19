@@ -59,11 +59,11 @@ struct G_TemporalFilterInfo {
 struct G_SpatialFilterInfo {
   uint aTrousIterationCount;
   bool useVarianceGuidedFiltering;
-  bool useGradientInDepth;
   float phiC;
   float phiN;
   float phiP;
   float phiZ;
+  float phiZTolerance;
   bool changingLuminancePhi;
 };
 

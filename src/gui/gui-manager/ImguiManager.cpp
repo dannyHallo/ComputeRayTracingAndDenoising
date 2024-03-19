@@ -309,11 +309,11 @@ void ImguiManager::_drawConfigMenuItem() {
                      5);
     ImGui::Checkbox("Use Variance Guided Filtering",
                     &_svoTracerTweakingData->useVarianceGuidedFiltering);
-    ImGui::Checkbox("Use Gradient In Depth", &_svoTracerTweakingData->useGradientInDepth);
     ImGui::SliderFloat("Phi C", &_svoTracerTweakingData->phiC, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi N", &_svoTracerTweakingData->phiN, 0.0F, 200.0F);
     ImGui::SliderFloat("Phi P", &_svoTracerTweakingData->phiP, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Z", &_svoTracerTweakingData->phiZ, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Z Tolerance", &_svoTracerTweakingData->phiZTolerance, 0.0F, 1.0F);
 
     ImGui::Checkbox("Changing Luminance Phi", &_svoTracerTweakingData->changingLuminancePhi);
 

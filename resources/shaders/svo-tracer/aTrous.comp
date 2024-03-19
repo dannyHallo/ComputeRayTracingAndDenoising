@@ -106,15 +106,27 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
   float weightP = exp(-distance(positionAtSample, positionAtUv) / spatialFilterInfoUbo.data.phiP);
 
   // WEIGHT_Z
-  float weightZ       = 1.0;
-  float depthFalloff  = exp(-depthAtUv);
-  float depthThrehold = spatialFilterInfoUbo.data.phiZ;
+  float weightZ        = 1.0;
+  float depthFalloff   = exp(-depthAtUv);
+  float depthThrehold  = spatialFilterInfoUbo.data.phiZ;
+  float depthTolerence = spatialFilterInfoUbo.data.phiZTolerance;
+
   // depth is bigger than the threshold
   if (depthFalloff < depthThrehold) {
     weightZ = 1.0;
   } else {
     bool sameVoxHash = imageLoad(voxHashImage, uv).x == imageLoad(voxHashImage, uv + offsetXY).x;
-    weightZ          = sameVoxHash ? 1.0 : 0.0;
+
+    // use tolerance to avoid sudden change
+    if (sameVoxHash) {
+      weightZ = 1.0;
+    } else {
+      if (depthFalloff < depthThrehold + depthTolerence) {
+        weightZ = 1 - (depthFalloff - depthThrehold) / depthTolerence;
+      } else {
+        weightZ = 0.0;
+      }
+    }
   }
 
   float weight = weightK * weightC * weightN * weightP * weightZ;

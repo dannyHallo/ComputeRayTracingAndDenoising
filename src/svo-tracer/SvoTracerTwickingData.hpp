@@ -28,11 +28,11 @@ struct SvoTracerTweakingData {
   // for spatial filter info
   int aTrousIterationCount{};
   bool useVarianceGuidedFiltering{};
-  bool useGradientInDepth{};
   float phiC{};
   float phiN{};
   float phiP{};
   float phiZ{};
+  float phiZTolerance{};
   bool changingLuminancePhi{};
 
 private:
