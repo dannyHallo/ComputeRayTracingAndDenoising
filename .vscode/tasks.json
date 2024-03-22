@@ -4,12 +4,17 @@
     {
       "label": "build debug version",
       "type": "shell",
-      "command": "${workspaceFolder}/batch/build.bat debug"
+      "command": "${workspaceFolder}/build.bat debug"
     },
     {
       "label": "build release version",
       "type": "shell",
-      "command": "${workspaceFolder}/batch/build.bat release"
+      "command": "${workspaceFolder}/build.bat release"
+    },
+    {
+      "label": "bootstrap",
+      "type": "shell",
+      "command": "${workspaceFolder}/bootstrap.bat"
     }
   ]
 }

@@ -6,7 +6,7 @@
 #ifdef NDEBUG
 static const std::string kRootDir = "./";
 #else
-static const std::string kRootDir = "${PROJECT_DIR}/";
+static const std::string kRootDir = "@CMAKE_SOURCE_DIR@";
 #endif
 
 static const std::string kPathToResourceFolder        = kRootDir + "resources/";
