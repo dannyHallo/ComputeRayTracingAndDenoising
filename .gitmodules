@@ -1,77 +1,39 @@
 [submodule "dep/efsw"]
-	update = none
 	path = dep/efsw
 	url = https://github.com/SpartanJ/efsw.git
-	branch = master
-    
 [submodule "dep/glfw"]
-    update = none
-    path = dep/glfw
-    url = https://github.com/glfw/glfw.git
-    branch = master
-    
+	path = dep/glfw
+	url = https://github.com/glfw/glfw.git
 [submodule "dep/glm"]
-    update = none
-    path = dep/glm
-    url = https://github.com/g-truc/glm.git
-    branch = master
-
-[submodule "dep/imgui"]
-    update = none
-    path = dep/imgui
-    url = https://github.com/ocornut/imgui.git
-    branch = master
-
+	path = dep/glm
+	url = https://github.com/g-truc/glm.git
 [submodule "dep/implot"]
-    update = none
-    path = dep/implot
-    url = https://github.com/epezent/implot.git
-    branch = master
-
-[submodule "dep/entt"]
-    update = none
-    path = dep/entt
-    url = https://github.com/skypjack/entt.git
-    branch = master
-
+	path = dep/implot
+	url = https://github.com/epezent/implot.git
 [submodule "dep/opengametools"]
-    update = none
-    path = dep/opengametools
-    url = https://github.com/jpaver/opengametools.git
-    branch = master
-
+	path = dep/opengametools
+	url = https://github.com/jpaver/opengametools.git
 [submodule "dep/shaderc"]
-    update = none
-    path = dep/shaderc
-    url = https://github.com/google/shaderc.git
-    branch = master
-
-[submodule "dep/spdlog"]
-    update = none
-    path = dep/spdlog
-    url = https://github.com/gabime/spdlog.git
-    branch = master
-
+	path = dep/shaderc
+	url = https://github.com/google/shaderc.git
 [submodule "dep/stb"]
-    update = none
-    path = dep/stb
-    url = https://github.com/nothings/stb.git
-    branch = master
-
+	path = dep/stb
+	url = https://github.com/nothings/stb.git
 [submodule "dep/tomlplusplus"]
-    update = none
-    path = dep/tomlplusplus
-    url = https://github.com/marzer/tomlplusplus.git
-    branch = master
-
+	path = dep/tomlplusplus
+	url = https://github.com/marzer/tomlplusplus.git
 [submodule "dep/volk"]
-    update = none
-    path = dep/volk
-    url = https://github.com/zeux/volk.git
-    branch = master
-
+	path = dep/volk
+	url = https://github.com/zeux/volk.git
 [submodule "dep/VulkanMemoryAllocator"]
-    update = none
-    path = dep/VulkanMemoryAllocator
-    url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
-    branch = master
+	path = dep/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "dep/imgui"]
+	path = dep/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "dep/entt"]
+	path = dep/entt
+	url = https://github.com/skypjack/entt.git
+[submodule "dep/spdlog"]
+	path = dep/spdlog
+	url = https://github.com/gabime/spdlog.git
