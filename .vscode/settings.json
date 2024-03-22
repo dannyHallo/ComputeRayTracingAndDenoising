@@ -7,10 +7,7 @@
     // specify a path to look for compile_commands.json
     "--compile-commands-dir=.vscode",
 
-    // code completion can suggest symbols that are defined outside of the current scope
-    "--all-scopes-completion",
-
-    // never insert headers for me
+    // never insert headers automatically
     "--header-insertion=never",
 
     // load pre compiled headers from memory, this is faster than loading from disk
