@@ -1,39 +1,6 @@
-[submodule "dep/glfw"]
-	path = dep/glfw
-	url = https://github.com/glfw/glfw.git
-[submodule "dep/glm"]
-	path = dep/glm
-	url = https://github.com/g-truc/glm.git
-[submodule "dep/implot"]
-	path = dep/implot
-	url = https://github.com/epezent/implot.git
 [submodule "dep/opengametools"]
 	path = dep/opengametools
 	url = https://github.com/jpaver/opengametools.git
-[submodule "dep/shaderc"]
-	path = dep/shaderc
-	url = https://github.com/google/shaderc.git
-[submodule "dep/stb"]
-	path = dep/stb
-	url = https://github.com/nothings/stb.git
-[submodule "dep/tomlplusplus"]
-	path = dep/tomlplusplus
-	url = https://github.com/marzer/tomlplusplus.git
-[submodule "dep/volk"]
-	path = dep/volk
-	url = https://github.com/zeux/volk.git
-[submodule "dep/VulkanMemoryAllocator"]
-	path = dep/VulkanMemoryAllocator
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
-[submodule "dep/imgui"]
-	path = dep/imgui
-	url = https://github.com/ocornut/imgui.git
-[submodule "dep/entt"]
-	path = dep/entt
-	url = https://github.com/skypjack/entt.git
-[submodule "dep/spdlog"]
-	path = dep/spdlog
-	url = https://github.com/gabime/spdlog.git
-[submodule "dep/efsw"]
-	path = dep/efsw
-	url = https://github.com/SpartanJ/efsw.git
+[submodule "dep/vcpkg"]
+	path = dep/vcpkg
+	url = https://github.com/microsoft/vcpkg.git
