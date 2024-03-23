@@ -1,0 +1,17 @@
+add_subdirectory(efsw/)
+add_subdirectory(entt/)
+add_subdirectory(glfw/)
+add_subdirectory(glm/)
+# add_subdirectory(imgui/)
+# add_subdirectory(implot/)
+add_subdirectory(opengametools/)
+
+set(SHADERC_SKIP_TESTS ON)
+add_subdirectory(shaderc/)
+
+add_subdirectory(spdlog/)
+# add_subdirectory(stb/)
+add_subdirectory(tomlplusplus/)
+add_subdirectory(volk/)
+add_subdirectory(vulkan/)
+add_subdirectory(VulkanMemoryAllocator/)

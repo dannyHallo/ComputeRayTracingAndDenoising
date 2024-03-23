@@ -34,10 +34,11 @@ cd build
 @REM ---------------------------------------------------------------------------------------
 
 echo:
-echo "Configuring..."
-@REM using Ninja as the generator, and Clang17 as the compiler
+echo "Configuring Ninja from CMake..."
 cmake -G Ninja ^
 -D PROJ_NAME="voxel-lab" ^
+-D CMAKE_TOOLCHAIN_FILE="../dep/vcpkg/scripts/buildsystems/vcpkg.cmake" ^
+-D VCPKG_TARGET_TRIPLET="x64-windows" ^
 -D CMAKE_CXX_COMPILER="D:/LLVM17/bin/clang.exe" ^
 -D CMAKE_EXPORT_COMPILE_COMMANDS=1 ^
 -D CMAKE_CXX_COMPILER_LAUNCHER=ccache ^
