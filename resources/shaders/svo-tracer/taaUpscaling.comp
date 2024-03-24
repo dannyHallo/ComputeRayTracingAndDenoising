@@ -9,8 +9,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/packer.glsl"
 
-#define DISPLAY_TYPE_RAW 0
-
 vec2 midResToLowRes(ivec2 midResUv) {
   vec2 subpixOffset = twickableParametersUbo.data.taa ? renderInfoUbo.data.subpixOffset : vec2(0);
   return (vec2(midResUv) + vec2(0.5)) *
