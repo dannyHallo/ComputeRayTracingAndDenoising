@@ -1,0 +1,6 @@
+[submodule "dep/opengametools"]
+	path = dep/opengametools
+	url = https://github.com/jpaver/opengametools.git
+[submodule "dep/vcpkg"]
+	path = dep/vcpkg
+	url = https://github.com/microsoft/vcpkg.git

@@ -3,12 +3,12 @@
 // this should be defined first for the definition of VK_VERSION_1_0, which is
 // used in glfw3.h
 #include "context-creators/ContextCreators.hpp"
-#include "utils/incl/VolkIncl.hpp" // IWYU pragma: export
+#include "volk.h"
 
 // glfw3 will define APIENTRY if it is not defined yet
 #include "GLFW/glfw3.h"
 
-#include "utils/incl/VkMemoryAllocIncl.hpp"
+#include "vma/vk_mem_alloc.h"
 
 #include <vector>
 

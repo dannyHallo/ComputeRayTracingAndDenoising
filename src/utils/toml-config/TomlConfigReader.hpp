@@ -1,7 +1,9 @@
 #pragma once
 
-#include "utils/incl/TomlIncl.hpp"
 #include "utils/logger/Logger.hpp"
+
+#define TOML_EXCEPTIONS 0
+#include "toml++/toml.hpp" // IWYU pragma: export
 
 #include <memory>
 #include <optional>

@@ -2,7 +2,7 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-#include "utils/event/EventType.hpp"
+#include "utils/event-types/EventType.hpp"
 #include "utils/logger/Logger.hpp"
 
 #include <memory>

@@ -50,34 +50,6 @@ bool _findQueueFamilies(ContextCreator::QueueFamilyIndices &indices,
   return false;
 }
 
-VkSampleCountFlagBits _getDeviceMaxUsableSampleCount(VkPhysicalDevice device) {
-  VkPhysicalDeviceProperties physicalDeviceProperties;
-  vkGetPhysicalDeviceProperties(device, &physicalDeviceProperties);
-
-  VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
-                              physicalDeviceProperties.limits.framebufferDepthSampleCounts;
-  if ((counts & VK_SAMPLE_COUNT_64_BIT) != 0) {
-    return VK_SAMPLE_COUNT_64_BIT;
-  }
-  if ((counts & VK_SAMPLE_COUNT_32_BIT) != 0) {
-    return VK_SAMPLE_COUNT_32_BIT;
-  }
-  if ((counts & VK_SAMPLE_COUNT_16_BIT) != 0) {
-    return VK_SAMPLE_COUNT_16_BIT;
-  }
-  if ((counts & VK_SAMPLE_COUNT_8_BIT) != 0) {
-    return VK_SAMPLE_COUNT_8_BIT;
-  }
-  if ((counts & VK_SAMPLE_COUNT_4_BIT) != 0) {
-    return VK_SAMPLE_COUNT_4_BIT;
-  }
-  if ((counts & VK_SAMPLE_COUNT_2_BIT) != 0) {
-    return VK_SAMPLE_COUNT_2_BIT;
-  }
-
-  return VK_SAMPLE_COUNT_1_BIT;
-}
-
 bool _checkDeviceExtensionSupport(Logger *logger, const VkPhysicalDevice &physicalDevice,
                                   const std::vector<const char *> &requiredDeviceExtensions) {
   uint32_t extensionCount = 0;
@@ -222,12 +194,9 @@ VkPhysicalDevice selectBestDevice(Logger *logger,
       }
     }
 
-    // MSAA
-    VkSampleCountFlagBits msaaSamples = _getDeviceMaxUsableSampleCount(physicalDevice);
-
     int constexpr kDesiredLengthOfDeviceName = 30;
-    logger->info("[{}] {:<{}} memory {} mSAA {} mark {}", deviceId, deviceProperty.deviceName,
-                 kDesiredLengthOfDeviceName, deviceMemory, msaaSamples, deviceMarks[deviceId]);
+    logger->info("[{}] {:<{}} memory {} mark {}", deviceId, deviceProperty.deviceName,
+                 kDesiredLengthOfDeviceName, deviceMemory, deviceMarks[deviceId]);
 
     deviceId++;
   }

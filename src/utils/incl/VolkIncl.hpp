@@ -2,4 +2,4 @@
 
 #pragma once
 
-#include "volk/volk.h" // IWYU pragma: export
+#include "volk.h" // IWYU pragma: export

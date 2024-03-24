@@ -1,3 +1,4 @@
+#define TOML_IMPLEMENTATION
 #include "TomlConfigReader.hpp"
 
 #include "utils/config/RootDir.h"

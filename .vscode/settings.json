@@ -1,16 +1,16 @@
 {
+  "files.exclude": {
+    "**/.git": false
+  },
   "clangd.path": "D:/LLVM17/bin/clangd.exe",
   "clangd.arguments": [
     // number of async workers used by clangd. background index also uses this many workers
     "-j=16",
 
     // specify a path to look for compile_commands.json
-    "--compile-commands-dir=.vscode",
+    "--compile-commands-dir=build/",
 
-    // code completion can suggest symbols that are defined outside of the current scope
-    "--all-scopes-completion",
-
-    // never insert headers for me
+    // never insert headers automatically
     "--header-insertion=never",
 
     // load pre compiled headers from memory, this is faster than loading from disk
