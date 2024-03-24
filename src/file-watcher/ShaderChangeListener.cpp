@@ -37,7 +37,7 @@ ShaderChangeListener::ShaderChangeListener(Logger *logger)
       .connect<&ShaderChangeListener::_onRenderLoopBlocked>(this);
 }
 
-ShaderChangeListener::~ShaderChangeListener() = default;
+ShaderChangeListener::~ShaderChangeListener() { GlobalEventDispatcher::get().disconnect(this); }
 
 void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std::string &dir,
                                             const std::string &filename, efsw::Action action,
