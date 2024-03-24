@@ -15,6 +15,8 @@ FOR %%a IN (%*) DO (
     if [%%a] == [--skip-config] set SKIP_CONFIG=ON
 )
 
+@REM WARNING: when switching from debug to release (or vice versa), delete the build folder to avoid any conflicts (e.g. dynamic libraries)
+
 if %SKIP_CONFIG%==OFF (
 cmake -S . -B build/ ^
     -G %PROJECT_GENERATOR% ^
@@ -34,6 +36,7 @@ if !errorlevel! neq 0 (
 
 if not exist build mkdir build
 cmake --build build/
+
 if !errorlevel! neq 0 (
    echo build failed
    goto :eof
