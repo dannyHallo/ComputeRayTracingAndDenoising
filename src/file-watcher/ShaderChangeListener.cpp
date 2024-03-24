@@ -46,7 +46,7 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
     return;
   }
 
-  std::string normalizedPathToFile = _normalizePath(dir + filename);
+  std::string normalizedPathToFile = _normalizePath(dir + '/' + filename);
 
   auto it = _watchingShaderFiles.find(normalizedPathToFile);
   if (it == _watchingShaderFiles.end()) {
