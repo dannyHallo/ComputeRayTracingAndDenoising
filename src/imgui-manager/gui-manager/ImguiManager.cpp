@@ -35,8 +35,9 @@ ImguiManager::~ImguiManager() {
 
   _cleanupFrameBuffers();
 
-  vkDestroyDescriptorPool(_appContext->getDevice(), _guiDescriptorPool, nullptr);
+  // this frees descriptor sets from the pool, so we can free the pool itself afterwards
   ImGui_ImplVulkan_Shutdown();
+  vkDestroyDescriptorPool(_appContext->getDevice(), _guiDescriptorPool, nullptr);
 
   ImPlot::DestroyContext();
   ImGui::DestroyContext();
@@ -106,10 +107,6 @@ void ImguiManager::init() {
   info.CheckVkResultFn           = nullptr;
   if (!ImGui_ImplVulkan_Init(&info)) {
     _logger->info("failed to init impl");
-  }
-
-  if (!ImGui_ImplVulkan_CreateFontsTexture()) {
-    _logger->info("failed to create fonts texture");
   }
 }
 
