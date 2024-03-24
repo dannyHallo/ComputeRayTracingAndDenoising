@@ -27,13 +27,17 @@ cmake -S . -B build/ ^
     -D CMAKE_BUILD_TYPE=%BUILD_TYPE%
 
 if !errorlevel! neq 0 (
-   echo cmake config failed with error !errorlevel! aborting...
+   echo cmake config failed
    goto :eof
 )
 )
 
 if not exist build mkdir build
 cmake --build build/
+if !errorlevel! neq 0 (
+   echo build failed
+   goto :eof
+)
 
 if %BUILD_TYPE%==release (
     echo:
