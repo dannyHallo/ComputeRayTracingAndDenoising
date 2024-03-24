@@ -35,8 +35,9 @@ ImguiManager::~ImguiManager() {
 
   _cleanupFrameBuffers();
 
-  // this frees descriptor sets from the pool, so we can free the pool itself afterwards
   ImGui_ImplVulkan_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+
   vkDestroyDescriptorPool(_appContext->getDevice(), _guiDescriptorPool, nullptr);
 
   ImPlot::DestroyContext();
