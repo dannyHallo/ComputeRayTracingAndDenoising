@@ -10,6 +10,9 @@ if "%1"=="debug" (
     goto :eof
 )
 
+set PROJECT_NAME=voxel-lab
+set PROJECT_GENERATOR=Ninja
+
 @REM ---------------------------------------------------------------------------------------
 
 @REM set GLSLC=%VULKAN_SDK%/Bin/glslc.exe
@@ -32,28 +35,32 @@ if not exist build mkdir build
 
 @REM ---------------------------------------------------------------------------------------
 
-@REM https://cliutils.gitlab.io/modern-cmake/
-@REM cmake dummy project
 
 echo:
-echo "Configuring Ninja from CMake..."
-cmake -S . -B build/ -G Ninja ^
--D CMAKE_TOOLCHAIN_FILE="../dep/vcpkg/scripts/buildsystems/vcpkg.cmake" ^
--D VCPKG_TARGET_TRIPLET="x64-windows" ^
--D CMAKE_CXX_COMPILER="D:/LLVM17/bin/clang.exe" ^
--D CMAKE_EXPORT_COMPILE_COMMANDS=1 ^
--D CMAKE_CXX_COMPILER_LAUNCHER=ccache ^
--D CMAKE_BUILD_TYPE=%BUILD_TYPE%
+echo configuring for the generator %PROJECT_GENERATOR%...
+cmake -S . -B build/ ^
+    -G %PROJECT_GENERATOR% ^
+    -D CMAKE_PROJECT_NAME=%PROJECT_NAME% ^
+    -D CMAKE_TOOLCHAIN_FILE="../dep/vcpkg/scripts/buildsystems/vcpkg.cmake" ^
+    -D VCPKG_TARGET_TRIPLET="x64-windows" ^
+    -D CMAKE_CXX_COMPILER="D:/LLVM17/bin/clang.exe" ^
+    -D CMAKE_EXPORT_COMPILE_COMMANDS=1 ^
+    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache ^
+    -D CMAKE_BUILD_TYPE=%BUILD_TYPE%
 
 if !errorlevel! neq 0 (
    echo "CMake config failed with error !errorlevel!. Exiting... "
    goto :eof
 )
-echo "Configure done."
 
-echo "Building..."
-@REM ninja
+echo:
+echo generating project using %PROJECT_GENERATOR%...
+echo ---------------------------------------------------------------------------------------
+echo:
+
 cmake --build build/
+
+set PROJECT_EXECUTABLE_PATH="build/apps/"
 
 @REM ---------------------------------------------------------------------------------------
 
@@ -70,19 +77,13 @@ cmake --build build/
 
 @REM @REM ---------------------------------------------------------------------------------------
 
-@REM echo:
-@REM echo prepare dlls ...
-@REM robocopy "dep/efsw/bin/" "build/windows/x64/%BUILD_TYPE%/" "efsw.dll" /NFL /NDL /NJH /NJS /nc /ns /np
-@REM robocopy "dep/shaderc/bin/" "build/windows/x64/%BUILD_TYPE%/" "shaderc_shared.dll" /NFL /NDL /NJH /NJS /nc /ns /np
+echo:
+echo run app ...
+echo ---------------------------------------------------------------------------------------
+echo:
 
-@REM @REM ---------------------------------------------------------------------------------------
-
-@REM echo:
-@REM echo run app ...
-@REM echo ---------------------------------------------------------------------------------------
-@REM echo:
-
-@REM @REM run the application
-@REM @REM /b means to stay in the command line below, 
-@REM @REM /wait blocks the terminal to wait for the application to exit
-@REM start /wait /b /d "build/windows/x64/%BUILD_TYPE%" main.exe
+@REM run the application
+@REM /wait blocks the terminal to wait for the application to exit
+@REM /b means to stay in the command line below, 
+@REM /d xxx specifies the startup directory
+start /wait /b /d %PROJECT_EXECUTABLE_PATH% %PROJECT_NAME%.exe
