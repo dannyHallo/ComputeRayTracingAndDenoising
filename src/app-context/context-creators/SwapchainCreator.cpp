@@ -1,11 +1,40 @@
 #include "SwapchainCreator.hpp"
 
-#include "memory/Image.hpp"
 #include "utils/logger/Logger.hpp"
 
 #include <cassert>
 
 namespace {
+VkImageView _createImageView(VkDevice device, const VkImage &image, VkFormat format,
+                             VkImageAspectFlags aspectFlags, uint32_t imageDepth,
+                             uint32_t layerCount) {
+
+  VkImageView imageView{};
+
+  VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_2D;
+  if (layerCount == 1) {
+    viewType = imageDepth > 1 ? VK_IMAGE_VIEW_TYPE_3D : VK_IMAGE_VIEW_TYPE_2D;
+  } else {
+    assert(imageDepth == 1 && "imageDepth must be 1 for 2D array images");
+    viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+  }
+
+  VkImageViewCreateInfo viewInfo{};
+  viewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+  viewInfo.image                           = image;
+  viewInfo.viewType                        = viewType;
+  viewInfo.format                          = format;
+  viewInfo.subresourceRange.aspectMask     = aspectFlags;
+  viewInfo.subresourceRange.baseMipLevel   = 0;
+  viewInfo.subresourceRange.levelCount     = 1;
+  viewInfo.subresourceRange.baseArrayLayer = 0;
+  viewInfo.subresourceRange.layerCount     = layerCount;
+
+  vkCreateImageView(device, &viewInfo, nullptr, &imageView);
+
+  return imageView;
+}
+
 // query for physical device's swapchain sepport details
 ContextCreator::SwapchainSupportDetails _querySwapchainSupport(VkSurfaceKHR surface,
                                                                VkPhysicalDevice physicalDevice) {
@@ -115,9 +144,10 @@ void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
   if (queueFamilyIndices.graphicsFamily != queueFamilyIndices.presentFamily) {
     // images can be used across multiple queue families without explicit
     // ownership transfers.
-    swapchainCreateInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
-    swapchainCreateInfo.queueFamilyIndexCount = static_cast<uint32_t>(queueFamilyIndicesArray.size());
-    swapchainCreateInfo.pQueueFamilyIndices   = queueFamilyIndicesArray.data();
+    swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    swapchainCreateInfo.queueFamilyIndexCount =
+        static_cast<uint32_t>(queueFamilyIndicesArray.size());
+    swapchainCreateInfo.pQueueFamilyIndices = queueFamilyIndicesArray.data();
   } else {
     // an image is owned by one queue family at a time and ownership must be
     // explicitly transferred before the image is being used in another
@@ -144,7 +174,7 @@ void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data());
 
   for (size_t i = 0; i < imageCount; i++) {
-    swapchainImageViews[i] = Image::createImageView(
-        device, swapchainImages[i], swapchainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1);
+    swapchainImageViews[i] = _createImageView(device, swapchainImages[i], swapchainImageFormat,
+                                              VK_IMAGE_ASPECT_COLOR_BIT, 1, 1);
   }
 }

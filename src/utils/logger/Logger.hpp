@@ -1,49 +1,28 @@
 #pragma once
 
-#include "utils/incl/GlmIncl.hpp" // IWYU pragma: export
-
-#include "spdlog/sinks/stdout_color_sinks.h"
-#include "spdlog/spdlog.h" // IWYU pragma: export
-
-#include "volk/volk.h"
+#include "fmt/format.h"
+#include "spdlog/spdlog.h"
 
 #include <string>
-
-#pragma once
+#include <utility>
 
 class Logger {
-  std::shared_ptr<spdlog::logger> _spdLogger;
-  std::shared_ptr<spdlog::logger> _printlnSpdLogger;
-
 public:
-  Logger() {
-    // the normal logger is designed to showcase the log level
-    _spdLogger = spdlog::stdout_color_mt("normalLogger");
-    // %^ marks the beginning of the colorized section
-    // %l will be replaced by the current log level
-    // %$ marks the end of the colorized section
-    _spdLogger->set_pattern("%^[%l]%$ %v");
-
-    // the println logger is designed to print without any log level
-    _printlnSpdLogger = spdlog::stdout_color_mt("printlnLogger");
-    _printlnSpdLogger->set_pattern("%v");
-  }
-
-  inline void print(const glm::vec3 &v) { _spdLogger->info("{}, {}, {}", v.x, v.y, v.z); }
+  Logger();
 
   template <typename... Args> inline void subInfo(std::string format, Args &&...args) {
     std::string formatWithSubInfo = "* " + std::move(format);
-    _spdLogger->info(fmt::runtime(formatWithSubInfo), args...);
+    _spdLogger->info(fmt::runtime(formatWithSubInfo), std::forward<Args>(args)...);
   }
 
   template <typename... Args> inline void info(const std::string &format, Args &&...args) {
-    _spdLogger->info(fmt::runtime(format), args...);
+    _spdLogger->info(fmt::runtime(format), std::forward<Args>(args)...);
   }
   template <typename... Args> inline void warn(const std::string &format, Args &&...args) {
-    _spdLogger->warn(fmt::runtime(format), args...);
+    _spdLogger->warn(fmt::runtime(format), std::forward<Args>(args)...);
   }
   template <typename... Args> inline void error(const std::string &format, Args &&...args) {
-    _spdLogger->error(fmt::runtime(format), args...);
+    _spdLogger->error(fmt::runtime(format), std::forward<Args>(args)...);
   }
 
   inline void println() { _printlnSpdLogger->info(""); }
@@ -52,5 +31,7 @@ public:
   template <typename T> inline void warn(const T &t) { _spdLogger->warn("{}", t); }
   template <typename T> inline void error(const T &t) { _spdLogger->error("{}", t); }
 
-  // void checkStep(const std::string stepName, const int resultCode);
+private:
+  std::shared_ptr<spdlog::logger> _spdLogger;
+  std::shared_ptr<spdlog::logger> _printlnSpdLogger;
 };

@@ -29,20 +29,21 @@ if "%1"=="debug" (
 @REM )
 
 if not exist build mkdir build
-cd build
 
 @REM ---------------------------------------------------------------------------------------
 
+@REM https://cliutils.gitlab.io/modern-cmake/
+@REM cmake dummy project
+
 echo:
 echo "Configuring Ninja from CMake..."
-cmake -G Ninja ^
--D PROJ_NAME="voxel-lab" ^
+cmake -S . -B build/ -G Ninja ^
 -D CMAKE_TOOLCHAIN_FILE="../dep/vcpkg/scripts/buildsystems/vcpkg.cmake" ^
 -D VCPKG_TARGET_TRIPLET="x64-windows" ^
 -D CMAKE_CXX_COMPILER="D:/LLVM17/bin/clang.exe" ^
 -D CMAKE_EXPORT_COMPILE_COMMANDS=1 ^
 -D CMAKE_CXX_COMPILER_LAUNCHER=ccache ^
-..
+-D CMAKE_BUILD_TYPE=%BUILD_TYPE%
 
 if !errorlevel! neq 0 (
    echo "CMake config failed with error !errorlevel!. Exiting... "
@@ -51,7 +52,8 @@ if !errorlevel! neq 0 (
 echo "Configure done."
 
 echo "Building..."
-ninja
+@REM ninja
+cmake --build build/
 
 @REM ---------------------------------------------------------------------------------------
 

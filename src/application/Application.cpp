@@ -3,10 +3,10 @@
 #include "svo-builder/SvoBuilder.hpp"
 #include "svo-tracer/SvoTracer.hpp"
 
+#include "camera/Camera.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
-#include "gui/gui-manager/ImguiManager.hpp"
-#include "utils/camera/Camera.hpp"
-#include "utils/event/GlobalEventDispatcher.hpp"
+#include "imgui-manager/gui-manager/ImguiManager.hpp"
+#include "utils/event-dispatcher/GlobalEventDispatcher.hpp"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
 #include "utils/shader-compiler/ShaderCompiler.hpp"

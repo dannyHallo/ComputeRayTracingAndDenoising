@@ -1,0 +1,6 @@
+add_subdirectory(logger/)
+add_subdirectory(io/)
+add_subdirectory(shader-compiler/)
+add_subdirectory(toml-config/)
+add_subdirectory(fps-sink/)
+add_subdirectory(event-dispatcher/)

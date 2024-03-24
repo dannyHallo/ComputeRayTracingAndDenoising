@@ -6,7 +6,7 @@
 #ifdef NDEBUG
 static const std::string kRootDir = "./";
 #else
-static const std::string kRootDir = "C:/Users/danny/Desktop/voxel-lab";
+static const std::string kRootDir = "C:/Users/danny/Desktop/voxel-lab/";
 #endif
 
 static const std::string kPathToResourceFolder        = kRootDir + "resources/";

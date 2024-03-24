@@ -6,7 +6,7 @@
 #undef APIENTRY
 #endif
 
-#include "volk/volk.h"
+#include "volk.h"
 
 #include <functional>
 #include <map>

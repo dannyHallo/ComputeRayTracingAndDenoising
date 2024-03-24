@@ -1,10 +1,11 @@
 #include "ShaderChangeListener.hpp"
-#include "pipeline/Pipeline.hpp"
+
 #include "scheduler/Scheduler.hpp"
 #include "utils/config/RootDir.h"
-#include "utils/event/EventType.hpp"
-#include "utils/event/GlobalEventDispatcher.hpp"
+#include "utils/event-dispatcher/GlobalEventDispatcher.hpp"
+#include "utils/event-types/EventType.hpp"
 #include "utils/logger/Logger.hpp"
+#include "vulkan-wrapper/pipeline/Pipeline.hpp"
 
 namespace {
 // input a/b/\c/d.xxx
@@ -25,6 +26,7 @@ std::string _normalizePath(const std::string &path) {
   return normalizedPath;
 }
 }; // namespace
+
 ShaderChangeListener::ShaderChangeListener(Logger *logger)
     : _logger(logger), _fileWatcher(std::make_unique<efsw::FileWatcher>()) {
   _fileWatcher->addWatch(kPathToResourceFolder + "shaders/", this, true);

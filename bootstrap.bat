@@ -15,4 +15,3 @@ if not exist dep/vcpkg/vcpkg.exe (
 
 @REM echo Installing dependencies...
 @REM start /wait /b /d "dep/vcpkg/" vcpkg.exe install 
-

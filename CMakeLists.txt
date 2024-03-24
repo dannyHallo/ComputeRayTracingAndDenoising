@@ -1,19 +1,12 @@
 cmake_minimum_required(VERSION 3.4.0)
 
-if(NOT DEFINED PROJ_NAME)
-	message(FATAL_ERROR "PROJ_NAME is not defined")
-endif()
-  
-project(${PROJ_NAME} LANGUAGES CXX)
+project(voxel-lab LANGUAGES CXX)
 
 set (CMAKE_CXX_STANDARD 20)
 
 configure_file(${CMAKE_SOURCE_DIR}/src/utils/config/RootDir.h.in ${CMAKE_SOURCE_DIR}/src/utils/config/RootDir.h)
 
-# add_subdirectory(dep/)
-
-# add_subdirectory(src/)
-
+# vcpkg
 set(target_LINK_LIBRARIES)
 find_package(efsw CONFIG REQUIRED)
 list(APPEND target_LINK_LIBRARIES efsw::efsw)
@@ -50,7 +43,15 @@ list(APPEND target_LINK_LIBRARIES volk::volk volk::volk_headers)
 
 find_package(VulkanHeaders CONFIG)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
-list(APPEND Vulkan::Headers GPUOpen::VulkanMemoryAllocator)
+list(APPEND target_LINK_LIBRARIES Vulkan::Headers GPUOpen::VulkanMemoryAllocator)
+
+set(vcpkg_INCLUDE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/")
+
+# configure my libraries
+add_subdirectory(src/)
+
+# configure executables using my libraries
+add_subdirectory(apps/)
 
 # include_directories(
 # 	src
@@ -64,8 +65,11 @@ list(APPEND Vulkan::Headers GPUOpen::VulkanMemoryAllocator)
 # 	dep/obj-loader
 # 	dep/memory-allocator-hpp)
 
-add_executable(${PROJ_NAME}
-	main.cpp	
-)
+# add_executable(${PROJ_NAME}
+# 	testing.cpp	
+# )
 
-target_link_libraries(${PROJ_NAME} PRIVATE ${target_LINK_LIBRARIES})
+# set(target_INCLUDE_DIRECTORIES)
+# list(APPEND target_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/src/)
+# target_include_directories(${PROJ_NAME} PRIVATE ${target_INCLUDE_DIRECTORIES})
+# target_link_libraries(${PROJ_NAME} PRIVATE ${target_LINK_LIBRARIES})
