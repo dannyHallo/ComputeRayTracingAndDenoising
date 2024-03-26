@@ -6,47 +6,53 @@ project(${CMAKE_PROJECT_NAME} LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
+if(WITH_PORTABLE_RESOURCES)
+    message(STATUS "Portable resources folder is used")
+    add_definitions(-DPORTABLE_RESOURCES_FOLDER)
+endif()
+
 configure_file(${CMAKE_SOURCE_DIR}/src/utils/config/RootDir.h.in ${CMAKE_SOURCE_DIR}/src/utils/config/RootDir.h)
 
 set(target_LINK_LIBRARIES)
 
 # vcpkg package loading
+# efsw::efsw
 find_package(efsw CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES efsw::efsw)
 
+# EnTT::EnTT
 find_package(EnTT CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES EnTT::EnTT)
 
+# glfw
 find_package(glfw3 CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES glfw)
 
+# glm::glm
 find_package(glm CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES glm::glm)
 
+# imgui::imgui
 find_package(imgui CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES imgui::imgui)
 
+# implot::implot
 find_package(implot CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES implot::implot)
 
+# unofficial::shaderc::shaderc
 find_package(unofficial-shaderc CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES unofficial::shaderc::shaderc)
 
+# spdlog::spdlog
 find_package(spdlog CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES spdlog::spdlog)
 
 find_package(Stb REQUIRED)
 
+# PkgConfig::tomlplusplus
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
-list(APPEND target_LINK_LIBRARIES PkgConfig::tomlplusplus)
 
+# pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
+
+# volk::volk volk::volk_headers
 find_package(volk CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES volk::volk volk::volk_headers)
 
+# Vulkan::Headers GPUOpen::VulkanMemoryAllocator
 find_package(VulkanHeaders CONFIG)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
-list(APPEND target_LINK_LIBRARIES Vulkan::Headers GPUOpen::VulkanMemoryAllocator)
 
 set(vcpkg_INCLUDE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/")
 
@@ -55,3 +61,10 @@ add_subdirectory(src/)
 
 # configure executables using my libraries
 add_subdirectory(apps/)
+
+# copy compile_commands.json to .vscode folder for clangd to use, this is because the build dir for debug and release mode is different
+add_custom_target(copy-compile-commands ALL
+    ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_BINARY_DIR}/compile_commands.json
+    ${CMAKE_SOURCE_DIR}/.vscode
+)

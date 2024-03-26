@@ -8,7 +8,7 @@
     "-j=16",
 
     // specify a path to look for compile_commands.json
-    "--compile-commands-dir=build/",
+    "--compile-commands-dir=.vscode/",
 
     // never insert headers automatically
     "--header-insertion=never",
@@ -19,5 +19,11 @@
     // enable clang tidy
     "--clang-tidy"
   ],
-  "shaderc-lint.glslcArgs": "--target-spv=spv1.5"
+  "shaderc-lint.glslcArgs": "--target-spv=spv1.5",
+  "files.associations": {
+    "*.cjson": "jsonc",
+    "*.wxss": "css",
+    "*.wxs": "javascript",
+    "xstring": "c"
+  }
 }

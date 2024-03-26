@@ -2,12 +2,11 @@
 
 #include <string>
 
-// release mode, the resources folder is copied to the build folder
-#ifdef NDEBUG
+#ifdef PORTABLE_RESOURCES_FOLDER
 static const std::string kRootDir = "./";
 #else
 static const std::string kRootDir = "@CMAKE_SOURCE_DIR@/";
-#endif
+#endif // PORTABLE_RESOURCES_FOLDER
 
 static const std::string kPathToResourceFolder        = kRootDir + "resources/";
 static const std::string KPathToCompiledShadersFolder = kPathToResourceFolder + "compiled-shaders/";
