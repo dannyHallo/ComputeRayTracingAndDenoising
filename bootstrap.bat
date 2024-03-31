@@ -1,17 +1,13 @@
 @echo off
 
-@REM git submodule update --init --recursive
- 
-@REM git submodule add <url> <path>
-@REM git rm <path>
+@REM fetches all submodules for this project
+git submodule update --init --recursive
 
-@REM if dep/vcpkg/vcpkg.exe does not exist, bootstrap it
+@REM bootstrap vcpkg if not already bootstrapped
 if not exist dep/vcpkg/vcpkg.exe (
     echo Bootstrapping vcpkg...
-    dep/vcpkg/bootstrap-vcpkg.bat
+    cd dep/vcpkg
+    bootstrap-vcpkg.bat
 ) else (
     echo vcpkg already bootstrapped.
 )
-
-@REM echo Installing dependencies...
-@REM start /wait /b /d "dep/vcpkg/" vcpkg.exe install 

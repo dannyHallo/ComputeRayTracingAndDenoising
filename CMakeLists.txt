@@ -1,6 +1,6 @@
 # https://cliutils.gitlab.io/modern-cmake/
 
-cmake_minimum_required(VERSION 3.4.0)
+cmake_minimum_required(VERSION 3.5.0)
 
 project(${CMAKE_PROJECT_NAME} LANGUAGES CXX)
 
@@ -9,6 +9,10 @@ set(CMAKE_CXX_STANDARD 20)
 if(WITH_PORTABLE_RESOURCES)
     message(STATUS "Portable resources folder is used")
     add_definitions(-DPORTABLE_RESOURCES_FOLDER)
+endif()
+
+if(${CMAKE_BUILD_TYPE} STREQUAL release)
+    add_definitions(-DNVALIDATIONLAYERS)
 endif()
 
 configure_file(${CMAKE_SOURCE_DIR}/src/utils/config/RootDir.h.in ${CMAKE_SOURCE_DIR}/src/utils/config/RootDir.h)

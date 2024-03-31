@@ -4,11 +4,11 @@ setlocal EnableDelayedExpansion
 set PROJECT_NAME=voxel-lab
 set PROJECT_GENERATOR=Ninja
 set PROJECT_TARGET_TRIPLET=x64-windows
-set PROJECT_CLANG_PATH=D:/LLVM17/bin/clang.exe
+set PROJECT_CLANG_PATH=clang.exe
 
 set BUILD_TYPE=release
 @REM enable manifest when vcpkg libs needs update
-set WITH_VCPKG_MANIFEST=OFF
+set WITH_VCPKG_MANIFEST=ON
 @REM use portable resources during actual release
 set WITH_PORTABLE_RESOURCES=OFF
 

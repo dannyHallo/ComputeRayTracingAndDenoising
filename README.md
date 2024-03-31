@@ -8,6 +8,23 @@ This voxel tracing project is originally inspired by John Lin's work here [https
 - [ ] Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
 - [ ] More spp at unoccluded areas
 
+# Build this project
+
+Currently, only windows build is supported.
+
+git clone https://github.com/dannyHallo/voxel-lab.git
+
+cd voxel-lab
+
+./bootstrap.bat
+
+To compile the project, you need to install the latest version of:
+cmake,
+Ninja,
+clang,
+ccache,
+VulkanSDK (to support vulkan validation layer)
+
 # Screenshots
 
 ![Raw](./imgs/simple-voxelized-terrain.png)
