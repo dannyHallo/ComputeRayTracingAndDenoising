@@ -2,10 +2,9 @@
   "files.exclude": {
     "**/.git": false
   },
-  "clangd.path": "D:/LLVM17/bin/clangd.exe",
   "clangd.arguments": [
     // number of async workers used by clangd. background index also uses this many workers
-    "-j=16",
+    "-j=8",
 
     // specify a path to look for compile_commands.json
     "--compile-commands-dir=.vscode/",

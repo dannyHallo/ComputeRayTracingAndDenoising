@@ -1,10 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-set PROJECT_NAME=voxel-lab
-set PROJECT_GENERATOR=Ninja
 set PROJECT_TARGET_TRIPLET=x64-windows
-set PROJECT_CLANG_PATH=clang.exe
 
 set BUILD_TYPE=release
 @REM enable manifest when vcpkg libs needs update
@@ -19,15 +16,9 @@ FOR %%a IN (%*) DO (
 set BINARY_DIR=build/%BUILD_TYPE%/
 set PROJECT_EXECUTABLE_PATH=%BINARY_DIR%apps/
  
-cmake -S . -B %BINARY_DIR% ^
-    -G %PROJECT_GENERATOR% ^
-    -D CMAKE_PROJECT_NAME=%PROJECT_NAME% ^
+cmake --preset %BUILD_TYPE% ^
     -D CMAKE_TOOLCHAIN_FILE="../../dep/vcpkg/scripts/buildsystems/vcpkg.cmake" ^
     -D VCPKG_TARGET_TRIPLET=%PROJECT_TARGET_TRIPLET% ^
-    -D CMAKE_CXX_COMPILER=%PROJECT_CLANG_PATH% ^
-    -D CMAKE_EXPORT_COMPILE_COMMANDS=1 ^
-    -D CMAKE_CXX_COMPILER_LAUNCHER=ccache ^
-    -D CMAKE_BUILD_TYPE=%BUILD_TYPE% ^
     -D VCPKG_MANIFEST_INSTALL=%WITH_VCPKG_MANIFEST% ^
     -D WITH_PORTABLE_RESOURCES=%WITH_PORTABLE_RESOURCES%
 
@@ -60,4 +51,4 @@ if %WITH_PORTABLE_RESOURCES%==ON (
 @REM /wait blocks the terminal to wait for the application to exit
 @REM /b means to stay in the command line below, 
 @REM /d xxx specifies the startup directory
-start /wait /b /d "%PROJECT_EXECUTABLE_PATH%" %PROJECT_NAME%.exe
+start /wait /b /d "%PROJECT_EXECUTABLE_PATH%" run.exe

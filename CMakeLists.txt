@@ -1,10 +1,8 @@
-# https://cliutils.gitlab.io/modern-cmake/
+# cmake guidelines: https://cliutils.gitlab.io/modern-cmake/
 
 cmake_minimum_required(VERSION 3.5.0)
 
-project(${CMAKE_PROJECT_NAME} LANGUAGES CXX)
-
-set(CMAKE_CXX_STANDARD 20)
+project(voxel-lab)
 
 if(WITH_PORTABLE_RESOURCES)
     message(STATUS "Portable resources folder is used")

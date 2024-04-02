@@ -1,7 +1,7 @@
 #pragma once
 
-#include "fmt/format.h"
-#include "spdlog/spdlog.h"
+#include "fmt/format.h"    // IWYU pragma: export
+#include "spdlog/spdlog.h" // IWYU pragma: export
 
 #include <string>
 #include <utility>
