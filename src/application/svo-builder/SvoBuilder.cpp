@@ -271,9 +271,9 @@ void SvoBuilder::_createBuffers() {
   uint32_t gb                      = 1024 * 1024 * 1024;
   uint32_t maximumOctreeBufferSize = 2 * gb;
   _indirectFragLengthBuffer        = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
-                                                       VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
-                                                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                                       MemoryStyle::kDedicated);
+                                                              VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
+                                                                  VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                                              MemoryStyle::kDedicated);
 
   _appendedOctreeBuffer = std::make_unique<Buffer>(maximumOctreeBufferSize,
                                                    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |

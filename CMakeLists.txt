@@ -58,10 +58,7 @@ find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 set(vcpkg_INCLUDE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/")
 
-# configure my libraries
 add_subdirectory(src/)
-
-# configure executables using my libraries
 add_subdirectory(apps/)
 
 # copy compile_commands.json to .vscode folder for clangd to use, this is because the build dir for debug and release mode is different

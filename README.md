@@ -4,9 +4,10 @@ This voxel tracing project is originally inspired by John Lin's work here [https
 
 # Todos
 
-- [ ] Vma Virtual Allocator https://gpuopen-librariesandsdks.github.io/VulkanMemoryAllocator/html/virtual_allocator.html
+- [ ] Custom block allocator
+https://www.youtube.com/watch?v=sP7xRUyP3e0
+
 - [ ] Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
-- [ ] More spp at unoccluded areas
 
 # Build this project
 

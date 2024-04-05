@@ -6,14 +6,14 @@ add_library(src-application STATIC
     Application.cpp
 )
 
-target_include_directories(src-application PRIVATE 
+target_include_directories(src-application PRIVATE
     ${vcpkg_INCLUDE_DIR}
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_SOURCE_DIR}/resources/shaders/include/
     ${CMAKE_SOURCE_DIR}/dep/opengametools/src/
 )
 
-target_link_libraries(src-application PRIVATE 
+target_link_libraries(src-application PRIVATE
     src-camera
     src-window
     src-imgui-manager
@@ -25,6 +25,7 @@ target_link_libraries(src-application PRIVATE
     src-utils-toml-config
     src-utils-shader-compiler
     src-utils-toml-config
+    src-custom-mem-alloc
     src-vulkan-wrapper
     glm::glm
 )
