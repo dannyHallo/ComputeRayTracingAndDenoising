@@ -18,11 +18,5 @@
     // enable clang tidy
     "--clang-tidy"
   ],
-  "shaderc-lint.glslcArgs": "--target-spv=spv1.5",
-  "files.associations": {
-    "*.cjson": "jsonc",
-    "*.wxss": "css",
-    "*.wxs": "javascript",
-    "xstring": "c"
-  }
+  "shaderc-lint.glslcArgs": "--target-spv=spv1.5"
 }

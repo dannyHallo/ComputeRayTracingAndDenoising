@@ -4,7 +4,6 @@
     {
       "name": "base",
       "hidden": false,
-      "description": "Base configuration preset",
       "generator": "Ninja",
       "cacheVariables": {
         "CMAKE_EXPORT_COMPILE_COMMANDS": "YES",

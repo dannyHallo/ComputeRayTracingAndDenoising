@@ -1,12 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-set PROJECT_TARGET_TRIPLET=x64-windows
-
 set BUILD_TYPE=release
-@REM enable manifest when vcpkg libs needs update
-set WITH_VCPKG_MANIFEST=ON
-@REM use portable resources during actual release
 set WITH_PORTABLE_RESOURCES=OFF
 
 FOR %%a IN (%*) DO (
@@ -18,8 +13,7 @@ set PROJECT_EXECUTABLE_PATH=%BINARY_DIR%apps/
  
 cmake --preset %BUILD_TYPE% ^
     -D CMAKE_TOOLCHAIN_FILE="../../dep/vcpkg/scripts/buildsystems/vcpkg.cmake" ^
-    -D VCPKG_TARGET_TRIPLET=%PROJECT_TARGET_TRIPLET% ^
-    -D VCPKG_MANIFEST_INSTALL=%WITH_VCPKG_MANIFEST% ^
+    -D VCPKG_MANIFEST_INSTALL=ON ^
     -D WITH_PORTABLE_RESOURCES=%WITH_PORTABLE_RESOURCES%
 
 if !errorlevel! neq 0 (

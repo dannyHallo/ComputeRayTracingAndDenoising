@@ -27,7 +27,7 @@ VulkanSDK (to support vulkan validation layer)
 
 # Screenshots
 
-![Raw](./imgs/simple-voxelized-terrain.png)
+![Simple Voxelized Terrain](./misc/imgs/simple-voxelized-terrain.png)
 
 # Features
 
