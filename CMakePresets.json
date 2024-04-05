@@ -16,9 +16,7 @@
     },
     {
       "name": "debug",
-      "description": "Debug configuration",
       "inherits": ["base"],
-      "hidden": false,
       "binaryDir": "${sourceDir}/build/Debug",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "debug"
@@ -26,7 +24,6 @@
     },
     {
       "name": "release",
-      "description": "Release configuration",
       "inherits": ["base"],
       "binaryDir": "${sourceDir}/build/Release",
       "cacheVariables": {
