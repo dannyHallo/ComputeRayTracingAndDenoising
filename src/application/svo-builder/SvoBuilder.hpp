@@ -18,6 +18,7 @@ class Image;
 class ShaderCompiler;
 class ShaderChangeListener;
 class TomlConfigReader;
+class CustomMemoryPool;
 
 class SvoBuilder : public Scheduler {
 public:
@@ -56,18 +57,21 @@ private:
   uint32_t _chunkDimZ{};
   void _loadConfig();
 
-  uint32_t _voxelLevelCount         = 0;
-  uint32_t _octreeBufferAccumLength = 0;
+  uint32_t _voxelLevelCount = 0;
+  // uint32_t _octreeBufferAccumLength = 0;
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
+  std::unique_ptr<CustomMemoryPool> _chunkMemoryPool;
 
   VkFence _timelineFence                             = VK_NULL_HANDLE;
   VkCommandBuffer _fragmentListCreationCommandBuffer = VK_NULL_HANDLE;
   VkCommandBuffer _octreeCreationCommandBuffer       = VK_NULL_HANDLE;
+  VkCommandBuffer _chunkImageWriteCommandBuffer      = VK_NULL_HANDLE;
 
   void _recordCommandBuffers();
   void _recordFragmentListCreationCommandBuffer();
   void _recordOctreeCreationCommandBuffer();
+  void _recordChunkImageWriteCommandBuffer();
 
   void _buildChunk(glm::uvec3 currentlyWritingChunk);
 
@@ -83,7 +87,7 @@ private:
   std::unique_ptr<Buffer> _appendedOctreeBuffer;
   std::unique_ptr<Buffer> _chunksInfoBuffer;
   std::unique_ptr<Buffer> _octreeBufferLengthBuffer;
-  std::unique_ptr<Buffer> _octreeBufferAccumLengthBuffer;
+  std::unique_ptr<Buffer> _octreeBufferWriteOffsetBuffer;
 
   std::unique_ptr<Buffer> _indirectFragLengthBuffer;
   std::unique_ptr<Buffer> _counterBuffer;
@@ -93,7 +97,7 @@ private:
   std::unique_ptr<Buffer> _indirectAllocNumBuffer;
   std::unique_ptr<Buffer> _fragmentListInfoBuffer;
 
-  void _createBuffers();
+  void _createBuffers(size_t octreeBufferSize);
   void _resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWritingChunk);
 
   /// PIPELINES

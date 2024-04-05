@@ -11,7 +11,14 @@ CustomMemoryPool::CustomMemoryPool(Logger *logger, size_t poolSize)
   _firstFreeList->size   = poolSize;
 }
 
-CustomMemoryPool::~CustomMemoryPool() = default;
+CustomMemoryPool::~CustomMemoryPool() {
+  FreeList *current = _firstFreeList;
+  while (current != nullptr) {
+    FreeList *next = current->next;
+    delete current;
+    current = next;
+  }
+}
 
 // void CustomMemoryPool::_test() {
 //   auto offset1 = allocate(10);

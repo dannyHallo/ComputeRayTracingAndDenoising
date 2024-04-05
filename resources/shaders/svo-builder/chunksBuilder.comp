@@ -9,5 +9,5 @@ void main() {
   // store the octree buffer offset in the chunks image
   uvec3 chunkIndex = chunksInfoBuffer.data.currentlyWritingChunk;
   imageStore(chunksImage, ivec3(chunkIndex),
-             uvec4(int(octreeBufferAccumLengthBuffer.data) + 1, 0, 0, 0));
+             uvec4(int(octreeBufferWriteOffsetBuffer.data + 1), 0, 0, 0));
 }
