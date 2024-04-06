@@ -121,13 +121,14 @@ void CustomMemoryPool::printStats() const {
     _logger->info("freeList: offset={}, size={}", current->offset, current->size);
     current = current->next;
   }
-  
+
   // get the total size of the free memory
   size_t totalSize = 0;
-  current = _firstFreeList;
+  current          = _firstFreeList;
   while (current != nullptr) {
     totalSize += current->size;
     current = current->next;
   }
-  _logger->info("total free memory size: {}", totalSize);
+  size_t constexpr kMb = 1024 * 1024;
+  _logger->info("total free memory size: {} mb", totalSize / kMb);
 }

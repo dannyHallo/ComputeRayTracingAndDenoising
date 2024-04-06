@@ -91,8 +91,9 @@ glm::uvec3 SvoBuilder::getChunksDim() const { return {_chunkDimX, _chunkDimY, _c
 void SvoBuilder::init() {
   _voxelLevelCount = static_cast<uint32_t>(std::log2(_chunkVoxelDim));
 
-  size_t gb               = 1024 * 1024 * 1024;
-  size_t octreeBufferSize = 2 * gb;
+  size_t constexpr kMb    = 1024 * 1024;
+  size_t constexpr kGb    = 1024 * kMb;
+  size_t octreeBufferSize = 2 * kGb;
 
   _chunkMemoryPool = std::make_unique<CustomMemoryPool>(_logger, octreeBufferSize);
 
@@ -172,10 +173,13 @@ void SvoBuilder::buildScene() {
       }
     }
   }
+
   avgTimeMs /= _chunkDimX * _chunkDimY * _chunkDimZ;
 
   _logger->info("min time: {} ms, max time: {} ms, avg time: {} ms", minTimeMs, maxTimeMs,
                 avgTimeMs);
+
+  _chunkMemoryPool->printStats();
 }
 
 void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
