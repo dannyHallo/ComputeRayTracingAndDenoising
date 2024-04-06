@@ -118,7 +118,7 @@ void CustomMemoryPool::_removeFreeList(FreeList *freeList) {
 void CustomMemoryPool::printStats() const {
   FreeList *current = _firstFreeList;
   while (current != nullptr) {
-    _logger->info("FreeList: offset={}, size={}", current->offset, current->size);
+    _logger->info("freeList: offset={}, size={}", current->offset, current->size);
     current = current->next;
   }
   
@@ -129,4 +129,5 @@ void CustomMemoryPool::printStats() const {
     totalSize += current->size;
     current = current->next;
   }
+  _logger->info("total free memory size: {}", totalSize);
 }

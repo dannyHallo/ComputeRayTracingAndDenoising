@@ -226,18 +226,24 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   VkCommandBuffer cmdBuffer =
       beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
 
-  uint32_t writeOffset = 0;
-  auto offset          = _chunkMemoryPool->allocate(octreeBufferLength * sizeof(uint32_t));
+  uint32_t writeOffsetInBytes  = 0;
+  uint32_t writeOffsetInUint32 = 0;
+  auto offset                  = _chunkMemoryPool->allocate(octreeBufferLength * sizeof(uint32_t));
   if (!offset.has_value()) {
     _logger->error("failed to allocate memory from the memory pool");
     return;
   } else {
-    writeOffset = offset.value();
+    writeOffsetInBytes  = offset.value();
+    writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
+
+    // print offset in mb
+    _logger->info("allocated memory from the memory pool: {} mb",
+                  static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
   }
 
   VkBufferCopy bufCopy = {
       0,                                     // srcOffset
-      writeOffset * sizeof(uint32_t),        // dstOffset,
+      writeOffsetInBytes,                    // dstOffset,
       octreeBufferLength * sizeof(uint32_t), // size
   };
 
@@ -245,7 +251,7 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   vkCmdCopyBuffer(cmdBuffer, _chunkOctreeBuffer->getVkBuffer(),
                   _appendedOctreeBuffer->getVkBuffer(), 1, &bufCopy);
 
-  _octreeBufferWriteOffsetBuffer->fillData(&writeOffset);
+  _octreeBufferWriteOffsetBuffer->fillData(&writeOffsetInUint32);
 
   // write the chunks image, according to the accumulated buffer offset
   // we should do it here, since we can cull null chunks here after the voxels are decided

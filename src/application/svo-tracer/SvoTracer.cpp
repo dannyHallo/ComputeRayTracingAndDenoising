@@ -76,9 +76,9 @@ void SvoTracer::_updateImageResolutions() {
   _lowResWidth  = static_cast<uint32_t>(static_cast<float>(_midResWidth) * m2l);
   _lowResHeight = static_cast<uint32_t>(static_cast<float>(_midResHeight) * m2l);
 
-  _logger->info("High res: {}x{}", _highResWidth, _highResHeight);
-  _logger->info("Mid res: {}x{}", _midResWidth, _midResHeight);
-  _logger->info("Low res: {}x{}", _lowResWidth, _lowResHeight);
+  _logger->info("high res: {}x{}", _highResWidth, _highResHeight);
+  _logger->info("mid res: {}x{}", _midResWidth, _midResHeight);
+  _logger->info("low res: {}x{}", _lowResWidth, _lowResHeight);
 }
 
 void SvoTracer::init(SvoBuilder *svoBuilder) {

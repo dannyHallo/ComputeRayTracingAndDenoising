@@ -263,5 +263,5 @@ void Application::_buildScene() {
   auto endTime = std::chrono::steady_clock::now();
   auto duration =
       std::chrono::duration<double, std::chrono::seconds::period>(endTime - startTime).count();
-  _logger->info("SVO building time: " + std::to_string(duration) + " seconds");
+  _logger->info("svo building time: " + std::to_string(duration) + " seconds");
 }
