@@ -58,7 +58,6 @@ private:
   void _loadConfig();
 
   uint32_t _voxelLevelCount = 0;
-  // uint32_t _octreeBufferAccumLength = 0;
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
   std::unique_ptr<CustomMemoryPool> _chunkMemoryPool;
@@ -66,12 +65,10 @@ private:
   VkFence _timelineFence                             = VK_NULL_HANDLE;
   VkCommandBuffer _fragmentListCreationCommandBuffer = VK_NULL_HANDLE;
   VkCommandBuffer _octreeCreationCommandBuffer       = VK_NULL_HANDLE;
-  VkCommandBuffer _chunkImageWriteCommandBuffer      = VK_NULL_HANDLE;
 
   void _recordCommandBuffers();
   void _recordFragmentListCreationCommandBuffer();
   void _recordOctreeCreationCommandBuffer();
-  void _recordChunkImageWriteCommandBuffer();
 
   void _buildChunk(glm::uvec3 currentlyWritingChunk);
 

@@ -30,7 +30,7 @@ public:
   // deallocate memory from the pool using the address of the allocated memory
   void deallocate(size_t offset, size_t size);
 
-  void print() const;
+  void printStats() const;
 
 private:
   Logger *_logger;

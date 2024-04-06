@@ -70,8 +70,6 @@ SvoBuilder::~SvoBuilder() {
                        &_fragmentListCreationCommandBuffer);
   vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                        &_octreeCreationCommandBuffer);
-  vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
-                       &_chunkImageWriteCommandBuffer);
 }
 
 void SvoBuilder::_loadConfig() {
@@ -111,7 +109,6 @@ void SvoBuilder::init() {
 }
 
 void SvoBuilder::update() {
-  // _octreeBufferAccumLength = 0;
   _recordCommandBuffers();
 
   VkCommandBuffer commandBuffer =
@@ -179,9 +176,6 @@ void SvoBuilder::buildScene() {
 
   _logger->info("min time: {} ms, max time: {} ms, avg time: {} ms", minTimeMs, maxTimeMs,
                 avgTimeMs);
-
-  // _logger->info("build done! used octree buffer size: {} mb",
-  //               static_cast<float>(sizeof(uint32_t) * _octreeBufferAccumLength) / (1024 * 1024));
 }
 
 void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
@@ -229,12 +223,11 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   uint32_t octreeBufferLength = 0;
   _octreeBufferLengthBuffer->fetchData(&octreeBufferLength);
 
-  VkCommandBuffer commandBuffer =
+  VkCommandBuffer cmdBuffer =
       beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
 
-  // _chunkMemoryPool handles the memory allocation in granularity of uint32_t
   uint32_t writeOffset = 0;
-  auto offset          = _chunkMemoryPool->allocate(octreeBufferLength);
+  auto offset          = _chunkMemoryPool->allocate(octreeBufferLength * sizeof(uint32_t));
   if (!offset.has_value()) {
     _logger->error("failed to allocate memory from the memory pool");
     return;
@@ -249,22 +242,17 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   };
 
   // copy staging buffer to main buffer
-  vkCmdCopyBuffer(commandBuffer, _chunkOctreeBuffer->getVkBuffer(),
+  vkCmdCopyBuffer(cmdBuffer, _chunkOctreeBuffer->getVkBuffer(),
                   _appendedOctreeBuffer->getVkBuffer(), 1, &bufCopy);
 
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), commandBuffer);
-
-  // step 3: write the chunks image
   _octreeBufferWriteOffsetBuffer->fillData(&writeOffset);
-  std::vector<VkCommandBuffer> commandBuffersToSubmit3{_chunkImageWriteCommandBuffer};
-  submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit3.size());
-  submitInfo.pCommandBuffers    = commandBuffersToSubmit3.data();
 
-  vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo, _timelineFence);
+  // write the chunks image, according to the accumulated buffer offset
+  // we should do it here, since we can cull null chunks here after the voxels are decided
+  _chunksBuilderPipeline->recordCommand(cmdBuffer, 0, 1, 1, 1);
 
-  vkWaitForFences(_appContext->getDevice(), 1, &_timelineFence, VK_TRUE, UINT64_MAX);
-  vkResetFences(_appContext->getDevice(), 1, &_timelineFence);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
 }
 
 void SvoBuilder::_createImages() {
@@ -413,7 +401,6 @@ void SvoBuilder::_createPipelines() {
 void SvoBuilder::_recordCommandBuffers() {
   _recordFragmentListCreationCommandBuffer();
   _recordOctreeCreationCommandBuffer();
-  _recordChunkImageWriteCommandBuffer();
 }
 
 void SvoBuilder::_recordFragmentListCreationCommandBuffer() {
@@ -523,32 +510,4 @@ void SvoBuilder::_recordOctreeCreationCommandBuffer() {
   }
 
   vkEndCommandBuffer(_octreeCreationCommandBuffer);
-}
-
-void SvoBuilder::_recordChunkImageWriteCommandBuffer() {
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool        = _appContext->getCommandPool();
-  allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = 1;
-
-  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo, &_chunkImageWriteCommandBuffer);
-
-  VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-  vkBeginCommandBuffer(_chunkImageWriteCommandBuffer, &beginInfo);
-
-  // create the standard memory barrier
-  VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-  shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-  shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-
-  // write the chunks image, according to the accumulated buffer offset
-  // we should do it here, since we can cull null chunks here after the voxels are decided
-  _chunksBuilderPipeline->recordCommand(_chunkImageWriteCommandBuffer, 0, 1, 1, 1);
-
-  vkCmdPipelineBarrier(_chunkImageWriteCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
-                       0, nullptr);
-
-  vkEndCommandBuffer(_chunkImageWriteCommandBuffer);
 }
