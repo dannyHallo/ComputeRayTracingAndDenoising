@@ -336,16 +336,16 @@ void SvoBuilder::_createDescriptorSetBundle() {
   _descriptorSetBundle =
       std::make_unique<DescriptorSetBundle>(_appContext, 1, VK_SHADER_STAGE_COMPUTE_BIT);
 
-  _descriptorSetBundle->bindStorageImage(6, _chunkFieldImage.get());
-  _descriptorSetBundle->bindStorageImage(8, _chunksImage.get());
+  _descriptorSetBundle->bindStorageImage(0, _chunkFieldImage.get());
+  _descriptorSetBundle->bindStorageImage(1, _chunksImage.get());
 
-  _descriptorSetBundle->bindStorageBuffer(7, _indirectFragLengthBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(0, _counterBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(1, _chunkOctreeBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(2, _fragmentListBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(3, _octreeBuildInfoBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(4, _indirectAllocNumBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(5, _fragmentListInfoBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(2, _indirectFragLengthBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(3, _counterBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(4, _chunkOctreeBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(5, _fragmentListBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(6, _octreeBuildInfoBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(7, _indirectAllocNumBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(8, _fragmentListInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(9, _chunksInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(10, _octreeBufferLengthBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(11, _octreeBufferWriteOffsetBuffer.get());

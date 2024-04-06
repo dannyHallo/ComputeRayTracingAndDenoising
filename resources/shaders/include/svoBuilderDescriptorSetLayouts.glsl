@@ -3,24 +3,24 @@
 
 #include "../include/svoBuilderDataStructs.glsl"
 
-layout(binding = 6, r32f) uniform image3D chunkFieldImage;
-layout(binding = 8, r32ui) uniform uimage3D chunksImage;
+layout(binding = 0, r32f) uniform image3D chunkFieldImage;
+layout(binding = 1, r32ui) uniform uimage3D chunksImage;
 
-layout(std430, binding = 7) writeonly buffer IndirectFragLengthBuffer {
+layout(std430, binding = 2) writeonly buffer IndirectFragLengthBuffer {
   G_IndirectDispatchInfo data;
 }
 indirectFragLengthBuffer;
-layout(std430, binding = 0) buffer CounterBuffer { uint data; }
+layout(std430, binding = 3) buffer CounterBuffer { uint data; }
 counterBuffer;
-layout(std430, binding = 1) buffer OctreeBuffer { uint data[]; }
+layout(std430, binding = 4) buffer OctreeBuffer { uint data[]; }
 octreeBuffer;
-layout(std430, binding = 2) buffer FragmentListBuffer { G_FragmentListEntry datas[]; }
+layout(std430, binding = 5) buffer FragmentListBuffer { G_FragmentListEntry datas[]; }
 fragmentListBuffer;
-layout(std430, binding = 3) buffer OctreeBuildInfoBuffer { G_OctreeBuildInfo data; }
+layout(std430, binding = 6) buffer OctreeBuildInfoBuffer { G_OctreeBuildInfo data; }
 octreeBuildInfoBuffer;
-layout(std430, binding = 4) writeonly buffer IndirectAllocNumBuffer { G_IndirectDispatchInfo data; }
+layout(std430, binding = 7) writeonly buffer IndirectAllocNumBuffer { G_IndirectDispatchInfo data; }
 indirectAllocNumBuffer;
-layout(std430, binding = 5) buffer FragmentListInfoBuffer { G_FragmentListInfo data; }
+layout(std430, binding = 8) buffer FragmentListInfoBuffer { G_FragmentListInfo data; }
 fragmentListInfoBuffer;
 layout(std430, binding = 9) buffer ChunksInfoBuffer { G_ChunksInfo data; }
 chunksInfoBuffer;
