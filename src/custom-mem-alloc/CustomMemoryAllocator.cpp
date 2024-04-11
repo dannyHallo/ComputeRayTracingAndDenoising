@@ -16,30 +16,43 @@ CustomMemoryAllocator::~CustomMemoryAllocator() = default;
 void CustomMemoryAllocator::_test() {
   _logger->info("Running test for CustomMemoryAllocator");
 
+  _logger->info("allocate 1 (10)");
   auto res1 = allocate(10);
-  auto res2 = allocate(10);
+  _logger->info("allocate 2 (20)");
+  auto res2 = allocate(20);
+  _logger->info("allocate 3 (10)");
   auto res3 = allocate(10);
-  auto res4 = allocate(10);
-
-  deallocate(res1);
-
-  // deallocate(res);
-
-  // auto offset5 = allocate(6);
-  // auto offset6 = allocate(5);
-
   printStats();
+
+  _logger->info("deallocate 1");
+  deallocate(res1);
+  printStats();
+  _logger->info("deallocate 2");
+  deallocate(res2);
+  printStats();
+  _logger->info("deallocate 3");
+  deallocate(res3);
+  printStats();
+
+  // allocate 100
+  _logger->info("allocate 4 (100)");
+  auto res4 = allocate(100);
+  printStats();
+
+  // deallocate 4
+  _logger->info("deallocate 4");
+  deallocate(res4);
+  printStats();
+
+  // allocate 5 (50)
+  _logger->info("allocate 5 (50)");
+  auto res5 = allocate(50);
+  printStats();
+
   _logger->info("Test for CustomMemoryAllocator finished");
 
   // quit the application
   exit(0);
-}
-
-std::unique_ptr<FreeList> &CustomMemoryAllocator::_getUniquePtr(FreeList *freeList) {
-  if (freeList->prev == nullptr) {
-    return _firstFreeList;
-  }
-  return freeList->prev->next;
 }
 
 // allocate using first-fit algorithm
@@ -91,15 +104,15 @@ void CustomMemoryAllocator::_removeFreeList(FreeList *freeList) {
   FreeList *prev = freeList->prev;
   FreeList *next = freeList->next.get();
 
-  // this step also destroys the current freeList implicitly
-  if (prev != nullptr) {
-    prev->next = std::move(_getUniquePtr(next));
-  } else {
-    _firstFreeList = std::move(_getUniquePtr(next));
-  }
-
   if (next != nullptr) {
     next->prev = prev;
+  }
+
+  // this step also destroys the current freeList implicitly
+  if (prev == nullptr) {
+    _firstFreeList = std::move(freeList->next);
+  } else {
+    prev->next = std::move(freeList->next);
   }
 }
 
@@ -150,7 +163,7 @@ void CustomMemoryAllocator::_addFreeList(size_t offset, size_t size, FreeList *p
   freeList->prev = prev;
   if (next != nullptr) {
     next->prev     = freeList.get();
-    freeList->next = std::move(_getUniquePtr(next));
+    freeList->next = std::move(prev->next);
   }
   prev->next = std::move(freeList);
 }
