@@ -4,6 +4,8 @@
 
 #include <cassert>
 
+#include <random>
+
 CustomMemoryAllocator::CustomMemoryAllocator(Logger *logger, size_t poolSize)
     : _logger(logger), _poolSize(poolSize), _firstFreeList(std::make_unique<FreeList>()) {
   _firstFreeList->offset = 0;
@@ -16,40 +18,35 @@ CustomMemoryAllocator::~CustomMemoryAllocator() = default;
 void CustomMemoryAllocator::_test() {
   _logger->info("Running test for CustomMemoryAllocator");
 
-  _logger->info("allocate 1 (10)");
-  auto res1 = allocate(10);
-  _logger->info("allocate 2 (20)");
-  auto res2 = allocate(20);
-  _logger->info("allocate 3 (10)");
-  auto res3 = allocate(10);
-  printStats();
+  // create random device
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real<double> chunkBufferSizeDis(1, 3);
 
-  _logger->info("deallocate 1");
-  deallocate(res1);
-  printStats();
-  _logger->info("deallocate 2");
-  deallocate(res2);
-  printStats();
-  _logger->info("deallocate 3");
-  deallocate(res3);
-  printStats();
+  size_t constexpr kInitialChunkSize = 100;
+  // this is for selecting a random chunk
+  std::uniform_int_distribution<size_t> chunkSelectionDis(0, kInitialChunkSize - 1);
 
-  // allocate 100
-  _logger->info("allocate 4 (100)");
-  auto res4 = allocate(100);
-  printStats();
+  size_t constexpr kMb = 1024 * 1024;
+  // repeatedly allocate buffers ranged from 1mb to 3mb (randomly) for 100 times, then, free one of
+  // them, and create a new one, then free, then create...
+  std::vector<CustomMemoryAllocationResult> chunks{};
+  for (int i = 0; i < 100; ++i) {
+    chunks.push_back(allocate(static_cast<size_t>(chunkBufferSizeDis(gen)) * kMb));
+  }
 
-  // deallocate 4
-  _logger->info("deallocate 4");
-  deallocate(res4);
-  printStats();
+  for (int selectTimes = 0; selectTimes < 10000; ++selectTimes) {
+    size_t selectedChunk = chunkSelectionDis(gen);
+    _logger->info("selected chunk idx: {}", selectedChunk);
 
-  // allocate 5 (50)
-  _logger->info("allocate 5 (50)");
-  auto res5 = allocate(50);
-  printStats();
+    CustomMemoryAllocationResult &chunk = chunks[selectedChunk];
+    for (int i = 0; i < 10000; ++i) {
+      deallocate(chunk);
+      chunk = allocate(static_cast<size_t>(chunkBufferSizeDis(gen)) * kMb);
+    }
+  }
 
-  _logger->info("Test for CustomMemoryAllocator finished");
+  printStats();
 
   // quit the application
   exit(0);

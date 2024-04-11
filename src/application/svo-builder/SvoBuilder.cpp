@@ -95,9 +95,8 @@ void SvoBuilder::init() {
   size_t constexpr kGb    = 1024 * kMb;
   size_t octreeBufferSize = 2 * kGb;
 
-  // _chunkBufferMemoryAllocator = std::make_unique<CustomMemoryAllocator>(_logger,
-  // octreeBufferSize);
-  _chunkBufferMemoryAllocator = std::make_unique<CustomMemoryAllocator>(_logger, 100);
+  _chunkBufferMemoryAllocator = std::make_unique<CustomMemoryAllocator>(_logger, octreeBufferSize);
+  // _chunkBufferMemoryAllocator = std::make_unique<CustomMemoryAllocator>(_logger, 100);
 
   // images
   _createImages();
