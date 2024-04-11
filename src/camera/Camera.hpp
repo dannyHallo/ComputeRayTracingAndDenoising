@@ -72,7 +72,6 @@ private:
   // calculates the front vector from the Camera's (updated) Euler Angles
   void _updateCameraVectors();
   [[nodiscard]] bool canMove() const {
-
     return _window->getCursorState() == CursorState::kInvisible;
   }
 };

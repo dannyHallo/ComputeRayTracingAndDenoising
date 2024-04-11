@@ -2,7 +2,7 @@
 
 #include "VoxLoader.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
-#include "custom-mem-alloc/CustomMemoryPool.hpp"
+#include "custom-mem-alloc/CustomMemoryAllocator.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/io/ShaderFileReader.hpp"
@@ -95,7 +95,9 @@ void SvoBuilder::init() {
   size_t constexpr kGb    = 1024 * kMb;
   size_t octreeBufferSize = 2 * kGb;
 
-  _chunkMemoryPool = std::make_unique<CustomMemoryPool>(_logger, octreeBufferSize);
+  // _chunkBufferMemoryAllocator = std::make_unique<CustomMemoryAllocator>(_logger,
+  // octreeBufferSize);
+  _chunkBufferMemoryAllocator = std::make_unique<CustomMemoryAllocator>(_logger, 100);
 
   // images
   _createImages();
@@ -179,7 +181,7 @@ void SvoBuilder::buildScene() {
   _logger->info("min time: {} ms, max time: {} ms, avg time: {} ms", minTimeMs, maxTimeMs,
                 avgTimeMs);
 
-  _chunkMemoryPool->printStats();
+  _chunkBufferMemoryAllocator->printStats();
 }
 
 void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
@@ -232,18 +234,13 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
 
   uint32_t writeOffsetInBytes  = 0;
   uint32_t writeOffsetInUint32 = 0;
-  auto offset                  = _chunkMemoryPool->allocate(octreeBufferLength * sizeof(uint32_t));
-  if (!offset.has_value()) {
-    _logger->error("failed to allocate memory from the memory pool");
-    return;
-  } else {
-    writeOffsetInBytes  = offset.value();
-    writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
+  auto allocResult   = _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
+  writeOffsetInBytes = allocResult.offset();
+  writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
 
-    // print offset in mb
-    _logger->info("allocated memory from the memory pool: {} mb",
-                  static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
-  }
+  // print offset in mb
+  _logger->info("allocated memory from the memory pool: {} mb",
+                static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
 
   VkBufferCopy bufCopy = {
       0,                                     // srcOffset

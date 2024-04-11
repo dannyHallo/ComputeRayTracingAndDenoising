@@ -18,7 +18,7 @@ class Image;
 class ShaderCompiler;
 class ShaderChangeListener;
 class TomlConfigReader;
-class CustomMemoryPool;
+class CustomMemoryAllocator;
 
 class SvoBuilder : public Scheduler {
 public:
@@ -60,7 +60,7 @@ private:
   uint32_t _voxelLevelCount = 0;
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
-  std::unique_ptr<CustomMemoryPool> _chunkMemoryPool;
+  std::unique_ptr<CustomMemoryAllocator> _chunkBufferMemoryAllocator;
 
   VkFence _timelineFence                             = VK_NULL_HANDLE;
   VkCommandBuffer _fragmentListCreationCommandBuffer = VK_NULL_HANDLE;
