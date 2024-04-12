@@ -32,17 +32,18 @@ void CustomMemoryAllocator::_test() {
   // them, and create a new one, then free, then create...
   std::vector<CustomMemoryAllocationResult> chunks{};
   for (int i = 0; i < 100; ++i) {
-    chunks.push_back(allocate(static_cast<size_t>(chunkBufferSizeDis(gen)) * kMb));
+    size_t usingBufferSize = static_cast<size_t>(chunkBufferSizeDis(gen) * kMb);
+    chunks.push_back(allocate(usingBufferSize));
   }
 
   for (int selectTimes = 0; selectTimes < 10000; ++selectTimes) {
-    size_t selectedChunk = chunkSelectionDis(gen);
-    _logger->info("selected chunk idx: {}", selectedChunk);
+    size_t selectedChunk                = chunkSelectionDis(gen);
 
     CustomMemoryAllocationResult &chunk = chunks[selectedChunk];
     for (int i = 0; i < 10000; ++i) {
       deallocate(chunk);
-      chunk = allocate(static_cast<size_t>(chunkBufferSizeDis(gen)) * kMb);
+      size_t usingBufferSize = static_cast<size_t>(chunkBufferSizeDis(gen) * kMb);
+      chunk                  = allocate(usingBufferSize);
     }
   }
 
