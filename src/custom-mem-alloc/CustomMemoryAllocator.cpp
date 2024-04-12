@@ -21,7 +21,14 @@ void CustomMemoryAllocator::_test() {
   // create random device
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real<double> chunkBufferSizeDis(1, 3);
+
+  double constexpr kBufferUpperBound = 3.0;
+  double constexpr kBufferLowerBound = 1.0;
+
+  int constexpr kChunkSelectTimes = 10000;
+  int constexpr kChunkChangeTimes = 10000;
+
+  std::uniform_real<double> chunkBufferSizeDis(kBufferLowerBound, kBufferUpperBound);
 
   size_t constexpr kInitialChunkSize = 100;
   // this is for selecting a random chunk
@@ -36,13 +43,23 @@ void CustomMemoryAllocator::_test() {
     chunks.push_back(allocate(usingBufferSize));
   }
 
-  for (int selectTimes = 0; selectTimes < 10000; ++selectTimes) {
-    size_t selectedChunk                = chunkSelectionDis(gen);
+  for (int selectTimes = 0; selectTimes < kChunkSelectTimes; ++selectTimes) {
+    size_t selectedChunk = chunkSelectionDis(gen);
 
     CustomMemoryAllocationResult &chunk = chunks[selectedChunk];
-    for (int i = 0; i < 10000; ++i) {
+
+    // for (int i = 0; i < 10000; ++i) {
+    //   deallocate(chunk);
+    //   size_t usingBufferSize = static_cast<size_t>(chunkBufferSizeDis(gen) * kMb);
+    //   chunk                  = allocate(usingBufferSize);
+    // }
+
+    double stepSize  = (kBufferUpperBound - kBufferLowerBound) / kChunkChangeTimes;
+    double startSize = static_cast<double>(static_cast<double>(chunk.size()) / kMb) + stepSize;
+
+    for (double bufferSize = startSize; bufferSize < kBufferUpperBound; bufferSize += stepSize) {
       deallocate(chunk);
-      size_t usingBufferSize = static_cast<size_t>(chunkBufferSizeDis(gen) * kMb);
+      size_t usingBufferSize = static_cast<size_t>(bufferSize * kMb);
       chunk                  = allocate(usingBufferSize);
     }
   }
