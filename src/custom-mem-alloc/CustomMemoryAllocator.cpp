@@ -6,6 +6,8 @@
 
 #include <random>
 
+static size_t constexpr kMb = 1024 * 1024;
+
 CustomMemoryAllocator::CustomMemoryAllocator(Logger *logger, size_t poolSize)
     : _logger(logger), _poolSize(poolSize), _firstFreeList(std::make_unique<FreeList>()) {
   _firstFreeList->offset = 0;
@@ -22,46 +24,37 @@ void CustomMemoryAllocator::_test() {
   std::random_device rd;
   std::mt19937 gen(rd());
 
-  double constexpr kBufferUpperBound = 3.0;
   double constexpr kBufferLowerBound = 1.0;
+  double constexpr kBufferUpperBound = 3.0;
+  size_t constexpr kInitialChunkSize = 100;
+  double constexpr kBufferGrowSpeed  = 0.0001;
 
-  int constexpr kChunkSelectTimes = 10000;
-  int constexpr kChunkChangeTimes = 10000;
+  int constexpr kIt = 100000000;
 
   std::uniform_real<double> chunkBufferSizeDis(kBufferLowerBound, kBufferUpperBound);
 
-  size_t constexpr kInitialChunkSize = 100;
   // this is for selecting a random chunk
   std::uniform_int_distribution<size_t> chunkSelectionDis(0, kInitialChunkSize - 1);
 
-  size_t constexpr kMb = 1024 * 1024;
-  // repeatedly allocate buffers ranged from 1mb to 3mb (randomly) for 100 times, then, free one of
-  // them, and create a new one, then free, then create...
   std::vector<CustomMemoryAllocationResult> chunks{};
-  for (int i = 0; i < 100; ++i) {
+  for (int i = 0; i < kInitialChunkSize; ++i) {
     size_t usingBufferSize = static_cast<size_t>(chunkBufferSizeDis(gen) * kMb);
     chunks.push_back(allocate(usingBufferSize));
   }
 
-  for (int selectTimes = 0; selectTimes < kChunkSelectTimes; ++selectTimes) {
+  for (int selectTimes = 0; selectTimes < kIt; ++selectTimes) {
     size_t selectedChunk = chunkSelectionDis(gen);
 
     CustomMemoryAllocationResult &chunk = chunks[selectedChunk];
 
-    // for (int i = 0; i < 10000; ++i) {
-    //   deallocate(chunk);
-    //   size_t usingBufferSize = static_cast<size_t>(chunkBufferSizeDis(gen) * kMb);
-    //   chunk                  = allocate(usingBufferSize);
-    // }
+    double chunkSizeMb = static_cast<double>(chunk.size()) / kMb;
+    double bufferSize =
+        chunkSizeMb < kBufferUpperBound ? chunkSizeMb + kBufferGrowSpeed : chunkBufferSizeDis(gen);
 
-    double stepSize  = (kBufferUpperBound - kBufferLowerBound) / kChunkChangeTimes;
-    double startSize = static_cast<double>(static_cast<double>(chunk.size()) / kMb) + stepSize;
+    deallocate(chunk);
 
-    for (double bufferSize = startSize; bufferSize < kBufferUpperBound; bufferSize += stepSize) {
-      deallocate(chunk);
-      size_t usingBufferSize = static_cast<size_t>(bufferSize * kMb);
-      chunk                  = allocate(usingBufferSize);
-    }
+    size_t usingBufferSize = static_cast<size_t>(bufferSize * kMb);
+    chunk                  = allocate(usingBufferSize);
   }
 
   printStats();
