@@ -1,7 +1,6 @@
 #include "SvoTracer.hpp"
 
 #include "../svo-builder/SvoBuilder.hpp"
-#include "SvoTracerDataGpu.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
 #include "camera/Camera.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
@@ -398,6 +397,9 @@ void SvoTracer::_createBuffersAndBufferBundles() {
         sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryStyle::kDedicated));
   }
 
+  _outputInfoBuffer = std::make_unique<Buffer>(
+      sizeof(G_OutputInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+
   // buffer bundles
   _renderInfoBufferBundle =
       std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_RenderInfo),
@@ -698,6 +700,12 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   currentSample++;
 }
 
+G_OutputInfo SvoTracer::getOutputInfo() {
+  G_OutputInfo outputInfo{};
+  _outputInfoBuffer->fetchData(&outputInfo);
+  return outputInfo;
+}
+
 void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle = std::make_unique<DescriptorSetBundle>(_appContext, _framesInFlight,
                                                                VK_SHADER_STAGE_COMPUTE_BIT);
@@ -746,6 +754,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageBuffer(32, _sceneInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(33, _svoBuilder->getAppendedOctreeBuffer());
   _descriptorSetBundle->bindStorageBuffer(34, _aTrousIterationBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(35, _outputInfoBuffer.get());
 
   _descriptorSetBundle->create();
 }

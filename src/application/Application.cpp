@@ -123,6 +123,17 @@ void Application::_drawFrame() {
     _logger->error("resizing is not allowed!");
   }
 
+  if (_lastMouseInfo.lmbPressed) {
+    auto outputInfo = _svoTracer->getOutputInfo();
+    if (!outputInfo.midRayHit) {
+      _logger->info("mid ray didn't hit anything");
+    } else {
+      _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
+                    std::to_string(outputInfo.midRayHitPos.y) + ", " +
+                    std::to_string(outputInfo.midRayHitPos.z));
+    }
+  }
+
   _svoTracer->updateUboData(currentFrame);
 
   _imguiManager->recordCommandBuffer(currentFrame, imageIndex);
@@ -248,14 +259,16 @@ void Application::_init() {
 
   _createSemaphoresAndFences();
 
-  // attach camera's mouse handler to the window mouse callback, more handlers can be added in the
-  // future
-  _window->addMouseCallback([this](float mouseDeltaX, float mouseDeltaY) {
-    _camera->handleMouseMovement(mouseDeltaX, mouseDeltaY);
-  });
+  // attach camera's mouse handler to the window mouse callback
+  _window->addMouseCallback(
+      [this](MouseInfo const &mouseInfo) { _camera->handleMouseMovement(mouseInfo); });
+
+  _window->addMouseCallback([this](MouseInfo const &mouseInfo) { _syncMouseInfo(mouseInfo); });
 
   _buildScene();
 }
+
+void Application::_syncMouseInfo(MouseInfo const &mouseInfo) { _lastMouseInfo = mouseInfo; }
 
 void Application::_buildScene() {
   auto startTime = std::chrono::steady_clock::now();

@@ -55,5 +55,7 @@ sceneInfoBuffer;
 layout(std430, binding = 33) readonly buffer OctreeBuffer { uint[] octreeBuffer; };
 layout(binding = 34) readonly buffer ATrousIterationBuffer { uint data; }
 aTrousIterationBuffer;
+layout(binding = 35) buffer OutputInfoBuffer { G_OutputInfo data; }
+outputInfoBuffer;
 
 #endif // SVO_TRACER_DESCRIPTOR_SET_LAYOUTS_GLSL

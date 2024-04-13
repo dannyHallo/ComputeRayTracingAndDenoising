@@ -4,6 +4,7 @@
 
 #include "utils/event-types/EventType.hpp"
 #include "utils/logger/Logger.hpp"
+#include "window/MouseInfo.hpp"
 
 #include <memory>
 #include <vector>
@@ -64,6 +65,9 @@ private:
   std::vector<VkFence> _framesInFlightFences;
 
   BlockState _blockState = BlockState::kUnblocked;
+
+  void _syncMouseInfo(MouseInfo const &mouseInfo);
+  MouseInfo _lastMouseInfo;
 
   void _createSemaphoresAndFences();
   void _onSwapchainResize();

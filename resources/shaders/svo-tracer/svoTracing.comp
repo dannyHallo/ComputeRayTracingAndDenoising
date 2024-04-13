@@ -353,6 +353,15 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out vec3 oColor, o
   return true;
 }
 
+void writeOutputBuffer(ivec2 uv, bool hitVoxel, vec3 position) {
+  // if uv is not the center pixel, we don't write the output buffer
+  if (uv != ivec2(renderInfoUbo.data.lowResSize) / 2) {
+    return;
+  }
+  outputInfoBuffer.data.midRayHit    = hitVoxel;
+  outputInfoBuffer.data.midRayHitPos = position;
+}
+
 void main() {
   ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
   if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
@@ -419,4 +428,6 @@ void main() {
 
   vec3 overlappingColor = vec3(1, 0.4, 0.2) * float(primaryRayIterUsed) * 0.02;
   imageStore(octreeVisualizationImage, uv, uvec4(packRGBE(overlappingColor), 0, 0, 0));
+
+  writeOutputBuffer(uv, hitVoxel, position);
 }

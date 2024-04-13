@@ -67,16 +67,19 @@ void Camera::processKeyboard(double deltaTime) {
   }
 }
 
-void Camera::handleMouseMovement(float xoffset, float yoffset) {
+void Camera::handleMouseMovement(MouseInfo const &mouseInfo) {
   if (!canMove()) {
     return;
   }
 
-  xoffset *= -kMouseSensitivity;
-  yoffset *= kMouseSensitivity;
+  float mouseDx = mouseInfo.dx;
+  float mouseDy = mouseInfo.dy;
 
-  _yaw += xoffset;
-  _pitch += yoffset;
+  mouseDx *= -kMouseSensitivity;
+  mouseDy *= kMouseSensitivity;
+
+  _yaw += mouseDx;
+  _pitch += mouseDy;
 
   constexpr float cameraLim = 89.9F;
   // make sure that when mPitch is out of bounds, screen doesn't get flipped

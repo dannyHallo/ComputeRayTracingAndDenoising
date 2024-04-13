@@ -8,6 +8,8 @@
 
 #include "volk.h"
 
+#include "MouseInfo.hpp"
+
 #include <functional>
 #include <map>
 #include <vector>
@@ -92,7 +94,7 @@ public:
 
   void disableInputBit(int bitToBeDisabled) { _keyInputMap[bitToBeDisabled] = false; }
 
-  void addMouseCallback(std::function<void(float, float)> callback);
+  void addMouseCallback(std::function<void(MouseInfo const &)> callback);
 
 private:
   WindowStyle _windowStyle = WindowStyle::kNone;
@@ -112,10 +114,7 @@ private:
   int _maximizedFullscreenClientWidth  = 0;
   int _maximizedFullscreenClientHeight = 0;
 
-  std::vector<std::function<void(float, float)>> _mouseCallbacks;
-
-  float _mouseDeltaX = 0;
-  float _mouseDeltaY = 0;
+  std::vector<std::function<void(MouseInfo)>> _mouseCallbacks;
 
   // these functions are restricted to be static functions
   static void _keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);

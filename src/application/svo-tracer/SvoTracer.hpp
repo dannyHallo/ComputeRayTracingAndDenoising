@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SvoTracerDataGpu.hpp"
 #include "SvoTracerTwickingData.hpp"
 #include "glm/glm.hpp" // IWYU pragma: export
 #include "scheduler/Scheduler.hpp"
@@ -51,6 +52,8 @@ public:
 
   // this getter will be used for imguiManager
   SvoTracerTweakingData &getUboData() { return _uboData; }
+
+  G_OutputInfo getOutputInfo();
 
 private:
   VulkanApplicationContext *_appContext;
@@ -167,6 +170,7 @@ private:
   std::unique_ptr<Buffer> _sceneInfoBuffer;
   std::unique_ptr<Buffer> _aTrousIterationBuffer;
   std::vector<std::unique_ptr<Buffer>> _aTrousIterationStagingBuffers;
+  std::unique_ptr<Buffer> _outputInfoBuffer;
 
   void _createBuffersAndBufferBundles();
   void _initBufferData();

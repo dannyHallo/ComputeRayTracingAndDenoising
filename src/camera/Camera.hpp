@@ -7,6 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp> // IWYU pragma: export
 #include <glm/gtx/hash.hpp>             // IWYU pragma: export
 
+#include "window/MouseInfo.hpp"
 #include "window/Window.hpp"
 
 // An abstract camera class that processes input and calculates the
@@ -35,7 +36,7 @@ public:
 
   // processes input received from a mouse input system. Expects the offset
   // value in both the x and y direction.
-  void handleMouseMovement(float xoffset, float yoffset);
+  void handleMouseMovement(MouseInfo const &mouseInfo);
 
   // processes input received from a mouse scroll-wheel event. Only requires
   // input on the vertical wheel-axis void processMouseScroll(float yoffset);

@@ -67,4 +67,9 @@ struct G_SpatialFilterInfo {
   bool changingLuminancePhi;
 };
 
+struct G_OutputInfo {
+  bool midRayHit;
+  vec3 midRayHitPos;
+};
+
 #endif // SVO_TRACER_DATA_STRUCTS_GLSL

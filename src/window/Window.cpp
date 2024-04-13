@@ -128,7 +128,7 @@ void Window::toggleCursor() {
   }
 }
 
-void Window::addMouseCallback(std::function<void(float, float)> callback) {
+void Window::addMouseCallback(std::function<void(MouseInfo const &)> callback) {
   _mouseCallbacks.emplace_back(std::move(callback));
 }
 
@@ -141,7 +141,7 @@ void Window::_keyCallback(GLFWwindow *window, int key, int /*scancode*/, int act
 }
 
 void Window::_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
-  auto *thisWindowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
+  auto *thisWindow = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
 
   static float lastX;
   static float lastY;
@@ -153,19 +153,29 @@ void Window::_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
     firstMouse = false;
   }
 
-  thisWindowClass->_mouseDeltaX = static_cast<float>(xpos) - lastX;
-  // inverted y axis
-  thisWindowClass->_mouseDeltaY = lastY - static_cast<float>(ypos);
+  float mouseDx = static_cast<float>(xpos) - lastX;
+  // invert y axis
+  float mouseDy = lastY - static_cast<float>(ypos);
 
   lastX = static_cast<float>(xpos);
   lastY = static_cast<float>(ypos);
 
-  if (thisWindowClass->_mouseCallbacks.empty()) {
+  if (thisWindow->_mouseCallbacks.empty()) {
     return;
   }
 
-  for (auto &callback : thisWindowClass->_mouseCallbacks) {
-    callback(thisWindowClass->_mouseDeltaX, thisWindowClass->_mouseDeltaY);
+  MouseInfo mi;
+  {
+    mi.lmbPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    mi.rmbPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+    mi.mmbPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
+    mi.x          = static_cast<float>(xpos);
+    mi.y          = static_cast<float>(ypos);
+    mi.dx         = mouseDx;
+    mi.dy         = mouseDy;
+  }
+  for (auto &callback : thisWindow->_mouseCallbacks) {
+    callback(mi);
   }
 }
 
