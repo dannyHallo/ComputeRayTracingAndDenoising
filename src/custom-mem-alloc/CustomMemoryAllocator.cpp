@@ -12,7 +12,9 @@ CustomMemoryAllocator::CustomMemoryAllocator(Logger *logger, size_t poolSize)
     : _logger(logger), _poolSize(poolSize), _firstFreeList(std::make_unique<FreeList>()) {
   _firstFreeList->offset = 0;
   _firstFreeList->size   = poolSize;
-  _test();
+
+  // uncomment this line to run the test
+  // _test();
 }
 
 CustomMemoryAllocator::~CustomMemoryAllocator() = default;
@@ -68,7 +70,7 @@ CustomMemoryAllocationResult CustomMemoryAllocator::allocate(size_t size) {
   FreeList *current = _firstFreeList.get();
   if (current == nullptr) {
     _logger->error("no free memory available, allocation failed");
-    return CustomMemoryAllocationResult(-1, 0);
+    exit(0);
   }
 
   do {
@@ -88,7 +90,7 @@ CustomMemoryAllocationResult CustomMemoryAllocator::allocate(size_t size) {
   } while (current != nullptr);
 
   _logger->error("no free memory available, allocation failed");
-  return CustomMemoryAllocationResult(-1, 0);
+  exit(0);
 }
 
 void CustomMemoryAllocator::deallocate(CustomMemoryAllocationResult allocToBeFreed) {

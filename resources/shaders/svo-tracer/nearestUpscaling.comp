@@ -9,6 +9,10 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/packer.glsl"
 
+const uint kDotPixelInnerRadius = 4;
+const uint kDotPixelOuterRadius = 5;
+const vec4 kDotColor            = vec4(1, 1, 1, 0.4);
+
 ivec2 highResToMidRes(ivec2 highResUv) {
   float ratio = float(renderInfoUbo.data.midResSize.x) / float(renderInfoUbo.data.highResSize.x);
   return ivec2(vec2(highResUv) * ratio);
@@ -36,6 +40,25 @@ vec3 getDitherMask(ivec2 screenSpaceUv) {
   return 0.5 / 255.0 + dither_shift_RGB;
 }
 
+vec3 overlayDot(vec3 color, ivec2 uv) {
+  ivec2 center = ivec2(renderInfoUbo.data.highResSize) / 2;
+  ivec2 diff   = abs(uv - center);
+
+  // fast bb culling
+  if (diff.x > kDotPixelOuterRadius || diff.y > kDotPixelOuterRadius) {
+    return color;
+  }
+
+  float diffSq = float(dot(diff, diff));
+
+  // border dropoff
+  float dist = sqrt(diffSq);
+  float dotStrength =
+      1 - smoothstep(float(kDotPixelInnerRadius), float(kDotPixelOuterRadius), dist);
+  dotStrength *= kDotColor.a;
+  return mix(color, kDotColor.rgb, dotStrength);
+}
+
 // #define RAW_DIRECT_OUTPUT
 
 void main() {
@@ -58,6 +81,8 @@ void main() {
 
   // dithering pattern, to reduce banding
   color += getDitherMask(uv);
+
+  color = overlayDot(color, uv);
 
   // rgb to bgr
   imageStore(renderTargetImage, uv, vec4(color.bgr, 1));

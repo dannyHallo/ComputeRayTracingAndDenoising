@@ -45,8 +45,8 @@ void main() {
                     float(uv.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   float noise = (floorHeightMean - yPosition) + floorChangeVar * computeNoise(noiseLookupPos);
-  // noise *= carvature(noiseLookupPos);
-  // noise = noise == 0 ? -1 : noise;
+  
+  // float noise = uint(gl_GlobalInvocationID.x * 0.1) % 2 == 0 ? -1.0 : 1.0;
 
   imageStore(chunkFieldImage, uv, vec4(noise, 0, 0, 0));
 }
