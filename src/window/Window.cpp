@@ -43,6 +43,7 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
   glfwSetWindowUserPointer(_window, this); // set this pointer to the window class
   glfwSetKeyCallback(_window, _keyCallback);
   glfwSetCursorPosCallback(_window, _cursorPosCallback);
+  glfwSetMouseButtonCallback(_window, _mouseButtonCallback);
   glfwSetFramebufferSizeCallback(_window, _frameBufferResizeCallback);
 }
 
@@ -128,8 +129,12 @@ void Window::toggleCursor() {
   }
 }
 
-void Window::addMouseCallback(std::function<void(MouseInfo const &)> callback) {
-  _mouseCallbacks.emplace_back(std::move(callback));
+void Window::addCursorMoveCallback(std::function<void(CursorMoveInfo const &)> callback) {
+  _cursorMoveCallbacks.emplace_back(std::move(callback));
+}
+
+void Window::addCursorButtonCallback(std::function<void(CursorInfo const &)> callback) {
+  _cursorButtonCallbacks.emplace_back(std::move(callback));
 }
 
 void Window::_keyCallback(GLFWwindow *window, int key, int /*scancode*/, int action, int /*mods*/) {
@@ -153,29 +158,50 @@ void Window::_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
     firstMouse = false;
   }
 
-  float mouseDx = static_cast<float>(xpos) - lastX;
+  float cursorDx = static_cast<float>(xpos) - lastX;
   // invert y axis
-  float mouseDy = lastY - static_cast<float>(ypos);
+  float cursorDy = lastY - static_cast<float>(ypos);
 
   lastX = static_cast<float>(xpos);
   lastY = static_cast<float>(ypos);
 
-  if (thisWindow->_mouseCallbacks.empty()) {
+  // update the cursor move related info
+  CursorInfo &cursorInfo = thisWindow->_cursorInfo;
+  cursorInfo.currentX    = static_cast<float>(xpos);
+  cursorInfo.currentY    = static_cast<float>(ypos);
+
+  if (thisWindow->_cursorMoveCallbacks.empty()) {
     return;
   }
 
-  MouseInfo mi;
+  CursorMoveInfo mi;
   {
-    mi.lmbPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-    mi.rmbPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-    mi.mmbPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
-    mi.x          = static_cast<float>(xpos);
-    mi.y          = static_cast<float>(ypos);
-    mi.dx         = mouseDx;
-    mi.dy         = mouseDy;
+    mi.currentX = static_cast<float>(xpos);
+    mi.currentY = static_cast<float>(ypos);
+    mi.dx       = cursorDx;
+    mi.dy       = cursorDy;
   }
-  for (auto &callback : thisWindow->_mouseCallbacks) {
+  for (auto &callback : thisWindow->_cursorMoveCallbacks) {
     callback(mi);
+  }
+}
+
+void Window::_mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
+  auto *thisWindow = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
+
+  // update the cursor button related info
+  CursorInfo &cursorInfo        = thisWindow->_cursorInfo;
+  cursorInfo.leftButtonPressed  = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+  cursorInfo.rightButtonPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+  cursorInfo.middleButtonPressed =
+      glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
+
+  if (thisWindow->_cursorButtonCallbacks.empty()) {
+    return;
+  }
+
+  for (auto &callback : thisWindow->_cursorButtonCallbacks) {
+    callback(cursorInfo);
   }
 }
 

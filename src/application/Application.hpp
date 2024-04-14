@@ -4,7 +4,7 @@
 
 #include "utils/event-types/EventType.hpp"
 #include "utils/logger/Logger.hpp"
-#include "window/MouseInfo.hpp"
+#include "window/CursorInfo.hpp"
 
 #include <memory>
 #include <vector>
@@ -66,8 +66,7 @@ private:
 
   BlockState _blockState = BlockState::kUnblocked;
 
-  void _syncMouseInfo(MouseInfo const &mouseInfo);
-  MouseInfo _lastMouseInfo;
+  void _syncMouseInfo(CursorMoveInfo const &mouseInfo);
 
   void _createSemaphoresAndFences();
   void _onSwapchainResize();

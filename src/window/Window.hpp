@@ -8,7 +8,7 @@
 
 #include "volk.h"
 
-#include "MouseInfo.hpp"
+#include "CursorInfo.hpp"
 
 #include <functional>
 #include <map>
@@ -94,7 +94,10 @@ public:
 
   void disableInputBit(int bitToBeDisabled) { _keyInputMap[bitToBeDisabled] = false; }
 
-  void addMouseCallback(std::function<void(MouseInfo const &)> callback);
+  void addCursorMoveCallback(std::function<void(CursorMoveInfo const &)> callback);
+  void addCursorButtonCallback(std::function<void(CursorInfo const &)> callback);
+
+  CursorInfo getCursorInfo() const { return _cursorInfo; }
 
 private:
   WindowStyle _windowStyle = WindowStyle::kNone;
@@ -109,15 +112,19 @@ private:
   GLFWwindow *_window   = nullptr;
   GLFWmonitor *_monitor = nullptr;
 
+  CursorInfo _cursorInfo;
+
   // these are used to restore maximized window to its original size and pos
   int _titleBarHeight                  = 0;
   int _maximizedFullscreenClientWidth  = 0;
   int _maximizedFullscreenClientHeight = 0;
 
-  std::vector<std::function<void(MouseInfo)>> _mouseCallbacks;
+  std::vector<std::function<void(CursorMoveInfo)>> _cursorMoveCallbacks;
+  std::vector<std::function<void(CursorInfo)>> _cursorButtonCallbacks;
 
   // these functions are restricted to be static functions
   static void _keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
   static void _cursorPosCallback(GLFWwindow *window, double xPos, double yPos);
+  static void _mouseButtonCallback(GLFWwindow *window, int button, int action, int mods);
   static void _frameBufferResizeCallback(GLFWwindow *window, int width, int height);
 };

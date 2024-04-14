@@ -67,7 +67,7 @@ void Camera::processKeyboard(double deltaTime) {
   }
 }
 
-void Camera::handleMouseMovement(MouseInfo const &mouseInfo) {
+void Camera::handleMouseMovement(CursorMoveInfo const &mouseInfo) {
   if (!canMove()) {
     return;
   }

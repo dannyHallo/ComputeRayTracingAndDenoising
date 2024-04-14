@@ -27,6 +27,7 @@ Application::Application(Logger *logger)
   _loadConfig();
 
   _window = std::make_unique<Window>(WindowStyle::kMaximized);
+
   _appContext->init(_logger, _window->getGlWindow());
   _camera = std::make_unique<Camera>(_window.get());
 
@@ -123,11 +124,9 @@ void Application::_drawFrame() {
     _logger->error("resizing is not allowed!");
   }
 
-  if (_lastMouseInfo.lmbPressed) {
+  if (_window->getCursorInfo().leftButtonPressed) {
     auto outputInfo = _svoTracer->getOutputInfo();
-    if (!outputInfo.midRayHit) {
-      _logger->info("mid ray didn't hit anything");
-    } else {
+    if (outputInfo.midRayHit) {
       _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
                     std::to_string(outputInfo.midRayHitPos.y) + ", " +
                     std::to_string(outputInfo.midRayHitPos.z));
@@ -260,15 +259,11 @@ void Application::_init() {
   _createSemaphoresAndFences();
 
   // attach camera's mouse handler to the window mouse callback
-  _window->addMouseCallback(
-      [this](MouseInfo const &mouseInfo) { _camera->handleMouseMovement(mouseInfo); });
-
-  _window->addMouseCallback([this](MouseInfo const &mouseInfo) { _syncMouseInfo(mouseInfo); });
+  _window->addCursorMoveCallback(
+      [this](CursorMoveInfo const &mouseInfo) { _camera->handleMouseMovement(mouseInfo); });
 
   _buildScene();
 }
-
-void Application::_syncMouseInfo(MouseInfo const &mouseInfo) { _lastMouseInfo = mouseInfo; }
 
 void Application::_buildScene() {
   auto startTime = std::chrono::steady_clock::now();
