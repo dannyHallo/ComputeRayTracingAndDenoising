@@ -263,7 +263,7 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
 void SvoBuilder::_createImages() {
   _chunkFieldImage =
       std::make_unique<Image>(_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1,
-                              VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+                              VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _chunksImage = std::make_unique<Image>(_chunkDimX, _chunkDimY, _chunkDimZ, VK_FORMAT_R32_UINT,
                                          VK_IMAGE_USAGE_STORAGE_BIT);
