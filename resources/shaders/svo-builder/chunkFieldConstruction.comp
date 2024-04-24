@@ -24,6 +24,13 @@ float computeNoise(vec3 p) {
   return total;
 }
 
+uint encode(float val) {
+  float boundary = 0.1;
+  // map from [-boundary, boundary] to [0, 255]
+  // return (float(encoded) / 255.0) * (2.0 * boundary) - boundary;
+  return uint((val + boundary) / (2.0 * boundary) * 255.0);
+}
+
 void main() {
   if (any(greaterThanEqual(gl_GlobalInvocationID,
                            ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
@@ -45,8 +52,8 @@ void main() {
                     float(uv.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   float noise = (floorHeightMean - yPosition) + floorChangeVar * computeNoise(noiseLookupPos);
-  
+
   // float noise = uint(gl_GlobalInvocationID.x * 0.1) % 2 == 0 ? -1.0 : 1.0;
 
-  imageStore(chunkFieldImage, uv, vec4(noise, 0, 0, 0));
+  imageStore(chunkFieldImage, uv, uvec4(encode(noise), 0, 0, 0));
 }

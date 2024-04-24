@@ -25,6 +25,12 @@ uint compressNormal(vec3 normal) {
 ivec3 lookupOffsets[8] = ivec3[8](ivec3(0, 0, 0), ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(1, 1, 0),
                                   ivec3(0, 0, 1), ivec3(1, 0, 1), ivec3(0, 1, 1), ivec3(1, 1, 1));
 
+float decode(uint encoded) {
+  float boundary = 0.1;
+  // map from [0, 255] to [-boundary, boundary]
+  return (float(encoded) / 255.0) * (2.0 * boundary) - boundary;
+}
+
 void preload() {
   for (uint linearIdx = gl_LocalInvocationIndex; linearIdx < SHARED_SIZE_3;
        linearIdx += GROUP_SIZE_3) {
@@ -36,7 +42,7 @@ void preload() {
 
     ivec3 groupBase = ivec3(gl_WorkGroupID) * GROUP_SIZE;
     sharedVoxelData[sharedIdx.x][sharedIdx.y][sharedIdx.z] =
-        imageLoad(chunkFieldImage, groupBase + ivec3(sharedIdx)).x;
+        decode(imageLoad(chunkFieldImage, groupBase + ivec3(sharedIdx)).x);
   }
 }
 
@@ -51,16 +57,13 @@ void main() {
 
   ivec3 noiseLookupPositions[8];
   for (int i = 0; i < 8; i++) {
-    // ivec3 uv                = ivec3(gl_GlobalInvocationID);
-    // noiseLookupPositions[i] = uv + lookupOffsets[i];
-    noiseLookupPositions[i] = ivec3(gl_LocalInvocationID) + lookupOffsets[i]; // change to this
+    noiseLookupPositions[i] = ivec3(gl_LocalInvocationID) + lookupOffsets[i];
   }
 
   float noiseValues[8];
   for (int i = 0; i < 8; i++) {
-    // noiseValues[i] = imageLoad(chunkFieldImage, noiseLookupPositions[i]).x;
     noiseValues[i] = sharedVoxelData[noiseLookupPositions[i].x][noiseLookupPositions[i].y]
-                                    [noiseLookupPositions[i].z]; // change to this
+                                    [noiseLookupPositions[i].z];
   }
 
   // if all values are both less than 0 or all are greater than 0, then it's not a surface voxel

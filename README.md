@@ -5,7 +5,7 @@ This voxel tracing project is originally inspired by John Lin's work here [https
 # Todos
 
 - [ ] Custom block allocator
-https://www.youtube.com/watch?v=sP7xRUyP3e0
+      https://www.youtube.com/watch?v=sP7xRUyP3e0
 
 - [ ] Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
 
@@ -28,7 +28,11 @@ VulkanSDK (to support vulkan validation layer)
 
 # Screenshots
 
-![Simple Voxelized Terrain](./misc/imgs/simple-voxelized-terrain.png)
+![](./misc/imgs/closed-up-planet.png)
+![](./misc/imgs/planar.png)
+![](./misc/imgs/planet.png)
+![](./misc/imgs/retro.png)
+![](./misc/imgs/terrain-with-sphere.png)
 
 # Features
 

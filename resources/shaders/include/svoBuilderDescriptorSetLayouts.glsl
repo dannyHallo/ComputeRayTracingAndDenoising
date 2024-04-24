@@ -3,7 +3,7 @@
 
 #include "../include/svoBuilderDataStructs.glsl"
 
-layout(binding = 0, r32f) uniform image3D chunkFieldImage;
+layout(binding = 0, r8ui) uniform uimage3D chunkFieldImage;
 layout(binding = 1, r32ui) uniform uimage3D chunksImage;
 
 layout(std430, binding = 2) writeonly buffer IndirectFragLengthBuffer {
