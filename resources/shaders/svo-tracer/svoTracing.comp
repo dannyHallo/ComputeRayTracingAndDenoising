@@ -426,7 +426,9 @@ void main() {
     imageStore(backgroundImage, uv, uvec4(packedColor, 0, 0, 0));
   }
 
-  vec3 overlappingColor = vec3(1, 0.4, 0.2) * float(primaryRayIterUsed) * 0.02;
+  vec3 overlappingColor = twickableParametersUbo.data.visualizeOctree
+                              ? vec3(1, 0.4, 0.2) * float(primaryRayIterUsed) * 0.02
+                              : vec3(0);
   imageStore(octreeVisualizationImage, uv, uvec4(packRGBE(overlappingColor), 0, 0, 0));
 
   writeOutputBuffer(uv, hitVoxel, position);

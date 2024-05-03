@@ -79,7 +79,6 @@ void Application::_onSwapchainResize() {
   _appContext->onSwapchainResize();
   _imguiManager->onSwapchainResize();
   _svoTracer->onSwapchainResize();
-  _imguiManager->onSwapchainResize();
 }
 
 void Application::_createSemaphoresAndFences() {
@@ -124,14 +123,14 @@ void Application::_drawFrame() {
     _logger->error("resizing is not allowed!");
   }
 
-  if (_window->getCursorInfo().leftButtonPressed) {
-    auto outputInfo = _svoTracer->getOutputInfo();
-    if (outputInfo.midRayHit) {
-      _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
-                    std::to_string(outputInfo.midRayHitPos.y) + ", " +
-                    std::to_string(outputInfo.midRayHitPos.z));
-    }
-  }
+  // if (_window->getCursorInfo().leftButtonPressed) {
+  //   auto outputInfo = _svoTracer->getOutputInfo();
+  //   if (outputInfo.midRayHit) {
+  //     _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
+  //                   std::to_string(outputInfo.midRayHitPos.y) + ", " +
+  //                   std::to_string(outputInfo.midRayHitPos.z));
+  //   }
+  // }
 
   _svoTracer->updateUboData(currentFrame);
 

@@ -18,6 +18,13 @@ ivec2 highResToMidRes(ivec2 highResUv) {
   return ivec2(vec2(highResUv) * ratio);
 }
 
+vec2 midResToLowRes(ivec2 midResUv) {
+  vec2 subpixOffset = twickableParametersUbo.data.taa ? renderInfoUbo.data.subpixOffset : vec2(0);
+  return (vec2(midResUv) + vec2(0.5)) *
+             (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.midResSize)) -
+         vec2(0.5) - subpixOffset;
+}
+
 // https://www.shadertoy.com/view/MslGR8
 vec3 getDitherMask(ivec2 screenSpaceUv) {
   // bit-depth of display. Normally 8 but some LCD monitors are 7 or even 6-bit.
@@ -40,7 +47,7 @@ vec3 getDitherMask(ivec2 screenSpaceUv) {
   return 0.5 / 255.0 + dither_shift_RGB;
 }
 
-vec3 overlayDot(vec3 color, ivec2 uv) {
+vec3 blendWithDot(vec3 color, ivec2 uv) {
   ivec2 center = ivec2(renderInfoUbo.data.highResSize) / 2;
   ivec2 diff   = abs(uv - center);
 
@@ -57,6 +64,15 @@ vec3 overlayDot(vec3 color, ivec2 uv) {
       1 - smoothstep(float(kDotPixelInnerRadius), float(kDotPixelOuterRadius), dist);
   dotStrength *= kDotColor.a;
   return mix(color, kDotColor.rgb, dotStrength);
+}
+
+vec3 debugInfoOverwrite(ivec2 midResUv) {
+  ivec2 lowResUv = ivec2(midResToLowRes(midResUv));
+  if (lowResUv.x < 0 || lowResUv.y < 0 || lowResUv.x >= renderInfoUbo.data.lowResSize.x ||
+      lowResUv.y >= renderInfoUbo.data.lowResSize.y) {
+    return vec3(0);
+  }
+  return unpackRGBE(imageLoad(octreeVisualizationImage, lowResUv).x);
 }
 
 // #define RAW_DIRECT_OUTPUT
@@ -82,7 +98,9 @@ void main() {
   // dithering pattern, to reduce banding
   color += getDitherMask(uv);
 
-  color = overlayDot(color, uv);
+  color += debugInfoOverwrite(midResUv);
+
+  color = blendWithDot(color, uv);
 
   // rgb to bgr
   imageStore(renderTargetImage, uv, vec4(color.bgr, 1));
