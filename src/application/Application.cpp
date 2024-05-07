@@ -124,6 +124,7 @@ void Application::_drawFrame() {
     _logger->error("resizing is not allowed!");
   }
 
+  // this is some debuging features, which are disabled for release builds
   // if (_window->getCursorInfo().leftButtonPressed) {
   //   auto outputInfo = _svoTracer->getOutputInfo();
   //   if (outputInfo.midRayHit) {
@@ -170,8 +171,6 @@ void Application::_drawFrame() {
 
   vkQueuePresentKHR(_appContext->getPresentQueue(), &presentInfo);
 
-  // Commented this out for playing around with it later :)
-  // vkQueueWaitIdle(context.getPresentQueue());
   currentFrame = (currentFrame + 1) % _framesInFlight;
 }
 
@@ -206,7 +205,6 @@ void Application::_mainLoop() {
         }
       }
 
-      // if (_window->windowSizeChanged() || _needToToggleWindowStyle()) {
       if (_blockStateBits & BlockState::kWindowResized) {
         _waitForTheWindowToBeResumed();
         _onSwapchainResize();
