@@ -11,7 +11,7 @@
 #include "CursorInfo.hpp"
 
 #include <functional>
-#include <map>
+#include <unordered_map>
 #include <vector>
 
 enum class WindowStyle { kNone, kFullScreen, kMaximized, kHover };
@@ -99,16 +99,13 @@ public:
 
   CursorInfo getCursorInfo() const { return _cursorInfo; }
 
-  void resetCursorDelta();
-  void updateCursorDelta(float xPos, float yPos);
-
 private:
   WindowStyle _windowStyle = WindowStyle::kNone;
   CursorState _cursorState = CursorState::kInvisible;
 
   int _widthIfWindowed;
   int _heightIfWindowed;
-  std::map<int, bool> _keyInputMap;
+  std::unordered_map<int, bool> _keyInputMap;
 
   bool _windowSizeChanged = false;
 
@@ -124,6 +121,8 @@ private:
 
   std::vector<std::function<void(CursorMoveInfo)>> _cursorMoveCallbacks;
   std::vector<std::function<void(CursorInfo)>> _cursorButtonCallbacks;
+
+  void _resetCursorDelta();
 
   // these functions are restricted to be static functions
   static void _keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);

@@ -127,6 +127,7 @@ void Window::toggleCursor() {
   } else {
     hideCursor();
   }
+  _resetCursorDelta();
 }
 
 void Window::addCursorMoveCallback(std::function<void(CursorMoveInfo const &)> callback) {
@@ -136,6 +137,8 @@ void Window::addCursorMoveCallback(std::function<void(CursorMoveInfo const &)> c
 void Window::addCursorButtonCallback(std::function<void(CursorInfo const &)> callback) {
   _cursorButtonCallbacks.emplace_back(std::move(callback));
 }
+
+void Window::_resetCursorDelta() { _cursorInfo.cursorMoveInfo.firstMove = true; }
 
 void Window::_keyCallback(GLFWwindow *window, int key, int /*scancode*/, int action, int /*mods*/) {
   auto *thisWindowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
