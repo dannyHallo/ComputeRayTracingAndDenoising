@@ -148,41 +148,28 @@ void Window::_keyCallback(GLFWwindow *window, int key, int /*scancode*/, int act
 void Window::_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
   auto *thisWindow = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
 
-  static float lastX;
-  static float lastY;
-  static bool firstMouse = true;
+  CursorMoveInfo &cmi = thisWindow->_cursorInfo.cursorMoveInfo;
+  cmi.currentX        = xpos;
+  cmi.currentY        = ypos;
 
-  if (firstMouse) {
-    lastX      = static_cast<float>(xpos);
-    lastY      = static_cast<float>(ypos);
-    firstMouse = false;
+  if (cmi.firstMove) {
+    cmi.lastX     = xpos;
+    cmi.lastY     = ypos;
+    cmi.firstMove = false;
   }
 
-  float cursorDx = static_cast<float>(xpos) - lastX;
+  cmi.dx = xpos - cmi.lastX;
+  cmi.dy = ypos - cmi.lastY;
   // invert y axis
-  float cursorDy = lastY - static_cast<float>(ypos);
+  cmi.dy *= -1.F;
 
-  lastX = static_cast<float>(xpos);
-  lastY = static_cast<float>(ypos);
+  cmi.lastX = xpos;
+  cmi.lastY = ypos;
 
   // update the cursor move related info
   CursorInfo &cursorInfo = thisWindow->_cursorInfo;
-  cursorInfo.currentX    = static_cast<float>(xpos);
-  cursorInfo.currentY    = static_cast<float>(ypos);
-
-  if (thisWindow->_cursorMoveCallbacks.empty()) {
-    return;
-  }
-
-  CursorMoveInfo mi;
-  {
-    mi.currentX = static_cast<float>(xpos);
-    mi.currentY = static_cast<float>(ypos);
-    mi.dx       = cursorDx;
-    mi.dy       = cursorDy;
-  }
   for (auto &callback : thisWindow->_cursorMoveCallbacks) {
-    callback(mi);
+    callback(cmi);
   }
 }
 
@@ -195,10 +182,6 @@ void Window::_mouseButtonCallback(GLFWwindow *window, int button, int action, in
   cursorInfo.rightButtonPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
   cursorInfo.middleButtonPressed =
       glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
-
-  if (thisWindow->_cursorButtonCallbacks.empty()) {
-    return;
-  }
 
   for (auto &callback : thisWindow->_cursorButtonCallbacks) {
     callback(cursorInfo);

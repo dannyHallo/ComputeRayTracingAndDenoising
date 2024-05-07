@@ -99,6 +99,9 @@ public:
 
   CursorInfo getCursorInfo() const { return _cursorInfo; }
 
+  void resetCursorDelta();
+  void updateCursorDelta(float xPos, float yPos);
+
 private:
   WindowStyle _windowStyle = WindowStyle::kNone;
   CursorState _cursorState = CursorState::kInvisible;

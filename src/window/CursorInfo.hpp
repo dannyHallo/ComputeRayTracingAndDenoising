@@ -1,17 +1,18 @@
 #pragma once
 
 struct CursorMoveInfo {
-  float currentX;
-  float currentY;
-  float dx;
-  float dy;
+  bool firstMove  = true;
+  double currentX = 0.F;
+  double currentY = 0.F;
+  double lastX    = 0.F;
+  double lastY    = 0.F;
+  double dx       = 0.F;
+  double dy       = 0.F;
 };
 
-// dx and dy cannot be retrieved here
 struct CursorInfo {
-  float currentX;
-  float currentY;
-  bool leftButtonPressed;
-  bool rightButtonPressed;
-  bool middleButtonPressed;
+  CursorMoveInfo cursorMoveInfo = {};
+  bool leftButtonPressed        = false;
+  bool rightButtonPressed       = false;
+  bool middleButtonPressed      = false;
 };
