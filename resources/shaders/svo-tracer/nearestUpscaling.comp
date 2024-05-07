@@ -1,8 +1,6 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
-#define STRATUM_SIZE 3
-
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"

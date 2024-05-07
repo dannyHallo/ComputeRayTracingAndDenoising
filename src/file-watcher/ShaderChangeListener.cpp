@@ -1,5 +1,6 @@
 #include "ShaderChangeListener.hpp"
 
+#include "application/BlockState.hpp"
 #include "scheduler/Scheduler.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/event-dispatcher/GlobalEventDispatcher.hpp"
@@ -20,7 +21,7 @@ std::string _normalizePath(const std::string &path) {
   std::string::size_type pos = 0;
   while ((pos = normalizedPath.find("//", pos)) != std::string::npos) {
     normalizedPath.erase(pos, 1);
-    // Do not advance pos to ensure we check the new position in case of consecutive slashes
+    // do not advance pos to ensure we check the new position in case of consecutive slashes
   }
 
   return normalizedPath;
@@ -61,8 +62,10 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
 
   // request to block the render loop, when the render loop is blocked, the pipelines will be
   // rebuilt
+  uint32_t blockStateBits = it->second ? BlockState::kRebuildSvoBuildingPipelines
+                                       : BlockState::kRebuildSvoTracingPipelines;
   GlobalEventDispatcher::get().trigger<E_RenderLoopBlockRequest>(
-      E_RenderLoopBlockRequest{it->second});
+      E_RenderLoopBlockRequest{blockStateBits});
 }
 
 void ShaderChangeListener::_onRenderLoopBlocked() {

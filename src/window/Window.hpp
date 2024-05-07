@@ -9,9 +9,9 @@
 #include "volk.h"
 
 #include "CursorInfo.hpp"
+#include "KeyboardInfo.hpp"
 
 #include <functional>
-#include <unordered_map>
 #include <vector>
 
 enum class WindowStyle { kNone, kFullScreen, kMaximized, kHover };
@@ -30,13 +30,9 @@ public:
 
   [[nodiscard]] GLFWwindow *getGlWindow() const { return _window; }
   [[nodiscard]] GLFWmonitor *getMonitor() const { return _monitor; }
-  [[nodiscard]] bool isInputBitActive(int inputBit) {
-    return _keyInputMap.contains(inputBit) && _keyInputMap[inputBit];
-  }
 
   [[nodiscard]] WindowStyle getWindowStyle() const { return _windowStyle; }
   [[nodiscard]] CursorState getCursorState() const { return _cursorState; }
-  [[nodiscard]] bool windowSizeChanged() const { return _windowSizeChanged; }
 
   // be careful to use these two functions, you might want to query the
   // framebuffer size, not the window size
@@ -69,15 +65,15 @@ public:
   }
 
   [[nodiscard]] int getCursorXPos() const {
-    double xPos = NAN;
-    double yPos = NAN;
+    double xPos = 0.F;
+    double yPos = 0.F;
     glfwGetCursorPos(_window, &xPos, &yPos);
     return static_cast<int>(xPos);
   }
 
   [[nodiscard]] int getCursorYPos() const {
-    double xPos = NAN;
-    double yPos = NAN;
+    double xPos = 0.F;
+    double yPos = 0.F;
     glfwGetCursorPos(_window, &xPos, &yPos);
     return static_cast<int>(yPos);
   }
@@ -86,18 +82,16 @@ public:
 
   void setWindowStyle(WindowStyle newStyle);
 
-  void setWindowSizeChanged(bool windowSizeChanged) { _windowSizeChanged = windowSizeChanged; }
-
   void showCursor();
   void hideCursor();
   void toggleCursor();
 
-  void disableInputBit(int bitToBeDisabled) { _keyInputMap[bitToBeDisabled] = false; }
-
   void addCursorMoveCallback(std::function<void(CursorMoveInfo const &)> callback);
   void addCursorButtonCallback(std::function<void(CursorInfo const &)> callback);
+  void addKeyboardCallback(std::function<void(KeyboardInfo const &)> callback);
 
   CursorInfo getCursorInfo() const { return _cursorInfo; }
+  KeyboardInfo getKeyboardInfo() const { return _keyboardInfo; }
 
 private:
   WindowStyle _windowStyle = WindowStyle::kNone;
@@ -105,14 +99,12 @@ private:
 
   int _widthIfWindowed;
   int _heightIfWindowed;
-  std::unordered_map<int, bool> _keyInputMap;
-
-  bool _windowSizeChanged = false;
 
   GLFWwindow *_window   = nullptr;
   GLFWmonitor *_monitor = nullptr;
 
   CursorInfo _cursorInfo;
+  KeyboardInfo _keyboardInfo;
 
   // these are used to restore maximized window to its original size and pos
   int _titleBarHeight                  = 0;
@@ -121,8 +113,11 @@ private:
 
   std::vector<std::function<void(CursorMoveInfo)>> _cursorMoveCallbacks;
   std::vector<std::function<void(CursorInfo)>> _cursorButtonCallbacks;
+  std::vector<std::function<void(KeyboardInfo)>> _keyboardCallbacks;
 
   void _resetCursorDelta();
+
+  void _windowStyleToggleCallback(KeyboardInfo const &keyboardInfo);
 
   // these functions are restricted to be static functions
   static void _keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);

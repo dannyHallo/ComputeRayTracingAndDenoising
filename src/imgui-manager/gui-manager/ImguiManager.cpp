@@ -318,6 +318,8 @@ void ImguiManager::_drawFpsMenuItem(double fpsInTimeBucket) {
 
 void ImguiManager::_syncMousePosition() {
   auto &io = ImGui::GetIO();
+
+  // TODO: query for the info directly from the window class
   // the mousePos is not synced correctly when the window is not focused
   // so we set it manually here
   io.MousePos = ImVec2(static_cast<float>(_window->getCursorXPos()),

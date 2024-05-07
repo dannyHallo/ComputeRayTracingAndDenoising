@@ -29,8 +29,9 @@ if !errorlevel! neq 0 (
    goto :eof
 )
 
-echo copy compile_commands.json to .vscode folder
-robocopy %BINARY_DIR% .vscode/ compile_commands.json /NFL /NDL /NJH /NJS /nc /ns /np
+@REM this logic is moved to CMakeLists.txt for cross-platform compatibility
+@REM echo copy compile_commands.json to .vscode folder
+@REM robocopy %BINARY_DIR% .vscode/ compile_commands.json /NFL /NDL /NJH /NJS /nc /ns /np
 
 if %WITH_PORTABLE_RESOURCES%==ON (
     echo:

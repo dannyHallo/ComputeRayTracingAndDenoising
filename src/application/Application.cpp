@@ -3,6 +3,7 @@
 #include "svo-builder/SvoBuilder.hpp"
 #include "svo-tracer/SvoTracer.hpp"
 
+#include "BlockState.hpp"
 #include "camera/Camera.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "imgui-manager/gui-manager/ImguiManager.hpp"
@@ -72,7 +73,7 @@ void Application::_cleanup() {
 }
 
 void Application::_onRenderLoopBlockRequest(E_RenderLoopBlockRequest const &event) {
-  _blockState = event.rebuildSvo ? BlockState::kBlockedAndNeedToRebuildSvo : BlockState::kBlocked;
+  _blockStateBits |= event.blockStateBits;
 }
 
 void Application::_onSwapchainResize() {
@@ -190,26 +191,29 @@ void Application::_mainLoop() {
 
   while (glfwWindowShouldClose(_window->getGlWindow()) == 0) {
 
-    if (_blockState != BlockState::kUnblocked) {
-      vkDeviceWaitIdle(_appContext->getDevice());
-      GlobalEventDispatcher::get().trigger<E_RenderLoopBlocked>();
-      // then some rebuilding will happen
-
-      if (_blockState == BlockState::kBlockedAndNeedToRebuildSvo) {
-        _buildScene();
-      }
-      _blockState = BlockState::kUnblocked;
-    }
-
     glfwPollEvents();
 
-    if (_window->windowSizeChanged() || _needToToggleWindowStyle()) {
+    if (_blockStateBits != 0) {
       vkDeviceWaitIdle(_appContext->getDevice());
 
-      _window->setWindowSizeChanged(false);
-      _waitForTheWindowToBeResumed();
-      _onSwapchainResize();
+      if (_blockStateBits &
+          (BlockState::kRebuildSvoTracingPipelines | BlockState::kRebuildSvoBuildingPipelines)) {
+        GlobalEventDispatcher::get().trigger<E_RenderLoopBlocked>();
+        // then some rebuilding will happen
 
+        if (_blockStateBits & BlockState::kRebuildSvoBuildingPipelines) {
+          _buildScene();
+        }
+      }
+
+      // if (_window->windowSizeChanged() || _needToToggleWindowStyle()) {
+      if (_blockStateBits & BlockState::kWindowResized) {
+        _waitForTheWindowToBeResumed();
+        _onSwapchainResize();
+      }
+
+      // reset the block state and timer
+      _blockStateBits   = 0;
       fpsRecordLastTime = std::chrono::steady_clock::now();
       continue;
     }
@@ -233,15 +237,6 @@ void Application::_mainLoop() {
   vkDeviceWaitIdle(_appContext->getDevice());
 }
 
-bool Application::_needToToggleWindowStyle() {
-  if (_window->isInputBitActive(GLFW_KEY_F)) {
-    _window->disableInputBit(GLFW_KEY_F);
-    _window->toggleWindowStyle();
-    return true;
-  }
-  return false;
-}
-
 void Application::_init() {
   {
     auto startTime = std::chrono::steady_clock::now();
@@ -261,7 +256,23 @@ void Application::_init() {
   _window->addCursorMoveCallback(
       [this](CursorMoveInfo const &mouseInfo) { _camera->handleMouseMovement(mouseInfo); });
 
+  // attach application-level keyboard listeners
+  _window->addKeyboardCallback(
+      [this](KeyboardInfo const &keyboardInfo) { _applicationKeyboardCallback(keyboardInfo); });
+
   _buildScene();
+}
+
+void Application::_applicationKeyboardCallback(KeyboardInfo const &keyboardInfo) {
+  if (keyboardInfo.isKeyPressed(GLFW_KEY_ESCAPE)) {
+    glfwSetWindowShouldClose(_window->getGlWindow(), 1);
+    return;
+  }
+
+  if (keyboardInfo.isKeyPressed(GLFW_KEY_E)) {
+    _window->toggleCursor();
+    return;
+  }
 }
 
 void Application::_buildScene() {

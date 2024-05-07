@@ -1,5 +1,9 @@
 #include "Window.hpp"
 
+#include "application/BlockState.hpp"
+#include "utils/event-dispatcher/GlobalEventDispatcher.hpp"
+#include "utils/event-types/EventType.hpp"
+
 #include <cassert>
 
 Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowed)
@@ -45,6 +49,9 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
   glfwSetCursorPosCallback(_window, _cursorPosCallback);
   glfwSetMouseButtonCallback(_window, _mouseButtonCallback);
   glfwSetFramebufferSizeCallback(_window, _frameBufferResizeCallback);
+
+  addKeyboardCallback(
+      [this](KeyboardInfo const &keyboardInfo) { _windowStyleToggleCallback(keyboardInfo); });
 }
 
 Window::~Window() {
@@ -138,14 +145,28 @@ void Window::addCursorButtonCallback(std::function<void(CursorInfo const &)> cal
   _cursorButtonCallbacks.emplace_back(std::move(callback));
 }
 
+void Window::addKeyboardCallback(std::function<void(KeyboardInfo const &)> callback) {
+  _keyboardCallbacks.emplace_back(std::move(callback));
+}
+
 void Window::_resetCursorDelta() { _cursorInfo.cursorMoveInfo.firstMove = true; }
 
 void Window::_keyCallback(GLFWwindow *window, int key, int /*scancode*/, int action, int /*mods*/) {
   auto *thisWindowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
 
+  KeyboardInfo &ki = thisWindowClass->_keyboardInfo;
+  // update ki first
   if (action == GLFW_PRESS || action == GLFW_RELEASE) {
-    thisWindowClass->_keyInputMap[key] = action == GLFW_PRESS;
+    ki.activeKeyMap[key] = (action == GLFW_PRESS);
   }
+
+  for (auto &callback : thisWindowClass->_keyboardCallbacks) {
+    callback(ki);
+  }
+
+  // consume keys
+  ki.disableInputBit(GLFW_KEY_E);
+  ki.disableInputBit(GLFW_KEY_F);
 }
 
 void Window::_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
@@ -169,8 +190,6 @@ void Window::_cursorPosCallback(GLFWwindow *window, double xpos, double ypos) {
   cmi.lastX = xpos;
   cmi.lastY = ypos;
 
-  // update the cursor move related info
-  CursorInfo &cursorInfo = thisWindow->_cursorInfo;
   for (auto &callback : thisWindow->_cursorMoveCallbacks) {
     callback(cmi);
   }
@@ -180,18 +199,29 @@ void Window::_mouseButtonCallback(GLFWwindow *window, int button, int action, in
   auto *thisWindow = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
 
   // update the cursor button related info
-  CursorInfo &cursorInfo        = thisWindow->_cursorInfo;
-  cursorInfo.leftButtonPressed  = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
-  cursorInfo.rightButtonPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
-  cursorInfo.middleButtonPressed =
-      glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
+  CursorInfo &ci         = thisWindow->_cursorInfo;
+  ci.leftButtonPressed   = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+  ci.rightButtonPressed  = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+  ci.middleButtonPressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
 
   for (auto &callback : thisWindow->_cursorButtonCallbacks) {
-    callback(cursorInfo);
+    callback(ci);
+  }
+}
+
+void Window::_windowStyleToggleCallback(KeyboardInfo const &keyboardInfo) {
+  if (keyboardInfo.isKeyPressed(GLFW_KEY_F)) {
+    auto *thisWindow = reinterpret_cast<Window *>(glfwGetWindowUserPointer(_window));
+    thisWindow->toggleWindowStyle();
+
+    uint32_t blockStateBits = BlockState::kWindowResized;
+    GlobalEventDispatcher::get().trigger<E_RenderLoopBlockRequest>(
+        E_RenderLoopBlockRequest{blockStateBits});
   }
 }
 
 void Window::_frameBufferResizeCallback(GLFWwindow *window, int /*width*/, int /*height*/) {
-  auto *thisWindowClass = reinterpret_cast<Window *>(glfwGetWindowUserPointer(window));
-  thisWindowClass->setWindowSizeChanged(true);
+  uint32_t blockStateBits = BlockState::kWindowResized;
+  GlobalEventDispatcher::get().trigger<E_RenderLoopBlockRequest>(
+      E_RenderLoopBlockRequest{blockStateBits});
 }

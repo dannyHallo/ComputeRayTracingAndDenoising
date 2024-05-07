@@ -5,6 +5,7 @@
 #include "utils/event-types/EventType.hpp"
 #include "utils/logger/Logger.hpp"
 #include "window/CursorInfo.hpp"
+#include "window/KeyboardInfo.hpp"
 
 #include <memory>
 #include <vector>
@@ -19,12 +20,6 @@ class FpsSink;
 class ShaderCompiler;
 class ShaderChangeListener;
 class TomlConfigReader;
-
-enum class BlockState {
-  kUnblocked,
-  kBlocked,
-  kBlockedAndNeedToRebuildSvo,
-};
 
 class Application {
 public:
@@ -64,9 +59,11 @@ private:
   std::vector<VkSemaphore> _renderFinishedSemaphores;
   std::vector<VkFence> _framesInFlightFences;
 
-  BlockState _blockState = BlockState::kUnblocked;
+  // BlockState _blockState = BlockState::kUnblocked;
+  uint32_t _blockStateBits = 0;
 
   void _syncMouseInfo(CursorMoveInfo const &mouseInfo);
+  void _applicationKeyboardCallback(KeyboardInfo const &keyboardInfo);
 
   void _createSemaphoresAndFences();
   void _onSwapchainResize();
@@ -75,7 +72,6 @@ private:
   void _mainLoop();
   void _init();
   void _cleanup();
-  bool _needToToggleWindowStyle();
 
   void _onRenderLoopBlockRequest(E_RenderLoopBlockRequest const &event);
   void _buildScene();

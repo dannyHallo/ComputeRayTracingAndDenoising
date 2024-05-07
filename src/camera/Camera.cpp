@@ -1,5 +1,7 @@
 #include "Camera.hpp"
 
+#include "window/KeyboardInfo.hpp"
+
 namespace {
 
 float constexpr kMovementSpeed    = .2F;
@@ -20,20 +22,7 @@ glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear, float zFar
   return projection;
 }
 
-void Camera::processInput(double deltaTime) {
-  if (_window->isInputBitActive(GLFW_KEY_ESCAPE)) {
-    glfwSetWindowShouldClose(_window->getGlWindow(), 1);
-    return;
-  }
-
-  if (_window->isInputBitActive(GLFW_KEY_E)) {
-    _window->toggleCursor();
-    _window->disableInputBit(GLFW_KEY_E);
-    return;
-  }
-
-  processKeyboard(deltaTime);
-}
+void Camera::processInput(double deltaTime) { processKeyboard(deltaTime); }
 
 void Camera::processKeyboard(double deltaTime) {
   if (!canMove()) {
@@ -42,27 +31,29 @@ void Camera::processKeyboard(double deltaTime) {
 
   float velocity = _movementSpeedMultiplier * kMovementSpeed * static_cast<float>(deltaTime);
 
-  if (_window->isInputBitActive(GLFW_KEY_W)) {
+  KeyboardInfo const &ki = _window->getKeyboardInfo();
+
+  if (ki.isKeyPressed(GLFW_KEY_W)) {
     _position += _front * velocity;
   }
-  if (_window->isInputBitActive(GLFW_KEY_S)) {
+  if (ki.isKeyPressed(GLFW_KEY_S)) {
     _position -= _front * velocity;
   }
-  if (_window->isInputBitActive(GLFW_KEY_A)) {
+  if (ki.isKeyPressed(GLFW_KEY_A)) {
     _position -= _right * velocity;
   }
-  if (_window->isInputBitActive(GLFW_KEY_D)) {
+  if (ki.isKeyPressed(GLFW_KEY_D)) {
     _position += _right * velocity;
   }
-  if (_window->isInputBitActive(GLFW_KEY_SPACE)) {
+  if (ki.isKeyPressed(GLFW_KEY_SPACE)) {
     _position += _worldUp * velocity;
   }
-  if (_window->isInputBitActive(GLFW_KEY_LEFT_SHIFT)) {
+  if (ki.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
     _movementSpeedMultiplier = 2.F;
   } else {
     _movementSpeedMultiplier = 1.F;
   }
-  if (_window->isInputBitActive(GLFW_KEY_LEFT_CONTROL)) {
+  if (ki.isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
     _position -= _worldUp * velocity;
   }
 }
