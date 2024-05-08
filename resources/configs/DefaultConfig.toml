@@ -24,6 +24,7 @@ taaUpscaleRatio = 2.5
 nearestUpscaleRatio = 1.0
 
 [SvoTracerTweakingData]
+visualizeChunks = false
 visualizeOctree = false
 beamOptimization = true
 traceSecondaryRay = true

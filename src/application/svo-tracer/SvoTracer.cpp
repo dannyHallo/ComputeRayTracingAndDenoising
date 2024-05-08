@@ -675,6 +675,7 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
 
   G_TwickableParameters twickableParameters{};
+  twickableParameters.visualizeChunks   = _uboData.visualizeChunks;
   twickableParameters.visualizeOctree   = _uboData.visualizeOctree;
   twickableParameters.beamOptimization  = _uboData.beamOptimization;
   twickableParameters.traceSecondaryRay = _uboData.traceSecondaryRay;

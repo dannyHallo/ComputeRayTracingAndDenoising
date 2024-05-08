@@ -9,6 +9,7 @@ struct SvoTracerTweakingData {
 
   // config
   // tweakable parameters
+  bool visualizeChunks{};
   bool visualizeOctree{};
   bool beamOptimization{};
   bool traceSecondaryRay{};

@@ -39,6 +39,7 @@ struct G_EnvironmentInfo {
 };
 
 struct G_TwickableParameters {
+  uint visualizeChunks;   // bool
   uint visualizeOctree;   // bool
   uint beamOptimization;  // bool
   uint traceSecondaryRay; // bool
