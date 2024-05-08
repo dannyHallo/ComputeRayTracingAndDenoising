@@ -13,7 +13,7 @@ fontSize = 20
 # the voxel dimension within a chunk
 chunkVoxelDim = 256
 chunkDimX = 5
-chunkDimY = 3
+chunkDimY = 1
 chunkDimZ = 5  
 
 [SvoTracer]
