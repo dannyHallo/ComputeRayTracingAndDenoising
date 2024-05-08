@@ -688,13 +688,12 @@ void SvoTracer::updateUboData(size_t currentFrame) {
 
   G_SpatialFilterInfo spatialFilterInfo{};
   spatialFilterInfo.aTrousIterationCount = static_cast<uint32_t>(_uboData.aTrousIterationCount);
-  spatialFilterInfo.useVarianceGuidedFiltering = _uboData.useVarianceGuidedFiltering;
-  spatialFilterInfo.phiC                       = _uboData.phiC;
-  spatialFilterInfo.phiN                       = _uboData.phiN;
-  spatialFilterInfo.phiP                       = _uboData.phiP;
-  spatialFilterInfo.phiZ                       = _uboData.phiZ;
-  spatialFilterInfo.phiZTolerance              = _uboData.phiZTolerance;
-  spatialFilterInfo.changingLuminancePhi       = _uboData.changingLuminancePhi;
+  spatialFilterInfo.phiC                 = _uboData.phiC;
+  spatialFilterInfo.phiN                 = _uboData.phiN;
+  spatialFilterInfo.phiP                 = _uboData.phiP;
+  spatialFilterInfo.phiZ                 = _uboData.phiZ;
+  spatialFilterInfo.phiZTolerance        = _uboData.phiZTolerance;
+  spatialFilterInfo.changingLuminancePhi = _uboData.changingLuminancePhi;
   _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
 
   currentSample++;

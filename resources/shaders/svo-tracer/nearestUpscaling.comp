@@ -17,7 +17,8 @@ ivec2 highResToMidRes(ivec2 highResUv) {
 }
 
 vec2 midResToLowRes(ivec2 midResUv) {
-  vec2 subpixOffset = twickableParametersUbo.data.taa ? renderInfoUbo.data.subpixOffset : vec2(0);
+  vec2 subpixOffset =
+      bool(twickableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
   return (vec2(midResUv) + vec2(0.5)) *
              (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.midResSize)) -
          vec2(0.5) - subpixOffset;

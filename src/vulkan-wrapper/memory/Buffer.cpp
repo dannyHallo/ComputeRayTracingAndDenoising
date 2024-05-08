@@ -116,7 +116,6 @@ void Buffer::fillData(const void *data) {
 
   switch (_memoryStyle) {
   case MemoryStyle::kHostVisible: {
-    assert(_mappedAddr != nullptr && "buffer is not host visible");
     memcpy(_mappedAddr, data, _size);
     break;
   }

@@ -39,10 +39,10 @@ struct G_EnvironmentInfo {
 };
 
 struct G_TwickableParameters {
-  bool visualizeOctree;
-  bool beamOptimization;
-  bool traceSecondaryRay;
-  bool taa;
+  uint visualizeOctree;   // bool
+  uint beamOptimization;  // bool
+  uint traceSecondaryRay; // bool
+  uint taa;               // bool
 };
 
 struct G_SceneInfo {
@@ -58,18 +58,17 @@ struct G_TemporalFilterInfo {
 
 struct G_SpatialFilterInfo {
   uint aTrousIterationCount;
-  bool useVarianceGuidedFiltering;
   float phiC;
   float phiN;
   float phiP;
   float phiZ;
   float phiZTolerance;
-  bool changingLuminancePhi;
+  uint changingLuminancePhi; // bool
 };
 
 struct G_OutputInfo {
-  bool midRayHit;
   vec3 midRayHitPos;
+  uint midRayHit; // bool
 };
 
 #endif // SVO_TRACER_DATA_STRUCTS_GLSL

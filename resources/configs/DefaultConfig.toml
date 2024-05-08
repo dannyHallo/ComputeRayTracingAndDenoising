@@ -38,7 +38,6 @@ sunSize = 0.5
 temporalAlpha = 0.028
 temporalPositionPhi = 0.99
 aTrousIterationCount = 4
-useVarianceGuidedFiltering = true
 phiC = 0.1
 phiN = 20.0 
 phiP = 0.05

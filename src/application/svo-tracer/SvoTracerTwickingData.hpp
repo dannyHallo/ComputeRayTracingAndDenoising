@@ -27,7 +27,6 @@ struct SvoTracerTweakingData {
 
   // for spatial filter info
   int aTrousIterationCount{};
-  bool useVarianceGuidedFiltering{};
   float phiC{};
   float phiN{};
   float phiP{};

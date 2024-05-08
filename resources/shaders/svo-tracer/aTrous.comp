@@ -86,18 +86,13 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
 
   // WEIGHT_C
   float phiC = spatialFilterInfoUbo.data.phiC;
-  if (spatialFilterInfoUbo.data.changingLuminancePhi) {
+  if (bool(spatialFilterInfoUbo.data.changingLuminancePhi)) {
     phiC *= pow(2, -currentIteration);
   }
 
   float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
   float colDiff           = abs(luminanceAtSample - luminanceAtUv);
-  // if (spatialFilterInfoUbo.data.useVarianceGuidedFiltering != 0) {
-  //   phiC *= 100.;
-  //   weightC = exp(-colDiff / max(phiC * sqrt(varianceAtUv), kEpsilon));
-  // } else {
-  float weightC = exp(-colDiff / phiC);
-  // }
+  float weightC           = exp(-colDiff / phiC);
 
   // WEIGHT_N
   float weightN = max(0., pow(dot(normalAtUv, normalAtSample), spatialFilterInfoUbo.data.phiN));

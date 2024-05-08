@@ -30,8 +30,6 @@ void SvoTracerTweakingData::_loadConfig() {
 
   aTrousIterationCount =
       _tomlConfigReader->getConfig<int>("SvoTracerTweakingData.aTrousIterationCount");
-  useVarianceGuidedFiltering =
-      _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.useVarianceGuidedFiltering");
   phiC          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiC");
   phiN          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiN");
   phiP          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiP");
