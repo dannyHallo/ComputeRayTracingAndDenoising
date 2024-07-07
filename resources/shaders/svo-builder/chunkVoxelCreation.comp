@@ -69,7 +69,7 @@ void main() {
   // if all values are both less than 0 or all are greater than 0, then it's not a surface voxel
   bool allLessThanZero    = true;
   bool allGreaterThanZero = true;
-
+  
   for (int i = 0; i < 8; i++) {
     if (noiseValues[i] < 0) {
       allGreaterThanZero = false;
