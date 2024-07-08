@@ -86,9 +86,7 @@ void main() {
   float tMax =
       groundDist >= 0.0 ? groundDist : rayIntersectSphere(kCamPos, rayDir, kAtmosphereRadiusMm);
 
-  // TODO:
-  //   vec3 sunDir = getSunDir(getSunAltitude(iMouse.x / iResolution.x));
-  vec3 sunDir = getSunDir(getSunAltitude(1.0));
+  vec3 sunDir = getSunDir(environmentUbo.data.sunAngleA / 180.0 * kPi);
   vec3 lum    = raymarchScattering(kCamPos, rayDir, sunDir, tMax, numScatteringSteps);
 
   imageStore(skyViewLutImage, uvi, vec4(lum, 1.0));
