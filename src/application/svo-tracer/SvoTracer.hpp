@@ -103,7 +103,11 @@ private:
   std::unique_ptr<Image> _vec2BlueNoise;
   std::unique_ptr<Image> _weightedCosineBlueNoise;
 
-  // following resources are swapchain dim related
+  std::unique_ptr<Image> _transmittanceLutImage;
+  std::unique_ptr<Image> _multiScatteringLutImage;
+  std::unique_ptr<Image> _skyViewLutImage;
+
+  // the followed up resources are swapchain dimension related
   std::unique_ptr<Image> _backgroundImage;
   std::unique_ptr<Image> _beamDepthImage;
   std::unique_ptr<Image> _rawImage;
@@ -145,12 +149,11 @@ private:
   void _createDefaultSampler();
 
   void _createImages();
-  void _createResourseImages();
+  void _createSkyLutImages();
   void _createSwapchainRelatedImages(); // auto release
 
   void _createBlueNoiseImages();
   void _createFullSizedImages();
-  void _createStratumSizedImages();
   void _createImageForwardingPairs();
 
   /// BUFFERS

@@ -15,6 +15,14 @@
 
 #include <string>
 
+// should also be synchronized with the shader
+constexpr uint32_t kTransmittanceLutWidth    = 256;
+constexpr uint32_t kTransmittanceLutHeight   = 64;
+constexpr uint32_t kMultiScatteringLutWidth  = 32;
+constexpr uint32_t kMultiScatteringLutHeight = 32;
+constexpr uint32_t kSkyViewLutWidth          = 200;
+constexpr uint32_t kSkyViewLutHeight         = 200;
+
 namespace {
 float halton(int base, int index) {
   float f = 1.F;
@@ -154,16 +162,26 @@ void SvoTracer::_createDefaultSampler() {
 }
 
 void SvoTracer::_createImages() {
-  _createResourseImages();
+  _createBlueNoiseImages();
+  _createSkyLutImages();
   _createSwapchainRelatedImages();
 }
 
-void SvoTracer::_createResourseImages() { _createBlueNoiseImages(); }
+void SvoTracer::_createSkyLutImages() {
+  _transmittanceLutImage = std::make_unique<Image>(
+      kTransmittanceLutWidth, kTransmittanceLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 
-void SvoTracer::_createSwapchainRelatedImages() {
-  _createFullSizedImages();
-  _createStratumSizedImages();
+  _multiScatteringLutImage = std::make_unique<Image>(
+      kMultiScatteringLutWidth, kMultiScatteringLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+
+  _skyViewLutImage =
+      std::make_unique<Image>(kSkyViewLutWidth, kSkyViewLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
 }
+
+void SvoTracer::_createSwapchainRelatedImages() { _createFullSizedImages(); }
 
 void SvoTracer::_createBlueNoiseImages() {
   constexpr int kBlueNoiseArraySize = 64;
@@ -259,14 +277,6 @@ void SvoTracer::_createFullSizedImages() {
   _blittedImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                                           VK_IMAGE_USAGE_STORAGE_BIT);
 
-  // _varianceHistImage =
-  //     std::make_unique<Image>(lw, lh, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-
-  //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  // _lastVarianceHistImage =
-  //     std::make_unique<Image>(lw, lh, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-  // VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
   // both of the ping and pong can be dumped to the render target image and the lastAccumedImage
   _aTrousPingImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                                              VK_IMAGE_USAGE_STORAGE_BIT);
@@ -281,66 +291,6 @@ void SvoTracer::_createFullSizedImages() {
       _highResWidth, _highResHeight, 1, VK_FORMAT_R8G8B8A8_UNORM,
       VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
           VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-
-  // _seedImage =
-  //     std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  // _aTrousInputImage =
-  //     std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-  //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // _aTrousOutputImage =
-  //     std::make_unique<Image>(w, h, VK_FORMAT_R32G32B32A32_SFLOAT,
-  //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-  //                                 VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // _depthImagePrev = std::make_unique<Image>(
-  //     w, h, VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // _gradientImage = std::make_unique<Image>(
-  //     w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT |
-  //     VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  // _gradientImagePrev = std::make_unique<Image>(
-  //     w, h, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT |
-  //     VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // _varianceImage = std::make_unique<Image>(w, h, VK_FORMAT_R32_SFLOAT,
-  // VK_IMAGE_USAGE_STORAGE_BIT);
-}
-
-void SvoTracer::_createStratumSizedImages() {
-  // auto w = _appContext->getSwapchainExtentWidth();
-  // auto h = _appContext->getSwapchainExtentHeight();
-
-  // constexpr float kStratumResolutionScale = 1.0F / 3.0F;
-
-  // uint32_t perStratumImageWidth  = ceil(static_cast<float>(w) * kStratumResolutionScale);
-  // uint32_t perStratumImageHeight = ceil(static_cast<float>(h) * kStratumResolutionScale);
-
-  // _stratumOffsetImage =
-  //     std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
-  //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // _perStratumLockingImage =
-  //     std::make_unique<Image>(perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32_UINT,
-
-  //                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // _visibilityImage = std::make_unique<Image>(
-  //     perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-  //     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // _seedVisibilityImage = std::make_unique<Image>(
-  //     perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_UINT,
-  //     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // _temporalGradientNormalizationImagePing = std::make_unique<Image>(
-  //     perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-  //     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // _temporalGradientNormalizationImagePong = std::make_unique<Image>(
-  //     perStratumImageWidth, perStratumImageHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-  //     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 }
 
 void SvoTracer::_createImageForwardingPairs() {
@@ -750,6 +700,10 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(30, _renderTargetImage.get());
 
   _descriptorSetBundle->bindImageSampler(31, _lastTaaImage.get());
+
+  _descriptorSetBundle->bindStorageImage(36, _transmittanceLutImage.get());
+  _descriptorSetBundle->bindStorageImage(37, _multiScatteringLutImage.get());
+  _descriptorSetBundle->bindStorageImage(38, _skyViewLutImage.get());
 
   _descriptorSetBundle->bindStorageBuffer(32, _sceneInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(33, _svoBuilder->getAppendedOctreeBuffer());

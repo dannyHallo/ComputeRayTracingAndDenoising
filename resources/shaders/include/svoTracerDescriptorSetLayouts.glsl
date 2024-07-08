@@ -36,7 +36,7 @@ layout(binding = 21, r32ui) readonly uniform uimage2D lastVoxHashImage;
 layout(binding = 22, r32ui) uniform uimage2D accumedImage;
 layout(binding = 23, r32ui) readonly uniform uimage2D lastAccumedImage;
 
-// these are not uint encoded because they need to be SAMPLED as textures: see binding 36
+// these are not uint encoded because they need to be SAMPLED as textures, see lastTaaTexture
 layout(binding = 24, rgba16f) uniform image2D taaImage;
 layout(binding = 25, rgba16f) uniform image2D lastTaaImage;
 
@@ -49,6 +49,10 @@ layout(binding = 29, r32ui) uniform uimage2D aTrousFinalResultImage;
 layout(binding = 30, rgba8) uniform image2D renderTargetImage;
 
 layout(binding = 31) uniform sampler2D lastTaaTexture;
+
+layout(binding = 36, rgba32f) uniform image2D transmittanceLutImage;
+layout(binding = 37, rgba32f) uniform image2D multiScatteringLutImage;
+layout(binding = 38, rgba32f) uniform image2D skyViewLutImage;
 
 layout(std430, binding = 32) readonly buffer SceneInfoBuffer { G_SceneInfo data; }
 sceneInfoBuffer;
