@@ -87,7 +87,7 @@ vec3 getMulScattValues(vec3 pos, vec3 sunDir) {
         float mieInScattering     = mieScattering * dMiePhaseVal;
 
         // eq 6, with correction to the paper: S(x,w_s) should be S(x-tv,w_s).
-        vec2 lookupUv = getLookupUv(marchedPos, sunDir);
+        vec2 lookupUv = getLookupUv1(marchedPos, sunDir);
         // vec3 sunTransmittance = imageLoad(transmittanceLutImage, ivec2(lookupUv *
         // imageSize(transmittanceLutImage))).rgb;
         vec3 sunTransmittance = textureLod(transmittanceLutTexture, lookupUv, 0).rgb;
@@ -103,7 +103,7 @@ vec3 getMulScattValues(vec3 pos, vec3 sunDir) {
       if (hitsGround) {
         vec3 hitPos = pos + groundDist * rayDir;
         if (dot(pos, sunDir) > 0.0) {
-          vec2 lookupUv = getLookupUv(hitPos, sunDir);
+          vec2 lookupUv = getLookupUv1(hitPos, sunDir);
           //   vec3 valRead  = imageLoad(transmittanceLutImage, ivec2(lookupUv *
           //   imageSize(transmittanceLutImage))).rgb;
           vec3 valRead = textureLod(transmittanceLutTexture, lookupUv, 0).rgb;

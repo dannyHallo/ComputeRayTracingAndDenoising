@@ -11,7 +11,7 @@ const float kOneMetreMm         = 1e-6;
 const float kGroundRadiusMm     = 6.36;
 const float kAtmosphereRadiusMm = 6.46;
 
-// 200m above the ground.
+// 200m above the ground
 const vec3 kCamPos = vec3(0.0, kGroundRadiusMm + 0.0002, 0.0);
 
 const vec2 kTLutRes   = vec2(256.0, 64.0);
@@ -112,6 +112,7 @@ float rayIntersectSphere(vec3 ro, vec3 rd, float radius) {
   return t + h;
 }
 
+// used when CREATING the transmittance LUT and multi-scattering LUT
 void uvToPosAndSunDir(out vec3 pos, out vec3 sunDir, vec2 uv) {
   // [-1, 1)
   float sunCosTheta = 2.0 * uv.x - 1.0;
@@ -125,8 +126,8 @@ void uvToPosAndSunDir(out vec3 pos, out vec3 sunDir, vec2 uv) {
   sunDir = normalize(vec3(0.0, sunCosTheta, -sin(sunTheta)));
 }
 
-// get look up uv for both transmittance LUT and multi-scattering LUT
-vec2 getLookupUv(vec3 pos, vec3 sunDir) {
+// used when PARSING the transmittance LUT and multi-scattering LUT
+vec2 getLookupUv1(vec3 pos, vec3 sunDir) {
   float height = length(pos);
   // the normalized up vector
   vec3 up = pos / height;
@@ -135,6 +136,29 @@ vec2 getLookupUv(vec3 pos, vec3 sunDir) {
 
   return vec2(0.5 * sunCosTheta + 0.5,
               (height - kGroundRadiusMm) / (kAtmosphereRadiusMm - kGroundRadiusMm));
+}
+
+float azimuthToUvX(float azimuth) { return (azimuth / kPi + 1.0) * 0.5; }
+
+// see section 5.3
+// input:  [-0.5pi, 0.5pi)
+// output: [0, 1)
+// non-linear encoding
+float altitudeToUvY(float altitude) {
+  return 0.5 + 0.5 * sign(altitude) * sqrt(abs(altitude) * 2.0 / kPi);
+}
+
+// used when PARSING the sky view LUT
+vec2 getLookupUv2(vec3 rayDir, vec3 sunDir) {
+  // the ray altitude, relative to the up vec of the cam
+  // (-0.5pi, 0.5pi)
+  float rayAlt = asin(rayDir.y);
+
+  // (0, 2pi)
+  float azimuth;
+  // looking straight up or down
+  azimuth = atan(rayDir.x, rayDir.z);
+  return vec2(azimuthToUvX(azimuth), altitudeToUvY(rayAlt));
 }
 
 #endif // ATMOS_COMMON_GLSL

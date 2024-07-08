@@ -35,7 +35,7 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, int numS
 
     vec3 sampleTransmittance = exp(-stepLen * extinction);
 
-    vec2 lookupUv         = getLookupUv(marchedPos, sunDir);
+    vec2 lookupUv         = getLookupUv1(marchedPos, sunDir);
     vec3 sunTransmittance = textureLod(transmittanceLutTexture, lookupUv, 0).rgb;
     vec3 psiMS            = textureLod(multiScatteringLutTexture, lookupUv, 0).rgb;
 
