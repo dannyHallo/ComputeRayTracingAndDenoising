@@ -79,6 +79,18 @@ vec3 debugInfoOverwrite(ivec2 midResuvi) {
 void main() {
   ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
 
+  ///
+
+  if (any(greaterThanEqual(uvi, imageSize(skyViewLutImage)))) {
+    imageStore(renderTargetImage, uvi, vec4(1.0));
+    return;
+  }
+  vec3 readingCol = imageLoad(skyViewLutImage, uvi).rgb;
+  imageStore(renderTargetImage, uvi, vec4(readingCol.bgr, 1));
+  return;
+
+  ///
+
   if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.highResSize)))) {
     return;
   }
@@ -88,7 +100,7 @@ void main() {
     return;
   }
   vec3 readingCol = unpackRGBE(imageLoad(rawImage, uvi).x).rgb;
-  imageStore(renderTargetImage, uvi, vec4(readingCol.zyx, 1));
+  imageStore(renderTargetImage, uvi, vec4(readingCol.bgr, 1));
   return;
 #endif
 

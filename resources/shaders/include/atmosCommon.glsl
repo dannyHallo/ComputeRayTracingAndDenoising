@@ -7,6 +7,7 @@
 // scattering coefficients: describe the intensity of scattering.
 
 // units are in megameters
+const float kOneMetreMm         = 1e-6;
 const float kGroundRadiusMm     = 6.36;
 const float kAtmosphereRadiusMm = 6.46;
 
@@ -111,31 +112,29 @@ float rayIntersectSphere(vec3 ro, vec3 rd, float radius) {
   return t + h;
 }
 
-// look up back on that TLUT texture
-vec3 getValFromTLUT(sampler2D tex, vec2 bufferRes, vec3 pos, vec3 sunDir) {
+void uvToPosAndSunDir(out vec3 pos, out vec3 sunDir, vec2 uv) {
+  // [-1, 1)
+  float sunCosTheta = 2.0 * uv.x - 1.0;
+  // the result of arccos lays in [0, pi]
+  // [pi, 0)
+  float sunTheta = acos(sunCosTheta);
+  // [kGroundRadius, kAtmosRadius)
+  float height = mix(kGroundRadiusMm + kOneMetreMm, kAtmosphereRadiusMm - kOneMetreMm, uv.y);
+
+  pos    = vec3(0.0, height, 0.0);
+  sunDir = normalize(vec3(0.0, sunCosTheta, -sin(sunTheta)));
+}
+
+// get look up uv for both transmittance LUT and multi-scattering LUT
+vec2 getLookupUv(vec3 pos, vec3 sunDir) {
   float height = length(pos);
   // the normalized up vector
   vec3 up = pos / height;
   // theta is the angle from up vector to sun vector
   float sunCosTheta = dot(sunDir, up);
-  vec2 uv           = vec2(0.5 * sunCosTheta + 0.5,
-                           (height - kGroundRadiusMm) / (kAtmosphereRadiusMm - kGroundRadiusMm));
-  uv                = clamp(uv, vec2(0.0), vec2(1.0));
-  uv *= kTLutRes / bufferRes;
-  return texture(tex, uv).rgb;
-}
 
-// look up back on that multi-scattering LUT texture, using the exact same
-// method as the TLUT
-vec3 getValFromMultiScattLUT(sampler2D tex, vec2 bufferRes, vec3 pos, vec3 sunDir) {
-  float height      = length(pos);
-  vec3 up           = pos / height;
-  float sunCosTheta = dot(sunDir, up);
-  vec2 uv           = vec2(0.5 * sunCosTheta + 0.5,
-                           (height - kGroundRadiusMm) / (kAtmosphereRadiusMm - kGroundRadiusMm));
-  uv                = clamp(uv, vec2(0.0), vec2(1.0));
-  uv *= kMsLutRes / bufferRes;
-  return texture(tex, uv).rgb;
+  return vec2(0.5 * sunCosTheta + 0.5,
+              (height - kGroundRadiusMm) / (kAtmosphereRadiusMm - kGroundRadiusMm));
 }
 
 #endif // ATMOS_COMMON_GLSL

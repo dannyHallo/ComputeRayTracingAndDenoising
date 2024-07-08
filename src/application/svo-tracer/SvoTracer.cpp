@@ -167,20 +167,6 @@ void SvoTracer::_createImages() {
   _createSwapchainRelatedImages();
 }
 
-void SvoTracer::_createSkyLutImages() {
-  _transmittanceLutImage = std::make_unique<Image>(
-      kTransmittanceLutWidth, kTransmittanceLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-
-  _multiScatteringLutImage = std::make_unique<Image>(
-      kMultiScatteringLutWidth, kMultiScatteringLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-
-  _skyViewLutImage =
-      std::make_unique<Image>(kSkyViewLutWidth, kSkyViewLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-}
-
 void SvoTracer::_createSwapchainRelatedImages() { _createFullSizedImages(); }
 
 void SvoTracer::_createBlueNoiseImages() {
@@ -207,6 +193,20 @@ void SvoTracer::_createBlueNoiseImages() {
   }
   _weightedCosineBlueNoise = std::make_unique<Image>(
       filenames, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+}
+
+void SvoTracer::_createSkyLutImages() {
+  _transmittanceLutImage = std::make_unique<Image>(
+      kTransmittanceLutWidth, kTransmittanceLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler);
+
+  _multiScatteringLutImage = std::make_unique<Image>(
+      kMultiScatteringLutWidth, kMultiScatteringLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler);
+
+  _skyViewLutImage = std::make_unique<Image>(
+      kSkyViewLutWidth, kSkyViewLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler);
 }
 
 void SvoTracer::_createFullSizedImages() {
@@ -435,7 +435,19 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    // TODO:
+    _multiScatteringLutPipeline->recordCommand(cmdBuffer, frameIndex, kMultiScatteringLutWidth,
+                                               kMultiScatteringLutHeight, 1);
+
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
+                         nullptr);
+
+    _skyViewLutPipeline->recordCommand(cmdBuffer, frameIndex, kSkyViewLutWidth, kSkyViewLutHeight,
+                                       1);
+
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
+                         nullptr);
 
     _svoCourseBeamPipeline->recordCommand(
         cmdBuffer, frameIndex,
@@ -712,6 +724,9 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(36, _transmittanceLutImage.get());
   _descriptorSetBundle->bindStorageImage(37, _multiScatteringLutImage.get());
   _descriptorSetBundle->bindStorageImage(38, _skyViewLutImage.get());
+  _descriptorSetBundle->bindImageSampler(39, _transmittanceLutImage.get());
+  _descriptorSetBundle->bindImageSampler(40, _multiScatteringLutImage.get());
+  _descriptorSetBundle->bindImageSampler(41, _skyViewLutImage.get());
 
   _descriptorSetBundle->bindStorageBuffer(32, _sceneInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(33, _svoBuilder->getAppendedOctreeBuffer());
@@ -728,19 +743,17 @@ void SvoTracer::_createPipelines() {
   _transmittanceLutPipeline->compileAndCacheShaderModule(false);
   _transmittanceLutPipeline->build();
 
-  // TODO:
-  // _multiScatteringLutPipeline = std::make_unique<ComputePipeline>(
-  //     _appContext, _logger, this, _makeShaderFullPath("multiScatteringLut.comp"),
-  //     WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler,
-  //     _shaderChangeListener);
-  // _multiScatteringLutPipeline->compileAndCacheShaderModule(false);
-  // _multiScatteringLutPipeline->build();
+  _multiScatteringLutPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, _makeShaderFullPath("multiScatteringLut.comp"),
+      WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
+  _multiScatteringLutPipeline->compileAndCacheShaderModule(false);
+  _multiScatteringLutPipeline->build();
 
-  // _skyViewLutPipeline = std::make_unique<ComputePipeline>(
-  //     _appContext, _logger, this, _makeShaderFullPath("skyViewLut.comp"), WorkGroupSize{8, 8, 1},
-  //     _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  // _skyViewLutPipeline->compileAndCacheShaderModule(false);
-  // _skyViewLutPipeline->build();
+  _skyViewLutPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, _makeShaderFullPath("skyViewLut.comp"), WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
+  _skyViewLutPipeline->compileAndCacheShaderModule(false);
+  _skyViewLutPipeline->build();
 
   _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("svoCoarseBeam.comp"), WorkGroupSize{8, 8, 1},
@@ -787,8 +800,8 @@ void SvoTracer::_createPipelines() {
 
 void SvoTracer::_updatePipelinesDescriptorBundles() {
   _transmittanceLutPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
-  // TODO:
-  //
+  _multiScatteringLutPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  _skyViewLutPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
 
   _svoCourseBeamPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _svoTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());

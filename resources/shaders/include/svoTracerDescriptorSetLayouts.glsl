@@ -53,6 +53,10 @@ layout(binding = 31) uniform sampler2D lastTaaTexture;
 layout(binding = 36, rgba32f) uniform image2D transmittanceLutImage;
 layout(binding = 37, rgba32f) uniform image2D multiScatteringLutImage;
 layout(binding = 38, rgba32f) uniform image2D skyViewLutImage;
+// corresponding sampler for the above images
+layout(binding = 39) uniform sampler2D transmittanceLutTexture;
+layout(binding = 40) uniform sampler2D multiScatteringLutTexture;
+layout(binding = 41) uniform sampler2D skyViewLutTexture;
 
 layout(std430, binding = 32) readonly buffer SceneInfoBuffer { G_SceneInfo data; }
 sceneInfoBuffer;

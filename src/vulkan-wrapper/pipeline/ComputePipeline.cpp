@@ -7,7 +7,6 @@
 #include "utils/logger/Logger.hpp"
 #include "utils/shader-compiler/ShaderCompiler.hpp"
 
-
 ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *logger,
                                  Scheduler *scheduler, std::string fullPathToShaderSourceCode,
                                  WorkGroupSize workGroupSize,
