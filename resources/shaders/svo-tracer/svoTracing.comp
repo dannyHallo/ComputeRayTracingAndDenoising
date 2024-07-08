@@ -355,9 +355,9 @@ bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out uint oPrimaryR
   return true;
 }
 
-void writeOutputBuffer(ivec2 uv, bool hitVoxel, vec3 position) {
-  // if uv is not the center pixel, we don't write the output buffer
-  if (uv != ivec2(renderInfoUbo.data.lowResSize) / 2) {
+void writeOutputBuffer(ivec2 uvi, bool hitVoxel, vec3 position) {
+  // if uvi is not the center pixel, we don't write the output buffer
+  if (uvi != ivec2(renderInfoUbo.data.lowResSize) / 2) {
     return;
   }
   outputInfoBuffer.data.midRayHit    = uint(hitVoxel);
@@ -365,8 +365,8 @@ void writeOutputBuffer(ivec2 uv, bool hitVoxel, vec3 position) {
 }
 
 void main() {
-  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
+  ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.lowResSize)))) {
     return;
   }
 
@@ -405,10 +405,10 @@ void main() {
     position = o + d * 1e10;
     color    = dayLightCalc(d);
   } else {
-    imageStore(positionImage, uv, vec4(position, 0));
-    imageStore(normalImage, uv, uvec4(packNormal(normal), 0, 0, 0));
-    imageStore(voxHashImage, uv, uvec4(voxHash, 0, 0, 0));
-    imageStore(depthImage, uv, vec4(tMin, 0, 0, 0));
+    imageStore(positionImage, uvi, vec4(position, 0));
+    imageStore(normalImage, uvi, uvec4(packNormal(normal), 0, 0, 0));
+    imageStore(voxHashImage, uvi, uvec4(voxHash, 0, 0, 0));
+    imageStore(depthImage, uvi, vec4(tMin, 0, 0, 0));
   }
 
   // calculate the motion here avoids a store - load cycle for the position, and the motion vector
@@ -419,14 +419,14 @@ void main() {
   // the motion vector points to the previous frame, and is normalized
   vec2 motion = pUv01 - uv01;
 
-  imageStore(hitImage, uv, uvec4(hitVoxel ? 1 : 0, 0, 0, 0));
-  imageStore(motionImage, uv, vec4(motion, 0, 0));
+  imageStore(hitImage, uvi, uvec4(hitVoxel ? 1 : 0, 0, 0, 0));
+  imageStore(motionImage, uvi, vec4(motion, 0, 0));
 
   uint packedColor = packRGBE(color);
   if (hitVoxel) {
-    imageStore(rawImage, uv, uvec4(packedColor, 0, 0, 0));
+    imageStore(rawImage, uvi, uvec4(packedColor, 0, 0, 0));
   } else {
-    imageStore(backgroundImage, uv, uvec4(packedColor, 0, 0, 0));
+    imageStore(backgroundImage, uvi, uvec4(packedColor, 0, 0, 0));
   }
 
   const vec3 iterUsedColor       = vec3(1, 0.4, 0.2) * 0.02 * float(primaryRayIterUsed);
@@ -440,7 +440,7 @@ void main() {
     overlappingColor += chunkTraversedColor;
   }
 
-  imageStore(octreeVisualizationImage, uv, uvec4(packRGBE(overlappingColor), 0, 0, 0));
+  imageStore(octreeVisualizationImage, uvi, uvec4(packRGBE(overlappingColor), 0, 0, 0));
 
-  writeOutputBuffer(uv, hitVoxel, position);
+  writeOutputBuffer(uvi, hitVoxel, position);
 }

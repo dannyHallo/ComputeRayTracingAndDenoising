@@ -1,0 +1,63 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#include "../include/svoTracerDescriptorSetLayouts.glsl"
+
+#include "../include/atmosCommon.glsl"
+
+// transmittance LUT : irrelevant to sun
+// each pixel coordinate corresponds to a height and sun zenith angle
+// does NOT need to update when the sun changes its angle
+// need to be updated when the properties of the atmosphere changes
+
+const int sunTransmittanceSteps = 40;
+
+vec3 getSunTransmittance(vec3 pos, vec3 sunDir) {
+  if (rayIntersectSphere(pos, sunDir, kGroundRadiusMm) > 0.0) {
+    return vec3(0.0);
+  }
+
+  float atmoDist = rayIntersectSphere(pos, sunDir, kAtmosphereRadiusMm);
+
+  // equation 2 from the paper
+  vec3 sumOfExtinction = vec3(0.0);
+
+  float stepLen   = atmoDist / float(sunTransmittanceSteps);
+  vec3 unitStep   = stepLen * sunDir;
+  vec3 marchedPos = pos - 0.5 * unitStep;
+  for (int stepI = 0; stepI < sunTransmittanceSteps; stepI += 1) {
+    marchedPos += unitStep;
+
+    vec3 rayleighScattering, extinction;
+    float mieScattering;
+    getScatteringValues(marchedPos, rayleighScattering, mieScattering, extinction);
+
+    sumOfExtinction += extinction;
+  }
+  return exp(-stepLen * sumOfExtinction);
+}
+
+void main() {
+  ivec2 uvi        = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 targetSize = imageSize(beamDepthImage);
+  if (any(greaterThanEqual(uvi, targetSize))) {
+    return;
+  }
+
+  vec2 uv = vec2(uvi) / vec2(targetSize);
+
+  // [-1, 1)
+  float sunCosTheta = 2.0 * uv.x - 1.0;
+  // the result of arccos lays in [0, pi]
+  // [pi, 0)
+  float sunTheta = acos(sunCosTheta);
+  // [kGroundRadius, kAtmosRadius)
+  float height = mix(kGroundRadiusMm, kAtmosphereRadiusMm, uv.y);
+
+  vec3 pos    = vec3(0.0, height, 0.0);
+  vec3 sunDir = normalize(vec3(0.0, sunCosTheta, -sin(sunTheta)));
+
+  imageStore(transmittanceLutImage, uvi, vec4(getSunTransmittance(pos, sunDir), 1.0));
+}

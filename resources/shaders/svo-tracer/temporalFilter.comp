@@ -30,18 +30,18 @@ bool isConsistent(vec3 normal, vec3 lastNormal, vec3 position, vec3 lastPosition
 }
 
 void main() {
-  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
+  ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.lowResSize)))) {
     return;
   }
 
-  bool hit = imageLoad(hitImage, uv).x != 0;
+  bool hit = imageLoad(hitImage, uvi).x != 0;
   if (!hit) {
     return;
   }
 
-  vec2 motion = imageLoad(motionImage, uv).xy * vec2(renderInfoUbo.data.lowResSize);
-  vec2 pUv    = vec2(uv) + motion;
+  vec2 motion = imageLoad(motionImage, uvi).xy * vec2(renderInfoUbo.data.lowResSize);
+  vec2 pUv    = vec2(uvi) + motion;
 
   vec2 pBaseUv = floor(pUv);
   vec2 subpix  = fract(pUv - pBaseUv);
@@ -55,8 +55,8 @@ void main() {
   vec3 sumOfWeightedColors = vec3(0);
 
   // normal test is useful for edges (nearby disocclusions)
-  vec3 normal   = unpackNormal(imageLoad(normalImage, uv).x);
-  vec3 position = imageLoad(positionImage, uv).xyz;
+  vec3 normal   = unpackNormal(imageLoad(normalImage, uvi).x);
+  vec3 position = imageLoad(positionImage, uvi).xyz;
   for (int i = 0; i < 4; i++) {
     ivec2 tappingUv   = ivec2(pBaseUv) + off[i];
     vec3 lastNormal   = unpackNormal(imageLoad(lastNormalImage, tappingUv).x);
@@ -64,13 +64,13 @@ void main() {
 
     bool consistent = isConsistent(normal, lastNormal, position, lastPosition);
     if (consistent) {
-      sumOfHistLengths += w[i] * float(imageLoad(temporalHistLengthImage, uv).x);
+      sumOfHistLengths += w[i] * float(imageLoad(temporalHistLengthImage, uvi).x);
       sumOfWeightedColors += w[i] * getAccumColor(tappingUv);
       sumOfWeights += w[i];
     }
   }
 
-  vec3 rawColor = unpackRGBE(imageLoad(rawImage, uv).x);
+  vec3 rawColor = unpackRGBE(imageLoad(rawImage, uvi).x);
 
   float histLength;
   vec3 thisFrameColor;
@@ -87,8 +87,8 @@ void main() {
     thisFrameColor = rawColor;
   }
 
-  imageStore(aTrousPingImage, uv, uvec4(packRGBE(thisFrameColor), 0, 0, 0));
-  imageStore(temporalHistLengthImage, uv, uvec4(histLength, 0, 0, 0));
+  imageStore(aTrousPingImage, uvi, uvec4(packRGBE(thisFrameColor), 0, 0, 0));
+  imageStore(temporalHistLengthImage, uvi, uvec4(histLength, 0, 0, 0));
   // vec4 accumVarianceHist = mix(imageLoad(lastVarianceHistImage, pUv), vec4(0), varianceBlending);
-  // imageStore(varianceHistImage, uv, accumVarianceHist);
+  // imageStore(varianceHistImage, uvi, accumVarianceHist);
 }

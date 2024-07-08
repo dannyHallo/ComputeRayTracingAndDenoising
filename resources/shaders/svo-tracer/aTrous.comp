@@ -25,32 +25,30 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uv) {
+void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uvi) {
   ivec2 bound = ivec2(renderInfoUbo.data.lowResSize);
   // padding
-  if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
-    uv = clamp(uv, ivec2(0), bound - ivec2(1));
+  if (any(lessThan(uvi, ivec2(0))) || any(greaterThanEqual(uvi, bound))) {
+    uvi = clamp(uvi, ivec2(0), bound - ivec2(1));
   }
 
-  oNormal   = unpackNormal(imageLoad(normalImage, uv).x);
-  oColor    = unpackRGBE(imageLoad(aTrousPingImage, uv).x);
-  oPosition = imageLoad(positionImage, uv).xyz;
-  // oVariance = imageLoad(varianceImage, uv).x;
+  oNormal   = unpackNormal(imageLoad(normalImage, uvi).x);
+  oColor    = unpackRGBE(imageLoad(aTrousPingImage, uvi).x);
+  oPosition = imageLoad(positionImage, uvi).xyz;
 }
 
-void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uv) {
+void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uvi) {
   ivec2 bound = ivec2(renderInfoUbo.data.lowResSize);
-  if (any(lessThan(uv, ivec2(0))) || any(greaterThanEqual(uv, bound))) {
-    uv = clamp(uv, ivec2(0), bound - ivec2(1));
+  if (any(lessThan(uvi, ivec2(0))) || any(greaterThanEqual(uvi, bound))) {
+    uvi = clamp(uvi, ivec2(0), bound - ivec2(1));
   }
 
-  oNormal   = unpackNormal(imageLoad(normalImage, uv).x);
-  oColor    = unpackRGBE(imageLoad(aTrousPongImage, uv).x);
-  oPosition = imageLoad(positionImage, uv).xyz;
-  // oVariance = imageLoad(varianceImage, uv).x;
+  oNormal   = unpackNormal(imageLoad(normalImage, uvi).x);
+  oColor    = unpackRGBE(imageLoad(aTrousPongImage, uvi).x);
+  oPosition = imageLoad(positionImage, uvi).xyz;
 }
 
-void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv, ivec2 dispatchXY,
+void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi, ivec2 dispatchXY,
                 int kernalHalfSize, uint currentIteration, vec3 normalAtUv, vec3 colorAtUv,
                 vec3 positionAtUv, float luminanceAtUv, float depthAtUv) {
   int stepSize   = 1 << currentIteration;
@@ -69,7 +67,7 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
   }
 
   // since we give a offset here, we need to check if the hit is valid again
-  if (imageLoad(hitImage, uv + offsetXY).x == 0) {
+  if (imageLoad(hitImage, uvi + offsetXY).x == 0) {
     return;
   }
 
@@ -79,9 +77,9 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
   // float varianceAtSample;
 
   if (currentIteration % 2 == 0) {
-    loadDataFromPing(normalAtSample, colorAtSample, positionAtSample, uv + offsetXY);
+    loadDataFromPing(normalAtSample, colorAtSample, positionAtSample, uvi + offsetXY);
   } else {
-    loadDataFromPong(normalAtSample, colorAtSample, positionAtSample, uv + offsetXY);
+    loadDataFromPong(normalAtSample, colorAtSample, positionAtSample, uvi + offsetXY);
   }
 
   // WEIGHT_C
@@ -110,7 +108,7 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
   if (depthFalloff < depthThrehold) {
     weightZ = 1.0;
   } else {
-    bool sameVoxHash = imageLoad(voxHashImage, uv).x == imageLoad(voxHashImage, uv + offsetXY).x;
+    bool sameVoxHash = imageLoad(voxHashImage, uvi).x == imageLoad(voxHashImage, uvi + offsetXY).x;
 
     // use tolerance to avoid sudden change
     if (sameVoxHash) {
@@ -131,12 +129,12 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uv,
 }
 
 void main() {
-  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.lowResSize)))) {
+  ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.lowResSize)))) {
     return;
   }
 
-  if (imageLoad(hitImage, uv).x == 0) {
+  if (imageLoad(hitImage, uvi).x == 0) {
     return;
   }
 
@@ -144,39 +142,30 @@ void main() {
   if (currentIteration >= spatialFilterInfoUbo.data.aTrousIterationCount) {
     // no A-Trous at all: just copy input to the output at the first iteration
     if (currentIteration == 0) {
-      vec3 color       = unpackRGBE(imageLoad(aTrousPingImage, uv).x);
+      vec3 color       = unpackRGBE(imageLoad(aTrousPingImage, uvi).x);
       uint packedColor = packRGBE(color);
-      imageStore(aTrousFinalResultImage, uv, uvec4(packedColor, 0, 0, 0));
-      imageStore(accumedImage, uv, uvec4(packedColor, 0, 0, 0));
+      imageStore(aTrousFinalResultImage, uvi, uvec4(packedColor, 0, 0, 0));
+      imageStore(accumedImage, uvi, uvec4(packedColor, 0, 0, 0));
     }
     return;
   }
 
-  // if (spatialFilterInfoUbo.data.bypassBluring || aTrousIterationsInfo.data >=
-  // aTrousIterationsInfo.dataCap) {
-  //   if (aTrousIterationsInfo.data == 0) {
-  //     imageStore(accumTex, uv, vec4(colorAtUv, 1));
-  //   }
-  //   imageStore(aTrousOutputTex, uv, vec4(colorAtUv, 1));
-  //   return;
-  // }
-
   vec3 normalAtUv, colorAtUv, positionAtUv;
   if (currentIteration % 2 == 0) {
-    loadDataFromPing(normalAtUv, colorAtUv, positionAtUv, uv);
+    loadDataFromPing(normalAtUv, colorAtUv, positionAtUv, uvi);
   } else {
-    loadDataFromPong(normalAtUv, colorAtUv, positionAtUv, uv);
+    loadDataFromPong(normalAtUv, colorAtUv, positionAtUv, uvi);
   }
 
   luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
-  depthAtUv     = imageLoad(depthImage, uv).x;
+  depthAtUv     = imageLoad(depthImage, uvi).x;
 
   const int kernalHalfSize = 1;
   float weightSum          = 0;
   vec3 sumOfWeightedColors = vec3(0);
   for (int indexX = -kernalHalfSize; indexX <= kernalHalfSize; indexX++) {
     for (int indexY = -kernalHalfSize; indexY <= kernalHalfSize; indexY++) {
-      blurKernel(weightSum, sumOfWeightedColors, uv, ivec2(indexX, indexY), kernalHalfSize,
+      blurKernel(weightSum, sumOfWeightedColors, uvi, ivec2(indexX, indexY), kernalHalfSize,
                  currentIteration, normalAtUv, colorAtUv, positionAtUv, luminanceAtUv, depthAtUv);
     }
   }
@@ -185,19 +174,19 @@ void main() {
   uint packedWeightedColor = packRGBE(weightedColor);
   // send to accum buffer for the first iteration
   if (currentIteration == 0) {
-    imageStore(accumedImage, uv, uvec4(packedWeightedColor, 0, 0, 0));
+    imageStore(accumedImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
   }
 
   // dump image if in the last iteration
   if (currentIteration == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
-    imageStore(aTrousFinalResultImage, uv, uvec4(packedWeightedColor, 0, 0, 0));
+    imageStore(aTrousFinalResultImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
     return;
   }
 
   // send to pingpong buffer
   if (currentIteration % 2 == 0) {
-    imageStore(aTrousPongImage, uv, uvec4(packedWeightedColor, 0, 0, 0));
+    imageStore(aTrousPongImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
   } else {
-    imageStore(aTrousPingImage, uv, uvec4(packedWeightedColor, 0, 0, 0));
+    imageStore(aTrousPingImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
   }
 }

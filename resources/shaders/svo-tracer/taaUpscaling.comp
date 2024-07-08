@@ -17,14 +17,14 @@ vec2 midResToLowRes(ivec2 midResUv) {
          vec2(0.5) - subpixOffset;
 }
 
-void getMoments(out vec3 mom1, out vec3 mom2, out vec3 colorCenter, ivec2 uv) {
+void getMoments(out vec3 mom1, out vec3 mom2, out vec3 colorCenter, ivec2 uvi) {
   mom1            = vec3(0);
   mom2            = vec3(0);
   uint numSamples = 0;
 
   for (int yy = -1; yy <= 1; yy++) {
     for (int xx = -1; xx <= 1; xx++) {
-      ivec2 p = uv + ivec2(xx, yy);
+      ivec2 p = uvi + ivec2(xx, yy);
 
       // out of bound
       if (any(lessThan(p, ivec2(0))) ||
@@ -48,10 +48,10 @@ void getMoments(out vec3 mom1, out vec3 mom2, out vec3 colorCenter, ivec2 uv) {
   mom2 /= float(numSamples);
 }
 
-vec2 getMotion(ivec2 uv) {
+vec2 getMotion(ivec2 uvi) {
   float len   = -1;
   vec2 motion = vec2(0);
-  return imageLoad(motionImage, uv).xy;
+  return imageLoad(motionImage, uvi).xy;
 }
 
 float getSampleWeight(vec2 delta, float scale) {
@@ -59,17 +59,17 @@ float getSampleWeight(vec2 delta, float scale) {
 }
 
 void main() {
-  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
-  if (any(greaterThanEqual(uv, ivec2(renderInfoUbo.data.midResSize)))) {
+  ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.midResSize)))) {
     return;
   }
 
-  vec2 lowResUv     = midResToLowRes(uv);
+  vec2 lowResUv     = midResToLowRes(uvi);
   ivec2 intLowResUv = ivec2(lowResUv);
 
   if (!bool(twickableParametersUbo.data.taa)) {
     vec3 writingCol = unpackRGBE(imageLoad(blittedImage, intLowResUv).x).rgb;
-    imageStore(taaImage, uv, vec4(writingCol, 0));
+    imageStore(taaImage, uvi, vec4(writingCol, 0));
     return;
   }
 
@@ -82,7 +82,7 @@ void main() {
 
   // motion points to the last frame
   vec2 motion = getMotion(intLowResUv) * vec2(renderInfoUbo.data.midResSize);
-  vec2 pUv    = vec2(uv) + vec2(0.5) + motion;
+  vec2 pUv    = vec2(uvi) + vec2(0.5) + motion;
 
   vec3 colorPrev = textureLod(lastTaaTexture, pUv * renderInfoUbo.data.midResSizeInv, 0).xyz;
 
@@ -103,5 +103,5 @@ void main() {
 
   writingCol = mix(colorPrev, colorCenter, pixelWeight);
 
-  imageStore(taaImage, uv, vec4(writingCol, 0));
+  imageStore(taaImage, uvi, vec4(writingCol, 0));
 }

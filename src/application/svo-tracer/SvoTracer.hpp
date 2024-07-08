@@ -182,11 +182,14 @@ private:
 
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
 
+  std::unique_ptr<ComputePipeline> _transmittanceLutPipeline;
+  std::unique_ptr<ComputePipeline> _multiScatteringLutPipeline;
+  std::unique_ptr<ComputePipeline> _skyViewLutPipeline;
+
   std::unique_ptr<ComputePipeline> _svoCourseBeamPipeline;
   std::unique_ptr<ComputePipeline> _svoTracingPipeline;
   std::unique_ptr<ComputePipeline> _temporalFilterPipeline;
   std::unique_ptr<ComputePipeline> _aTrousPipeline;
-  std::unique_ptr<ComputePipeline> _testPipeline;
   std::unique_ptr<ComputePipeline> _backgroundBlitPipeline;
   std::unique_ptr<ComputePipeline> _taaUpscalingPipeline;
   std::unique_ptr<ComputePipeline> _nearestUpscalingPipeline;

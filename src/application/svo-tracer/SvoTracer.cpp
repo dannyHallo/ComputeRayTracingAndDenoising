@@ -428,6 +428,14 @@ void SvoTracer::_recordRenderingCommandBuffers() {
     );
 
     // _renderTargetImage->clearImage(cmdBuffer);
+    _transmittanceLutPipeline->recordCommand(cmdBuffer, frameIndex, kTransmittanceLutWidth,
+                                             kTransmittanceLutHeight, 1);
+
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
+                         nullptr);
+
+    // TODO:
 
     _svoCourseBeamPipeline->recordCommand(
         cmdBuffer, frameIndex,
@@ -714,6 +722,26 @@ void SvoTracer::_createDescriptorSetBundle() {
 }
 
 void SvoTracer::_createPipelines() {
+  _transmittanceLutPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, _makeShaderFullPath("transmittanceLut.comp"),
+      WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
+  _transmittanceLutPipeline->compileAndCacheShaderModule(false);
+  _transmittanceLutPipeline->build();
+
+  // TODO:
+  // _multiScatteringLutPipeline = std::make_unique<ComputePipeline>(
+  //     _appContext, _logger, this, _makeShaderFullPath("multiScatteringLut.comp"),
+  //     WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler,
+  //     _shaderChangeListener);
+  // _multiScatteringLutPipeline->compileAndCacheShaderModule(false);
+  // _multiScatteringLutPipeline->build();
+
+  // _skyViewLutPipeline = std::make_unique<ComputePipeline>(
+  //     _appContext, _logger, this, _makeShaderFullPath("skyViewLut.comp"), WorkGroupSize{8, 8, 1},
+  //     _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
+  // _skyViewLutPipeline->compileAndCacheShaderModule(false);
+  // _skyViewLutPipeline->build();
+
   _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("svoCoarseBeam.comp"), WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
@@ -758,6 +786,10 @@ void SvoTracer::_createPipelines() {
 }
 
 void SvoTracer::_updatePipelinesDescriptorBundles() {
+  _transmittanceLutPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  // TODO:
+  //
+
   _svoCourseBeamPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _svoTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _temporalFilterPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());

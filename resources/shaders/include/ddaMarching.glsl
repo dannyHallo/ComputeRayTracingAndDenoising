@@ -1,3 +1,6 @@
+#ifndef DDA_MARCHING_GLSL
+#define DDA_MARCHING_GLSL
+
 bool inChunkRange(ivec3 pos) {
   return all(greaterThanEqual(pos, ivec3(0))) && all(lessThan(pos, sceneInfoBuffer.data.chunksDim));
 }
@@ -70,3 +73,5 @@ bool ddaMarchingWithSave(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookup
   }
   return false;
 }
+
+#endif // DDA_MARCHING_GLSL
