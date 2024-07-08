@@ -5,8 +5,9 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "../include/definitions.glsl"
-#include "../include/packer.glsl"
+#include "../include/core/color.glsl"
+#include "../include/core/definitions.glsl"
+#include "../include/core/packer.glsl"
 #include "../include/random.glsl"
 
 // standard 3x3 filtering kernel from q2rtx
@@ -88,9 +89,8 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
     phiC *= pow(2, -currentIteration);
   }
 
-  float luminanceAtSample = dot(kRgbToLuminanceMat, colorAtSample);
-  float colDiff           = abs(luminanceAtSample - luminanceAtUv);
-  float weightC           = exp(-colDiff / phiC);
+  float colDiff = abs(lum(colorAtSample) - luminanceAtUv);
+  float weightC = exp(-colDiff / phiC);
 
   // WEIGHT_N
   float weightN = max(0., pow(dot(normalAtUv, normalAtSample), spatialFilterInfoUbo.data.phiN));
@@ -157,7 +157,7 @@ void main() {
     loadDataFromPong(normalAtUv, colorAtUv, positionAtUv, uvi);
   }
 
-  luminanceAtUv = dot(kRgbToLuminanceMat, colorAtUv);
+  luminanceAtUv = lum(colorAtUv);
   depthAtUv     = imageLoad(depthImage, uvi).x;
 
   const int kernalHalfSize = 1;

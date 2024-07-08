@@ -3,7 +3,7 @@
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "../include/definitions.glsl"
+#include "../include/core/definitions.glsl"
 
 // for easier searching
 struct BaseDisturbance {

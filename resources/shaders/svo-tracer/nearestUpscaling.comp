@@ -5,9 +5,9 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "../include/colour.glsl"
-#include "../include/packer.glsl"
-#include "../include/postProcessing.glsl"
+#include "../include/core/color.glsl"
+#include "../include/core/packer.glsl"
+#include "../include/core/postProcessing.glsl"
 
 const uint kDotPixelInnerRadius = 4;
 const uint kDotPixelOuterRadius = 5;
@@ -75,7 +75,7 @@ void main() {
   ivec2 midResuvi = highResToMidRes(uvi);
   vec3 color      = imageLoad(taaImage, midResuvi).rgb;
 
-  color = jodieReinhardTonemap(color);
+  // color = jodieReinhardTonemap(color);
 
   // dithering pattern, to reduce banding
   color += getDitherMask(uvi);

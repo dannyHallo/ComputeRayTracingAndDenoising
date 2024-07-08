@@ -1,9 +1,8 @@
 #ifndef DEFINITIONS_GLSL
 #define DEFINITIONS_GLSL
 
-const vec3 kRgbToLuminanceMat = vec3(0.2989, 0.5870, 0.1140);
-const float kEpsilon          = 3.552713678800501e-15;
-const float kDeg2Rad          = 0.0174532925;
+const float kEpsilon = 3.552713678800501e-15;
+const float kDeg2Rad = 0.0174532925;
 
 const float kQuarterPi = 0.785398163395;
 const float kHalfPi    = 1.57079632679;

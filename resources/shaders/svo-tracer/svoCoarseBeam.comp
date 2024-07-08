@@ -5,9 +5,10 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
+#include "../include/core/definitions.glsl"
 #include "../include/ddaMarching.glsl"
-#include "../include/definitions.glsl"
 #include "../include/projection.glsl"
+
 
 const uint STACK_SIZE = 23;
 struct StackItem {

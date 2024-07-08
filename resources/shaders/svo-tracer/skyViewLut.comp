@@ -6,7 +6,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
 #include "../include/atmosCommon.glsl"
-#include "../include/definitions.glsl"
+#include "../include/core/definitions.glsl"
 
 // buffer C calculates the actual sky-view
 // it's a non-linear lat-long (altitude-azimuth) map, and has more resolution

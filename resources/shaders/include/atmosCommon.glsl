@@ -1,7 +1,7 @@
 #ifndef ATMOS_COMMON_GLSL
 #define ATMOS_COMMON_GLSL
 
-#include "../include/definitions.glsl"
+#include "../include/core/definitions.glsl"
 
 // phase function: describes the directionality of scattering.
 // scattering coefficients: describe the intensity of scattering.

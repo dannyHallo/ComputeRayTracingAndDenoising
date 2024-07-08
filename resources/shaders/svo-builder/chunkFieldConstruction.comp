@@ -5,7 +5,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
-#include "../include/perlinNoise.glsl"
+#include "../include/core/perlinNoise.glsl"
 
 float computeNoise(vec3 p) {
   float total       = 0.0;
