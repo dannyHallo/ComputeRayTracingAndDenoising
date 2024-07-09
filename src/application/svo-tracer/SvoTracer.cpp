@@ -20,8 +20,8 @@ constexpr uint32_t kTransmittanceLutWidth    = 256;
 constexpr uint32_t kTransmittanceLutHeight   = 64;
 constexpr uint32_t kMultiScatteringLutWidth  = 32;
 constexpr uint32_t kMultiScatteringLutHeight = 32;
-constexpr uint32_t kSkyViewLutWidth          = 200;
-constexpr uint32_t kSkyViewLutHeight         = 200;
+constexpr uint32_t kSkyViewLutWidth          = 600;
+constexpr uint32_t kSkyViewLutHeight         = 600;
 
 namespace {
 float halton(int base, int index) {
