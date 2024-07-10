@@ -15,11 +15,16 @@
 class Logger;
 // also, this class should be configed out of class
 class VulkanApplicationContext {
+
 public:
   static VulkanApplicationContext *getInstance();
 
+  struct GraphicsSettings {
+    bool isFramerateLimited;
+  };
+
   // use glwindow to init the instance, can be only called once
-  void init(Logger *logger, GLFWwindow *glWindow);
+  void init(Logger *logger, GLFWwindow *glWindow, GraphicsSettings *settings);
 
   ~VulkanApplicationContext();
 
@@ -29,7 +34,7 @@ public:
   VulkanApplicationContext(VulkanApplicationContext &&)                 = delete;
   VulkanApplicationContext &operator=(VulkanApplicationContext &&)      = delete;
 
-  void onSwapchainResize();
+  void onSwapchainResize(bool isFramerateLimited);
 
   [[nodiscard]] inline const VkInstance &getVkInstance() const { return _vkInstance; }
   [[nodiscard]] inline const VkDevice &getDevice() const { return _device; }
@@ -109,8 +114,9 @@ private:
 
   void _initWindow(uint8_t windowSize);
 
-  void _createCommandPool();
+  void _createSwapchain(bool isFramerateLimited);
   void _createAllocator();
+  void _createCommandPool();
 
   static std::vector<const char *> _getRequiredInstanceExtensions();
   void _checkDeviceSuitable(VkSurfaceKHR surface, VkPhysicalDevice physicalDevice);

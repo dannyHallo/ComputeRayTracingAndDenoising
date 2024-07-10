@@ -4,7 +4,7 @@
 
 class Logger;
 namespace ContextCreator {
-void createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
+void createSwapchain(Logger *logger, bool isFramerateLimited, VkSwapchainKHR &swapchain,
                      std::vector<VkImage> &swapchainImages,
                      std::vector<VkImageView> &swapchainImageViews, VkFormat &swapchainImageFormat,
                      VkExtent2D &swapchainExtent, const VkSurfaceKHR &surface,

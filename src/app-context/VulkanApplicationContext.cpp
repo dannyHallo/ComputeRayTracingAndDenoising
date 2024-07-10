@@ -9,7 +9,8 @@
 static const std::vector<const char *> validationLayers         = {"VK_LAYER_KHRONOS_validation"};
 static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
+void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window,
+                                    GraphicsSettings *settings) {
   _logger = logger;
   _logger->info("Initiating VulkanApplicationContext");
 #ifndef NVALIDATIONLAYERS
@@ -46,8 +47,7 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window) {
   _computeQueue  = queueSelection.computeQueue;
   _transferQueue = queueSelection.transferQueue;
 
-  onSwapchainResize();
-
+  _createSwapchain(settings->isFramerateLimited);
   _createAllocator();
   _createCommandPool();
 }
@@ -57,15 +57,12 @@ VulkanApplicationContext *VulkanApplicationContext::getInstance() {
   return &instance;
 }
 
-void VulkanApplicationContext::onSwapchainResize() {
+void VulkanApplicationContext::onSwapchainResize(bool isFramerateLimited) {
   for (auto &swapchainImageView : _swapchainImageViews) {
     vkDestroyImageView(_device, swapchainImageView, nullptr);
   }
   vkDestroySwapchainKHR(_device, _swapchain, nullptr);
-
-  ContextCreator::createSwapchain(_logger, _swapchain, _swapchainImages, _swapchainImageViews,
-                                  _swapchainImageFormat, _swapchainExtent, _surface, _device,
-                                  _physicalDevice, _queueFamilyIndices);
+  _createSwapchain(isFramerateLimited);
 }
 
 VulkanApplicationContext::~VulkanApplicationContext() {
@@ -92,6 +89,12 @@ VulkanApplicationContext::~VulkanApplicationContext() {
 #endif // NDEBUG
 
   vkDestroyInstance(_vkInstance, nullptr);
+}
+
+void VulkanApplicationContext::_createSwapchain(bool isFramerateLimited) {
+  ContextCreator::createSwapchain(_logger, isFramerateLimited, _swapchain, _swapchainImages,
+                                  _swapchainImageViews, _swapchainImageFormat, _swapchainExtent,
+                                  _surface, _device, _physicalDevice, _queueFamilyIndices);
 }
 
 void VulkanApplicationContext::_createAllocator() {

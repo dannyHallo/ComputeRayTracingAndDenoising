@@ -29,7 +29,9 @@ Application::Application(Logger *logger)
 
   _window = std::make_unique<Window>(WindowStyle::kMaximized);
 
-  _appContext->init(_logger, _window->getGlWindow());
+  VulkanApplicationContext::GraphicsSettings settings{};
+  settings.isFramerateLimited = _isFramerateLimited;
+  _appContext->init(_logger, _window->getGlWindow(), &settings);
   _camera = std::make_unique<Camera>(_window.get());
 
   _svoBuilder =
@@ -54,7 +56,8 @@ Application::Application(Logger *logger)
 Application::~Application() { GlobalEventDispatcher::get().disconnect<>(this); }
 
 void Application::_loadConfig() {
-  _framesInFlight = _tomlConfigReader->getConfig<uint32_t>("Application.framesInFlight");
+  _framesInFlight     = _tomlConfigReader->getConfig<uint32_t>("Application.framesInFlight");
+  _isFramerateLimited = _tomlConfigReader->getConfig<bool>("Application.isFramerateLimited");
 }
 
 void Application::run() {
@@ -77,7 +80,7 @@ void Application::_onRenderLoopBlockRequest(E_RenderLoopBlockRequest const &even
 }
 
 void Application::_onSwapchainResize() {
-  _appContext->onSwapchainResize();
+  _appContext->onSwapchainResize(_isFramerateLimited);
   _imguiManager->onSwapchainResize();
   _svoTracer->onSwapchainResize();
 }

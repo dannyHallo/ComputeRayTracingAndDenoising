@@ -41,6 +41,7 @@ private:
 
   // config
   uint32_t _framesInFlight{};
+  bool _isFramerateLimited{};
   void _loadConfig();
 
   std::unique_ptr<FpsSink> _fpsSink;

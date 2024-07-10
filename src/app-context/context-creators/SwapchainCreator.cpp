@@ -82,10 +82,14 @@ _chooseSwapSurfaceFormat(Logger *logger, const std::vector<VkSurfaceFormatKHR> &
 
 // choose the present mode of the swapchain
 VkPresentModeKHR
-_chooseSwapPresentMode(Logger *logger, const std::vector<VkPresentModeKHR> &availablePresentModes) {
+_chooseSwapPresentMode(Logger *logger, bool isFramerateLimited,
+                       const std::vector<VkPresentModeKHR> &availablePresentModes) {
+  VkPresentModeKHR preferedPresentMode =
+      isFramerateLimited ? VK_PRESENT_MODE_FIFO_RELAXED_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
+
   // our preferance: Mailbox present mode
   for (const auto &availablePresentMode : availablePresentModes) {
-    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+    if (availablePresentMode == preferedPresentMode) {
       return availablePresentMode;
     }
   }
@@ -106,7 +110,8 @@ VkExtent2D _getSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities, Logger *
 }
 } // namespace
 
-void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
+void ContextCreator::createSwapchain(Logger *logger, bool isFramerateLimited,
+                                     VkSwapchainKHR &swapchain,
                                      std::vector<VkImage> &swapchainImages,
                                      std::vector<VkImageView> &swapchainImageViews,
                                      VkFormat &swapchainImageFormat, VkExtent2D &swapchainExtent,
@@ -116,8 +121,9 @@ void ContextCreator::createSwapchain(Logger *logger, VkSwapchainKHR &swapchain,
   SwapchainSupportDetails swapchainSupport = _querySwapchainSupport(surface, physicalDevice);
   VkSurfaceFormatKHR surfaceFormat = _chooseSwapSurfaceFormat(logger, swapchainSupport.formats);
   swapchainImageFormat             = surfaceFormat.format;
-  VkPresentModeKHR presentMode     = _chooseSwapPresentMode(logger, swapchainSupport.presentModes);
-  swapchainExtent                  = _getSwapExtent(swapchainSupport.capabilities, logger);
+  VkPresentModeKHR presentMode =
+      _chooseSwapPresentMode(logger, isFramerateLimited, swapchainSupport.presentModes);
+  swapchainExtent = _getSwapExtent(swapchainSupport.capabilities, logger);
 
   // recommanded: min + 1
   uint32_t imageCount = swapchainSupport.capabilities.minImageCount + 1;
