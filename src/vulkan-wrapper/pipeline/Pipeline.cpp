@@ -5,7 +5,6 @@
 #include "scheduler/Scheduler.hpp"
 #include "utils/logger/Logger.hpp"
 
-
 #include <map>
 #include <vector>
 

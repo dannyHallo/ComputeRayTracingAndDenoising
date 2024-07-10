@@ -54,10 +54,9 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
     return;
   }
 
-  // here, is some editors, (vscode, notepad++), when a file is saved, it will be saved twice, so
-  // the block request is sent twice, however, when the render loop is blocked, the pipelines will
-  // be rebuilt only once, a caching mechanism is used to avoid avoid duplicates
-
+  // here, is some editors, (vscode, notepad++), when a file is saved, it might be saved twice
+  // simultaneously, so the block request is sent twice, however, when the render loop is blocked,
+  // the pipelines will be rebuilt only once, a caching mechanism is used to avoid duplicates
   _pipelinesToRebuild.insert(_shaderFileNameToPipeline[normalizedPathToFile]);
 
   // request to block the render loop, when the render loop is blocked, the pipelines will be
