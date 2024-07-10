@@ -17,7 +17,7 @@ const vec2 kTLutRes   = vec2(256.0, 64.0);
 const vec2 kMsLutRes  = vec2(32.0);
 const vec2 kSkyLutRes = vec2(200.0);
 
-const vec3 kGroundAlbedo = vec3(0.3);
+const vec3 kGroundAlbedo = vec3(0.8);
 
 // found in sec 4, table 1
 const vec3 kRayleighScatteringBase = vec3(5.802, 13.558, 33.1);
@@ -125,7 +125,7 @@ void uvToPosAndSunDir(out vec3 pos, out vec3 sunDir, vec2 uv) {
   sunDir = normalize(vec3(0.0, sunCosTheta, -sin(sunTheta)));
 }
 
-// used when PARSING the transmittance LUT and multi-scattering LUT
+// returns the correct uv to access the transmittance LUT and multi-scattering LUT
 vec2 getLookupUv1(vec3 pos, vec3 sunDir) {
   float height = length(pos);
   // the normalized up vector
@@ -147,7 +147,7 @@ float altitudeToUvY(float altitude) {
   return 0.5 + 0.5 * sign(altitude) * sqrt(abs(altitude) * 2.0 / kPi);
 }
 
-// used when PARSING the sky view LUT
+// returns the correct uv to access the sky view LUT
 vec2 getLookupUv2(vec3 rayDir, vec3 sunDir) {
   // the ray altitude, relative to the up vec of the cam
   // (-0.5pi, 0.5pi)
