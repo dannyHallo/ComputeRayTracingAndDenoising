@@ -2,12 +2,13 @@
 
 This voxel tracing project is originally inspired by John Lin's work here [https://www.youtube.com/watch?v=UHzeQZD9t2s&t=34s]
 
-# Todos
-
-- [ ] Custom block allocator
-      https://www.youtube.com/watch?v=sP7xRUyP3e0
+# Roadmap
 
 - [ ] Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
+
+- [ ] Beautiful sky
+
+- [ ] Ocean
 
 # Build this project
 
