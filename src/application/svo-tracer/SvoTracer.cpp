@@ -139,9 +139,9 @@ void SvoTracer::update() { _recordRenderingCommandBuffers(); }
 void SvoTracer::_createSamplers() {
   {
     auto settings         = Sampler::Settings{};
-    settings.addressModeU = Sampler::AddressMode::kClampToBorder;
-    settings.addressModeV = Sampler::AddressMode::kClampToBorder;
-    settings.addressModeW = Sampler::AddressMode::kClampToBorder;
+    settings.addressModeU = Sampler::AddressMode::kClampToEdge;
+    settings.addressModeV = Sampler::AddressMode::kClampToEdge;
+    settings.addressModeW = Sampler::AddressMode::kClampToEdge;
     _defaultSampler       = std::make_unique<Sampler>(settings);
   }
 
@@ -150,7 +150,7 @@ void SvoTracer::_createSamplers() {
     // uv.x encodes the azimuth from -pi to pi, it needs to be closed
     settings.addressModeU = Sampler::AddressMode::kRepeat;
     settings.addressModeV = Sampler::AddressMode::kClampToEdge;
-    settings.addressModeW = Sampler::AddressMode::kClampToBorder;
+    settings.addressModeW = Sampler::AddressMode::kClampToEdge;
     _skyLutSampler        = std::make_unique<Sampler>(settings);
   }
 }
