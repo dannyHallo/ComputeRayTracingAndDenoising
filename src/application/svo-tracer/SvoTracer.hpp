@@ -16,6 +16,7 @@ class Image;
 class ImageForwardingPair;
 class Buffer;
 class BufferBundle;
+class Sampler;
 class SvoBuilder;
 class DescriptorSetBundle;
 class ComputePipeline;
@@ -97,7 +98,8 @@ private:
 
   /// IMAGES
 
-  VkSampler _defaultSampler = VK_NULL_HANDLE;
+  std::unique_ptr<Sampler> _clamplingSampler;
+  std::unique_ptr<Sampler> _repeativeSampler;
 
   // spatial-temporal blue noise (arrays of images)
   std::unique_ptr<Image> _vec2BlueNoise;
@@ -146,7 +148,7 @@ private:
   std::unique_ptr<Image> _renderTargetImage;
   std::vector<std::unique_ptr<ImageForwardingPair>> _targetForwardingPairs;
 
-  void _createDefaultSampler();
+  void _createSamplers();
 
   void _createImages();
   void _createSkyLutImages();

@@ -12,6 +12,7 @@
 #include "vulkan-wrapper/memory/BufferBundle.hpp"
 #include "vulkan-wrapper/memory/Image.hpp"
 #include "vulkan-wrapper/pipeline/ComputePipeline.hpp"
+#include "vulkan-wrapper/sampler/Sampler.hpp"
 
 #include <string>
 
@@ -53,8 +54,6 @@ SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_
 }
 
 SvoTracer::~SvoTracer() {
-  vkDestroySampler(_appContext->getDevice(), _defaultSampler, nullptr);
-
   for (auto &commandBuffer : _tracingCommandBuffers) {
     vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                          &commandBuffer);
@@ -91,7 +90,7 @@ void SvoTracer::_updateImageResolutions() {
 void SvoTracer::init(SvoBuilder *svoBuilder) {
   _svoBuilder = svoBuilder;
 
-  _createDefaultSampler();
+  _createSamplers();
 
   // images
   _createImages();
@@ -137,28 +136,9 @@ void SvoTracer::_createTaaSamplingOffsets() {
 
 void SvoTracer::update() { _recordRenderingCommandBuffers(); }
 
-void SvoTracer::_createDefaultSampler() {
-  VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
-  samplerInfo.magFilter               = VK_FILTER_LINEAR; // For bilinear interpolation
-  samplerInfo.minFilter               = VK_FILTER_LINEAR; // For bilinear interpolation
-  samplerInfo.addressModeU            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  samplerInfo.addressModeV            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  samplerInfo.addressModeW            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-  samplerInfo.anisotropyEnable        = VK_FALSE;
-  samplerInfo.maxAnisotropy           = 1;
-  samplerInfo.borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-  samplerInfo.unnormalizedCoordinates = VK_FALSE;
-  samplerInfo.compareEnable           = VK_FALSE;
-  samplerInfo.compareOp               = VK_COMPARE_OP_ALWAYS;
-  samplerInfo.mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-  samplerInfo.mipLodBias              = 0.0F;
-  samplerInfo.minLod                  = 0.0F;
-  samplerInfo.maxLod                  = 0.0F;
-
-  if (vkCreateSampler(_appContext->getDevice(), &samplerInfo, nullptr, &_defaultSampler) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to create texture sampler!");
-  }
+void SvoTracer::_createSamplers() {
+  _clamplingSampler = std::make_unique<Sampler>(Sampler::AddressMode::kClamp);
+  _repeativeSampler = std::make_unique<Sampler>(Sampler::AddressMode::kRepeat);
 }
 
 void SvoTracer::_createImages() {
@@ -198,15 +178,15 @@ void SvoTracer::_createBlueNoiseImages() {
 void SvoTracer::_createSkyLutImages() {
   _transmittanceLutImage = std::make_unique<Image>(
       kTransmittanceLutWidth, kTransmittanceLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler);
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _clamplingSampler->getVkSampler());
 
   _multiScatteringLutImage = std::make_unique<Image>(
       kMultiScatteringLutWidth, kMultiScatteringLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler);
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _clamplingSampler->getVkSampler());
 
   _skyViewLutImage = std::make_unique<Image>(
       kSkyViewLutWidth, kSkyViewLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler);
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _clamplingSampler->getVkSampler());
 }
 
 void SvoTracer::_createFullSizedImages() {
@@ -272,7 +252,7 @@ void SvoTracer::_createFullSizedImages() {
   _lastTaaImage = std::make_unique<Image>(
       _midResWidth, _midResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      _defaultSampler);
+      _clamplingSampler->getVkSampler());
 
   _blittedImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                                           VK_IMAGE_USAGE_STORAGE_BIT);
