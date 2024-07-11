@@ -137,8 +137,22 @@ void SvoTracer::_createTaaSamplingOffsets() {
 void SvoTracer::update() { _recordRenderingCommandBuffers(); }
 
 void SvoTracer::_createSamplers() {
-  _clamplingSampler = std::make_unique<Sampler>(Sampler::AddressMode::kClamp);
-  _repeativeSampler = std::make_unique<Sampler>(Sampler::AddressMode::kRepeat);
+  {
+    auto settings         = Sampler::Settings{};
+    settings.addressModeU = Sampler::AddressMode::kClampToBorder;
+    settings.addressModeV = Sampler::AddressMode::kClampToBorder;
+    settings.addressModeW = Sampler::AddressMode::kClampToBorder;
+    _defaultSampler       = std::make_unique<Sampler>(settings);
+  }
+
+  {
+    auto settings = Sampler::Settings{};
+    // uv.x encodes the azimuth from -pi to pi, it needs to be closed
+    settings.addressModeU = Sampler::AddressMode::kRepeat;
+    settings.addressModeV = Sampler::AddressMode::kClampToBorder;
+    settings.addressModeW = Sampler::AddressMode::kClampToBorder;
+    _skyLutSampler        = std::make_unique<Sampler>(settings);
+  }
 }
 
 void SvoTracer::_createImages() {
@@ -178,15 +192,15 @@ void SvoTracer::_createBlueNoiseImages() {
 void SvoTracer::_createSkyLutImages() {
   _transmittanceLutImage = std::make_unique<Image>(
       kTransmittanceLutWidth, kTransmittanceLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _clamplingSampler->getVkSampler());
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler->getVkSampler());
 
   _multiScatteringLutImage = std::make_unique<Image>(
       kMultiScatteringLutWidth, kMultiScatteringLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _clamplingSampler->getVkSampler());
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler->getVkSampler());
 
   _skyViewLutImage = std::make_unique<Image>(
       kSkyViewLutWidth, kSkyViewLutHeight, 1, VK_FORMAT_R32G32B32A32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _clamplingSampler->getVkSampler());
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _skyLutSampler->getVkSampler());
 }
 
 void SvoTracer::_createFullSizedImages() {
@@ -252,7 +266,7 @@ void SvoTracer::_createFullSizedImages() {
   _lastTaaImage = std::make_unique<Image>(
       _midResWidth, _midResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-      _clamplingSampler->getVkSampler());
+      _defaultSampler->getVkSampler());
 
   _blittedImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                                           VK_IMAGE_USAGE_STORAGE_BIT);

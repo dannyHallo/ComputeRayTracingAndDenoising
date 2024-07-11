@@ -98,8 +98,8 @@ private:
 
   /// IMAGES
 
-  std::unique_ptr<Sampler> _clamplingSampler;
-  std::unique_ptr<Sampler> _repeativeSampler;
+  std::unique_ptr<Sampler> _defaultSampler;
+  std::unique_ptr<Sampler> _skyLutSampler;
 
   // spatial-temporal blue noise (arrays of images)
   std::unique_ptr<Image> _vec2BlueNoise;

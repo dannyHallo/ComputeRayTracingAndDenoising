@@ -4,12 +4,21 @@
 
 class Sampler {
 public:
+  // see the difference at: https://learnopengl.com/Getting-started/Textures
   enum class AddressMode {
-    kRepeat = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-    kClamp  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
+    kRepeat         = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+    kMirroredRepeat = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+    kClampToEdge    = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+    kClampToBorder  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER
   };
 
-  Sampler(AddressMode addressMode);
+  struct Settings {
+    AddressMode addressModeU;
+    AddressMode addressModeV;
+    AddressMode addressModeW;
+  };
+
+  Sampler(Settings const &settings);
   ~Sampler();
 
   // disable move and copy
