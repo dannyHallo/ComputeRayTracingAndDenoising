@@ -1,7 +1,7 @@
 #ifndef PACKER_GLSL
 #define PACKER_GLSL
 
-// Q2RTX utils.glsl
+// taken from: Q2RTX utils.glsl
 
 uint packNormal(vec3 normal) {
   // project the sphere onto the octahedron (|x|+|y|+|z| = 1) and then onto the xy-plane

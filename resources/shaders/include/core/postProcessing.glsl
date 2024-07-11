@@ -1,6 +1,8 @@
 #ifndef POST_PROCESSING_GLSL
 #define POST_PROCESSING_GLSL
 
+#include "../include/core/color.glsl"
+
 // taken from: https://www.shadertoy.com/view/tdSXzD
 vec3 jodieReinhardTonemap(vec3 c) {
   float l = lum(c);
