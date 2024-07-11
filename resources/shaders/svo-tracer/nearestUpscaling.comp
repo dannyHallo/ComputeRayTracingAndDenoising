@@ -10,8 +10,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "../include/core/postProcessing.glsl"
 
 #include "../include/projection.glsl"
-#include "../include/skyColor.glsl"
-
 
 const uint kDotPixelInnerRadius = 4;
 const uint kDotPixelOuterRadius = 5;
@@ -60,33 +58,33 @@ vec3 debugInfoOverwrite(ivec2 midResuvi) {
 
 // #define RAW_DIRECT_OUTPUT
 
-// subpixOffset ranges from -0.5 to 0.5
-void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
-  vec2 screenSpaceUv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5) + subpixOffset) /
-                       vec2(renderInfoUbo.data.highResSize);
-  o = renderInfoUbo.data.camPosition;
-  d = normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
-                renderInfoUbo.data.camPosition);
-}
-
 void main() {
-  ivec2 uvi        = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
+
+#ifdef RAW_DIRECT_OUTPUT
+  if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.lowResSize)))) {
+    return;
+  }
+  vec3 readingCol = unpackRGBE(imageLoad(rawImage, uvi).x).rgb;
+  imageStore(renderTargetImage, uvi, vec4(readingCol.zyx, 1));
+  return;
+#endif
+
   ivec2 targetSize = imageSize(renderTargetImage);
   if (any(greaterThanEqual(uvi, targetSize))) {
     return;
   }
 
-  vec2 uv = vec2(uvi) / vec2(targetSize);
+  ivec2 midResUv = highResToMidRes(uvi);
+  vec3 color     = imageLoad(taaImage, midResUv).rgb;
 
-  vec3 sunDir = getSunDir(environmentUbo.data.sunAngleA / 180.0 * kPi);
+  // dithering pattern, to reduce banding
+  color += getDitherMask(uvi);
 
-  vec3 o, rayDir;
-  rayGen(o, rayDir, vec2(0));
+  color += debugInfoOverwrite(midResUv);
 
-  vec3 lum = skyColor(rayDir, sunDir);
+  color = blendWithDot(color, uvi);
 
-  // eliminate the color-banding effect
-  lum += getDitherMask(uvi);
-
-  imageStore(renderTargetImage, uvi, vec4(lum.bgr, 1));
+  // rgb to bgr
+  imageStore(renderTargetImage, uvi, vec4(color.bgr, 1));
 }

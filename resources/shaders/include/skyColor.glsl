@@ -49,11 +49,12 @@ vec3 skyColor(vec3 rayDir, vec3 sunDir) {
   lum += _sunColor(rayDir, sunDir);
 
   // tonemapping and gamma. ScamUper ad-hoc, probably a better way to do this
-  lum *= 15.0;
-  lum = pow(lum, vec3(1.3));
+  // lum *= 15.0;
+  // lum = pow(lum, vec3(1.3));
   // lum /= (smoothstep(0.0, 0.2, clamp(sunDir.y, 0.0, 1.0)) * 2.0 + 0.15);
 
-  return jodieReinhardTonemap(lum);
+  // lum = jodieReinhardTonemap(lum);
+  return lum;
 }
 
 #endif // SKY_COLOR_GLSL
