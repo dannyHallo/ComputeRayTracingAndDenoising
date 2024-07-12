@@ -10,6 +10,9 @@ SvoTracerTweakingData::SvoTracerTweakingData(TomlConfigReader *tomlConfigReader)
 }
 
 void SvoTracerTweakingData::_loadConfig() {
+  debugB1 = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.debugB1");
+  debugF1 = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.debugF1");
+
   visualizeChunks   = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.visualizeChunks");
   visualizeOctree   = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.visualizeOctree");
   beamOptimization  = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.beamOptimization");

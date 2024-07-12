@@ -84,7 +84,7 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
   }
 
   // WEIGHT_C
-  float phiC = spatialFilterInfoUbo.data.phiC;
+  float phiC = spatialFilterInfoUbo.data.phiC * 10.0;
   if (bool(spatialFilterInfoUbo.data.changingLuminancePhi)) {
     phiC *= pow(2, -currentIteration);
   }

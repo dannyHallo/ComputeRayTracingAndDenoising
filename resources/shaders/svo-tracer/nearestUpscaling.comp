@@ -78,7 +78,7 @@ void main() {
   ivec2 midResUv = highResToMidRes(uvi);
   vec3 color     = imageLoad(taaImage, midResUv).rgb;
 
-  // color = jodieReinhardTonemap(color);
+  color = jodieReinhardTonemap(color);
 
   // dithering pattern, to reduce banding
   color += getDitherMask(uvi);

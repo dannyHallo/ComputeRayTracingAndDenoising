@@ -52,7 +52,7 @@ public:
   void updateUboData(size_t currentFrame);
 
   // this getter will be used for imguiManager
-  SvoTracerTweakingData &getUboData() { return _uboData; }
+  SvoTracerTweakingData &getTweakingData() { return _tweakingData; }
 
   G_OutputInfo getOutputInfo();
 
@@ -64,7 +64,7 @@ private:
   ShaderChangeListener *_shaderChangeListener;
   TomlConfigReader *_tomlConfigReader;
 
-  SvoTracerTweakingData _uboData;
+  SvoTracerTweakingData _tweakingData;
 
   SvoBuilder *_svoBuilder = nullptr;
 

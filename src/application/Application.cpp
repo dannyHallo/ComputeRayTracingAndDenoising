@@ -43,7 +43,7 @@ Application::Application(Logger *logger)
 
   _imguiManager =
       std::make_unique<ImguiManager>(_appContext, _window.get(), _logger, _tomlConfigReader.get(),
-                                     _framesInFlight, &_svoTracer->getUboData());
+                                     _framesInFlight, &_svoTracer->getTweakingData());
   _fpsSink = std::make_unique<FpsSink>();
 
   _init();

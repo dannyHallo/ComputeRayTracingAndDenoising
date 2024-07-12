@@ -6,8 +6,10 @@ class TomlConfigReader;
 
 struct SvoTracerTweakingData {
   SvoTracerTweakingData(TomlConfigReader *tomlConfigReader);
+  // debug parameters
+  bool debugB1{};
+  float debugF1{};
 
-  // config
   // tweakable parameters
   bool visualizeChunks{};
   bool visualizeOctree{};

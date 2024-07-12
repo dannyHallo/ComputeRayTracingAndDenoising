@@ -25,6 +25,8 @@ taaUpscaleRatio = 2.5
 nearestUpscaleRatio = 1.0
 
 [SvoTracerTweakingData]
+debugB1 = false
+debugF1 = 0.0
 visualizeChunks = false
 visualizeOctree = false
 beamOptimization = true
@@ -39,10 +41,10 @@ sunLuminance = 1.0
 sunSize = 0.5
 temporalAlpha = 0.028
 temporalPositionPhi = 0.99
-aTrousIterationCount = 4
-phiC = 0.1
+aTrousIterationCount = 5
+phiC = 1.0
 phiN = 20.0 
 phiP = 0.05
-phiZ = 0.5
-phiZTolerance = 0.1
+phiZ = 0.63
+phiZTolerance = 0.32
 changingLuminancePhi = true

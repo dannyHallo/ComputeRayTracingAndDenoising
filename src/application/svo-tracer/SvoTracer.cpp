@@ -48,7 +48,7 @@ SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_
                      ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader)
     : _appContext(appContext), _logger(logger), _camera(camera), _shaderCompiler(shaderCompiler),
       _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader),
-      _uboData(tomlConfigReader), _framesInFlight(framesInFlight) {
+      _tweakingData(tomlConfigReader), _framesInFlight(framesInFlight) {
   _loadConfig();
   _updateImageResolutions();
 }
@@ -631,34 +631,37 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   vpMatPrevInv = vpMatInv;
 
   G_EnvironmentInfo environmentInfo{};
-  environmentInfo.sunAngleA    = _uboData.sunAngleA;
-  environmentInfo.sunAngleB    = _uboData.sunAngleB;
-  environmentInfo.sunColor     = _uboData.sunColor;
-  environmentInfo.sunLuminance = _uboData.sunLuminance;
-  environmentInfo.sunSize      = _uboData.sunSize;
+  environmentInfo.sunAngleA    = _tweakingData.sunAngleA;
+  environmentInfo.sunAngleB    = _tweakingData.sunAngleB;
+  environmentInfo.sunColor     = _tweakingData.sunColor;
+  environmentInfo.sunLuminance = _tweakingData.sunLuminance;
+  environmentInfo.sunSize      = _tweakingData.sunSize;
   _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
 
   G_TwickableParameters twickableParameters{};
-  twickableParameters.visualizeChunks   = _uboData.visualizeChunks;
-  twickableParameters.visualizeOctree   = _uboData.visualizeOctree;
-  twickableParameters.beamOptimization  = _uboData.beamOptimization;
-  twickableParameters.traceSecondaryRay = _uboData.traceSecondaryRay;
-  twickableParameters.taa               = _uboData.taa;
+  twickableParameters.debugB1           = _tweakingData.debugB1;
+  twickableParameters.debugF1           = _tweakingData.debugF1;
+  twickableParameters.visualizeChunks   = _tweakingData.visualizeChunks;
+  twickableParameters.visualizeOctree   = _tweakingData.visualizeOctree;
+  twickableParameters.beamOptimization  = _tweakingData.beamOptimization;
+  twickableParameters.traceSecondaryRay = _tweakingData.traceSecondaryRay;
+  twickableParameters.taa               = _tweakingData.taa;
   _twickableParametersBufferBundle->getBuffer(currentFrame)->fillData(&twickableParameters);
 
   G_TemporalFilterInfo temporalFilterInfo{};
-  temporalFilterInfo.temporalAlpha       = _uboData.temporalAlpha;
-  temporalFilterInfo.temporalPositionPhi = _uboData.temporalPositionPhi;
+  temporalFilterInfo.temporalAlpha       = _tweakingData.temporalAlpha;
+  temporalFilterInfo.temporalPositionPhi = _tweakingData.temporalPositionPhi;
   _temporalFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&temporalFilterInfo);
 
   G_SpatialFilterInfo spatialFilterInfo{};
-  spatialFilterInfo.aTrousIterationCount = static_cast<uint32_t>(_uboData.aTrousIterationCount);
-  spatialFilterInfo.phiC                 = _uboData.phiC;
-  spatialFilterInfo.phiN                 = _uboData.phiN;
-  spatialFilterInfo.phiP                 = _uboData.phiP;
-  spatialFilterInfo.phiZ                 = _uboData.phiZ;
-  spatialFilterInfo.phiZTolerance        = _uboData.phiZTolerance;
-  spatialFilterInfo.changingLuminancePhi = _uboData.changingLuminancePhi;
+  spatialFilterInfo.aTrousIterationCount =
+      static_cast<uint32_t>(_tweakingData.aTrousIterationCount);
+  spatialFilterInfo.phiC                 = _tweakingData.phiC;
+  spatialFilterInfo.phiN                 = _tweakingData.phiN;
+  spatialFilterInfo.phiP                 = _tweakingData.phiP;
+  spatialFilterInfo.phiZ                 = _tweakingData.phiZ;
+  spatialFilterInfo.phiZTolerance        = _tweakingData.phiZTolerance;
+  spatialFilterInfo.changingLuminancePhi = _tweakingData.changingLuminancePhi;
   _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
 
   currentSample++;

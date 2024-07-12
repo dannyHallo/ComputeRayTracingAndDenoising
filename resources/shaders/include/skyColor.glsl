@@ -29,7 +29,7 @@ float _sunLuminance(vec3 rayDir, vec3 sunDir) {
 }
 
 vec3 _sunColor(vec3 rayDir, vec3 sunDir) {
-  float lum = _sunLuminance(rayDir, sunDir);
+  float lum = _sunLuminance(rayDir, sunDir) * twickableParametersUbo.data.debugF1 * 10.0;
 
   if (lum == 0.0) {
     return vec3(0.0);
@@ -46,7 +46,9 @@ vec3 skyColor(vec3 rayDir, vec3 sunDir) {
   vec2 skyLutUv = getLookupUv2(rayDir, sunDir);
   vec3 lum      = textureLod(skyViewLutTexture, skyLutUv, 0).rgb;
 
-  lum += _sunColor(rayDir, sunDir);
+  if (twickableParametersUbo.data.debugB1 == 1u) {
+    lum += _sunColor(rayDir, sunDir);
+  }
 
   // tonemapping and gamma. ScamUper ad-hoc, probably a better way to do this
   // lum *= 15.0;
