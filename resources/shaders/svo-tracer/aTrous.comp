@@ -142,8 +142,7 @@ void main() {
   if (currentIteration >= spatialFilterInfoUbo.data.aTrousIterationCount) {
     // no A-Trous at all: just copy input to the output at the first iteration
     if (currentIteration == 0) {
-      vec3 color       = unpackRGBE(imageLoad(aTrousPingImage, uvi).x);
-      uint packedColor = packRGBE(color);
+      uint packedColor = imageLoad(aTrousPingImage, uvi).x;
       imageStore(aTrousFinalResultImage, uvi, uvec4(packedColor, 0, 0, 0));
       imageStore(accumedImage, uvi, uvec4(packedColor, 0, 0, 0));
     }
@@ -177,7 +176,7 @@ void main() {
     imageStore(accumedImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
   }
 
-  // dump image if in the last iteration
+  // dump image if this is the last iteration
   if (currentIteration == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
     imageStore(aTrousFinalResultImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
     return;

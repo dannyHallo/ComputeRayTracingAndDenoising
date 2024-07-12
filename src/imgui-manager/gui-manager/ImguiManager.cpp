@@ -282,7 +282,7 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SeparatorText("Spatial Filter Info");
     ImGui::SliderInt("A-Trous Iteration Count", &_svoTracerTweakingData->aTrousIterationCount, 0,
                      5);
-    ImGui::SliderFloat("Phi C", &_svoTracerTweakingData->phiC, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi C", &_svoTracerTweakingData->phiC, 0.0F, 100.0F);
     ImGui::SliderFloat("Phi N", &_svoTracerTweakingData->phiN, 0.0F, 200.0F);
     ImGui::SliderFloat("Phi P", &_svoTracerTweakingData->phiP, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Z", &_svoTracerTweakingData->phiZ, 0.0F, 1.0F);
