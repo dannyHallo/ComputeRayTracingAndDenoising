@@ -259,7 +259,7 @@ void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
     ImGui::SeparatorText("Environtment Parameters");
 
-    ImGui::SliderFloat("Sun Angle A", &_svoTracerTweakingData->sunAngleA, -180.F, 180.F);
+    ImGui::SliderFloat("Sun Angle A", &_svoTracerTweakingData->sunAngleA, 0.F, 180.F);
     ImGui::SliderFloat("Sun Angle B", &_svoTracerTweakingData->sunAngleB, -180.F, 180.F);
 
     ImGui::ColorEdit3("Sun Color", &_svoTracerTweakingData->sunColor.x);
