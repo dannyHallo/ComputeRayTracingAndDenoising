@@ -209,17 +209,27 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   return scale < STACK_SIZE && t_min <= t_max;
 }
 
+struct MarchingResult {
+  float t;
+  uint iter;
+  uint chunkTraversed;
+  vec3 color;
+  vec3 position;
+  vec3 nextTracingPosition;
+  vec3 normal;
+  uint voxHash;
+  bool lightSourceHit;
+};
+
 // this marching algorithm fetches leaf properties
-bool cascadedMarching(out float oT, out uint oIter, out uint oChunkTraversed, out vec3 oColor,
-                      out vec3 oPosition, out vec3 oNextTracingPosition, out vec3 oNormal,
-                      out uint oVoxHash, out bool oLightSourceHit, vec3 o, vec3 d) {
+bool cascadedMarching(out MarchingResult result, vec3 o, vec3 d) {
   ivec3 hitChunkOffset;
   uvec3 hitChunkLookupOffset;
   bool hitVoxel = false;
 
-  oIter           = 0;
-  oChunkTraversed = 0;
-  oColor          = vec3(0);
+  result.iter           = 0;
+  result.chunkTraversed = 0;
+  result.color          = vec3(0);
 
   ivec3 mapPos               = ivec3(floor(o));
   const vec3 deltaDist       = 1.0 / abs(d);
@@ -236,14 +246,15 @@ bool cascadedMarching(out float oT, out uint oIter, out uint oChunkTraversed, ou
     uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
 
     uint thisSvoIteration;
-    hitVoxel = svoMarching(oT, thisSvoIteration, oColor, oPosition, oNextTracingPosition, oNormal,
-                           oVoxHash, oLightSourceHit, o + originOffset, d, chunkBufferOffset);
+    hitVoxel = svoMarching(result.t, thisSvoIteration, result.color, result.position,
+                           result.nextTracingPosition, result.normal, result.voxHash,
+                           result.lightSourceHit, o + originOffset, d, chunkBufferOffset);
 
-    oPosition -= originOffset;
-    oNextTracingPosition -= originOffset;
+    result.position -= originOffset;
+    result.nextTracingPosition -= originOffset;
 
-    oIter += thisSvoIteration;
-    oChunkTraversed++;
+    result.iter += thisSvoIteration;
+    result.chunkTraversed++;
 
     if (hitVoxel) {
       break;
@@ -253,9 +264,8 @@ bool cascadedMarching(out float oT, out uint oIter, out uint oChunkTraversed, ou
   return hitVoxel;
 }
 
-vec3 dayLightCalc(vec3 d) {
-  vec3 sunDir = getSunDir(environmentUbo.data.sunAngleA / 180.0 * kPi);
-  vec3 skyCol = skyColor(d, sunDir);
+vec3 getSkyCol(vec3 rayDir, vec3 sunDir, bool isSunAdded) {
+  vec3 skyCol = skyColor(rayDir, sunDir, isSunAdded);
 
   // tonemapping and gamma. ScamUper ad-hoc, probably a better way to do this
   skyCol *= 30 * environmentUbo.data.sunLuminance;
@@ -263,14 +273,6 @@ vec3 dayLightCalc(vec3 d) {
   // skyCol /= (smoothstep(0.0, 0.2, clamp(sunDir.y, 0.0, 1.0)) * 2.0 + 0.15);
 
   return skyCol;
-
-  float sunAngleA = environmentUbo.data.sunAngleA * kDeg2Rad;
-  float sunAngleB = environmentUbo.data.sunAngleB * kDeg2Rad;
-  float sunSize   = environmentUbo.data.sunSize;
-  float angleDiff = max(0, pow(dot(d, vec3(sin(sunAngleA) * cos(sunAngleB), cos(sunAngleA),
-                                           sin(sunAngleA) * sin(sunAngleB))),
-                               sunSize));
-  return environmentUbo.data.sunLuminance * environmentUbo.data.sunColor * angleDiff;
 }
 
 // subpixOffset ranges from -0.5 to 0.5
@@ -286,84 +288,82 @@ uvec3 getSeed() {
   return uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, renderInfoUbo.data.currentSample);
 }
 
-vec3 traceTerminate(uvec3 seed, vec3 o, vec3 d) {
-  vec3 position, nextTracingPosition, color, normal;
-  uint iter, chunkTraversed, voxHash;
-  bool lightSourceHit;
-  float tMin;
-  bool hit = cascadedMarching(tMin, iter, chunkTraversed, color, position, nextTracingPosition,
-                              normal, voxHash, lightSourceHit, o, d);
-  if (!hit) {
-    return dayLightCalc(d);
+vec3 getShadowRayColor(vec3 o, vec3 d, vec3 sunDir) {
+  MarchingResult shadowRayResult;
+  bool shadowRayHit = cascadedMarching(shadowRayResult, o, d);
+  if (shadowRayHit) {
+    return vec3(0.0);
   }
-
-  if (lightSourceHit) {
-    return color;
-  }
-
-  return vec3(0);
+  return 1000 * getSkyCol(d, sunDir, true);
 }
 
-vec3 traceSecondary(uvec3 seed, vec3 o, vec3 d) {
-  vec3 position, nextTracingPosition, color, normal;
-  uint iter, chunkTraversed, voxHash;
-  bool lightSourceHit;
-  float tMin;
-  bool hit = cascadedMarching(tMin, iter, chunkTraversed, color, position, nextTracingPosition,
-                              normal, voxHash, lightSourceHit, o, d);
-  if (!hit) {
-    return dayLightCalc(d);
+vec3 getIndirectRayColor(vec3 o, vec3 d, uvec3 seed, vec3 sunDir) {
+  MarchingResult indirectRayResult;
+  bool indirectRayHit = cascadedMarching(indirectRayResult, o, d);
+  if (!indirectRayHit) {
+    // exclude the sun light here!
+    return getSkyCol(d, sunDir, false);
   }
 
-  if (lightSourceHit) {
-    return color;
-  }
+  vec3 brdf = indirectRayResult.color * kInvPi;
 
-  // only consider direct lighting
-  if (!bool(twickableParametersUbo.data.traceSecondaryRay)) {
-    return vec3(0);
-  }
+  // TODO: reuse the shadow ray dir
+  vec3 shadowRayDir = getRandomShadowRay(sunDir, seed, BaseDisturbance(2));
+  vec3 shadowRayColor =
+      getShadowRayColor(indirectRayResult.nextTracingPosition, shadowRayDir, sunDir);
 
-  vec3 indirectRayDir = randomCosineWeightedHemispherePoint(normal, seed, BaseDisturbance(0), true);
-  float pdf           = dot(indirectRayDir, normal) / kPi;
-  vec3 brdf           = kInvPi * color;
+  const float shadowRayPdf = 1.0 / (0.0001 * kPi);
+  shadowRayColor *= brdf * dot(shadowRayDir, indirectRayResult.normal) / shadowRayPdf;
 
-  return traceTerminate(seed, nextTracingPosition, indirectRayDir) * brdf *
-         dot(indirectRayDir, normal) / pdf;
-
-  return vec3(0);
+  return shadowRayColor;
 }
 
 // most of the return value is only valid if hit, except for oPrimaryRayIterUsed
-bool tracePrimary(out float oT, out uint oPrimaryRayIterUsed, out uint oPrimaryRayChunkTraversed,
-                  out vec3 oColor, out vec3 oPosition, out vec3 oNormal, out uint oVoxHash,
-                  uvec3 seed, vec3 o, vec3 d, float optimizedDistance) {
+bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
+                        out uint oPrimaryRayChunkTraversed, out vec3 oColor, out vec3 oPosition,
+                        out vec3 oNormal, out uint oVoxHash, uvec3 seed, vec3 o, vec3 d,
+                        float optimizedDistance, vec3 sunDir) {
   o += d * optimizedDistance;
-  bool lightSourceHit;
-  vec3 nextTracingPosition;
-  bool hit = cascadedMarching(oT, oPrimaryRayIterUsed, oPrimaryRayChunkTraversed, oColor, oPosition,
-                              nextTracingPosition, oNormal, oVoxHash, lightSourceHit, o, d);
+
+  MarchingResult primaryRayResult;
+  bool primaryRayHit = cascadedMarching(primaryRayResult, o, d);
+
+  oT                        = primaryRayResult.t;
+  oPrimaryRayIterUsed       = primaryRayResult.iter;
+  oPrimaryRayChunkTraversed = primaryRayResult.chunkTraversed;
+  oColor                    = primaryRayResult.color;
+  oPosition                 = primaryRayResult.position;
+  oNormal                   = primaryRayResult.normal;
+  oVoxHash                  = primaryRayResult.voxHash;
+
   oT += optimizedDistance;
 
-  if (!hit) {
+  if (!primaryRayHit) {
     return false;
   }
 
-  if (lightSourceHit) {
-    return true;
+  vec3 brdf = primaryRayResult.color * kInvPi;
+
+  // direct contribution
+  vec3 shadowRayDir = getRandomShadowRay(sunDir, seed, BaseDisturbance(1));
+  vec3 directColor  = getShadowRayColor(primaryRayResult.nextTracingPosition, shadowRayDir, sunDir);
+
+  const float shadowRayPdf = 1.0 / (0.0001 * kPi);
+  directColor *= brdf * dot(shadowRayDir, oNormal) / shadowRayPdf;
+
+  // indirect contribution
+  vec3 indirectRayDir = randomCosineWeightedHemispherePoint(oNormal, seed, BaseDisturbance(1));
+  vec3 indirectColor =
+      getIndirectRayColor(primaryRayResult.nextTracingPosition, indirectRayDir, seed, sunDir);
+
+  float indirectRayPdf = dot(indirectRayDir, oNormal) / kPi;
+  indirectColor *= brdf * dot(indirectRayDir, oNormal) / indirectRayPdf;
+
+  if (twickableParametersUbo.data.debugB1 == 1u) {
+    oColor = directColor + indirectColor;
+  } else {
+    oColor = directColor;
   }
-
-  vec3 indirectRayDir =
-      randomCosineWeightedHemispherePoint(oNormal, seed, BaseDisturbance(1), true);
-  float pdf = dot(indirectRayDir, oNormal) / kPi;
-  vec3 brdf = kInvPi * oColor;
-
-  // vec3 ambient = 0.1 * environmentUbo.data.sunLuminance * environmentUbo.data.sunColor;
-  vec3 ambient = vec3(0.0);
-
-  oColor = (ambient + traceSecondary(seed, nextTracingPosition, indirectRayDir)) * brdf *
-           dot(indirectRayDir, oNormal) / pdf;
-
   return true;
 }
 
@@ -405,17 +405,20 @@ void main() {
     optimizedDistance = t;
   }
 
+  const vec3 sunDir = getSunDir(environmentUbo.data.sunAngleA / 180.0 * kPi);
+
   uint voxHash;
   uint primaryRayIterUsed;
   uint primaryRayChunkTraversed;
   vec3 normal, position, color;
   float tMin;
-  bool hitVoxel = tracePrimary(tMin, primaryRayIterUsed, primaryRayChunkTraversed, color, position,
-                               normal, voxHash, seed, o, d, optimizedDistance);
+  bool hitVoxel =
+      getPrimaryRayColor(tMin, primaryRayIterUsed, primaryRayChunkTraversed, color, position,
+                         normal, voxHash, seed, o, d, optimizedDistance, sunDir);
 
   if (!hitVoxel) {
     position = o + d * 1e10;
-    color    = dayLightCalc(d);
+    color    = getSkyCol(d, sunDir, true);
   } else {
     imageStore(positionImage, uvi, vec4(position, 0));
     imageStore(normalImage, uvi, uvec4(packNormal(normal), 0, 0, 0));
@@ -436,7 +439,7 @@ void main() {
 
   // color = jodieReinhardTonemap(color);
   uint packedColor = packRGBE(color);
-  
+
   if (hitVoxel) {
     imageStore(rawImage, uvi, uvec4(packedColor, 0, 0, 0));
   } else {

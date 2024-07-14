@@ -78,8 +78,9 @@ vec2 getOffsetFromDisturbance(BaseDisturbance baseDisturbance) {
 
 // Returns a random real in [min,max).
 // float random(float min, float max) { return min + (max - min) * random(); }
-vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
+vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance) {
   vec2 rand;
+  bool useLdsNoise = true;
   if (useLdsNoise) {
     vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(baseDisturbance);
 
@@ -96,8 +97,8 @@ vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
   return rand;
 }
 
-vec3 randomInUnitSphere(uvec3 seed, BaseDisturbance baseDisturbance, bool useLdsNoise) {
-  vec2 rand = randomUv(seed, baseDisturbance, useLdsNoise);
+vec3 randomInUnitSphere(uvec3 seed, BaseDisturbance baseDisturbance) {
+  vec2 rand = randomUv(seed, baseDisturbance);
 
   float phi   = acos(1 - 2 * rand.x);
   float theta = 2 * kPi * rand.y;
@@ -109,9 +110,8 @@ vec3 randomInUnitSphere(uvec3 seed, BaseDisturbance baseDisturbance, bool useLds
   return vec3(x, y, z);
 }
 
-vec3 randomInHemisphere(vec3 normal, uvec3 seed, BaseDisturbance baseDisturbance,
-                        bool useLdsNoise) {
-  vec3 inUnitSphere = randomInUnitSphere(seed, baseDisturbance, useLdsNoise);
+vec3 randomInHemisphere(vec3 normal, uvec3 seed, BaseDisturbance baseDisturbance) {
+  vec3 inUnitSphere = randomInUnitSphere(seed, baseDisturbance);
   if (dot(inUnitSphere, normal) > 0.0)
     return inUnitSphere;
   else
@@ -125,9 +125,9 @@ mat3 makeTBN(vec3 N) {
   return mat3(T, B, N);
 }
 
-vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed, BaseDisturbance baseDisturbance,
-                                         bool useLdsNoise) {
+vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed, BaseDisturbance baseDisturbance) {
   vec3 dir;
+  bool useLdsNoise = true;
   if (useLdsNoise) {
     vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(baseDisturbance);
     seed                          = uvec3(seed.x + offsetBasedOnDisturbance.x * kBlueNoiseSize.x,
@@ -140,7 +140,7 @@ vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed, BaseDisturbanc
     dir = dir * 2.0 - 1.0;
 
   } else {
-    vec2 rand = randomUv(seed, baseDisturbance, useLdsNoise);
+    vec2 rand = randomUv(seed, baseDisturbance);
 
     float theta = 2.0 * kPi * rand.x;
     float phi   = acos(sqrt(1.0 - rand.y));
