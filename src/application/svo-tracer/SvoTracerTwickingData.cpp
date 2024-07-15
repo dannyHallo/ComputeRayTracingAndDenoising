@@ -26,6 +26,7 @@ void SvoTracerTweakingData::_loadConfig() {
   auto sunColorB = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunColorB");
   sunColor       = glm::vec3(sunColorR, sunColorG, sunColorB);
   sunLuminance   = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunLuminance");
+  atmosLuminance = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.atmosLuminance");
   sunSize        = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunSize");
 
   temporalAlpha = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.temporalAlpha");

@@ -267,6 +267,7 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SliderFloat("Sun Angle B", &_svoTracerTweakingData->sunAngleB, -180.F, 180.F);
     ImGui::ColorEdit3("Sun Color", &_svoTracerTweakingData->sunColor.x);
     ImGui::SliderFloat("Sun Luminance", &_svoTracerTweakingData->sunLuminance, 0.0F, 10.0F);
+    ImGui::SliderFloat("Atmos Luminance", &_svoTracerTweakingData->atmosLuminance, 0.0F, 10.0F);
     ImGui::SliderFloat("Sun Size", &_svoTracerTweakingData->sunSize, 0.0F, 100.0F);
 
     ImGui::SeparatorText("Twickable Parameters");

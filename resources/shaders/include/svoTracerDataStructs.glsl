@@ -35,6 +35,7 @@ struct G_EnvironmentInfo {
   float sunAngleB;
   vec3 sunColor;
   float sunLuminance;
+  float atmosLuminance;
   float sunSize;
 };
 

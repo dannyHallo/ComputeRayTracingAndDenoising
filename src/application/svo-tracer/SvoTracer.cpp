@@ -631,11 +631,12 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   vpMatPrevInv = vpMatInv;
 
   G_EnvironmentInfo environmentInfo{};
-  environmentInfo.sunAngleA    = _tweakingData.sunAngleA;
-  environmentInfo.sunAngleB    = _tweakingData.sunAngleB;
-  environmentInfo.sunColor     = _tweakingData.sunColor;
-  environmentInfo.sunLuminance = _tweakingData.sunLuminance;
-  environmentInfo.sunSize      = _tweakingData.sunSize;
+  environmentInfo.sunAngleA      = _tweakingData.sunAngleA;
+  environmentInfo.sunAngleB      = _tweakingData.sunAngleB;
+  environmentInfo.sunColor       = _tweakingData.sunColor;
+  environmentInfo.sunLuminance   = _tweakingData.sunLuminance;
+  environmentInfo.atmosLuminance = _tweakingData.atmosLuminance;
+  environmentInfo.sunSize        = _tweakingData.sunSize;
   _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
 
   G_TwickableParameters twickableParameters{};

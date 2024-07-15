@@ -25,8 +25,8 @@ taaUpscaleRatio = 2.5
 nearestUpscaleRatio = 1.0
 
 [SvoTracerTweakingData]
-debugB1 = false
-debugF1 = 0.0
+debugB1 = true
+debugF1 = 0.32
 visualizeChunks = false
 visualizeOctree = false
 beamOptimization = true
@@ -38,6 +38,7 @@ sunColorR = 1.0
 sunColorG = 0.815
 sunColorB = 0.678
 sunLuminance = 1.0
+atmosLuminance = 1.0
 sunSize = 0.5
 temporalAlpha = 0.028
 temporalPositionPhi = 0.99
