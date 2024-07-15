@@ -33,13 +33,17 @@ const float kMieAbsorptionBase = 4.4;
 // const vec3 kOzoneAbsorptionBase = vec3(0.650, 1.881, 0.085);
 const vec3 kOzoneAbsorptionBase = vec3(0.650, 4.737, 0.085);
 
-// input:  [0, 1]
-// output: [-pi, pi]
-float getSunAltitude(float sunPos) { return (sunPos * 2.0 - 1.0) * kPi; }
+vec3 getSphericalDir(float theta, float phi) {
+  float sinPhi = sin(phi);
+  return vec3(sinPhi * sin(theta), cos(phi), sinPhi * cos(theta));
+}
 
 // input: the angle between the sun and -z axis, using +y as the positive
 // output: unit vector pointing towards the sun
-vec3 getSunDir(float sunAltitude) { return vec3(0.0, sin(sunAltitude), -cos(sunAltitude)); }
+vec3 getDirOnUnitSphere(float alt, float azi) {
+  float cosAlt = cos(alt);
+  return vec3(cosAlt * sin(azi), sin(alt), cosAlt * cos(azi));
+}
 
 // the phase function for rayleigh scattering
 // theta is the angle between the incident light and the scattered light

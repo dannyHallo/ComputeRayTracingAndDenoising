@@ -275,7 +275,7 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::Checkbox("Visualize Chunks", &_svoTracerTweakingData->visualizeChunks);
     ImGui::Checkbox("Visualize Octree", &_svoTracerTweakingData->visualizeOctree);
     ImGui::Checkbox("Beam Optimization", &_svoTracerTweakingData->beamOptimization);
-    ImGui::Checkbox("Trace Secondary Ray", &_svoTracerTweakingData->traceSecondaryRay);
+    ImGui::Checkbox("Trace Indirect Ray", &_svoTracerTweakingData->traceIndirectRay);
     ImGui::Checkbox("TAA", &_svoTracerTweakingData->taa);
 
     ImGui::SeparatorText("Temporal Filter Info");

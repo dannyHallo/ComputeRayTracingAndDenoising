@@ -13,11 +13,11 @@ void SvoTracerTweakingData::_loadConfig() {
   debugB1 = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.debugB1");
   debugF1 = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.debugF1");
 
-  visualizeChunks   = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.visualizeChunks");
-  visualizeOctree   = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.visualizeOctree");
-  beamOptimization  = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.beamOptimization");
-  traceSecondaryRay = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.traceSecondaryRay");
-  taa               = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.taa");
+  visualizeChunks  = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.visualizeChunks");
+  visualizeOctree  = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.visualizeOctree");
+  beamOptimization = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.beamOptimization");
+  traceIndirectRay = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.traceIndirectRay");
+  taa              = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.taa");
 
   sunAngleA      = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleA");
   sunAngleB      = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleB");

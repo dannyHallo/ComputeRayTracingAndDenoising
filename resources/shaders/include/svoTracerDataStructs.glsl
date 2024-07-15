@@ -42,11 +42,11 @@ struct G_EnvironmentInfo {
 struct G_TwickableParameters {
   uint debugB1; // bool
   float debugF1;
-  uint visualizeChunks;   // bool
-  uint visualizeOctree;   // bool
-  uint beamOptimization;  // bool
-  uint traceSecondaryRay; // bool
-  uint taa;               // bool
+  uint visualizeChunks;  // bool
+  uint visualizeOctree;  // bool
+  uint beamOptimization; // bool
+  uint traceIndirectRay; // bool
+  uint taa;              // bool
 };
 
 struct G_SceneInfo {

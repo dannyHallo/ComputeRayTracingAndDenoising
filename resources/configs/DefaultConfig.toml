@@ -5,7 +5,7 @@ title = "default config"
 
 [Application]
 framesInFlight = 2
-isFramerateLimited = true
+isFramerateLimited = false
 
 [ImguiManager]
 fontSize = 20
@@ -25,12 +25,12 @@ taaUpscaleRatio = 2.5
 nearestUpscaleRatio = 1.0
 
 [SvoTracerTweakingData]
-debugB1 = true
-debugF1 = 0.32
+debugB1 = false
+debugF1 = 0.0
 visualizeChunks = false
 visualizeOctree = false
 beamOptimization = true
-traceSecondaryRay = true
+traceIndirectRay = true
 taa = true
 sunAngleA = 2.895
 sunAngleB = 0.0

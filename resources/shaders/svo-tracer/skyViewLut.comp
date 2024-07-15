@@ -79,14 +79,14 @@ void main() {
   // [-pi, pi)
   float azi = (uv.x * 2.0 - 1.0) * kPi;
 
-  float cosAlt = cos(alt);
-  vec3 rayDir  = vec3(cosAlt * sin(azi), sin(alt), cosAlt * cos(azi));
+  vec3 rayDir = getDirOnUnitSphere(alt, azi);
 
   float groundDist = rayIntersectSphere(kCamPos, rayDir, kGroundRadiusMm);
   float tMax =
       groundDist >= 0.0 ? groundDist : rayIntersectSphere(kCamPos, rayDir, kAtmosphereRadiusMm);
 
-  vec3 sunDir = getSunDir(environmentUbo.data.sunAngleA * kDeg2Rad);
+  vec3 sunDir = getDirOnUnitSphere(environmentUbo.data.sunAngleA * kDeg2Rad,
+                                   environmentUbo.data.sunAngleB * kDeg2Rad);
   vec3 lum    = raymarchScattering(kCamPos, rayDir, sunDir, tMax, numScatteringSteps);
 
   imageStore(skyViewLutImage, uvi, vec4(lum, 1.0));

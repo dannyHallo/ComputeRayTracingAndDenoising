@@ -640,13 +640,13 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
 
   G_TwickableParameters twickableParameters{};
-  twickableParameters.debugB1           = _tweakingData.debugB1;
-  twickableParameters.debugF1           = _tweakingData.debugF1;
-  twickableParameters.visualizeChunks   = _tweakingData.visualizeChunks;
-  twickableParameters.visualizeOctree   = _tweakingData.visualizeOctree;
-  twickableParameters.beamOptimization  = _tweakingData.beamOptimization;
-  twickableParameters.traceSecondaryRay = _tweakingData.traceSecondaryRay;
-  twickableParameters.taa               = _tweakingData.taa;
+  twickableParameters.debugB1          = _tweakingData.debugB1;
+  twickableParameters.debugF1          = _tweakingData.debugF1;
+  twickableParameters.visualizeChunks  = _tweakingData.visualizeChunks;
+  twickableParameters.visualizeOctree  = _tweakingData.visualizeOctree;
+  twickableParameters.beamOptimization = _tweakingData.beamOptimization;
+  twickableParameters.traceIndirectRay = _tweakingData.traceIndirectRay;
+  twickableParameters.taa              = _tweakingData.taa;
   _twickableParametersBufferBundle->getBuffer(currentFrame)->fillData(&twickableParameters);
 
   G_TemporalFilterInfo temporalFilterInfo{};

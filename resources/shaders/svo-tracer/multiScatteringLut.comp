@@ -14,10 +14,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 const int mulScattSteps   = 2;
 const int sampleCountSqrt = 8;
 
-vec3 getSphericalDir(float theta, float phi) {
-  float sinPhi = sin(phi);
-  return vec3(sinPhi * sin(theta), cos(phi), sinPhi * cos(theta));
-}
 
 // eq 5 & 7
 // returns psi

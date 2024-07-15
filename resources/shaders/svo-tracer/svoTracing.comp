@@ -345,6 +345,11 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   const float shadowRayPdf = 1.0 / (0.0001 * kPi);
   directColor *= brdf * dot(shadowRayDir, oNormal) / shadowRayPdf;
 
+  if (twickableParametersUbo.data.traceIndirectRay == 0u) {
+    oColor = directColor;
+    return true;
+  }
+
   // indirect contribution
   vec3 indirectRayDir = randomCosineWeightedHemispherePoint(oNormal, seed, BaseDisturbance(1));
   vec3 indirectColor  = getIndirectRayColor(primaryRayResult.nextTracingPosition, indirectRayDir,
@@ -353,11 +358,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   float indirectRayPdf = dot(indirectRayDir, oNormal) / kPi;
   indirectColor *= brdf * dot(indirectRayDir, oNormal) / indirectRayPdf;
 
-  if (twickableParametersUbo.data.debugB1 == 1u) {
-    oColor = directColor + indirectColor;
-  } else {
-    oColor = directColor;
-  }
+  oColor = directColor + indirectColor;
   return true;
 }
 
@@ -399,7 +400,8 @@ void main() {
     optimizedDistance = t;
   }
 
-  const vec3 sunDir = getSunDir(environmentUbo.data.sunAngleA * kDeg2Rad);
+  const vec3 sunDir = getDirOnUnitSphere(environmentUbo.data.sunAngleA * kDeg2Rad,
+                                         environmentUbo.data.sunAngleB * kDeg2Rad);
 
   uint voxHash;
   uint primaryRayIterUsed;

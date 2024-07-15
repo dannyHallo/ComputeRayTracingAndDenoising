@@ -14,7 +14,7 @@ struct SvoTracerTweakingData {
   bool visualizeChunks{};
   bool visualizeOctree{};
   bool beamOptimization{};
-  bool traceSecondaryRay{};
+  bool traceIndirectRay{};
   bool taa{};
 
   // for env
