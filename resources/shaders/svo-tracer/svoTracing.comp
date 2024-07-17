@@ -53,9 +53,6 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   uint iter    = 0;
   uint voxHash = 0;
 
-  // avoid division by zero
-  d = max(abs(d), vec3(kEpsilon)) * sign(d);
-
   vec3 t_coef = 1 / -abs(d);
   vec3 t_bias = t_coef * o;
 
@@ -230,6 +227,8 @@ bool cascadedMarching(out MarchingResult result, vec3 o, vec3 d) {
   result.iter           = 0;
   result.chunkTraversed = 0;
   result.color          = vec3(0);
+
+  d = max(abs(d), vec3(kEpsilon)) * (step(0.0, d) * 2.0 - 1.0);
 
   ivec3 mapPos               = ivec3(floor(o));
   const vec3 deltaDist       = 1.0 / abs(d);
