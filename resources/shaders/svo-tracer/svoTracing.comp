@@ -190,8 +190,11 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   // oNormal = norm;
 
   // scale_exp2 is the length of the edges of the voxel
-  oNormal              = decompressNormal((cur & 0x1FFFFF00u) >> 8u);
+  oNormal = decompressNormal((cur & 0x1FFFFF00u) >> 8u);
+
+  // TODO:
   oNextTracingPosition = pos + scale_exp2 * 0.5 + 0.87 * scale_exp2 * oNormal;
+  // oNextTracingPosition = oPosition + 1e-7 * norm;
 
   // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
   // uint colorIndex = cur & 0x000000FFu;
@@ -264,9 +267,7 @@ bool cascadedMarching(out MarchingResult result, vec3 o, vec3 d) {
 }
 
 vec3 getSkyCol(vec3 rayDir, vec3 sunDir, bool isSunAdded) {
-  vec3 skyCol = skyColor(rayDir, sunDir, isSunAdded);
-
-  return skyCol;
+  return skyColor(rayDir, sunDir, isSunAdded);
 }
 
 // subpixOffset ranges from -0.5 to 0.5
@@ -293,22 +294,24 @@ vec3 getShadowRayColor(vec3 o, vec3 d, vec3 sunDir) {
 
 vec3 getIndirectRayColor(vec3 o, vec3 d, uvec3 seed, vec3 sunDir, vec3 shadowRayDirReuse) {
   MarchingResult indirectRayResult;
+
   bool indirectRayHit = cascadedMarching(indirectRayResult, o, d);
   if (!indirectRayHit) {
     // exclude the sun light here!
     return getSkyCol(d, sunDir, false);
   }
 
-  vec3 brdf = indirectRayResult.color * kInvPi;
-
   // reuse the shadow ray dir for better performance
-  vec3 shadowRayColor =
-      getShadowRayColor(indirectRayResult.nextTracingPosition, shadowRayDirReuse, sunDir);
+  vec3 shadowRay2Color = vec3(0.0);
+  if (dot(shadowRayDirReuse, indirectRayResult.normal) >= 0.0) {
+    shadowRay2Color =
+        getShadowRayColor(indirectRayResult.nextTracingPosition, shadowRayDirReuse, sunDir);
+    vec3 brdf                = indirectRayResult.color * kInvPi;
+    const float shadowRayPdf = 1.0 / (0.0001 * kPi);
+    shadowRay2Color *= brdf * dot(shadowRayDirReuse, indirectRayResult.normal) / shadowRayPdf;
+  }
 
-  const float shadowRayPdf = 1.0 / (0.0001 * kPi);
-  shadowRayColor *= brdf * dot(shadowRayDirReuse, indirectRayResult.normal) / shadowRayPdf;
-
-  return shadowRayColor;
+  return shadowRay2Color;
 }
 
 // most of the return value is only valid if hit, except for oPrimaryRayIterUsed
@@ -338,26 +341,29 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   vec3 brdf = primaryRayResult.color * kInvPi;
 
   // direct contribution
-  vec3 shadowRayDir = getRandomShadowRay(sunDir, seed, BaseDisturbance(1));
-  vec3 directColor  = getShadowRayColor(primaryRayResult.nextTracingPosition, shadowRayDir, sunDir);
-
-  const float shadowRayPdf = 1.0 / (0.0001 * kPi);
-  directColor *= brdf * dot(shadowRayDir, oNormal) / shadowRayPdf;
+  vec3 shadowRayDir   = getRandomShadowRay(sunDir, seed, BaseDisturbance(1));
+  vec3 shadowRayColor = vec3(0.0);
+  if (dot(shadowRayDir, primaryRayResult.normal) >= 0.0) {
+    shadowRayColor = getShadowRayColor(primaryRayResult.nextTracingPosition, shadowRayDir, sunDir);
+    const float shadowRayPdf = 1.0 / (0.0001 * kPi);
+    shadowRayColor *= brdf * dot(shadowRayDir, primaryRayResult.normal) / shadowRayPdf;
+  }
 
   if (twickableParametersUbo.data.traceIndirectRay == 0u) {
-    oColor = directColor;
+    oColor = shadowRayColor;
     return true;
   }
 
   // indirect contribution
-  vec3 indirectRayDir = randomCosineWeightedHemispherePoint(oNormal, seed, BaseDisturbance(1));
-  vec3 indirectColor  = getIndirectRayColor(primaryRayResult.nextTracingPosition, indirectRayDir,
-                                            seed, sunDir, shadowRayDir);
+  vec3 indirectRayDir =
+      randomCosineWeightedHemispherePoint(primaryRayResult.normal, seed, BaseDisturbance(1));
+  vec3 indirectRayColor = getIndirectRayColor(primaryRayResult.nextTracingPosition, indirectRayDir,
+                                              seed, sunDir, shadowRayDir);
 
-  float indirectRayPdf = dot(indirectRayDir, oNormal) / kPi;
-  indirectColor *= brdf * dot(indirectRayDir, oNormal) / indirectRayPdf;
+  float indirectRayPdf = dot(indirectRayDir, primaryRayResult.normal) / kPi;
+  indirectRayColor *= brdf * dot(indirectRayDir, primaryRayResult.normal) / indirectRayPdf;
 
-  oColor = directColor + indirectColor;
+  oColor = shadowRayColor + indirectRayColor;
   return true;
 }
 
