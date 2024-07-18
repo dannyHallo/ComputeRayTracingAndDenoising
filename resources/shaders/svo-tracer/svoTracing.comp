@@ -192,7 +192,6 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   // scale_exp2 is the length of the edges of the voxel
   oNormal = decompressNormal((cur & 0x1FFFFF00u) >> 8u);
 
-  // TODO:
   oNextTracingPosition = pos + scale_exp2 * 0.5 + 0.87 * scale_exp2 * oNormal;
   // oNextTracingPosition = oPosition + 1e-7 * norm;
 
@@ -266,10 +265,6 @@ bool cascadedMarching(out MarchingResult result, vec3 o, vec3 d) {
   return hitVoxel;
 }
 
-vec3 getSkyCol(vec3 rayDir, vec3 sunDir, bool isSunAdded) {
-  return skyColor(rayDir, sunDir, isSunAdded);
-}
-
 // subpixOffset ranges from -0.5 to 0.5
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
   vec2 screenSpaceUv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5) + subpixOffset) /
@@ -289,7 +284,7 @@ vec3 getShadowRayColor(vec3 o, vec3 d, vec3 sunDir) {
   if (shadowRayHit) {
     return vec3(0.0);
   }
-  return 1000 * getSkyCol(d, sunDir, true);
+  return 1000 * skyColor(d, sunDir, true);
 }
 
 vec3 getIndirectRayColor(vec3 o, vec3 d, uvec3 seed, vec3 sunDir, vec3 shadowRayDirReuse) {
@@ -298,7 +293,7 @@ vec3 getIndirectRayColor(vec3 o, vec3 d, uvec3 seed, vec3 sunDir, vec3 shadowRay
   bool indirectRayHit = cascadedMarching(indirectRayResult, o, d);
   if (!indirectRayHit) {
     // exclude the sun light here!
-    return getSkyCol(d, sunDir, false);
+    return skyColor(d, sunDir, false);
   }
 
   // reuse the shadow ray dir for better performance
@@ -419,7 +414,7 @@ void main() {
 
   if (!hitVoxel) {
     position = o + d * 1e10;
-    color    = getSkyCol(d, sunDir, true);
+    color    = skyColor(d, sunDir, true);
   } else {
     imageStore(positionImage, uvi, vec4(position, 0));
     imageStore(normalImage, uvi, uvec4(packNormal(normal), 0, 0, 0));
