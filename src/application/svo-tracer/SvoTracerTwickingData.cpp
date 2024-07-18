@@ -35,11 +35,12 @@ void SvoTracerTweakingData::_loadConfig() {
 
   aTrousIterationCount =
       _tomlConfigReader->getConfig<int>("SvoTracerTweakingData.aTrousIterationCount");
-  phiC          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiC");
-  phiN          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiN");
-  phiP          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiP");
-  phiZ          = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZ");
-  phiZTolerance = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZTolerance");
+  phiC    = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiC");
+  phiN    = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiN");
+  phiP    = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiP");
+  minPhiZ = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.minPhiZ");
+  maxPhiZ = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.maxPhiZ");
+  phiZStableSampleCount = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZStableSampleCount");
   changingLuminancePhi =
       _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.changingLuminancePhi");
 

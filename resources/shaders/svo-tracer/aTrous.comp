@@ -98,27 +98,27 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
   // WEIGHT_P
   float weightP = exp(-distance(positionAtSample, positionAtUv) / spatialFilterInfoUbo.data.phiP);
 
-  // WEIGHT_Z
-  float weightZ        = 1.0;
-  float depthFalloff   = exp(-depthAtUv);
-  float depthThrehold  = spatialFilterInfoUbo.data.phiZ;
-  float depthTolerence = spatialFilterInfoUbo.data.phiZTolerance;
+  // WEIGHT_Z: default is to blur across different voxels
+  float weightZ            = 1.0;
+  const float depthFalloff = exp(-depthAtUv);
+  const float minPhiZ      = spatialFilterInfoUbo.data.minPhiZ;
+  const float maxPhiZ      = max(minPhiZ, spatialFilterInfoUbo.data.maxPhiZ);
 
-  // depth is bigger than the threshold
-  if (depthFalloff < depthThrehold) {
-    weightZ = 1.0;
-  } else {
+  // if depth is short, we should avoid blur across different voxel
+  // however, if the hist sample is low, we should still blur across them to get rid of noise
+  if (depthFalloff > minPhiZ) {
     bool sameVoxHash = imageLoad(voxHashImage, uvi).x == imageLoad(voxHashImage, uvi + offsetXY).x;
 
-    // use tolerance to avoid sudden change
-    if (sameVoxHash) {
-      weightZ = 1.0;
-    } else {
-      if (depthFalloff < depthThrehold + depthTolerence) {
-        weightZ = 1 - (depthFalloff - depthThrehold) / depthTolerence;
-      } else {
-        weightZ = 0.0;
-      }
+    // only if the voxels are different, we might blur across them
+    if (!sameVoxHash) {
+      const float hist = float(imageLoad(temporalHistLengthImage, uvi).x);
+
+      float distWeight = smoothstep(minPhiZ, maxPhiZ, depthFalloff);
+
+      // combine with hist weight, if the hist is low, we should still blur across different voxels
+      distWeight *= smoothstep(0.0, spatialFilterInfoUbo.data.phiZStableSampleCount * 256.0, hist);
+
+      weightZ = 1.0 - distWeight;
     }
   }
 

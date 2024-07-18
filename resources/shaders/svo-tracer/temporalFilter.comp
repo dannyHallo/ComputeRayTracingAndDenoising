@@ -64,9 +64,9 @@ void main() {
 
     bool consistent = isConsistent(normal, lastNormal, position, lastPosition);
     if (consistent) {
-      sumOfHistLengths += w[i] * float(imageLoad(temporalHistLengthImage, uvi).x);
       sumOfWeightedColors += w[i] * getAccumColor(tappingUv);
       sumOfWeights += w[i];
+      sumOfHistLengths += w[i] * float(imageLoad(temporalHistLengthImage, tappingUv).x);
     }
   }
 
@@ -89,6 +89,4 @@ void main() {
 
   imageStore(aTrousPingImage, uvi, uvec4(packRGBE(thisFrameColor), 0, 0, 0));
   imageStore(temporalHistLengthImage, uvi, uvec4(histLength, 0, 0, 0));
-  // vec4 accumVarianceHist = mix(imageLoad(lastVarianceHistImage, pUv), vec4(0), varianceBlending);
-  // imageStore(varianceHistImage, uvi, accumVarianceHist);
 }

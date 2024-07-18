@@ -98,7 +98,7 @@ void main() {
   float sampleWeight =
       getSampleWeight(lowResUv - intLowResUv, float(renderInfoUbo.data.midResSize.x) /
                                                   float(renderInfoUbo.data.lowResSize.x));
-  float pixelWeight = max(motionWeight, sampleWeight) * 0.1;
+  float pixelWeight = max(motionWeight, sampleWeight) * 0.2;
   pixelWeight       = clamp(pixelWeight, 0, 1);
 
   writingCol = mix(colorPrev, colorCenter, pixelWeight);

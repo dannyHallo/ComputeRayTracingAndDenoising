@@ -289,8 +289,10 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SliderFloat("Phi C", &_svoTracerTweakingData->phiC, 0.0F, 100.0F);
     ImGui::SliderFloat("Phi N", &_svoTracerTweakingData->phiN, 0.0F, 200.0F);
     ImGui::SliderFloat("Phi P", &_svoTracerTweakingData->phiP, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Z", &_svoTracerTweakingData->phiZ, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Z Tolerance", &_svoTracerTweakingData->phiZTolerance, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Z - Far End", &_svoTracerTweakingData->minPhiZ, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Z - Near End", &_svoTracerTweakingData->maxPhiZ, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Z - SSC x256", &_svoTracerTweakingData->phiZStableSampleCount, 0.0F,
+                       1.0F);
 
     ImGui::Checkbox("Changing Luminance Phi", &_svoTracerTweakingData->changingLuminancePhi);
 

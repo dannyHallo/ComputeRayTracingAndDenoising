@@ -34,8 +34,9 @@ struct SvoTracerTweakingData {
   float phiC{};
   float phiN{};
   float phiP{};
-  float phiZ{};
-  float phiZTolerance{};
+  float minPhiZ{};
+  float maxPhiZ{};
+  float phiZStableSampleCount{};
   bool changingLuminancePhi{};
 
 private:

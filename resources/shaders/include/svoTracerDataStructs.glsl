@@ -65,8 +65,9 @@ struct G_SpatialFilterInfo {
   float phiC;
   float phiN;
   float phiP;
-  float phiZ;
-  float phiZTolerance;
+  float minPhiZ;
+  float maxPhiZ;
+  float phiZStableSampleCount;
   uint changingLuminancePhi; // bool
 };
 

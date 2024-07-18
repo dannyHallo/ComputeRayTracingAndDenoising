@@ -660,8 +660,9 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   spatialFilterInfo.phiC                 = _tweakingData.phiC;
   spatialFilterInfo.phiN                 = _tweakingData.phiN;
   spatialFilterInfo.phiP                 = _tweakingData.phiP;
-  spatialFilterInfo.phiZ                 = _tweakingData.phiZ;
-  spatialFilterInfo.phiZTolerance        = _tweakingData.phiZTolerance;
+  spatialFilterInfo.minPhiZ              = _tweakingData.minPhiZ;
+  spatialFilterInfo.maxPhiZ              = _tweakingData.maxPhiZ;
+  spatialFilterInfo.phiZStableSampleCount = _tweakingData.phiZStableSampleCount;
   spatialFilterInfo.changingLuminancePhi = _tweakingData.changingLuminancePhi;
   _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
 
