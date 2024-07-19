@@ -2,8 +2,6 @@
 
 #include "utils/toml-config/TomlConfigReader.hpp"
 
-#include <iostream>
-
 SvoTracerTweakingData::SvoTracerTweakingData(TomlConfigReader *tomlConfigReader)
     : _tomlConfigReader(tomlConfigReader) {
   _loadConfig();
@@ -44,7 +42,4 @@ void SvoTracerTweakingData::_loadConfig() {
       _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZStableSampleCount");
   changingLuminancePhi =
       _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.changingLuminancePhi");
-
-  // check if sunCOlor is read correctly
-  std::cout << "sunColor: " << sunColor.x << " " << sunColor.y << " " << sunColor.z << '\n';
 }
