@@ -17,12 +17,11 @@ void SvoTracerTweakingData::_loadConfig() {
   traceIndirectRay = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.traceIndirectRay");
   taa              = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.taa");
 
-  sunAngleA      = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleA");
-  sunAngleB      = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleB");
-  auto sunColorR = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunColorR");
-  auto sunColorG = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunColorG");
-  auto sunColorB = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunColorB");
-  sunColor       = glm::vec3(sunColorR, sunColorG, sunColorB);
+  sunAngleA = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleA");
+  sunAngleB = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleB");
+  auto sunCol =
+      _tomlConfigReader->getConfig<std::array<float, 3>>("SvoTracerTweakingData.sunColor");
+  sunColor       = glm::vec3(sunCol.at(0), sunCol.at(1), sunCol.at(2));
   sunLuminance   = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunLuminance");
   atmosLuminance = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.atmosLuminance");
   sunSize        = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunSize");
