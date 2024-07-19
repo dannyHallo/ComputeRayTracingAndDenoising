@@ -257,14 +257,15 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t imageIndex)
 
 void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
-    ImGui::SeparatorText("Debug Parameters");
-    ImGui::Checkbox("Debug B1", &_svoTracerTweakingData->debugB1);
-    ImGui::SliderFloat("Debug F1", &_svoTracerTweakingData->debugF1, 0.0F, 1.0F);
+    // ImGui::SeparatorText("Debug Parameters");
+
+    // ImGui::Checkbox("Debug B1", &_svoTracerTweakingData->debugB1);
+    // ImGui::SliderFloat("Debug F1", &_svoTracerTweakingData->debugF1, 0.0F, 1.0F);
 
     ImGui::SeparatorText("Environment Parameters");
 
-    ImGui::SliderFloat("Sun Angle A", &_svoTracerTweakingData->sunAngleA, 0.F, 180.F);
-    ImGui::SliderFloat("Sun Angle B", &_svoTracerTweakingData->sunAngleB, -180.F, 180.F);
+    ImGui::SliderFloat("Sun Altitude", &_svoTracerTweakingData->sunAngleA, 0.F, 180.F);
+    ImGui::SliderFloat("Sun Azimuth", &_svoTracerTweakingData->sunAngleB, -180.F, 180.F);
     ImGui::ColorEdit3("Sun Color", &_svoTracerTweakingData->sunColor.x);
     ImGui::SliderFloat("Sun Luminance", &_svoTracerTweakingData->sunLuminance, 0.0F, 10.0F);
     ImGui::SliderFloat("Atmos Luminance", &_svoTracerTweakingData->atmosLuminance, 0.0F, 10.0F);
@@ -279,22 +280,23 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::Checkbox("TAA", &_svoTracerTweakingData->taa);
 
     ImGui::SeparatorText("Temporal Filter Info");
+
     ImGui::SliderFloat("Temporal Alpha", &_svoTracerTweakingData->temporalAlpha, 0.0F, 1.0F);
-    ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi, 0.0F,
-                       1.0F);
+    // ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi, 0.0F,
+    //                    1.0F);
 
     ImGui::SeparatorText("Spatial Filter Info");
+
     ImGui::SliderInt("A-Trous Iteration Count", &_svoTracerTweakingData->aTrousIterationCount, 0,
                      5);
-    ImGui::SliderFloat("Phi C", &_svoTracerTweakingData->phiC, 0.0F, 100.0F);
-    ImGui::SliderFloat("Phi N", &_svoTracerTweakingData->phiN, 0.0F, 200.0F);
-    ImGui::SliderFloat("Phi P", &_svoTracerTweakingData->phiP, 0.0F, 1.0F);
+    // ImGui::SliderFloat("Phi C", &_svoTracerTweakingData->phiC, 0.0F, 100.0F);
+    // ImGui::SliderFloat("Phi N", &_svoTracerTweakingData->phiN, 0.0F, 200.0F);
+    // ImGui::SliderFloat("Phi P", &_svoTracerTweakingData->phiP, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Z - Far End", &_svoTracerTweakingData->minPhiZ, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Z - Near End", &_svoTracerTweakingData->maxPhiZ, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Z - SSC x256", &_svoTracerTweakingData->phiZStableSampleCount, 0.0F,
-                       1.0F);
-
-    ImGui::Checkbox("Changing Luminance Phi", &_svoTracerTweakingData->changingLuminancePhi);
+    // ImGui::SliderFloat("Phi Z - SSC x256", &_svoTracerTweakingData->phiZStableSampleCount, 0.0F,
+    //                    1.0F);
+    // ImGui::Checkbox("Changing Luminance Phi", &_svoTracerTweakingData->changingLuminancePhi);
 
     ImGui::EndMenu();
   }
