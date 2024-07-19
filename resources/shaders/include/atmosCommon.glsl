@@ -27,8 +27,6 @@ const vec3 kRayleighScatteringBase = vec3(5.802, 13.558, 33.1);
 const float kMieScatteringBase = 8.0;
 const float kMieAbsorptionBase = 4.4;
 
-// use: environmentUbo.data.sunAngleB to tweak on the values
-
 // ozone does not scatter
 // const vec3 kOzoneAbsorptionBase = vec3(0.650, 1.881, 0.085);
 const vec3 kOzoneAbsorptionBase = vec3(0.650, 4.737, 0.085);
