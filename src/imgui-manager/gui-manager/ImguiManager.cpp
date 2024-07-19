@@ -7,7 +7,7 @@
 #include "../imgui-backends/imgui_impl_glfw.h"
 #include "../imgui-backends/imgui_impl_vulkan.h"
 #include "app-context/VulkanApplicationContext.hpp"
-#include "application/svo-tracer/SvoTracerTwickingData.hpp"
+#include "application/svo-tracer/SvoTracerTweakingData.hpp"
 #include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"

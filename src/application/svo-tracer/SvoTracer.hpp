@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SvoTracerDataGpu.hpp"
-#include "SvoTracerTwickingData.hpp"
+#include "SvoTracerTweakingData.hpp"
 #include "glm/glm.hpp" // IWYU pragma: export
 #include "scheduler/Scheduler.hpp"
 #include "volk.h"

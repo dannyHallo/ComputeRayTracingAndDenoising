@@ -2,7 +2,7 @@ add_library(src-application STATIC
     svo-builder/SvoBuilder.cpp
     svo-builder/VoxLoader.cpp
     svo-tracer/SvoTracer.cpp
-    svo-tracer/SvoTracerTwickingData.cpp
+    svo-tracer/SvoTracerTweakingData.cpp
     Application.cpp
 )
 

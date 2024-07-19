@@ -1,4 +1,4 @@
-#include "SvoTracerTwickingData.hpp"
+#include "SvoTracerTweakingData.hpp"
 
 #include "utils/toml-config/TomlConfigReader.hpp"
 
@@ -40,7 +40,8 @@ void SvoTracerTweakingData::_loadConfig() {
   phiP    = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiP");
   minPhiZ = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.minPhiZ");
   maxPhiZ = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.maxPhiZ");
-  phiZStableSampleCount = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZStableSampleCount");
+  phiZStableSampleCount =
+      _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.phiZStableSampleCount");
   changingLuminancePhi =
       _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.changingLuminancePhi");
 
