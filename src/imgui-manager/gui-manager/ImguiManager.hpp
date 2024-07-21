@@ -48,7 +48,7 @@ private:
   TomlConfigReader *_tomlConfigReader;
 
   int _framesInFlight;
-  bool _showFpsGraph = true;
+  bool _showFpsGraph = false;
 
   SvoTracerTweakingData *_svoTracerTweakingData;
 
