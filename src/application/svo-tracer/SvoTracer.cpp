@@ -181,6 +181,17 @@ void SvoTracer::_createBlueNoiseImages() {
   filenames.reserve(kBlueNoiseArraySize);
   for (int i = 0; i < kBlueNoiseArraySize; i++) {
     filenames.emplace_back(kPathToResourceFolder +
+                           "/textures/stbn/vec3_2d_1d/"
+                           "stbn_vec3_2Dx1D_128x128x64_" +
+                           std::to_string(i) + ".png");
+  }
+  _vec3BlueNoise = std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
+                                                          VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  filenames.clear();
+  filenames.reserve(kBlueNoiseArraySize);
+  for (int i = 0; i < kBlueNoiseArraySize; i++) {
+    filenames.emplace_back(kPathToResourceFolder +
                            "/textures/stbn/unitvec3_cosine_2d_1d/"
                            "stbn_unitvec3_cosine_2Dx1D_128x128x64_" +
                            std::to_string(i) + ".png");
@@ -689,6 +700,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindUniformBufferBundle(4, _spatialFilterInfoBufferBundle.get());
 
   _descriptorSetBundle->bindStorageImage(5, _vec2BlueNoise.get());
+  _descriptorSetBundle->bindStorageImage(42, _vec3BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(6, _weightedCosineBlueNoise.get());
 
   _descriptorSetBundle->bindStorageImage(7, _svoBuilder->getChunksImage());

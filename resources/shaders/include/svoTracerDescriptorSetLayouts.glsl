@@ -15,6 +15,7 @@ layout(binding = 4) uniform SpatialFilterInfoUniformBuffer { G_SpatialFilterInfo
 spatialFilterInfoUbo;
 
 layout(binding = 5, rgba8) readonly uniform image2DArray vec2BlueNoise;
+layout(binding = 42, rgba8) readonly uniform image2DArray vec3BlueNoise;
 layout(binding = 6, rgba8) readonly uniform image2DArray weightedCosineBlueNoise;
 
 layout(binding = 7, r32ui) uniform uimage3D chunksImage;
