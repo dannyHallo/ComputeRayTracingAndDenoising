@@ -19,29 +19,17 @@ const vec2 kSkyLutRes = vec2(200.0);
 
 const vec3 kGroundAlbedo = vec3(0.3);
 
-// // found in sec 4, table 1
-// const vec3 kRayleighScatteringBase = vec3(5.802, 13.558, 33.1);
-// // rayleigh does not absorb
+// found in sec 4, table 1
+// the configuables are located in the environment UBO
+// rayleigh does not absorb
+// ozone does not scatter
 
-// // const float kMieScatteringBase = 3.996;
-// const float kMieScatteringBase = 8.0;
-// const float kMieAbsorptionBase = 4.4;
+#include "../include/core/geom.glsl"
 
-// // ozone does not scatter
-// // const vec3 kOzoneAbsorptionBase = vec3(0.650, 1.881, 0.085);
-// const vec3 kOzoneAbsorptionBase = vec3(0.650, 4.737, 0.085);
-
-vec3 getSphericalDir(float theta, float phi) {
-  float sinPhi = sin(phi);
-  return vec3(sinPhi * sin(theta), cos(phi), sinPhi * cos(theta));
-}
-
-// input: the angle between the sun and -z axis, using +y as the positive
+// input: alt is the angle from the zenith, up is positive,
+//        azi is the azimuthal angle
 // output: unit vector pointing towards the sun
-vec3 getDirOnUnitSphere(float alt, float azi) {
-  float cosAlt = cos(alt);
-  return vec3(cosAlt * sin(azi), sin(alt), cosAlt * cos(azi));
-}
+vec3 getDirOnUnitSphere(float alt, float azi) { return getSphericalDir(azi, kHalfPi - alt); }
 
 // the phase function for rayleigh scattering
 // theta is the angle between the incident light and the scattered light

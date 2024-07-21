@@ -4,6 +4,7 @@
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
 #include "../include/core/definitions.glsl"
+#include "../include/core/geom.glsl"
 
 // for easier searching
 struct Disturbance {
@@ -99,14 +100,11 @@ vec2 randomUv(uvec3 seed, Disturbance disturb) {
 vec3 randomInUnitSphere(uvec3 seed, Disturbance disturb) {
   vec2 rand = randomUv(seed, disturb);
 
+  // (1, -1) => acos => (0, pi), uniform before acos
   float phi   = acos(1.0 - 2.0 * rand.x);
   float theta = 2.0 * kPi * rand.y;
 
-  float x = sin(phi) * cos(theta);
-  float y = sin(phi) * sin(theta);
-  float z = cos(phi);
-
-  return vec3(x, y, z);
+  return getSphericalDir(theta, phi);
 }
 
 vec3 randomInHemisphere(vec3 normal, uvec3 seed, Disturbance disturb) {

@@ -16,8 +16,6 @@ vec3 getRandomShadowRay(vec3 sunDir, uvec3 seed, Disturbance disturb) {
   return normalize(sunDir + randomInUnitSphere * kTanSunAngleReal);
 }
 
-bool hitSun(vec3 rayDir, vec3 sunDir) { return dot(rayDir, sunDir) >= kCosSunAngleReal; }
-
 float _sunLuminance(vec3 rayDir, vec3 sunDir) {
   const float dropoffFac    = 600.0;
   const float dropoffPreset = 0.02; // this should be fixed

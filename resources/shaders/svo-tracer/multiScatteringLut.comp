@@ -7,13 +7,14 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/atmosCommon.glsl"
 
+#include "../include/core/geom.glsl"
+
 // multi-scattering approximation LUT, depends on transmittanceLut
 // each pixel coordinate corresponds to a height and sun zenith angle
 // does NOT need to update when the sun changes its angle
 // need to be updated when the properties of the atmosphere changes
 const int mulScattSteps   = 2;
 const int sampleCountSqrt = 8;
-
 
 // eq 5 & 7
 // returns psi
