@@ -6,7 +6,7 @@
 #include "../include/core/definitions.glsl"
 
 // for easier searching
-struct BaseDisturbance {
+struct Disturbance {
   uint d;
 };
 
@@ -65,24 +65,23 @@ const uvec3 kBlueNoiseSize = uvec3(128, 128, 64);
 const float invExp         = 1 / exp2(24.);
 const int alpha1Large      = 12664746;
 const int alpha2Large      = 9560334;
-vec2 ldsNoise(uvec3 seed, BaseDisturbance baseDisturbance) {
-  uint n = hash(seed.x + renderInfoUbo.data.lowResSize.x * seed.y + baseDisturbance.d) + seed.z;
+vec2 ldsNoise(uvec3 seed, Disturbance disturb) {
+  uint n = hash(seed.x + renderInfoUbo.data.lowResSize.x * seed.y + disturb.d) + seed.z;
   return fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
 }
 
-vec2 getOffsetFromDisturbance(BaseDisturbance baseDisturbance) {
-  uint n         = baseDisturbance.d + 777123;
+vec2 getOffsetFromDisturbance(Disturbance disturb) {
+  uint n         = disturb.d + 777123;
   vec2 ldsOffset = fract(ivec2(alpha1Large * n, alpha2Large * n) * invExp);
   return ldsOffset;
 }
 
-// Returns a random real in [min,max).
-// float random(float min, float max) { return min + (max - min) * random(); }
-vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance) {
+// returns un-correlated random numbers ranging from [0,1] for each channel
+vec2 randomUv(uvec3 seed, Disturbance disturb) {
   vec2 rand;
-  bool useLdsNoise = true;
+  const bool useLdsNoise = true;
   if (useLdsNoise) {
-    vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(baseDisturbance);
+    vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(disturb);
 
     seed = uvec3(seed.x + offsetBasedOnDisturbance.x * kBlueNoiseSize.x,
                  seed.y + offsetBasedOnDisturbance.y * kBlueNoiseSize.x, seed.z);
@@ -97,11 +96,11 @@ vec2 randomUv(uvec3 seed, BaseDisturbance baseDisturbance) {
   return rand;
 }
 
-vec3 randomInUnitSphere(uvec3 seed, BaseDisturbance baseDisturbance) {
-  vec2 rand = randomUv(seed, baseDisturbance);
+vec3 randomInUnitSphere(uvec3 seed, Disturbance disturb) {
+  vec2 rand = randomUv(seed, disturb);
 
-  float phi   = acos(1 - 2 * rand.x);
-  float theta = 2 * kPi * rand.y;
+  float phi   = acos(1.0 - 2.0 * rand.x);
+  float theta = 2.0 * kPi * rand.y;
 
   float x = sin(phi) * cos(theta);
   float y = sin(phi) * sin(theta);
@@ -110,8 +109,8 @@ vec3 randomInUnitSphere(uvec3 seed, BaseDisturbance baseDisturbance) {
   return vec3(x, y, z);
 }
 
-vec3 randomInHemisphere(vec3 normal, uvec3 seed, BaseDisturbance baseDisturbance) {
-  vec3 inUnitSphere = randomInUnitSphere(seed, baseDisturbance);
+vec3 randomInHemisphere(vec3 normal, uvec3 seed, Disturbance disturb) {
+  vec3 inUnitSphere = randomInUnitSphere(seed, disturb);
   if (dot(inUnitSphere, normal) > 0.0)
     return inUnitSphere;
   else
@@ -125,11 +124,11 @@ mat3 makeTBN(vec3 N) {
   return mat3(T, B, N);
 }
 
-vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed, BaseDisturbance baseDisturbance) {
+vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed, Disturbance disturb) {
   vec3 dir;
-  bool useLdsNoise = true;
+  const bool useLdsNoise = true;
   if (useLdsNoise) {
-    vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(baseDisturbance);
+    vec2 offsetBasedOnDisturbance = getOffsetFromDisturbance(disturb);
     seed                          = uvec3(seed.x + offsetBasedOnDisturbance.x * kBlueNoiseSize.x,
                                           seed.y + offsetBasedOnDisturbance.y * kBlueNoiseSize.x, seed.z);
     dir                           = imageLoad(weightedCosineBlueNoise,
@@ -140,7 +139,7 @@ vec3 randomCosineWeightedHemispherePoint(vec3 normal, uvec3 seed, BaseDisturbanc
     dir = dir * 2.0 - 1.0;
 
   } else {
-    vec2 rand = randomUv(seed, baseDisturbance);
+    vec2 rand = randomUv(seed, disturb);
 
     float theta = 2.0 * kPi * rand.x;
     float phi   = acos(sqrt(1.0 - rand.y));

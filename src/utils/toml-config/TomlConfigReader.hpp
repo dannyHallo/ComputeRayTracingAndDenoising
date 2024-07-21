@@ -31,6 +31,7 @@ public:
     // first try to get from custom config
     auto customConfigOpt = _tryGetConfig<T>(ConfigType::kCustom, configItemPath);
     if (customConfigOpt.has_value()) {
+      _logger->info("TomlConfigReader::getConfig() got custom config at {}", configItemPath);
       return customConfigOpt.value();
     }
 
@@ -74,8 +75,6 @@ private:
 
       // check if the config item is an array
       if (!array) {
-        _logger->error("TomlConfigReader::_tryGetConfig() failed to get array at {}",
-                       configItemPath);
         return std::nullopt;
       }
       // check if the array size matches the expected size

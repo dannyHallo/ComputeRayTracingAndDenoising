@@ -336,7 +336,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   vec3 brdf = primaryRayResult.color * kInvPi;
 
   // direct contribution
-  vec3 shadowRayDir   = getRandomShadowRay(sunDir, seed, BaseDisturbance(1));
+  vec3 shadowRayDir   = getRandomShadowRay(sunDir, seed, Disturbance(1));
   vec3 shadowRayColor = vec3(0.0);
   if (dot(shadowRayDir, primaryRayResult.normal) >= 0.0) {
     shadowRayColor = getShadowRayColor(primaryRayResult.nextTracingPosition, shadowRayDir, sunDir);
@@ -351,7 +351,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
 
   // indirect contribution
   vec3 indirectRayDir =
-      randomCosineWeightedHemispherePoint(primaryRayResult.normal, seed, BaseDisturbance(1));
+      randomCosineWeightedHemispherePoint(primaryRayResult.normal, seed, Disturbance(1));
   vec3 indirectRayColor = getIndirectRayColor(primaryRayResult.nextTracingPosition, indirectRayDir,
                                               seed, sunDir, shadowRayDir);
 
