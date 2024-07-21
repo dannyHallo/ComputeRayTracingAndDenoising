@@ -39,7 +39,7 @@ struct G_EnvironmentInfo {
   float sunSize;
 };
 
-struct G_TwickableParameters {
+struct G_TweakableParameters {
   uint debugB1; // bool
   float debugF1;
   uint visualizeChunks;  // bool

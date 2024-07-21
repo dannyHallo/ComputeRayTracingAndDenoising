@@ -11,7 +11,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 vec2 midResToLowRes(ivec2 midResUv) {
   vec2 subpixOffset =
-      bool(twickableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
+      bool(tweakableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
   return (vec2(midResUv) + vec2(0.5)) *
              (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.midResSize)) -
          vec2(0.5) - subpixOffset;
@@ -67,7 +67,7 @@ void main() {
   vec2 lowResUv     = midResToLowRes(uvi);
   ivec2 intLowResUv = ivec2(lowResUv);
 
-  if (!bool(twickableParametersUbo.data.taa)) {
+  if (!bool(tweakableParametersUbo.data.taa)) {
     vec3 writingCol = unpackRGBE(imageLoad(blittedImage, intLowResUv).x).rgb;
     imageStore(taaImage, uvi, vec4(writingCol, 0));
     return;

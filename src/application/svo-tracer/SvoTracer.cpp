@@ -353,8 +353,8 @@ void SvoTracer::_createBuffersAndBufferBundles() {
       std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_EnvironmentInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
-  _twickableParametersBufferBundle =
-      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_TwickableParameters),
+  _tweakableParametersBufferBundle =
+      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_TweakableParameters),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
   _temporalFilterInfoBufferBundle =
@@ -639,15 +639,15 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   environmentInfo.sunSize        = _tweakingData.sunSize;
   _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
 
-  G_TwickableParameters twickableParameters{};
-  twickableParameters.debugB1          = _tweakingData.debugB1;
-  twickableParameters.debugF1          = _tweakingData.debugF1;
-  twickableParameters.visualizeChunks  = _tweakingData.visualizeChunks;
-  twickableParameters.visualizeOctree  = _tweakingData.visualizeOctree;
-  twickableParameters.beamOptimization = _tweakingData.beamOptimization;
-  twickableParameters.traceIndirectRay = _tweakingData.traceIndirectRay;
-  twickableParameters.taa              = _tweakingData.taa;
-  _twickableParametersBufferBundle->getBuffer(currentFrame)->fillData(&twickableParameters);
+  G_TweakableParameters tweakableParameters{};
+  tweakableParameters.debugB1          = _tweakingData.debugB1;
+  tweakableParameters.debugF1          = _tweakingData.debugF1;
+  tweakableParameters.visualizeChunks  = _tweakingData.visualizeChunks;
+  tweakableParameters.visualizeOctree  = _tweakingData.visualizeOctree;
+  tweakableParameters.beamOptimization = _tweakingData.beamOptimization;
+  tweakableParameters.traceIndirectRay = _tweakingData.traceIndirectRay;
+  tweakableParameters.taa              = _tweakingData.taa;
+  _tweakableParametersBufferBundle->getBuffer(currentFrame)->fillData(&tweakableParameters);
 
   G_TemporalFilterInfo temporalFilterInfo{};
   temporalFilterInfo.temporalAlpha       = _tweakingData.temporalAlpha;
@@ -657,13 +657,13 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   G_SpatialFilterInfo spatialFilterInfo{};
   spatialFilterInfo.aTrousIterationCount =
       static_cast<uint32_t>(_tweakingData.aTrousIterationCount);
-  spatialFilterInfo.phiC                 = _tweakingData.phiC;
-  spatialFilterInfo.phiN                 = _tweakingData.phiN;
-  spatialFilterInfo.phiP                 = _tweakingData.phiP;
-  spatialFilterInfo.minPhiZ              = _tweakingData.minPhiZ;
-  spatialFilterInfo.maxPhiZ              = _tweakingData.maxPhiZ;
+  spatialFilterInfo.phiC                  = _tweakingData.phiC;
+  spatialFilterInfo.phiN                  = _tweakingData.phiN;
+  spatialFilterInfo.phiP                  = _tweakingData.phiP;
+  spatialFilterInfo.minPhiZ               = _tweakingData.minPhiZ;
+  spatialFilterInfo.maxPhiZ               = _tweakingData.maxPhiZ;
   spatialFilterInfo.phiZStableSampleCount = _tweakingData.phiZStableSampleCount;
-  spatialFilterInfo.changingLuminancePhi = _tweakingData.changingLuminancePhi;
+  spatialFilterInfo.changingLuminancePhi  = _tweakingData.changingLuminancePhi;
   _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
 
   currentSample++;
@@ -681,7 +681,7 @@ void SvoTracer::_createDescriptorSetBundle() {
 
   _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(1, _environmentInfoBufferBundle.get());
-  _descriptorSetBundle->bindUniformBufferBundle(2, _twickableParametersBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(2, _tweakableParametersBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(3, _temporalFilterInfoBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(4, _spatialFilterInfoBufferBundle.get());
 

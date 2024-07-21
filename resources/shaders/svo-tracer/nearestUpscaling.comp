@@ -22,7 +22,7 @@ ivec2 highResToMidRes(ivec2 highResuvi) {
 
 vec2 midResToLowRes(ivec2 midResuvi) {
   vec2 subpixOffset =
-      bool(twickableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
+      bool(tweakableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
   return (vec2(midResuvi) + vec2(0.5)) *
              (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.midResSize)) -
          vec2(0.5) - subpixOffset;
@@ -75,21 +75,6 @@ vec3 uncharted2_filmic(vec3 v) {
   return curr * white_scale;
 }
 
-// taken from: https://www.shadertoy.com/view/tdSXzD
-vec3 jodieReinhardTmo(vec3 c) {
-  float l = lum(c);
-  vec3 tc = c / (c + 1.0);
-  return mix(c / (l + 1.0), tc, tc);
-}
-
-// maxWhiteLum >= 1.0 for desired effect
-vec3 reinhardExtendedLumTmo(vec3 c, float maxWhiteLum) {
-  maxWhiteLum = 1000.0;
-  float lOld  = lum(c);
-  float lNew  = lOld * (1.0 + (lOld / (maxWhiteLum * maxWhiteLum))) / (1.0 + lOld);
-  return c * (lNew / lOld);
-}
-
 // #define RAW_DIRECT_OUTPUT
 
 void main() {
@@ -114,7 +99,7 @@ void main() {
   vec3 hdrColor  = imageLoad(taaImage, midResUv).rgb;
 
   vec3 color = hdrColor;
-  // color      = jodieReinhardTmo(hdrColor);
+  color      = jodieReinhardTmo(hdrColor);
   // color      = reinhardExtendedLumTmo(hdrColor, 8.0);
   // color = uncharted2_filmic(color);
   // color = vec3(lum(color));

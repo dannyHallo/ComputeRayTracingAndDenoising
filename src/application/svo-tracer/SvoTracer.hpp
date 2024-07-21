@@ -168,7 +168,7 @@ private:
 
   std::unique_ptr<BufferBundle> _renderInfoBufferBundle;
   std::unique_ptr<BufferBundle> _environmentInfoBufferBundle;
-  std::unique_ptr<BufferBundle> _twickableParametersBufferBundle;
+  std::unique_ptr<BufferBundle> _tweakableParametersBufferBundle;
   std::unique_ptr<BufferBundle> _temporalFilterInfoBufferBundle;
   std::unique_ptr<BufferBundle> _spatialFilterInfoBufferBundle;
 

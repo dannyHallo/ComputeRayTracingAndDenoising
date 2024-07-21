@@ -271,7 +271,7 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SliderFloat("Atmos Luminance", &_svoTracerTweakingData->atmosLuminance, 0.0F, 10.0F);
     ImGui::SliderFloat("Sun Size", &_svoTracerTweakingData->sunSize, 0.0F, 100.0F);
 
-    ImGui::SeparatorText("Twickable Parameters");
+    ImGui::SeparatorText("Tweakable Parameters");
 
     ImGui::Checkbox("Visualize Chunks", &_svoTracerTweakingData->visualizeChunks);
     ImGui::Checkbox("Visualize Octree", &_svoTracerTweakingData->visualizeOctree);
@@ -282,7 +282,8 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SeparatorText("Temporal Filter Info");
 
     ImGui::SliderFloat("Temporal Alpha", &_svoTracerTweakingData->temporalAlpha, 0.0F, 1.0F);
-    // ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi, 0.0F,
+    // ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi,
+    // 0.0F,
     //                    1.0F);
 
     ImGui::SeparatorText("Spatial Filter Info");

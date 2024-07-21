@@ -4,7 +4,23 @@
 #include "../include/core/color.glsl"
 
 // tunemap operators
+// taken from: https://64.github.io/tonemapping
+// combined jodie-reinhard with exteneded reinhard (luminance tune map) for auto exposure
+vec3 jodieReinhardTmo(vec3 c) {
+  float maxWhiteLum = tweakableParametersUbo.data.debugF1 * 10.0;
 
+  vec3 a = c / (lum(c) + 1.0);
+
+  if (maxWhiteLum <= 1.0) {
+    vec3 b = c / maxWhiteLum;
+    return b;
+  }
+
+  vec3 b = c * (1.0 + (c / (maxWhiteLum * maxWhiteLum))) / (c + 1.0);
+
+  float mixFac = smoothstep(1.0, 1.1, maxWhiteLum);
+  return mix(b, mix(a, b, b), mixFac);
+}
 
 // taken from: https://www.shadertoy.com/view/MslGR8
 vec3 getDitherMask(ivec2 screenSpaceUv) {

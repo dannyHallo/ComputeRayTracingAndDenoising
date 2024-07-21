@@ -7,8 +7,8 @@ layout(binding = 0) uniform RenderInfoUniformBuffer { G_RenderInfo data; }
 renderInfoUbo;
 layout(binding = 1) uniform EnvironmentUniformBuffer { G_EnvironmentInfo data; }
 environmentUbo;
-layout(binding = 2) uniform TwickableParametersUniformBuffer { G_TwickableParameters data; }
-twickableParametersUbo;
+layout(binding = 2) uniform TweakableParametersUniformBuffer { G_TweakableParameters data; }
+tweakableParametersUbo;
 layout(binding = 3) uniform TemporalFilterInfoUniformBuffer { G_TemporalFilterInfo data; }
 temporalFilterInfoUbo;
 layout(binding = 4) uniform SpatialFilterInfoUniformBuffer { G_SpatialFilterInfo data; }

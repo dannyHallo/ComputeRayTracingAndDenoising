@@ -26,7 +26,7 @@ nearestUpscaleRatio = 1.0
 
 [SvoTracerTweakingData]
 debugB1 = false
-debugF1 = 0.0
+debugF1 = 0.8
 visualizeChunks = false
 visualizeOctree = false
 beamOptimization = true
