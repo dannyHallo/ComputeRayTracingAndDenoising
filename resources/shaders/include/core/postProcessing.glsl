@@ -5,19 +5,6 @@
 
 // tunemap operators
 
-// taken from: https://www.shadertoy.com/view/tdSXzD
-vec3 jodieReinhardTmo(vec3 c) {
-  float l = lum(c);
-  vec3 tc = c / (c + 1.0);
-  return mix(c / (l + 1.0), tc, tc);
-}
-
-vec3 reinhardExtendedLumTmo(vec3 v, float maxWhiteLum) {
-  float lOld      = lum(v);
-  float numerator = lOld * (1.0f + (lOld / (maxWhiteLum * maxWhiteLum)));
-  float lNew      = numerator / (1.0f + lOld);
-  return v * (lNew / lOld);
-}
 
 // taken from: https://www.shadertoy.com/view/MslGR8
 vec3 getDitherMask(ivec2 screenSpaceUv) {

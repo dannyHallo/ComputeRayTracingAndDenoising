@@ -56,6 +56,40 @@ vec3 debugInfoOverwrite(ivec2 midResuvi) {
   return unpackRGBE(imageLoad(octreeVisualizationImage, lowResuvi).x);
 }
 
+vec3 uncharted2_tonemap_partial(vec3 x) {
+  float A = 0.15f;
+  float B = 0.50f;
+  float C = 0.10f;
+  float D = 0.20f;
+  float E = 0.02f;
+  float F = 0.30f;
+  return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+}
+
+vec3 uncharted2_filmic(vec3 v) {
+  float exposure_bias = 2.0f;
+  vec3 curr           = uncharted2_tonemap_partial(v * exposure_bias);
+
+  vec3 W           = vec3(11.2f);
+  vec3 white_scale = vec3(1.0f) / uncharted2_tonemap_partial(W);
+  return curr * white_scale;
+}
+
+// taken from: https://www.shadertoy.com/view/tdSXzD
+vec3 jodieReinhardTmo(vec3 c) {
+  float l = lum(c);
+  vec3 tc = c / (c + 1.0);
+  return mix(c / (l + 1.0), tc, tc);
+}
+
+// maxWhiteLum >= 1.0 for desired effect
+vec3 reinhardExtendedLumTmo(vec3 c, float maxWhiteLum) {
+  maxWhiteLum = 1000.0;
+  float lOld  = lum(c);
+  float lNew  = lOld * (1.0 + (lOld / (maxWhiteLum * maxWhiteLum))) / (1.0 + lOld);
+  return c * (lNew / lOld);
+}
+
 // #define RAW_DIRECT_OUTPUT
 
 void main() {
@@ -80,15 +114,17 @@ void main() {
   vec3 hdrColor  = imageLoad(taaImage, midResUv).rgb;
 
   vec3 color = hdrColor;
-  color      = jodieReinhardTmo(color);
-  color      = reinhardExtendedLumTmo(hdrColor, 8.0);
+  // color      = jodieReinhardTmo(hdrColor);
+  // color      = reinhardExtendedLumTmo(hdrColor, 8.0);
+  // color = uncharted2_filmic(color);
+  // color = vec3(lum(color));
 
   // dithering pattern, to reduce banding
   color += getDitherMask(uvi);
 
   color += debugInfoOverwrite(midResUv);
 
-  color = blendWithDot(color, uvi);
+  // color = blendWithDot(color, uvi);
 
   // rgb to bgr
   imageStore(renderTargetImage, uvi, vec4(color.bgr, 1));

@@ -257,10 +257,10 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t imageIndex)
 
 void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
-    // ImGui::SeparatorText("Debug Parameters");
+    ImGui::SeparatorText("Debug Parameters");
 
-    // ImGui::Checkbox("Debug B1", &_svoTracerTweakingData->debugB1);
-    // ImGui::SliderFloat("Debug F1", &_svoTracerTweakingData->debugF1, 0.0F, 1.0F);
+    ImGui::Checkbox("Debug B1", &_svoTracerTweakingData->debugB1);
+    ImGui::SliderFloat("Debug F1", &_svoTracerTweakingData->debugF1, 0.0F, 1.0F);
 
     ImGui::SeparatorText("Environment Parameters");
 
