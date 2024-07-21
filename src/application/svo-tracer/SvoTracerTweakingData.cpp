@@ -19,12 +19,19 @@ void SvoTracerTweakingData::_loadConfig() {
 
   sunAngleA = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleA");
   sunAngleB = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleB");
-  auto sunCol =
-      _tomlConfigReader->getConfig<std::array<float, 3>>("SvoTracerTweakingData.sunColor");
-  sunColor       = glm::vec3(sunCol.at(0), sunCol.at(1), sunCol.at(2));
-  sunLuminance   = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunLuminance");
-  atmosLuminance = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.atmosLuminance");
-  sunSize        = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunSize");
+  auto rsb  = _tomlConfigReader->getConfig<std::array<float, 3>>(
+      "SvoTracerTweakingData.rayleighScatteringBase");
+  rayleighScatteringBase = glm::vec3(rsb.at(0), rsb.at(1), rsb.at(2));
+  mieScatteringBase =
+      _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.mieScatteringBase");
+  mieAbsorptionBase =
+      _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.mieAbsorptionBase");
+  auto oab = _tomlConfigReader->getConfig<std::array<float, 3>>(
+      "SvoTracerTweakingData.ozoneAbsorptionBase");
+  ozoneAbsorptionBase = glm::vec3(oab.at(0), oab.at(1), oab.at(2));
+  sunLuminance        = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunLuminance");
+  atmosLuminance      = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.atmosLuminance");
+  sunSize             = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunSize");
 
   temporalAlpha = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.temporalAlpha");
   temporalPositionPhi =

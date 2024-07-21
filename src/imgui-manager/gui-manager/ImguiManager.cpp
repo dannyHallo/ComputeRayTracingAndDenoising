@@ -266,7 +266,13 @@ void ImguiManager::_drawConfigMenuItem() {
 
     ImGui::SliderFloat("Sun Altitude", &_svoTracerTweakingData->sunAngleA, 0.F, 180.F);
     ImGui::SliderFloat("Sun Azimuth", &_svoTracerTweakingData->sunAngleB, -180.F, 180.F);
-    ImGui::ColorEdit3("Sun Color", &_svoTracerTweakingData->sunColor.x);
+    ImGui::InputFloat3("Rayleigh Scattering Base",
+                       &_svoTracerTweakingData->rayleighScatteringBase.x);
+    ImGui::SliderFloat("Mie Scattering Base", &_svoTracerTweakingData->mieScatteringBase, 0.0F,
+                       10.0F);
+    ImGui::SliderFloat("Mie Absorption Base", &_svoTracerTweakingData->mieAbsorptionBase, 0.0F,
+                       10.0F);
+    ImGui::InputFloat3("Ozone Absorption Base", &_svoTracerTweakingData->ozoneAbsorptionBase.x);
     ImGui::SliderFloat("Sun Luminance", &_svoTracerTweakingData->sunLuminance, 0.0F, 10.0F);
     ImGui::SliderFloat("Atmos Luminance", &_svoTracerTweakingData->atmosLuminance, 0.0F, 10.0F);
     ImGui::SliderFloat("Sun Size", &_svoTracerTweakingData->sunSize, 0.0F, 100.0F);

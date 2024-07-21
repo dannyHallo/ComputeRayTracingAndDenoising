@@ -20,7 +20,10 @@ struct SvoTracerTweakingData {
   // for env
   float sunAngleA{};
   float sunAngleB{};
-  glm::vec3 sunColor{};
+  glm::vec3 rayleighScatteringBase{};
+  float mieScatteringBase{};
+  float mieAbsorptionBase{};
+  glm::vec3 ozoneAbsorptionBase{};
   float sunLuminance{};
   float atmosLuminance{};
   float sunSize{};

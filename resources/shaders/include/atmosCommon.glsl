@@ -19,17 +19,17 @@ const vec2 kSkyLutRes = vec2(200.0);
 
 const vec3 kGroundAlbedo = vec3(0.3);
 
-// found in sec 4, table 1
-const vec3 kRayleighScatteringBase = vec3(5.802, 13.558, 33.1);
-// rayleigh does not absorb
+// // found in sec 4, table 1
+// const vec3 kRayleighScatteringBase = vec3(5.802, 13.558, 33.1);
+// // rayleigh does not absorb
 
-// const float kMieScatteringBase = 3.996;
-const float kMieScatteringBase = 8.0;
-const float kMieAbsorptionBase = 4.4;
+// // const float kMieScatteringBase = 3.996;
+// const float kMieScatteringBase = 8.0;
+// const float kMieAbsorptionBase = 4.4;
 
-// ozone does not scatter
-// const vec3 kOzoneAbsorptionBase = vec3(0.650, 1.881, 0.085);
-const vec3 kOzoneAbsorptionBase = vec3(0.650, 4.737, 0.085);
+// // ozone does not scatter
+// // const vec3 kOzoneAbsorptionBase = vec3(0.650, 1.881, 0.085);
+// const vec3 kOzoneAbsorptionBase = vec3(0.650, 4.737, 0.085);
 
 vec3 getSphericalDir(float theta, float phi) {
   float sinPhi = sin(phi);
@@ -77,13 +77,14 @@ void getScatteringValues(vec3 pos, out vec3 oRayleighScattering, out float oMieS
   float rayleighDensity = exp(-altitudeKM * 0.125);
   float mieDensity      = exp(-altitudeKM * 0.833);
 
-  oRayleighScattering = kRayleighScatteringBase * rayleighDensity;
+  oRayleighScattering = environmentUbo.data.rayleighScatteringBase * rayleighDensity;
 
-  oMieScattering      = kMieScatteringBase * mieDensity;
-  float mieAbsorption = kMieAbsorptionBase * mieDensity;
+  oMieScattering      = environmentUbo.data.mieScatteringBase * mieDensity;
+  float mieAbsorption = environmentUbo.data.mieAbsorptionBase * mieDensity;
 
   // ozone does not scatter
-  vec3 ozoneAbsorption = kOzoneAbsorptionBase * max(0.0, 1.0 - abs(altitudeKM - 25.0) / 15.0);
+  vec3 ozoneAbsorption =
+      environmentUbo.data.ozoneAbsorptionBase * max(0.0, 1.0 - abs(altitudeKM - 25.0) / 15.0);
 
   // the sum of all scattering and obsorbtion
   oExtinction = oRayleighScattering + oMieScattering + mieAbsorption + ozoneAbsorption;

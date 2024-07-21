@@ -1,0 +1,4 @@
+[SvoTracerTweakingData]
+mieScatteringBase = 2.5
+mieAbsorptionBase = 5.0
+ozoneAbsorptionBase = [ 1.0, 8.0, 0.0 ]
