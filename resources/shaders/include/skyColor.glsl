@@ -12,8 +12,8 @@ const float kCosSunAngleReal = cos(kSunAngleReal);
 const float kTanSunAngleReal = tan(kSunAngleReal);
 
 vec3 getRandomShadowRay(vec3 sunDir, uvec3 seed, Disturbance disturb) {
-  vec3 randomInUnitSphere = randomInUnitSphere(seed, disturb);
-  return normalize(sunDir + randomInUnitSphere * kTanSunAngleReal);
+  vec3 randomPointOnSphere = randomPointOnSphere(seed, disturb);
+  return normalize(sunDir + randomPointOnSphere * kTanSunAngleReal);
 }
 
 float _sunLuminance(vec3 rayDir, vec3 sunDir) {

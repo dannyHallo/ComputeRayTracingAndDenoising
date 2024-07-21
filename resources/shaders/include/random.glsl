@@ -97,7 +97,7 @@ vec2 randomUv(uvec3 seed, Disturbance disturb) {
   return rand;
 }
 
-vec3 randomInUnitSphere(uvec3 seed, Disturbance disturb) {
+vec3 randomPointOnSphere(uvec3 seed, Disturbance disturb) {
   vec2 rand = randomUv(seed, disturb);
 
   // (1, -1) => acos => (0, pi), uniform before acos
@@ -107,12 +107,12 @@ vec3 randomInUnitSphere(uvec3 seed, Disturbance disturb) {
   return getSphericalDir(theta, phi);
 }
 
-vec3 randomInHemisphere(vec3 normal, uvec3 seed, Disturbance disturb) {
-  vec3 inUnitSphere = randomInUnitSphere(seed, disturb);
-  if (dot(inUnitSphere, normal) > 0.0)
-    return inUnitSphere;
+vec3 randomPointOnHemisphere(vec3 normal, uvec3 seed, Disturbance disturb) {
+  vec3 pointOnSphere = randomPointOnSphere(seed, disturb);
+  if (dot(pointOnSphere, normal) > 0.0)
+    return pointOnSphere;
   else
-    return -inUnitSphere;
+    return -pointOnSphere;
 }
 
 mat3 makeTBN(vec3 N) {
