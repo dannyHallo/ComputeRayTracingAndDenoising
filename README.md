@@ -4,10 +4,9 @@ This voxel tracing project is originally inspired by John Lin's work here [https
 
 # Roadmap
 
-- [ ] Enabling parameter tweaking on atmos
-- [ ] Tonemapping (ACES) https://zhuanlan.zhihu.com/p/21983679 https://www.youtube.com/watch?v=wbn5ULLtkHs
-- [ ] Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
-- [ ] Ocean
+- [ ] Feat: Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
+- [ ] Feat: Ocean
+- [ ] Fix: TAA flicker
 
 # Build this project
 
