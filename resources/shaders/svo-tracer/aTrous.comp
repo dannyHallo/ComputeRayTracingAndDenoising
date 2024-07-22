@@ -34,7 +34,7 @@ void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
   }
 
   oNormal   = unpackNormal(imageLoad(normalImage, uvi).x);
-  oColor    = unpackRGBE(imageLoad(aTrousPingImage, uvi).x);
+  oColor    = imageLoad(aTrousPingImage, uvi).rgb;
   oPosition = imageLoad(positionImage, uvi).xyz;
 }
 
@@ -45,7 +45,7 @@ void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
   }
 
   oNormal   = unpackNormal(imageLoad(normalImage, uvi).x);
-  oColor    = unpackRGBE(imageLoad(aTrousPongImage, uvi).x);
+  oColor    = imageLoad(aTrousPongImage, uvi).rgb;
   oPosition = imageLoad(positionImage, uvi).xyz;
 }
 
@@ -170,22 +170,21 @@ void main() {
   }
   vec3 weightedColor = sumOfWeightedColors / weightSum;
 
-  uint packedWeightedColor = packRGBE(weightedColor);
   // send to accum buffer for the first iteration
   if (currentIteration == 0) {
-    imageStore(accumedImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
+    imageStore(accumedImage, uvi, vec4(weightedColor, 0));
   }
 
   // dump image if this is the last iteration
   if (currentIteration == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
-    imageStore(aTrousFinalResultImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
+    imageStore(aTrousFinalResultImage, uvi, vec4(weightedColor, 0));
     return;
   }
 
   // send to pingpong buffer
   if (currentIteration % 2 == 0) {
-    imageStore(aTrousPongImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
+    imageStore(aTrousPongImage, uvi, vec4(weightedColor, 0));
   } else {
-    imageStore(aTrousPingImage, uvi, uvec4(packedWeightedColor, 0, 0, 0));
+    imageStore(aTrousPingImage, uvi, vec4(weightedColor, 0));
   }
 }

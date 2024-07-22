@@ -53,7 +53,7 @@ vec3 debugInfoOverwrite(ivec2 midResuvi) {
       lowResuvi.y >= renderInfoUbo.data.lowResSize.y) {
     return vec3(0);
   }
-  return unpackRGBE(imageLoad(octreeVisualizationImage, lowResuvi).x);
+  return imageLoad(octreeVisualizationImage, lowResuvi);
 }
 
 // #define RAW_DIRECT_OUTPUT
@@ -65,7 +65,6 @@ void main() {
   if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.lowResSize)))) {
     return;
   }
-  // vec3 readingCol = unpackRGBE(imageLoad(rawImage, uvi).x).rgb;
   vec3 readingCol = vec3(imageLoad(temporalHistLengthImage, uvi).x / 256.0, 0.0, 0.0);
   imageStore(renderTargetImage, uvi, vec4(readingCol.zyx, 1));
   return;
