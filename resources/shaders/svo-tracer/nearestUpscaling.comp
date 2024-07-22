@@ -53,7 +53,7 @@ vec3 debugInfoOverwrite(ivec2 midResuvi) {
       lowResuvi.y >= renderInfoUbo.data.lowResSize.y) {
     return vec3(0);
   }
-  return imageLoad(octreeVisualizationImage, lowResuvi);
+  return imageLoad(octreeVisualizationImage, lowResuvi).rgb;
 }
 
 // #define RAW_DIRECT_OUTPUT
