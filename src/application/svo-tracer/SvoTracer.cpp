@@ -214,6 +214,7 @@ void SvoTracer::_createSkyLutImages() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _skyLutSampler->getVkSampler());
 }
 
+// https://docs.vulkan.org/spec/latest/chapters/formats.html
 void SvoTracer::_createFullSizedImages() {
   _backgroundImage =
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,

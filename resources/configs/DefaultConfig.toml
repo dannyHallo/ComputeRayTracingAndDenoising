@@ -5,7 +5,7 @@ title = "default config"
 
 [Application]
 framesInFlight = 2
-isFramerateLimited = false
+isFramerateLimited = true
 
 [ImguiManager]
 fontSize = 20
