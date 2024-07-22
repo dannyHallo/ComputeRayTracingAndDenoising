@@ -38,10 +38,12 @@ vec3 unpackNormal(uint enc) {
   return normalize(n);
 }
 
-// uses 9 bits for each color channel, compared to regular 8 bits (UNORM), this method also offers
-// exponential encoding, which offers better accuracy, all of this comes at the cost of some packing
-// and unpacking overhead
-uint packRGBE(vec3 v) {
+// if sampling is not needed, this is an alternative to R16G16B16A16_SFLOAT, it trades time for
+// space
+// it uses 9 bits for each color channel, compared to regular 8 bits (UNORM), this method also
+// offers exponential encoding, which offers better accuracy, all of this comes at the cost of some
+// packing and unpacking overhead
+uint packRgbe(vec3 v) {
   vec3 va       = max(vec3(0), v);
   float max_abs = max(va.r, max(va.g, va.b));
   if (max_abs == 0) return 0;
@@ -60,7 +62,7 @@ uint packRGBE(vec3 v) {
   return result;
 }
 
-vec3 unpackRGBE(uint x) {
+vec3 unpackRgbe(uint x) {
   int exponent = int(x >> 27) - 20;
   float scale  = pow(2, exponent) / 256.0;
 
