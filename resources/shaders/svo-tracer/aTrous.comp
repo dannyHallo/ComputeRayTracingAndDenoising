@@ -143,7 +143,7 @@ void main() {
     // no A-Trous at all: just copy input to the output at the first iteration
     if (currentIteration == 0) {
       vec3 col = imageLoad(aTrousPingImage, uvi).rgb;
-      imageStore(aTrousFinalResultImage, uvi, vec4(col, 0));
+      imageStore(aTrousPongImage, uvi, vec4(col, 0));
       imageStore(accumedImage, uvi, vec4(col, 0));
     }
     return;
@@ -177,7 +177,7 @@ void main() {
 
   // dump image if this is the last iteration
   if (currentIteration == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
-    imageStore(aTrousFinalResultImage, uvi, vec4(weightedColor, 0));
+    imageStore(aTrousPongImage, uvi, vec4(weightedColor, 0));
     return;
   }
 

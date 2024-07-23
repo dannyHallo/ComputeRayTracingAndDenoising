@@ -16,7 +16,6 @@ void main() {
   bool hit = imageLoad(hitImage, uvi).x != 0;
 
   // we don't care about the content, so we don't need to unpack and pack the color
-  vec3 writingCol =
-      hit ? imageLoad(aTrousFinalResultImage, uvi).rgb : imageLoad(backgroundImage, uvi).rgb;
+  vec3 writingCol = hit ? imageLoad(aTrousPongImage, uvi).rgb : imageLoad(backgroundImage, uvi).rgb;
   imageStore(blittedImage, uvi, vec4(writingCol, 0));
 }
