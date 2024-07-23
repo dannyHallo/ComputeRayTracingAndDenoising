@@ -9,6 +9,7 @@ struct SvoTracerTweakingData {
   // debug parameters
   bool debugB1{};
   float debugF1{};
+  int debugI1{};
 
   // tweakable parameters
   bool visualizeChunks{};

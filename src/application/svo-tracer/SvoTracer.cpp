@@ -660,6 +660,7 @@ void SvoTracer::updateUboData(size_t currentFrame) {
   G_TweakableParameters tweakableParameters{};
   tweakableParameters.debugB1          = _tweakingData.debugB1;
   tweakableParameters.debugF1          = _tweakingData.debugF1;
+  tweakableParameters.debugI1          = _tweakingData.debugI1;
   tweakableParameters.visualizeChunks  = _tweakingData.visualizeChunks;
   tweakableParameters.visualizeOctree  = _tweakingData.visualizeOctree;
   tweakableParameters.beamOptimization = _tweakingData.beamOptimization;

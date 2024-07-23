@@ -261,6 +261,7 @@ void ImguiManager::_drawConfigMenuItem() {
 
     ImGui::Checkbox("Debug B1", &_svoTracerTweakingData->debugB1);
     ImGui::SliderFloat("Debug F1", &_svoTracerTweakingData->debugF1, 0.0F, 1.0F);
+    ImGui::SliderInt("Debug I1", &_svoTracerTweakingData->debugI1, 0, 10);
 
     ImGui::SeparatorText("Environment Parameters");
 
