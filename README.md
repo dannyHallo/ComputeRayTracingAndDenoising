@@ -5,6 +5,7 @@ This voxel tracing project is originally inspired by John Lin's work here [https
 # Roadmap
 
 - [ ] Feat: Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
+- [ ] Feat: Clouds https://advances.realtimerendering.com/s2015/index.html
 - [ ] Feat: Ocean
 - [ ] Fix: TAA flicker
 

@@ -217,7 +217,7 @@ void SvoTracer::_createSkyLutImages() {
 // https://docs.vulkan.org/spec/latest/chapters/formats.html
 void SvoTracer::_createFullSizedImages() {
   _backgroundImage = std::make_unique<Image>(
-      _lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+      _lowResWidth, _lowResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
   // w = 16 -> 3, w = 17 -> 4
   _beamDepthImage = std::make_unique<Image>(
@@ -225,7 +225,7 @@ void SvoTracer::_createFullSizedImages() {
       std::ceil(static_cast<float>(_lowResHeight) / static_cast<float>(_beamResolution)) + 1, 1,
       VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _rawImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
+  _rawImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
                                       VK_IMAGE_USAGE_STORAGE_BIT);
 
   _depthImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_SFLOAT,
@@ -282,17 +282,17 @@ void SvoTracer::_createFullSizedImages() {
       _defaultSampler->getVkSampler());
 
   _blittedImage = std::make_unique<Image>(
-      _lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+      _lowResWidth, _lowResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
   // both of the ping and pong can be dumped to the render target image and the lastAccumedImage
   _aTrousPingImage = std::make_unique<Image>(
       _lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _aTrousPongImage = std::make_unique<Image>(
-      _lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+      _lowResWidth, _lowResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _aTrousFinalResultImage = std::make_unique<Image>(
-      _lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+      _lowResWidth, _lowResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _renderTargetImage = std::make_unique<Image>(
       _highResWidth, _highResHeight, 1, VK_FORMAT_R8G8B8A8_UNORM,
