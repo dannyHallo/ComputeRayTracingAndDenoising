@@ -17,7 +17,6 @@
 #define vec2 alignas(8) glm::vec2
 #define mat4 alignas(16) glm::mat4
 #define uvec2 alignas(8) glm::uvec2
-#define bool alignas(4) bool
 #define uint uint32_t
 
 #include "svoBuilderDataStructs.glsl" // IWYU pragma: export
@@ -27,5 +26,4 @@
 #undef vec2
 #undef mat4
 #undef uvec2
-#undef bool
 #undef uint
