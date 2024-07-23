@@ -1,10 +1,12 @@
 #ifndef SVO_BUILDER_DESCRIPTOR_SET_GLSL
 #define SVO_BUILDER_DESCRIPTOR_SET_GLSL
 
+#extension GL_EXT_shader_image_load_formatted : require
+
 #include "../include/svoBuilderDataStructs.glsl"
 
-layout(binding = 0, r8ui) uniform uimage3D chunkFieldImage;
-layout(binding = 1, r32ui) uniform uimage3D chunksImage;
+layout(binding = 0) uniform uimage3D chunkFieldImage;
+layout(binding = 1) uniform uimage3D chunksImage;
 
 layout(std430, binding = 2) writeonly buffer IndirectFragLengthBuffer {
   G_IndirectDispatchInfo data;
