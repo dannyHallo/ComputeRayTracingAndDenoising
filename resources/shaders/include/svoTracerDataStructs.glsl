@@ -21,8 +21,6 @@ struct G_RenderInfo {
   mat4 vpMatPrevInv;
   uvec2 lowResSize;
   vec2 lowResSizeInv;
-  uvec2 midResSize;
-  vec2 midResSizeInv;
   uvec2 highResSize;
   vec2 highResSizeInv;
   float vfov;

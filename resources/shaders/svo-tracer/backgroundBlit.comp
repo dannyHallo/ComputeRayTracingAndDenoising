@@ -5,8 +5,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "../include/core/packer.glsl"
-
 void main() {
   ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
   if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.lowResSize)))) {
@@ -15,7 +13,6 @@ void main() {
 
   bool hit = imageLoad(hitImage, uvi).x != 0;
 
-  // we don't care about the content, so we don't need to unpack and pack the color
   vec3 writingCol = hit ? imageLoad(aTrousPongImage, uvi).rgb : imageLoad(backgroundImage, uvi).rgb;
   imageStore(blittedImage, uvi, vec4(writingCol, 0));
 }

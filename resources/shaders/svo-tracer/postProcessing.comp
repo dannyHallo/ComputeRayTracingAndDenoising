@@ -6,7 +6,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
 #include "../include/core/color.glsl"
-#include "../include/core/packer.glsl"
 #include "../include/core/postProcessing.glsl"
 
 #include "../include/projection.glsl"
@@ -15,17 +14,10 @@ const uint kDotPixelInnerRadius = 4;
 const uint kDotPixelOuterRadius = 5;
 const vec4 kDotColor            = vec4(1, 1, 1, 0.4);
 
-ivec2 highResToMidRes(ivec2 highResuvi) {
-  float ratio = float(renderInfoUbo.data.midResSize.x) / float(renderInfoUbo.data.highResSize.x);
+ivec2 highResToLowRes(ivec2 highResuvi) {
+  const float ratio =
+      float(renderInfoUbo.data.lowResSize.x) / float(renderInfoUbo.data.highResSize.x);
   return ivec2(vec2(highResuvi) * ratio);
-}
-
-vec2 midResToLowRes(ivec2 midResuvi) {
-  vec2 subpixOffset =
-      bool(tweakableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
-  return (vec2(midResuvi) + vec2(0.5)) *
-             (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.midResSize)) -
-         vec2(0.5) - subpixOffset;
 }
 
 vec3 blendWithDot(vec3 color, ivec2 uvi) {
@@ -47,13 +39,12 @@ vec3 blendWithDot(vec3 color, ivec2 uvi) {
   return mix(color, kDotColor.rgb, dotStrength);
 }
 
-vec3 debugInfoOverwrite(ivec2 midResuvi) {
-  ivec2 lowResuvi = ivec2(midResToLowRes(midResuvi));
-  if (lowResuvi.x < 0 || lowResuvi.y < 0 || lowResuvi.x >= renderInfoUbo.data.lowResSize.x ||
-      lowResuvi.y >= renderInfoUbo.data.lowResSize.y) {
+vec3 debugInfoOverwrite(ivec2 lowResUvi) {
+  if (lowResUvi.x < 0 || lowResUvi.y < 0 || lowResUvi.x >= renderInfoUbo.data.lowResSize.x ||
+      lowResUvi.y >= renderInfoUbo.data.lowResSize.y) {
     return vec3(0);
   }
-  return imageLoad(octreeVisualizationImage, lowResuvi).rgb;
+  return imageLoad(octreeVisualizationImage, lowResUvi).rgb;
 }
 
 // #define RAW_DIRECT_OUTPUT
@@ -66,7 +57,7 @@ void main() {
     return;
   }
   vec3 readingCol = vec3(imageLoad(temporalHistLengthImage, uvi).x / 256.0, 0.0, 0.0);
-  imageStore(renderTargetImage, uvi, vec4(readingCol.zyx, 1));
+  imageStore(renderTargetImage, uvi, vec4(readingCol.bgr, 1));
   return;
 #endif
 
@@ -75,8 +66,7 @@ void main() {
     return;
   }
 
-  ivec2 midResUv = highResToMidRes(uvi);
-  vec3 hdrColor  = imageLoad(taaImage, midResUv).rgb;
+  vec3 hdrColor = imageLoad(taaImage, uvi).rgb;
 
   vec3 color = hdrColor;
   color      = jodieReinhardTmo(hdrColor);
@@ -84,7 +74,8 @@ void main() {
   // dithering pattern, to reduce banding
   color += getDitherMask(uvi);
 
-  color += debugInfoOverwrite(midResUv);
+  ivec2 lowResUv = highResToLowRes(uvi);
+  color += debugInfoOverwrite(lowResUv);
 
   // color = blendWithDot(color, uvi);
 

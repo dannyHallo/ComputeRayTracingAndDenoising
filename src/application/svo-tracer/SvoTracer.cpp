@@ -65,25 +65,17 @@ void SvoTracer::_loadConfig() {
   _beamResolution = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.beamResolution");
   _taaSamplingOffsetSize =
       _tomlConfigReader->getConfig<uint32_t>("SvoTracer.taaSamplingOffsetSize");
-  _taaUpscaleRatio     = _tomlConfigReader->getConfig<float>("SvoTracer.taaUpscaleRatio");
-  _nearestUpscaleRatio = _tomlConfigReader->getConfig<float>("SvoTracer.nearestUpscaleRatio");
+  _upscaleRatio = _tomlConfigReader->getConfig<float>("SvoTracer.upscaleRatio");
 }
 
 void SvoTracer::_updateImageResolutions() {
-  float h2m = 1 / _nearestUpscaleRatio;
-  float m2l = 1 / _taaUpscaleRatio;
-
   _highResWidth  = _appContext->getSwapchainExtentWidth();
   _highResHeight = _appContext->getSwapchainExtentHeight();
 
-  _midResWidth  = static_cast<uint32_t>(static_cast<float>(_highResWidth) * h2m);
-  _midResHeight = static_cast<uint32_t>(static_cast<float>(_highResHeight) * h2m);
-
-  _lowResWidth  = static_cast<uint32_t>(static_cast<float>(_midResWidth) * m2l);
-  _lowResHeight = static_cast<uint32_t>(static_cast<float>(_midResHeight) * m2l);
+  _lowResWidth  = static_cast<uint32_t>(_highResWidth / _upscaleRatio);
+  _lowResHeight = static_cast<uint32_t>(_highResHeight / _upscaleRatio);
 
   _logger->info("high res: {}x{}", _highResWidth, _highResHeight);
-  _logger->info("mid res: {}x{}", _midResWidth, _midResHeight);
   _logger->info("low res: {}x{}", _lowResWidth, _lowResHeight);
 }
 
@@ -279,11 +271,11 @@ void SvoTracer::_createFullSizedImages() {
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _taaImage =
-      std::make_unique<Image>(_midResWidth, _midResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+      std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
   _lastTaaImage = std::make_unique<Image>(
-      _midResWidth, _midResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+      _highResWidth, _highResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       _defaultSampler->getVkSampler());
 
@@ -329,7 +321,7 @@ void SvoTracer::_createImageForwardingPairs() {
       VK_IMAGE_LAYOUT_GENERAL);
 
   _taaForwardingPair = std::make_unique<ImageForwardingPair>(
-      _taaImage->getVkImage(), _lastTaaImage->getVkImage(), _midResWidth, _midResHeight,
+      _taaImage->getVkImage(), _lastTaaImage->getVkImage(), _highResWidth, _highResHeight,
       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_GENERAL);
 
@@ -528,14 +520,13 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    _taaUpscalingPipeline->recordCommand(cmdBuffer, frameIndex, _midResWidth, _midResHeight, 1);
+    _taaUpscalingPipeline->recordCommand(cmdBuffer, frameIndex, _highResWidth, _highResHeight, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    _nearestUpscalingPipeline->recordCommand(cmdBuffer, frameIndex, _highResWidth, _highResHeight,
-                                             1);
+    _postProcessingPipeline->recordCommand(cmdBuffer, frameIndex, _highResWidth, _highResHeight, 1);
 
     // copy to history images
     _normalForwardingPair->forwardCopy(cmdBuffer);
@@ -633,8 +624,6 @@ void SvoTracer::updateUboData(size_t currentFrame) {
       vpMatPrevInv,
       glm::uvec2(_lowResWidth, _lowResHeight),
       glm::vec2(1.F / static_cast<float>(_lowResWidth), 1.F / static_cast<float>(_lowResHeight)),
-      glm::uvec2(_midResWidth, _midResHeight),
-      glm::vec2(1.F / static_cast<float>(_midResWidth), 1.F / static_cast<float>(_midResHeight)),
       glm::uvec2(_highResWidth, _highResHeight),
       glm::vec2(1.F / static_cast<float>(_highResWidth), 1.F / static_cast<float>(_highResHeight)),
       _camera->getVFov(),
@@ -813,11 +802,11 @@ void SvoTracer::_createPipelines() {
   _taaUpscalingPipeline->compileAndCacheShaderModule(false);
   _taaUpscalingPipeline->build();
 
-  _nearestUpscalingPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, _makeShaderFullPath("nearestUpscaling.comp"),
+  _postProcessingPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, _makeShaderFullPath("postProcessing.comp"),
       WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _nearestUpscalingPipeline->compileAndCacheShaderModule(false);
-  _nearestUpscalingPipeline->build();
+  _postProcessingPipeline->compileAndCacheShaderModule(false);
+  _postProcessingPipeline->build();
 }
 
 void SvoTracer::_updatePipelinesDescriptorBundles() {
@@ -831,5 +820,5 @@ void SvoTracer::_updatePipelinesDescriptorBundles() {
   _aTrousPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _backgroundBlitPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _taaUpscalingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
-  _nearestUpscalingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  _postProcessingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
 }

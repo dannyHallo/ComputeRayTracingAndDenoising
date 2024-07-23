@@ -7,13 +7,11 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "../include/core/packer.glsl"
-
-vec2 midResToLowRes(ivec2 midResUv) {
+vec2 highResToLowRes(ivec2 highResUvi) {
   vec2 subpixOffset =
       bool(tweakableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
-  return (vec2(midResUv) + vec2(0.5)) *
-             (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.midResSize)) -
+  return (vec2(highResUvi) + vec2(0.5)) *
+             (vec2(renderInfoUbo.data.lowResSize) / vec2(renderInfoUbo.data.highResSize)) -
          vec2(0.5) - subpixOffset;
 }
 
@@ -60,15 +58,15 @@ float getSampleWeight(vec2 delta, float scale) {
 
 void main() {
   ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
-  if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.midResSize)))) {
+  if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.highResSize)))) {
     return;
   }
 
-  vec2 lowResUv     = midResToLowRes(uvi);
-  ivec2 intLowResUv = ivec2(lowResUv);
+  vec2 lowResUv   = highResToLowRes(uvi);
+  ivec2 lowResUvi = ivec2(lowResUv);
 
   if (!bool(tweakableParametersUbo.data.taa)) {
-    vec3 writingCol = imageLoad(blittedImage, intLowResUv).rgb;
+    vec3 writingCol = imageLoad(blittedImage, lowResUvi).rgb;
     imageStore(taaImage, uvi, vec4(writingCol, 0));
     return;
   }
@@ -78,13 +76,13 @@ void main() {
   // get moments
   vec3 mom1, mom2;
   vec3 colorCenter;
-  getMoments(mom1, mom2, colorCenter, intLowResUv);
+  getMoments(mom1, mom2, colorCenter, lowResUvi);
 
   // motion points to the last frame
-  vec2 motion = getMotion(intLowResUv) * vec2(renderInfoUbo.data.midResSize);
+  vec2 motion = getMotion(lowResUvi) * vec2(renderInfoUbo.data.highResSize);
   vec2 pUv    = vec2(uvi) + vec2(0.5) + motion;
 
-  vec3 colorPrev = textureLod(lastTaaTexture, pUv * renderInfoUbo.data.midResSizeInv, 0).xyz;
+  vec3 colorPrev = textureLod(lastTaaTexture, pUv * renderInfoUbo.data.highResSizeInv, 0).xyz;
 
   // neighborhood color clamping using variance
   float varianceScale = 3.0;
@@ -96,8 +94,8 @@ void main() {
   // mix the new color with the clamped previous color
   float motionWeight = smoothstep(0.0, 1.0, length(motion));
   float sampleWeight =
-      getSampleWeight(lowResUv - intLowResUv, float(renderInfoUbo.data.midResSize.x) /
-                                                  float(renderInfoUbo.data.lowResSize.x));
+      getSampleWeight(lowResUv - lowResUvi, float(renderInfoUbo.data.highResSize.x) /
+                                                float(renderInfoUbo.data.lowResSize.x));
   float pixelWeight = max(motionWeight, sampleWeight) * 0.2;
   pixelWeight       = clamp(pixelWeight, 0, 1);
 

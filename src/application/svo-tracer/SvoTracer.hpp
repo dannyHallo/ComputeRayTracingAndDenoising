@@ -72,8 +72,7 @@ private:
   uint32_t _aTrousSizeMax{};
   uint32_t _beamResolution{};
   uint32_t _taaSamplingOffsetSize{};
-  float _taaUpscaleRatio{};
-  float _nearestUpscaleRatio{};
+  float _upscaleRatio{};
   void _loadConfig();
 
   size_t _framesInFlight;
@@ -82,8 +81,6 @@ private:
 
   uint32_t _lowResWidth   = 0;
   uint32_t _lowResHeight  = 0;
-  uint32_t _midResWidth   = 0;
-  uint32_t _midResHeight  = 0;
   uint32_t _highResWidth  = 0;
   uint32_t _highResHeight = 0;
 
@@ -194,7 +191,7 @@ private:
   std::unique_ptr<ComputePipeline> _aTrousPipeline;
   std::unique_ptr<ComputePipeline> _backgroundBlitPipeline;
   std::unique_ptr<ComputePipeline> _taaUpscalingPipeline;
-  std::unique_ptr<ComputePipeline> _nearestUpscalingPipeline;
+  std::unique_ptr<ComputePipeline> _postProcessingPipeline;
 
   void _createDescriptorSetBundle();
   void _createPipelines();
