@@ -26,7 +26,9 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uvi) {
+// TODO: test to use sampler here?
+void loadDataFromPingPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uvi,
+                          uint currentIteration) {
   ivec2 bound = ivec2(renderInfoUbo.data.lowResSize);
   // padding
   if (any(lessThan(uvi, ivec2(0))) || any(greaterThanEqual(uvi, bound))) {
@@ -34,19 +36,17 @@ void loadDataFromPing(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ive
   }
 
   oNormal   = unpackNormal(imageLoad(normalImage, uvi).x);
-  oColor    = imageLoad(aTrousPingImage, uvi).rgb;
+  oColor    = (currentIteration % 2 == 0) ? imageLoad(aTrousPongImage, uvi).rgb
+                                          : imageLoad(aTrousPingImage, uvi).rgb;
   oPosition = imageLoad(positionImage, uvi).xyz;
 }
 
-void loadDataFromPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uvi) {
-  ivec2 bound = ivec2(renderInfoUbo.data.lowResSize);
-  if (any(lessThan(uvi, ivec2(0))) || any(greaterThanEqual(uvi, bound))) {
-    uvi = clamp(uvi, ivec2(0), bound - ivec2(1));
+void saveColorToPingPong(ivec2 uvi, vec3 color, uint currentIteration) {
+  if (currentIteration % 2 == 0) {
+    imageStore(aTrousPingImage, uvi, vec4(color, 0));
+  } else {
+    imageStore(aTrousPongImage, uvi, vec4(color, 0));
   }
-
-  oNormal   = unpackNormal(imageLoad(normalImage, uvi).x);
-  oColor    = imageLoad(aTrousPongImage, uvi).rgb;
-  oPosition = imageLoad(positionImage, uvi).xyz;
 }
 
 void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi, ivec2 dispatchXY,
@@ -55,7 +55,8 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
   int stepSize   = 1 << currentIteration;
   ivec2 offsetXY = dispatchXY * stepSize;
 
-  // jittering is heavy and no longer applied here to avoid divergence withing the same warp
+  // jittering is computationally heavy and is no longer applied here to avoid divergence within
+  // the same warp
 
   float weightK = kernel3x3[abs(dispatchXY.x)][abs(dispatchXY.y)];
 
@@ -72,16 +73,9 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
     return;
   }
 
-  vec3 normalAtSample;
-  vec3 colorAtSample;
-  vec3 positionAtSample;
-  // float varianceAtSample;
-
-  if (currentIteration % 2 == 0) {
-    loadDataFromPong(normalAtSample, colorAtSample, positionAtSample, uvi + offsetXY);
-  } else {
-    loadDataFromPing(normalAtSample, colorAtSample, positionAtSample, uvi + offsetXY);
-  }
+  vec3 normalAtSample, colorAtSample, positionAtSample;
+  loadDataFromPingPong(normalAtSample, colorAtSample, positionAtSample, uvi + offsetXY,
+                       currentIteration);
 
   // WEIGHT_C
   float phiC = spatialFilterInfoUbo.data.phiC * 10.0;
@@ -145,11 +139,7 @@ void main() {
   }
 
   vec3 normalAtUv, colorAtUv, positionAtUv;
-  if (currentIteration % 2 == 0) {
-    loadDataFromPong(normalAtUv, colorAtUv, positionAtUv, uvi);
-  } else {
-    loadDataFromPing(normalAtUv, colorAtUv, positionAtUv, uvi);
-  }
+  loadDataFromPingPong(normalAtUv, colorAtUv, positionAtUv, uvi, currentIteration);
 
   luminanceAtUv = lum(colorAtUv);
   depthAtUv     = imageLoad(depthImage, uvi).x;
@@ -171,10 +161,5 @@ void main() {
     return;
   }
 
-  // send to pingpong buffer
-  if (currentIteration % 2 == 0) {
-    imageStore(aTrousPingImage, uvi, vec4(weightedColor, 0));
-  } else {
-    imageStore(aTrousPongImage, uvi, vec4(weightedColor, 0));
-  }
+  saveColorToPingPong(uvi, weightedColor, currentIteration);
 }
