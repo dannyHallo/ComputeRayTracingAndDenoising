@@ -14,9 +14,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 const float waveletFac      = 0.5;
 const float kernel3x3[2][2] = {{1.0, waveletFac}, {waveletFac, waveletFac *waveletFac}};
 
-float luminanceAtUv;
-float depthAtUv;
-
 ivec2 jittering(int stepSize) {
   uvec3 seed       = uvec3(gl_GlobalInvocationID.xy, renderInfoUbo.data.currentSample);
   vec2 randomNoise = vec2(random(seed), random(seed));
@@ -26,7 +23,6 @@ ivec2 jittering(int stepSize) {
   return jitter;
 }
 
-// TODO: test to use sampler here?
 void loadDataFromPingPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uvi,
                           uint currentIteration) {
   ivec2 bound = ivec2(renderInfoUbo.data.lowResSize);
@@ -141,8 +137,8 @@ void main() {
   vec3 normalAtUv, colorAtUv, positionAtUv;
   loadDataFromPingPong(normalAtUv, colorAtUv, positionAtUv, uvi, currentIteration);
 
-  luminanceAtUv = lum(colorAtUv);
-  depthAtUv     = imageLoad(depthImage, uvi).x;
+  float luminanceAtUv = lum(colorAtUv);
+  float depthAtUv     = imageLoad(depthImage, uvi).x;
 
   const int kernalHalfSize = 1;
   float weightSum          = 0;
