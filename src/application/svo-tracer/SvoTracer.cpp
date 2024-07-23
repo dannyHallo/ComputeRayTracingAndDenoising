@@ -267,8 +267,10 @@ void SvoTracer::_createFullSizedImages() {
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  // for precision reasons, we cannot use 32bpp format here, otherwise when blending alpha is low,
-  // the image will look darker
+  // precision issues occurred when using VK_FORMAT_B10G11R11_UFLOAT_PACK32 to store hdr accumed
+  // results, it can be observed when using a very low alpha blending value.
+  // so either use VK_FORMAT_R32_UINT with custom RGBE packer / unpacker or use
+  // VK_FORMAT_R16G16B16A16_SFLOAT directly
   _accumedImage =
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
