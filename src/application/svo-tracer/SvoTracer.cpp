@@ -267,6 +267,8 @@ void SvoTracer::_createFullSizedImages() {
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
+  // for precision reasons, we cannot use 32bpp format here, otherwise when blending alpha is low,
+  // the image will look darker
   _accumedImage =
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
@@ -288,8 +290,9 @@ void SvoTracer::_createFullSizedImages() {
                               VK_IMAGE_USAGE_STORAGE_BIT);
 
   // both of the ping and pong can be dumped to the render target image and the lastAccumedImage
-  _aTrousPingImage = std::make_unique<Image>(
-      _lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+  _aTrousPingImage =
+      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+                              VK_IMAGE_USAGE_STORAGE_BIT);
 
   // also serves as the output image
   _aTrousPongImage =
