@@ -36,8 +36,8 @@ layout(binding = 18) uniform image2D positionImage;
 layout(binding = 19) uniform image2D lastPositionImage;
 layout(binding = 20) uniform uimage2D voxHashImage;
 layout(binding = 21) readonly uniform uimage2D lastVoxHashImage;
-layout(binding = 22) uniform image2D accumedImage;
-layout(binding = 23) readonly uniform image2D lastAccumedImage;
+layout(binding = 22) uniform uimage2D accumedImage;
+layout(binding = 23) readonly uniform uimage2D lastAccumedImage;
 
 // these are not uint encoded because they need to be SAMPLED as textures, see lastTaaTexture
 layout(binding = 24) uniform image2D taaImage;

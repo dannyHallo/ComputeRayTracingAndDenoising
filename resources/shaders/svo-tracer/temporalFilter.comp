@@ -13,7 +13,7 @@ vec3 getAccumColor(ivec2 pUv) {
   if (any(lessThan(pUv, ivec2(0))) || any(greaterThanEqual(pUv, bound))) {
     return vec3(0);
   }
-  return imageLoad(lastAccumedImage, pUv).rgb;
+  return unpackRgbe(imageLoad(lastAccumedImage, pUv).x);
 }
 
 bool isConsistent(vec3 normal, vec3 lastNormal, vec3 position, vec3 lastPosition) {
@@ -86,7 +86,7 @@ void main() {
     thisFrameColor = rawColor;
   }
 
-  imageStore(accumedImage, uvi, vec4(thisFrameColor, 0));
-  imageStore(aTrousPongImage, uvi, vec4(thisFrameColor, 0));
-  imageStore(temporalHistLengthImage, uvi, uvec4(histLength, 0, 0, 0));
+  imageStore(accumedImage, uvi, uvec4(packRgbe(thisFrameColor), 0, 0, 0));
+  imageStore(aTrousPongImage, uvi, vec4(thisFrameColor, 0.0));
+  imageStore(temporalHistLengthImage, uvi, uvec4(histLength, 0.0, 0.0, 0.0));
 }

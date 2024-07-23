@@ -270,10 +270,10 @@ void SvoTracer::_createFullSizedImages() {
   // for precision reasons, we cannot use 32bpp format here, otherwise when blending alpha is low,
   // the image will look darker
   _accumedImage =
-      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
+      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _lastAccumedImage =
-      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
+      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _taaImage =
