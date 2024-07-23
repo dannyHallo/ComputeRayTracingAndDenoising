@@ -140,7 +140,7 @@ void main() {
 
   uint currentIteration = aTrousIterationBuffer.data;
   if (currentIteration >= spatialFilterInfoUbo.data.aTrousIterationCount) {
-    // no A-Trous at all: just copy input to the output at the first iteration
+    // no A-Trous at all: just copy input to output at the first iteration
     if (currentIteration == 0) {
       vec3 col = imageLoad(aTrousPingImage, uvi).rgb;
       imageStore(aTrousPongImage, uvi, vec4(col, 0));

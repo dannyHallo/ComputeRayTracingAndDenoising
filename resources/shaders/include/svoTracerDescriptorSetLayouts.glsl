@@ -47,6 +47,7 @@ layout(binding = 26) uniform image2D blittedImage;
 
 layout(binding = 27) uniform image2D aTrousPingImage;
 layout(binding = 28) uniform image2D aTrousPongImage;
+// layout(binding = 29) uniform image2D aTrousResultImage;
 
 layout(binding = 30) uniform image2D renderTargetImage;
 

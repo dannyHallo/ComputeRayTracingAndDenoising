@@ -730,7 +730,6 @@ void SvoTracer::_createDescriptorSetBundle() {
 
   _descriptorSetBundle->bindStorageImage(26, _blittedImage.get());
 
-  // atrous ping and pong
   _descriptorSetBundle->bindStorageImage(27, _aTrousPingImage.get());
   _descriptorSetBundle->bindStorageImage(28, _aTrousPongImage.get());
 
