@@ -25,12 +25,6 @@ ivec2 jittering(int stepSize) {
 
 void loadDataFromPingPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uvi,
                           uint currentIteration) {
-  ivec2 bound = ivec2(renderInfoUbo.data.lowResSize);
-  // padding
-  if (any(lessThan(uvi, ivec2(0))) || any(greaterThanEqual(uvi, bound))) {
-    uvi = clamp(uvi, ivec2(0), bound - ivec2(1));
-  }
-
   oNormal   = unpackNormal(imageLoad(normalImage, uvi).x);
   oColor    = (currentIteration % 2 == 0) ? imageLoad(aTrousPongImage, uvi).rgb
                                           : imageLoad(aTrousPingImage, uvi).rgb;
@@ -48,8 +42,9 @@ void saveColorToPingPong(ivec2 uvi, vec3 color, uint currentIteration) {
 void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi, ivec2 dispatchXY,
                 int kernalHalfSize, uint currentIteration, vec3 normalAtUv, vec3 colorAtUv,
                 vec3 positionAtUv, float luminanceAtUv, float depthAtUv) {
-  int stepSize   = 1 << currentIteration;
-  ivec2 offsetXY = dispatchXY * stepSize;
+  int stepSize    = 1 << currentIteration;
+  ivec2 offsetXY  = dispatchXY * stepSize;
+  ivec2 sampleUvi = uvi + offsetXY;
 
   // jittering is computationally heavy and is no longer applied here to avoid divergence within
   // the same warp
@@ -65,12 +60,18 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
   }
 
   // since we give a offset here, we need to check if the hit is valid again
-  if (imageLoad(hitImage, uvi + offsetXY).x == 0) {
+  if (imageLoad(hitImage, sampleUvi).x == 0) {
+    return;
+  }
+
+  // check if the sample point is out of bound
+  if (any(lessThan(sampleUvi, ivec2(0))) ||
+      any(greaterThanEqual(sampleUvi, ivec2(renderInfoUbo.data.lowResSize)))) {
     return;
   }
 
   vec3 normalAtSample, colorAtSample, positionAtSample;
-  loadDataFromPingPong(normalAtSample, colorAtSample, positionAtSample, uvi + offsetXY,
+  loadDataFromPingPong(normalAtSample, colorAtSample, positionAtSample, sampleUvi,
                        currentIteration);
 
   // WEIGHT_C
@@ -97,7 +98,7 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
   // if depth is short, we should avoid blur across different voxel
   // however, if the hist sample is low, we should still blur across them to get rid of noise
   if (depthFalloff > minPhiZ) {
-    bool sameVoxHash = imageLoad(voxHashImage, uvi).x == imageLoad(voxHashImage, uvi + offsetXY).x;
+    bool sameVoxHash = imageLoad(voxHashImage, uvi).x == imageLoad(voxHashImage, sampleUvi).x;
 
     // only if the voxels are different, we might blur across them
     if (!sameVoxHash) {
