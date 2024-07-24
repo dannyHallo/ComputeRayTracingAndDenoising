@@ -19,7 +19,7 @@ ShadowMapCamera::~ShadowMapCamera() = default;
 //   _vFov     = _tomlConfigReader->getConfig<float>("ShadowMapCamera.vFov");
 // }
 
-glm::mat4 ShadowMapCamera::getProjectionMatrix(float aspectRatio, float zNear, float zFar) const {
+glm::mat4 ShadowMapCamera::getProjectionMatrix() const {
   return glm::ortho(0.F, 400.F, 0.F, 400.F);
 }
 

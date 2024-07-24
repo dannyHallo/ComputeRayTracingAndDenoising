@@ -19,6 +19,8 @@ struct G_RenderInfo {
   mat4 vpMatInv;
   mat4 vpMatPrev;
   mat4 vpMatPrevInv;
+  mat4 vpMatShadowMapCam;
+  mat4 vpMatShadowMapCamInv;
   uvec2 lowResSize;
   vec2 lowResSizeInv;
   uvec2 highResSize;

@@ -637,6 +637,10 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
   auto vpMat    = pMat * vMat;
   auto vpMatInv = glm::inverse(vpMat);
 
+  auto vpMatShadowMapCam =
+      _shadowMapCamera->getProjectionMatrix() * _shadowMapCamera->getViewMatrix();
+  auto vpMatShadowMapCamInv = glm::inverse(vpMatShadowMapCam);
+
   G_RenderInfo renderInfo = {
       _camera->getPosition(),
       _camera->getFront(),
@@ -655,6 +659,8 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
       vpMatInv,
       vpMatPrev,
       vpMatPrevInv,
+      vpMatShadowMapCam,
+      vpMatShadowMapCamInv,
       glm::uvec2(_lowResWidth, _lowResHeight),
       glm::vec2(1.F / static_cast<float>(_lowResWidth), 1.F / static_cast<float>(_lowResHeight)),
       glm::uvec2(_highResWidth, _highResHeight),

@@ -26,8 +26,7 @@ public:
 
   // processes input received from a mouse scroll-wheel event. Only requires
   // input on the vertical wheel-axis void processMouseScroll(float yoffset);
-  [[nodiscard]] glm::mat4 getProjectionMatrix(float aspectRatio, float zNear = 0.1F,
-                                              float zFar = 10000) const;
+  [[nodiscard]] glm::mat4 getProjectionMatrix() const;
 
   [[nodiscard]] glm::dmat4 getProjectionMatrixDouble(float aspectRatio, float zNear = 0.1F,
                                                      float zFar = 10000) const;

@@ -444,7 +444,7 @@ void main() {
     imageStore(depthImage, uvi, vec4(tMin, 0, 0, 0));
   }
 
-  color += volumetricLight(o, d, sunDir, tMin);
+  // color += volumetricLight(o, d, sunDir, tMin);
 
   // calculate the motion here avoids a store - load cycle for the position, and the motion vector
   // can be reused in temporal filter and the taa filter, also, using a motion vector is easier for
