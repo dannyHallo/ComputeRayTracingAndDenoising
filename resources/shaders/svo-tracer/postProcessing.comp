@@ -57,7 +57,7 @@ void main() {
     return;
   }
   float dist = imageLoad(shadowMapImage, uvi).x;
-  vec3 col   = vec3(exp(-dist));
+  vec3 col   = vec3(exp(-dist * 0.1));
   imageStore(renderTargetImage, uvi, vec4(col.bgr, 1.0));
   return;
 #endif

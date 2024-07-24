@@ -280,9 +280,9 @@ vec3 projectScreenUvToWorldCamFarPointShadowMap(vec2 screenUv) {
 void rayGen(out vec3 o, out vec3 d) {
   vec2 screenSpaceUv =
       (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / vec2(imageSize(shadowMapImage));
-  o = renderInfoUbo.data.shadowMapCamPosition;
-  d = normalize(projectScreenUvToWorldCamFarPointShadowMap(screenSpaceUv) -
-                renderInfoUbo.data.shadowMapCamPosition);
+  // o = renderInfoUbo.data.shadowMapCamPosition;
+  d = -environmentUbo.data.sunDir;
+  o = projectScreenUvToWorldCamFarPointShadowMap(screenSpaceUv) + environmentUbo.data.sunDir * 10.0;
 }
 
 void main() {
