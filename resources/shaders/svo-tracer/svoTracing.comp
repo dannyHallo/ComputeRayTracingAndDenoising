@@ -247,15 +247,15 @@ bool cascadedMarching(out MarchingResult result, vec3 o, vec3 d) {
 
     uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
 
-    uint thisSvoIteration;
-    hitVoxel = svoMarching(result.t, thisSvoIteration, result.color, result.position,
+    uint chunkIterCount;
+    hitVoxel = svoMarching(result.t, chunkIterCount, result.color, result.position,
                            result.nextTracingPosition, result.normal, result.voxHash,
                            result.lightSourceHit, o + originOffset, d, chunkBufferOffset);
 
     result.position -= originOffset;
     result.nextTracingPosition -= originOffset;
 
-    result.iter += thisSvoIteration;
+    result.iter += chunkIterCount;
     result.chunkTraversed++;
 
     if (hitVoxel) {
@@ -331,6 +331,9 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   oT += optimizedDistance;
 
   if (!primaryRayHit) {
+    oT        = 1e10;
+    oPosition = o + d * oT;
+    oColor    = skyColor(d, sunDir, true);
     return false;
   }
 
@@ -365,17 +368,23 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
 
 vec3 volumetricLight(vec3 o, vec3 d, vec3 sunDir, float t) {
   const uint maxSampleCount = 16;
-  const float maxDist       = 2.0;
+  const float maxDist       = 1.0;
   const float stepLen       = maxDist / float(maxSampleCount);
-  const uint raySampleCount = uint(t / stepLen);
+  const uint raySampleCount = min(maxSampleCount, uint(t / stepLen));
 
+  vec3 col        = vec3(0.0);
   vec3 unitStep   = stepLen * d;
   vec3 marchedPos = o - 0.5 * unitStep;
   for (uint stepI = 0; stepI < raySampleCount; stepI += 1) {
     marchedPos += unitStep;
-  }
 
-  return vec3(0);
+    MarchingResult volumetricLightResult;
+    bool volumetricLightHit = cascadedMarching(volumetricLightResult, marchedPos, sunDir);
+    if (!volumetricLightHit) {
+      col += vec3(0.02);
+    }
+  }
+  return col;
 }
 
 void writeOutputBuffer(ivec2 uvi, bool hitVoxel, vec3 position) {
@@ -428,19 +437,14 @@ void main() {
       getPrimaryRayColor(tMin, primaryRayIterUsed, primaryRayChunkTraversed, color, position,
                          normal, voxHash, seed, o, d, optimizedDistance, sunDir);
 
-  if (!hitVoxel) {
-    tMin     = 1e10;
-    position = o + d * tMin;
-    color    = skyColor(d, sunDir, true);
-  } else {
+  if (hitVoxel) {
     imageStore(positionImage, uvi, vec4(position, 0));
     imageStore(normalImage, uvi, uvec4(packNormal(normal), 0, 0, 0));
     imageStore(voxHashImage, uvi, uvec4(voxHash, 0, 0, 0));
     imageStore(depthImage, uvi, vec4(tMin, 0, 0, 0));
   }
 
-  // volumetric light
-  vec3 volumetricLightColor = volumetricLight(o, d, sunDir, tMin);
+  color += volumetricLight(o, d, sunDir, tMin);
 
   // calculate the motion here avoids a store - load cycle for the position, and the motion vector
   // can be reused in temporal filter and the taa filter, also, using a motion vector is easier for
