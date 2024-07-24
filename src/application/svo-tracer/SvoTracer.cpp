@@ -659,9 +659,7 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
 
   G_RenderInfo renderInfo = {
       _camera->getPosition(),
-      _camera->getFront(),
-      _camera->getUp(),
-      _camera->getRight(),
+      _shadowMapCamera->getPosition(),
       _subpixOffsets[currentSample % _taaSamplingOffsetSize],
       vMat,
       vMatInv,

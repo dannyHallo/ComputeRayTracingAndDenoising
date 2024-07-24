@@ -28,9 +28,6 @@ public:
   // input on the vertical wheel-axis void processMouseScroll(float yoffset);
   [[nodiscard]] glm::mat4 getProjectionMatrix() const;
 
-  [[nodiscard]] glm::dmat4 getProjectionMatrixDouble(float aspectRatio, float zNear = 0.1F,
-                                                     float zFar = 10000) const;
-
   [[nodiscard]] glm::vec3 getPosition() const { return _position; }
   [[nodiscard]] glm::vec3 getFront() const { return _front; }
   [[nodiscard]] glm::vec3 getUp() const { return _up; }

@@ -266,14 +266,25 @@ bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d) {
   return hitVoxel;
 }
 
+// projection space <-P-> view space <-V-> world space <-M-> object space
+vec3 projectScreenUvToWorldCamFarPointShadowMap(vec2 screenUv) {
+  // flip y axis
+  // glm's origin is at the bottom-left corner, whereas vulkan uses the top-left corner
+  screenUv.y    = 1.0 - screenUv.y;
+  vec4 clipPos  = vec4(screenUv * 2.0 - vec2(1.0), 1, 1);
+  vec4 worldPos = renderInfoUbo.data.vpMatShadowMapCamInv * clipPos;
+  worldPos /= worldPos.w;
+  return worldPos.xyz;
+}
+
 // TODO:
 // no subpixOffset
 void rayGen(out vec3 o, out vec3 d) {
   vec2 screenSpaceUv =
       (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / vec2(imageSize(shadowMapImage));
-  o = renderInfoUbo.data.camPosition;
-  d = normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
-                renderInfoUbo.data.camPosition);
+  o = renderInfoUbo.data.shadowMapCamPosition;
+  d = normalize(projectScreenUvToWorldCamFarPointShadowMap(screenSpaceUv) -
+                renderInfoUbo.data.shadowMapCamPosition);
 }
 
 void main() {

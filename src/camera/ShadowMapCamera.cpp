@@ -3,7 +3,7 @@
 #include "utils/toml-config/TomlConfigReader.hpp"
 
 glm::vec3 constexpr kWorldUp             = {0.F, 1.F, 0.F};
-float constexpr kShadowMapCameraDistance = 1000.F;
+float constexpr kShadowMapCameraDistance = 10.F;
 
 ShadowMapCamera::ShadowMapCamera(TomlConfigReader *tomlConfigReader)
     : _tomlConfigReader(tomlConfigReader) {
@@ -19,8 +19,20 @@ ShadowMapCamera::~ShadowMapCamera() = default;
 //   _vFov     = _tomlConfigReader->getConfig<float>("ShadowMapCamera.vFov");
 // }
 
+// glm::mat4 ShadowMapCamera::getProjectionMatrix() const { return glm::ortho(-1.F, 1.F, -1.F, 1.F);
+// }
+
 glm::mat4 ShadowMapCamera::getProjectionMatrix() const {
-  return glm::ortho(0.F, 400.F, 0.F, 400.F);
+  glm::mat4 projection =
+      glm::perspective(glm::radians(60.F), // The vertical Field of View, in radians: the amount
+                                            // of "zoom". Think "camera lens". Usually between
+                                            // 90° (extra wide) and 30° (quite zoomed in)
+                       1.F,
+                       0.1F, // Near clipping plane. Keep as big as possible, or you'll get
+                              // precision issues.
+                       10000.F   // Far clipping plane. Keep as little as possible.
+      );
+  return projection;
 }
 
 void ShadowMapCamera::updateCameraVectors(glm::vec3 playerCameraPosition, glm::vec3 sunDir) {
