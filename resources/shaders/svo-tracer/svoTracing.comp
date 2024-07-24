@@ -222,14 +222,14 @@ struct MarchingResult {
 };
 
 // this marching algorithm fetches leaf properties
-bool cascadedMarching(out MarchingResult result, vec3 o, vec3 d) {
+bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d) {
   ivec3 hitChunkOffset;
   uvec3 hitChunkLookupOffset;
   bool hitVoxel = false;
 
-  result.iter           = 0;
-  result.chunkTraversed = 0;
-  result.color          = vec3(0);
+  oResult.iter           = 0;
+  oResult.chunkTraversed = 0;
+  oResult.color          = vec3(0);
 
   d = max(abs(d), vec3(kEpsilon)) * (step(0.0, d) * 2.0 - 1.0);
 
@@ -248,15 +248,15 @@ bool cascadedMarching(out MarchingResult result, vec3 o, vec3 d) {
     uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
 
     uint chunkIterCount;
-    hitVoxel = svoMarching(result.t, chunkIterCount, result.color, result.position,
-                           result.nextTracingPosition, result.normal, result.voxHash,
-                           result.lightSourceHit, o + originOffset, d, chunkBufferOffset);
+    hitVoxel = svoMarching(oResult.t, chunkIterCount, oResult.color, oResult.position,
+                           oResult.nextTracingPosition, oResult.normal, oResult.voxHash,
+                           oResult.lightSourceHit, o + originOffset, d, chunkBufferOffset);
 
-    result.position -= originOffset;
-    result.nextTracingPosition -= originOffset;
+    oResult.position -= originOffset;
+    oResult.nextTracingPosition -= originOffset;
 
-    result.iter += chunkIterCount;
-    result.chunkTraversed++;
+    oResult.iter += chunkIterCount;
+    oResult.chunkTraversed++;
 
     if (hitVoxel) {
       break;

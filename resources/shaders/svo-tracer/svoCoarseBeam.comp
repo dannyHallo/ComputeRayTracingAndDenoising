@@ -9,7 +9,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "../include/ddaMarching.glsl"
 #include "../include/projection.glsl"
 
-
 const uint STACK_SIZE = 23;
 struct StackItem {
   uint node;
@@ -36,9 +35,6 @@ bool svoMarching(out float oT, out float oSize, vec3 o, vec3 d, float originalSi
   uint parent  = 0;
   uint iter    = 0;
   uint voxHash = 0;
-
-  // avoid division by zero
-  d = max(abs(d), vec3(kEpsilon)) * sign(d);
 
   vec3 t_coef = 1.0f / -abs(d);
   vec3 t_bias = t_coef * o;
@@ -164,12 +160,22 @@ bool svoMarching(out float oT, out float oSize, vec3 o, vec3 d, float originalSi
   return scale < STACK_SIZE && t_min <= t_max;
 }
 
+struct MarchingResult {
+  float t;
+  float size;
+};
+
 // this marching algorithm fetches leaf properties
-bool cascadedMarching(out float oT, out float oSize, vec3 o, vec3 d, float originalSize,
+bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d, float originalSize,
                       float directionalSize) {
   ivec3 hitChunkOffset;
   uvec3 hitChunkLookupOffset;
   bool hitOrReachedDetails = false;
+
+  oResult.t    = 0.0;
+  oResult.size = 0.0;
+
+  d = max(abs(d), vec3(kEpsilon)) * (step(0.0, d) * 2.0 - 1.0);
 
   ivec3 mapPos               = ivec3(floor(o));
   const vec3 deltaDist       = 1.0 / abs(d);
@@ -185,8 +191,8 @@ bool cascadedMarching(out float oT, out float oSize, vec3 o, vec3 d, float origi
 
     uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
 
-    hitOrReachedDetails = svoMarching(oT, oSize, o + originOffset, d, originalSize, directionalSize,
-                                      chunkBufferOffset);
+    hitOrReachedDetails = svoMarching(oResult.t, oResult.size, o + originOffset, d, originalSize,
+                                      directionalSize, chunkBufferOffset);
 
     if (hitOrReachedDetails) {
       break;
@@ -232,10 +238,9 @@ void main() {
   // the directionalSize is the size growth in regarding to how far the ray moves
   float dirSz = 2.0 * max(max(t0, t1), max(t2, t3));
 
-  float t, size;
+  MarchingResult result;
   float lowestLevelVoxSize = exp2(1.0 - sceneInfoBuffer.data.voxelLevelCount);
-
-  bool hitOrReachedDetails = cascadedMarching(t, size, o, d, lowestLevelVoxSize, dirSz);
-  float dist               = hitOrReachedDetails ? max(0.0, t - size) : 1e10;
+  bool hitOrReachedDetails = cascadedMarching(result, o, d, lowestLevelVoxSize, dirSz);
+  float dist               = hitOrReachedDetails ? max(0.0, result.t - result.size) : 1e10;
   imageStore(beamDepthImage, uvi, vec4(dist, 0, 0, 0));
 }
