@@ -30,4 +30,15 @@ vec3 projectScreenUvToWorldCamFarPoint(vec2 screenUv, bool previous) {
   return worldPos.xyz;
 }
 
+// projection space <-P-> view space <-V-> world space <-M-> object space
+vec3 projectScreenUvToWorldCamFarPointShadowMap(vec2 screenUv) {
+  // flip y axis
+  // glm's origin is at the bottom-left corner, whereas vulkan uses the top-left corner
+  screenUv.y    = 1.0 - screenUv.y;
+  vec4 clipPos  = vec4(screenUv * 2.0 - vec2(1.0), 1, 1);
+  vec4 worldPos = renderInfoUbo.data.vpMatShadowMapCamInv * clipPos;
+  worldPos /= worldPos.w;
+  return worldPos.xyz;
+}
+
 #endif // PROJECTION_GLSL

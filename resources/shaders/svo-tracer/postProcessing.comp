@@ -47,7 +47,7 @@ vec3 debugInfoOverwrite(ivec2 lowResUvi) {
   return imageLoad(octreeVisualizationImage, lowResUvi).rgb;
 }
 
-#define RAW_DIRECT_OUTPUT
+// #define RAW_DIRECT_OUTPUT
 
 void main() {
   ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);

@@ -40,6 +40,7 @@ public:
 
   // processes input received from a mouse scroll-wheel event. Only requires
   // input on the vertical wheel-axis void processMouseScroll(float yoffset);
+  // TODO: zNear and zFar should be configurable? useful?
   [[nodiscard]] glm::mat4 getProjectionMatrix(float aspectRatio, float zNear = 0.1F,
                                               float zFar = 10000.F) const;
 
