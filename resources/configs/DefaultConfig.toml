@@ -13,7 +13,7 @@ yaw = 270.0
 pitch = 0.0
 vFov = 60.0
 movementSpeed = 0.2
-movementSpeedBoost = 2.0
+movementSpeedBoost = 3.0
 mouseSensitivity = 0.06
 
 [ImguiManager]
