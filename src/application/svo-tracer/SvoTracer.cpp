@@ -25,6 +25,9 @@ constexpr uint32_t kMultiScatteringLutHeight = 32;
 constexpr uint32_t kSkyViewLutWidth          = 200;
 constexpr uint32_t kSkyViewLutHeight         = 200;
 
+constexpr uint32_t kShadowMapWidth  = 1024;
+constexpr uint32_t kShadowMapHeight = 1024;
+
 namespace {
 float halton(int base, int index) {
   float f = 1.F;
@@ -160,6 +163,7 @@ void SvoTracer::_createSamplers() {
 void SvoTracer::_createImages() {
   _createBlueNoiseImages();
   _createSkyLutImages();
+  _createShadowMapImage();
   _createSwapchainRelatedImages();
 }
 
@@ -214,6 +218,12 @@ void SvoTracer::_createSkyLutImages() {
   _skyViewLutImage = std::make_unique<Image>(
       kSkyViewLutWidth, kSkyViewLutHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _skyLutSampler->getVkSampler());
+}
+
+void SvoTracer::_createShadowMapImage() {
+  _shadowMapImage = std::make_unique<Image>(
+      kShadowMapWidth, kShadowMapHeight, 1, VK_FORMAT_R32_SFLOAT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler->getVkSampler());
 }
 
 // https://docs.vulkan.org/spec/latest/chapters/formats.html
@@ -777,6 +787,9 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindImageSampler(39, _transmittanceLutImage.get());
   _descriptorSetBundle->bindImageSampler(40, _multiScatteringLutImage.get());
   _descriptorSetBundle->bindImageSampler(41, _skyViewLutImage.get());
+
+  _descriptorSetBundle->bindStorageImage(43, _shadowMapImage.get());
+  _descriptorSetBundle->bindImageSampler(44, _shadowMapImage.get());
 
   _descriptorSetBundle->bindStorageBuffer(32, _sceneInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(33, _svoBuilder->getAppendedOctreeBuffer());

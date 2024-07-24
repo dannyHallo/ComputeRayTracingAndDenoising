@@ -118,6 +118,8 @@ private:
   std::unique_ptr<Image> _multiScatteringLutImage;
   std::unique_ptr<Image> _skyViewLutImage;
 
+  std::unique_ptr<Image> _shadowMapImage;
+
   // the followed up resources are swapchain dimension related
   std::unique_ptr<Image> _backgroundImage;
   std::unique_ptr<Image> _beamDepthImage;
@@ -160,6 +162,7 @@ private:
 
   void _createImages();
   void _createSkyLutImages();
+  void _createShadowMapImage();
   void _createSwapchainRelatedImages(); // auto release
 
   void _createBlueNoiseImages();

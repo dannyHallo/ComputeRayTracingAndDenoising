@@ -61,6 +61,9 @@ layout(binding = 39) uniform sampler2D transmittanceLutTexture;
 layout(binding = 40) uniform sampler2D multiScatteringLutTexture;
 layout(binding = 41) uniform sampler2D skyViewLutTexture;
 
+layout(binding = 43) uniform image2D shadowMapImage;
+layout(binding = 44) uniform sampler2D shadowMapTexture;
+
 layout(std430, binding = 32) readonly buffer SceneInfoBuffer { G_SceneInfo data; }
 sceneInfoBuffer;
 layout(std430, binding = 33) readonly buffer OctreeBuffer { uint[] octreeBuffer; };
