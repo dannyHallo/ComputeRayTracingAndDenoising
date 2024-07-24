@@ -10,18 +10,18 @@
 #include "window/CursorInfo.hpp"
 #include "window/Window.hpp"
 
-// An abstract camera class that processes input and calculates the
-// corresponding Euler Angles, Vectors and Matrices for use in OpenGL
-class Camera {
+class TomlConfigReader;
 
+class Camera {
 public:
-  Camera(Window *window, glm::vec3 camPosition = glm::vec3(0.F, 1.5F, 0.F),
-         glm::vec3 wrdUp = glm::vec3(0.F, 1.F, 0.F), float camYaw = 270, float camPitch = 0,
-         float vFov = 60.F)
-      : _position(camPosition), _worldUp(wrdUp), _yaw(camYaw), _pitch(camPitch), _fov(vFov),
-        _window(window) {
-    _updateCameraVectors();
-  }
+  Camera(Window *window, TomlConfigReader *tomlConfigReader);
+  ~Camera();
+
+  // disable move and copy
+  Camera(const Camera &)            = delete;
+  Camera &operator=(const Camera &) = delete;
+  Camera(Camera &&)                 = delete;
+  Camera &operator=(Camera &&)      = delete;
 
   [[nodiscard]] glm::mat4 getViewMatrix() const {
     return glm::lookAt(_position, _position + _front, _up);
@@ -50,25 +50,28 @@ public:
   [[nodiscard]] glm::vec3 getFront() const { return _front; }
   [[nodiscard]] glm::vec3 getUp() const { return _up; }
   [[nodiscard]] glm::vec3 getRight() const { return _right; }
-  [[nodiscard]] float getVFov() const { return _fov; }
+  [[nodiscard]] float getVFov() const { return _vFov; }
 
 private:
+  // config
   glm::vec3 _position;
-  glm::vec3 _worldUp;
+  float _yaw;   // in euler angles
+  float _pitch; // in euler angles
+  float _vFov;
+  float _movementSpeed;
+  float _movementSpeedBoost;
+  float _mouseSensitivity;
+  void _loadConfig();
 
   glm::vec3 _front = glm::vec3(0.F);
   glm::vec3 _up    = glm::vec3(0.F);
   glm::vec3 _right = glm::vec3(0.F);
 
-  // euler angles
-  float _yaw;
-  float _pitch;
-  float _fov;
+  // window is owned by the Application class
+  Window *_window;
+  TomlConfigReader *_tomlConfigReader;
 
   float _movementSpeedMultiplier = 1.F;
-
-  // window is owned by ApplicationContext
-  Window *_window;
 
   // calculates the front vector from the Camera's (updated) Euler Angles
   void _updateCameraVectors();

@@ -32,7 +32,7 @@ Application::Application(Logger *logger)
   VulkanApplicationContext::GraphicsSettings settings{};
   settings.isFramerateLimited = _isFramerateLimited;
   _appContext->init(_logger, _window->getGlWindow(), &settings);
-  _camera = std::make_unique<Camera>(_window.get());
+  _camera = std::make_unique<Camera>(_window.get(), _tomlConfigReader.get());
 
   _svoBuilder =
       std::make_unique<SvoBuilder>(_appContext, _logger, _shaderCompiler.get(),

@@ -1,19 +1,34 @@
 #include "Camera.hpp"
 
+#include "utils/toml-config/TomlConfigReader.hpp"
 #include "window/KeyboardInfo.hpp"
 
-namespace {
+glm::vec3 constexpr kWorldUp = {0.F, 1.F, 0.F};
 
-float constexpr kMovementSpeed    = .2F;
-float constexpr kMouseSensitivity = 0.06F;
+Camera::Camera(Window *window, TomlConfigReader *tomlConfigReader)
+    : _window(window), _tomlConfigReader(tomlConfigReader) {
+  _loadConfig();
+  _updateCameraVectors();
+}
 
-} // namespace
+Camera::~Camera() = default;
+
+void Camera::_loadConfig() {
+  auto ps             = _tomlConfigReader->getConfig<std::array<float, 3>>("Camera.position");
+  _position           = glm::vec3(ps.at(0), ps.at(1), ps.at(2));
+  _yaw                = _tomlConfigReader->getConfig<float>("Camera.yaw");
+  _pitch              = _tomlConfigReader->getConfig<float>("Camera.pitch");
+  _vFov               = _tomlConfigReader->getConfig<float>("Camera.vFov");
+  _movementSpeed      = _tomlConfigReader->getConfig<float>("Camera.movementSpeed");
+  _movementSpeedBoost = _tomlConfigReader->getConfig<float>("Camera.movementSpeedBoost");
+  _mouseSensitivity   = _tomlConfigReader->getConfig<float>("Camera.mouseSensitivity");
+}
 
 glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear, float zFar) const {
   glm::mat4 projection =
-      glm::perspective(glm::radians(_fov), // The vertical Field of View, in radians: the amount
-                                           // of "zoom". Think "camera lens". Usually between
-                                           // 90° (extra wide) and 30° (quite zoomed in)
+      glm::perspective(glm::radians(_vFov), // The vertical Field of View, in radians: the amount
+                                            // of "zoom". Think "camera lens". Usually between
+                                            // 90° (extra wide) and 30° (quite zoomed in)
                        aspectRatio,
                        zNear, // Near clipping plane. Keep as big as possible, or you'll get
                               // precision issues.
@@ -29,7 +44,7 @@ void Camera::processKeyboard(double deltaTime) {
     return;
   }
 
-  float velocity = _movementSpeedMultiplier * kMovementSpeed * static_cast<float>(deltaTime);
+  float velocity = _movementSpeedMultiplier * _movementSpeed * static_cast<float>(deltaTime);
 
   KeyboardInfo const &ki = _window->getKeyboardInfo();
 
@@ -46,15 +61,15 @@ void Camera::processKeyboard(double deltaTime) {
     _position += _right * velocity;
   }
   if (ki.isKeyPressed(GLFW_KEY_SPACE)) {
-    _position += _worldUp * velocity;
+    _position += kWorldUp * velocity;
   }
   if (ki.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
-    _movementSpeedMultiplier = 2.F;
+    _movementSpeedMultiplier = _movementSpeedBoost;
   } else {
     _movementSpeedMultiplier = 1.F;
   }
   if (ki.isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
-    _position -= _worldUp * velocity;
+    _position -= kWorldUp * velocity;
   }
 }
 
@@ -66,8 +81,8 @@ void Camera::handleMouseMovement(CursorMoveInfo const &mouseInfo) {
   float mouseDx = mouseInfo.dx;
   float mouseDy = mouseInfo.dy;
 
-  mouseDx *= -kMouseSensitivity;
-  mouseDy *= kMouseSensitivity;
+  mouseDx *= -_mouseSensitivity;
+  mouseDy *= _mouseSensitivity;
 
   _yaw += mouseDx;
   _pitch += mouseDy;
@@ -89,7 +104,7 @@ void Camera::_updateCameraVectors() {
   _front = {-sin(glm::radians(_yaw)) * cos(glm::radians(_pitch)), sin(glm::radians(_pitch)),
             -cos(glm::radians(_yaw)) * cos(glm::radians(_pitch))};
   // normalize the vectors, because their length gets closer to 0 the
-  _right = glm::normalize(glm::cross(_front, _worldUp));
+  _right = glm::normalize(glm::cross(_front, kWorldUp));
   // more you look up or down which results in slower movement.
   _up = glm::cross(_right, _front);
 }

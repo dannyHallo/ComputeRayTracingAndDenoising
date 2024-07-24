@@ -7,6 +7,15 @@ title = "default config"
 framesInFlight = 2
 isFramerateLimited = true
 
+[Camera]
+position = [0.0, 0.8, 0.0]
+yaw = 270.0
+pitch = 0.0
+vFov = 60.0
+movementSpeed = 0.2
+movementSpeedBoost = 2.0
+mouseSensitivity = 0.06
+
 [ImguiManager]
 fontSize = 20
 
