@@ -472,6 +472,12 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
+    _shadowMapPipeline->recordCommand(cmdBuffer, frameIndex, kShadowMapWidth, kShadowMapHeight, 1);
+
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
+                         nullptr);
+
     _svoCourseBeamPipeline->recordCommand(
         cmdBuffer, frameIndex,
         static_cast<uint32_t>(
@@ -818,6 +824,12 @@ void SvoTracer::_createPipelines() {
   _skyViewLutPipeline->compileAndCacheShaderModule(false);
   _skyViewLutPipeline->build();
 
+  _shadowMapPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, _makeShaderFullPath("shadowMap.comp"), WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
+  _shadowMapPipeline->compileAndCacheShaderModule(false);
+  _shadowMapPipeline->build();
+
   _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("svoCoarseBeam.comp"), WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
@@ -865,6 +877,8 @@ void SvoTracer::_updatePipelinesDescriptorBundles() {
   _transmittanceLutPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _multiScatteringLutPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _skyViewLutPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+
+  _shadowMapPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
 
   _svoCourseBeamPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _svoTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());

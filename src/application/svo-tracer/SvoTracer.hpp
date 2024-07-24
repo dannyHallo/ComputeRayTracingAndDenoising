@@ -199,6 +199,7 @@ private:
   std::unique_ptr<ComputePipeline> _multiScatteringLutPipeline;
   std::unique_ptr<ComputePipeline> _skyViewLutPipeline;
 
+  std::unique_ptr<ComputePipeline> _shadowMapPipeline;
   std::unique_ptr<ComputePipeline> _svoCourseBeamPipeline;
   std::unique_ptr<ComputePipeline> _svoTracingPipeline;
   std::unique_ptr<ComputePipeline> _temporalFilterPipeline;

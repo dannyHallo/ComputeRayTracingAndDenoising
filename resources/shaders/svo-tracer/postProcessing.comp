@@ -47,17 +47,18 @@ vec3 debugInfoOverwrite(ivec2 lowResUvi) {
   return imageLoad(octreeVisualizationImage, lowResUvi).rgb;
 }
 
-// #define RAW_DIRECT_OUTPUT
+#define RAW_DIRECT_OUTPUT
 
 void main() {
   ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
 
 #ifdef RAW_DIRECT_OUTPUT
-  if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.lowResSize)))) {
+  if (any(greaterThanEqual(uvi, ivec2(imageSize(shadowMapImage))))) {
     return;
   }
-  vec3 readingCol = vec3(imageLoad(temporalHistLengthImage, uvi).x / 256.0, 0.0, 0.0);
-  imageStore(renderTargetImage, uvi, vec4(readingCol.bgr, 1));
+  float dist = imageLoad(shadowMapImage, uvi).x;
+  vec3 col   = vec3(exp(-dist));
+  imageStore(renderTargetImage, uvi, vec4(col.bgr, 1.0));
   return;
 #endif
 
@@ -79,6 +80,5 @@ void main() {
 
   // color = blendWithDot(color, uvi);
 
-  // rgb to bgr
   imageStore(renderTargetImage, uvi, vec4(color.bgr, 1));
 }
