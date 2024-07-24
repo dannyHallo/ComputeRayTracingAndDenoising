@@ -54,7 +54,6 @@ void ComputePipeline::build() {
 }
 
 bool ComputePipeline::compileAndCacheShaderModule(bool allowBuildFailure) {
-
   auto const sourceCode =
       ShaderFileReader::readShaderSourceCode(_fullPathToShaderSourceCode, _logger);
   auto const compiledCode =
