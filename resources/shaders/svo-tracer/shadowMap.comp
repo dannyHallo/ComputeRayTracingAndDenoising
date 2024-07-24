@@ -277,8 +277,6 @@ vec3 projectScreenUvToWorldCamFarPointShadowMap(vec2 screenUv) {
   return worldPos.xyz;
 }
 
-// TODO:
-// no subpixOffset
 void rayGen(out vec3 o, out vec3 d) {
   vec2 screenSpaceUv =
       (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / vec2(imageSize(shadowMapImage));
@@ -296,10 +294,6 @@ void main() {
   // ray gen
   vec3 o, d;
   rayGen(o, d);
-
-  // TODO: pass the sunDir as a parameter directly, don't calculate twice
-  //   const vec3 sunDir = getDirOnUnitSphere(environmentUbo.data.sunAngleA * kDeg2Rad,
-  //                                          environmentUbo.data.sunAngleB * kDeg2Rad);
 
   MarchingResult result;
   bool hit = cascadedMarching(result, o, d);

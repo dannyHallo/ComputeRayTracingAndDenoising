@@ -265,8 +265,8 @@ void ImguiManager::_drawConfigMenuItem() {
 
     ImGui::SeparatorText("Environment Parameters");
 
-    ImGui::SliderFloat("Sun Altitude", &_svoTracerTweakingData->sunAngleA, 0.F, 180.F);
-    ImGui::SliderFloat("Sun Azimuth", &_svoTracerTweakingData->sunAngleB, -180.F, 180.F);
+    ImGui::SliderFloat("Sun Altitude", &_svoTracerTweakingData->sunAltitude, 0.F, 180.F);
+    ImGui::SliderFloat("Sun Azimuth", &_svoTracerTweakingData->sunAzimuth, -180.F, 180.F);
     ImGui::InputFloat3("Rayleigh Scattering Base",
                        &_svoTracerTweakingData->rayleighScatteringBase.x);
     ImGui::SliderFloat("Mie Scattering Base", &_svoTracerTweakingData->mieScatteringBase, 0.0F,

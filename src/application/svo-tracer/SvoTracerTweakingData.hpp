@@ -19,8 +19,8 @@ struct SvoTracerTweakingData {
   bool taa{};
 
   // for env
-  float sunAngleA{};
-  float sunAngleB{};
+  float sunAltitude{};
+  float sunAzimuth{};
   glm::vec3 rayleighScatteringBase{};
   float mieScatteringBase{};
   float mieAbsorptionBase{};

@@ -45,6 +45,24 @@ float halton(int base, int index) {
 std::string _makeShaderFullPath(std::string const &shaderName) {
   return kPathToResourceFolder + "shaders/svo-tracer/" + shaderName;
 }
+
+// translated from shader code
+double constexpr kPi = 3.14159265358979323846;
+
+// input: theta is the azimuthal angle
+//        phi is the polar angle (from the y-axis)
+glm::vec3 _getSphericalDir(float theta, float phi) {
+  float sinPhi = sin(phi);
+  return glm::vec3(sinPhi * sin(theta), cos(phi), sinPhi * cos(theta));
+}
+
+glm::vec3 _getDirOnUnitSphere(float alt, float azi) {
+  return _getSphericalDir(azi, kPi / 2.F - alt);
+}
+
+glm::vec3 _getSunDir(float sunAltitude, float sunAzimuth) {
+  return _getDirOnUnitSphere(glm::radians(sunAltitude), glm::radians(sunAzimuth));
+}
 }; // namespace
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
@@ -611,24 +629,8 @@ void SvoTracer::drawFrame(size_t currentFrame) {
   _updateUboData(currentFrame);
 }
 
-// translated from shader code
-namespace {
-// input: theta is the azimuthal angle
-//        phi is the polar angle (from the y-axis)
-glm::vec3 getSphericalDir(float theta, float phi) {
-  float sinPhi = sin(phi);
-  return glm::vec3(sinPhi * sin(theta), cos(phi), sinPhi * cos(theta));
-}
-
-double constexpr kPi      = 3.14159265358979323846;
-double constexpr kDeg2Rad = 0.0174532925;
-
-glm::vec3 getDirOnUnitSphere(float alt, float azi) { return getSphericalDir(azi, kPi / 2.F - alt); }
-} // namespace
-
 void SvoTracer::_updateShadowMapCamera() {
-  glm::vec3 sunDir =
-      getDirOnUnitSphere(kDeg2Rad * _tweakingData.sunAngleA, kDeg2Rad * _tweakingData.sunAngleB);
+  glm::vec3 sunDir = _getSunDir(_tweakingData.sunAltitude, _tweakingData.sunAzimuth);
   _shadowMapCamera->updateCameraVectors(_camera->getPosition(), sunDir);
 }
 
@@ -692,9 +694,9 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
   vpMatPrev    = vpMat;
   vpMatPrevInv = vpMatInv;
 
+  glm::vec3 sunDir = _getSunDir(_tweakingData.sunAltitude, _tweakingData.sunAzimuth);
   G_EnvironmentInfo environmentInfo{};
-  environmentInfo.sunAngleA              = _tweakingData.sunAngleA;
-  environmentInfo.sunAngleB              = _tweakingData.sunAngleB;
+  environmentInfo.sunDir                 = sunDir;
   environmentInfo.rayleighScatteringBase = _tweakingData.rayleighScatteringBase;
   environmentInfo.mieScatteringBase      = _tweakingData.mieScatteringBase;
   environmentInfo.mieAbsorptionBase      = _tweakingData.mieAbsorptionBase;

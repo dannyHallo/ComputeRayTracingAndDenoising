@@ -18,9 +18,9 @@ void SvoTracerTweakingData::_loadConfig() {
   traceIndirectRay = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.traceIndirectRay");
   taa              = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.taa");
 
-  sunAngleA = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleA");
-  sunAngleB = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAngleB");
-  auto rsb  = _tomlConfigReader->getConfig<std::array<float, 3>>(
+  sunAltitude = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAltitude");
+  sunAzimuth  = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAzimuth");
+  auto rsb    = _tomlConfigReader->getConfig<std::array<float, 3>>(
       "SvoTracerTweakingData.rayleighScatteringBase");
   rayleighScatteringBase = glm::vec3(rsb.at(0), rsb.at(1), rsb.at(2));
   mieScatteringBase =

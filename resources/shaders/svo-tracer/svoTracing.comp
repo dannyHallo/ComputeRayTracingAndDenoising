@@ -425,17 +425,14 @@ void main() {
     optimizedDistance = t;
   }
 
-  const vec3 sunDir = getDirOnUnitSphere(environmentUbo.data.sunAngleA * kDeg2Rad,
-                                         environmentUbo.data.sunAngleB * kDeg2Rad);
-
   uint voxHash;
   uint primaryRayIterUsed;
   uint primaryRayChunkTraversed;
   vec3 normal, position, color;
   float tMin;
-  bool hitVoxel =
-      getPrimaryRayColor(tMin, primaryRayIterUsed, primaryRayChunkTraversed, color, position,
-                         normal, voxHash, seed, o, d, optimizedDistance, sunDir);
+  bool hitVoxel = getPrimaryRayColor(tMin, primaryRayIterUsed, primaryRayChunkTraversed, color,
+                                     position, normal, voxHash, seed, o, d, optimizedDistance,
+                                     environmentUbo.data.sunDir);
 
   if (hitVoxel) {
     imageStore(positionImage, uvi, vec4(position, 0));
