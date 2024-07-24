@@ -453,10 +453,11 @@ void main() {
   imageStore(hitImage, uvi, uvec4(hitVoxel ? 1 : 0, 0, 0, 0));
   imageStore(motionImage, uvi, vec4(motion, 0, 0));
 
+  uint packedColor = packRgbe(color);
   if (hitVoxel) {
-    imageStore(rawImage, uvi, vec4(color, 0));
+    imageStore(rawImage, uvi, uvec4(packedColor, 0, 0, 0));
   } else {
-    imageStore(backgroundImage, uvi, vec4(color, 0));
+    imageStore(backgroundImage, uvi, uvec4(packedColor, 0, 0, 0));
   }
 
   const vec3 iterUsedColor       = vec3(1, 0.4, 0.2) * 0.02 * float(primaryRayIterUsed);

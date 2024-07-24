@@ -22,9 +22,9 @@ layout(binding = 6) readonly uniform image2DArray weightedCosineBlueNoise;
 
 layout(binding = 7) uniform uimage3D chunksImage;
 
-layout(binding = 8) uniform image2D backgroundImage;
+layout(binding = 8) uniform uimage2D backgroundImage;
 layout(binding = 9) uniform image2D beamDepthImage;
-layout(binding = 10) uniform image2D rawImage;
+layout(binding = 10) uniform uimage2D rawImage;
 layout(binding = 11) uniform image2D depthImage;
 layout(binding = 12) uniform image2D octreeVisualizationImage;
 layout(binding = 13) uniform uimage2D hitImage;
@@ -43,7 +43,7 @@ layout(binding = 23) readonly uniform uimage2D lastAccumedImage;
 layout(binding = 24) uniform image2D taaImage;
 layout(binding = 25) uniform image2D lastTaaImage;
 
-layout(binding = 26) uniform image2D blittedImage;
+layout(binding = 26) uniform uimage2D blittedImage;
 
 layout(binding = 27) uniform image2D aTrousPingImage;
 layout(binding = 28) uniform image2D aTrousPongImage;

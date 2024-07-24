@@ -69,7 +69,7 @@ void main() {
     }
   }
 
-  vec3 rawColor = imageLoad(rawImage, uvi).rgb;
+  vec3 rawColor = unpackRgbe(imageLoad(rawImage, uvi).x);
 
   float histLength;
   vec3 thisFrameColor;

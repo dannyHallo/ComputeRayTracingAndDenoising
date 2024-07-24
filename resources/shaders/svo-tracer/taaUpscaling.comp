@@ -7,6 +7,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
+#include "../include/core/packer.glsl"
+
 vec2 highResToLowRes(ivec2 highResUvi) {
   vec2 subpixOffset =
       bool(tweakableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
@@ -30,7 +32,7 @@ void getMoments(out vec3 mom1, out vec3 mom2, out vec3 colorCenter, ivec2 uvi) {
         continue;
       }
 
-      vec3 color = imageLoad(blittedImage, p).rgb;
+      vec3 color = unpackRgbe(imageLoad(blittedImage, p).x);
       mom1 += color;
       mom2 += color * color;
 
@@ -66,7 +68,7 @@ void main() {
   ivec2 lowResUvi = ivec2(lowResUv);
 
   if (!bool(tweakableParametersUbo.data.taa)) {
-    vec3 writingCol = imageLoad(blittedImage, lowResUvi).rgb;
+    vec3 writingCol = unpackRgbe(imageLoad(blittedImage, lowResUvi).x);
     imageStore(taaImage, uvi, vec4(writingCol, 0));
     return;
   }

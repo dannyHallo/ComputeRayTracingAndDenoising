@@ -208,9 +208,9 @@ void SvoTracer::_createSkyLutImages() {
 
 // https://docs.vulkan.org/spec/latest/chapters/formats.html
 void SvoTracer::_createFullSizedImages() {
-  _backgroundImage =
-      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
-                              VK_IMAGE_USAGE_STORAGE_BIT);
+  // the sky hdr view is very sensitive to gradient, so a high precision format is a must
+  _backgroundImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
+                                             VK_IMAGE_USAGE_STORAGE_BIT);
 
   // w = 16 -> 3, w = 17 -> 4
   _beamDepthImage = std::make_unique<Image>(
@@ -218,9 +218,8 @@ void SvoTracer::_createFullSizedImages() {
       std::ceil(static_cast<float>(_lowResHeight) / static_cast<float>(_beamResolution)) + 1, 1,
       VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _rawImage =
-      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
-                              VK_IMAGE_USAGE_STORAGE_BIT);
+  _rawImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
+                                      VK_IMAGE_USAGE_STORAGE_BIT);
 
   _depthImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_SFLOAT,
                                         VK_IMAGE_USAGE_STORAGE_BIT);
@@ -261,8 +260,7 @@ void SvoTracer::_createFullSizedImages() {
 
   // precision issues occurred when using VK_FORMAT_B10G11R11_UFLOAT_PACK32 to store hdr accumed
   // results, it can be observed when using a very low alpha blending value.
-  // so either use VK_FORMAT_R32_UINT with custom RGBE packer / unpacker or use
-  // VK_FORMAT_R16G16B16A16_SFLOAT directly
+  // so either use VK_FORMAT_R32_UINT with custom RGBE packer / unpacker
   _accumedImage =
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
@@ -279,9 +277,8 @@ void SvoTracer::_createFullSizedImages() {
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       _defaultSampler->getVkSampler());
 
-  _blittedImage =
-      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
-                              VK_IMAGE_USAGE_STORAGE_BIT);
+  _blittedImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
+                                          VK_IMAGE_USAGE_STORAGE_BIT);
 
   // both of the ping and pong can be dumped to the render target image and the lastAccumedImage
   _aTrousPingImage =
