@@ -270,12 +270,12 @@ void SvoTracer::_createFullSizedImages() {
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
+  // same for taa images, use VK_FORMAT_R16G16B16A16_SFLOAT to enable accelerated sampling
   _taaImage =
-      std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+      std::make_unique<Image>(_highResWidth, _highResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-
   _lastTaaImage = std::make_unique<Image>(
-      _highResWidth, _highResHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+      _highResWidth, _highResHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       _defaultSampler->getVkSampler());
 
