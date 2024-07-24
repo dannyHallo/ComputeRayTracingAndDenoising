@@ -53,14 +53,14 @@ void ComputePipeline::build() {
                            nullptr, &_pipeline);
 }
 
-bool ComputePipeline::compileAndCacheShaderModule(bool allowBuildFail) {
+bool ComputePipeline::compileAndCacheShaderModule(bool allowBuildFailure) {
 
   auto const sourceCode =
       ShaderFileReader::readShaderSourceCode(_fullPathToShaderSourceCode, _logger);
   auto const compiledCode =
       _shaderCompiler->compileComputeShader(_fullPathToShaderSourceCode, sourceCode);
 
-  if (!allowBuildFail && !compiledCode.has_value()) {
+  if (!allowBuildFailure && !compiledCode.has_value()) {
     _logger->error("failed to compile the shader: {}", _fullPathToShaderSourceCode);
     exit(0);
   }

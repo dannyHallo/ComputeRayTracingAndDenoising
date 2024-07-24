@@ -15,21 +15,8 @@ struct StackItem {
   float t_max;
 } stack[STACK_SIZE + 1];
 
-// this algorithm is from here:
-// https://research.nvidia.com/sites/default/files/pubs/2010-02_Efficient-Sparse-Voxel/laine2010tr1_paper.pdf
-
-// code reference:
-// https://code.google.com/archive/p/efficient-sparse-voxel-octrees/
-// https://github.com/AdamYuan/SparseVoxelOctree
-
-// design decisions:
-// 1. the position range of the octree is [1, 2], because the POP function need that bit
-// comparison from the floating points ranged from [0, 1]
-// 2. the traversing reduces branching by mirroring the coordinate system
-// 3. all eight childrens are stored if at least one is active, so the parent node masks only need
-// two bits (isLeaf and hasChild), this is different from the paper, which needs 16 bits for
-// that
-
+// this is a variant of the marching algorithm that considers the size of the voxel
+// refer comments in svoTracing.comp
 bool svoMarching(out float oT, out float oSize, vec3 o, vec3 d, float originalSize,
                  float directionalSize, uint chunkBufferOffset) {
   uint parent  = 0;
