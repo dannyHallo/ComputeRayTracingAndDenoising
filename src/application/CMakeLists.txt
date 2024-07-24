@@ -24,7 +24,6 @@ target_link_libraries(src-application PRIVATE
     src-utils-fps-sink
     src-utils-toml-config
     src-utils-shader-compiler
-    src-utils-toml-config
     src-custom-mem-alloc
     src-vulkan-wrapper
     glm::glm
