@@ -367,7 +367,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
 }
 
 vec3 volumetricLight(vec3 o, vec3 d, vec3 sunDir, float t) {
-  const uint maxSampleCount = 16;
+  const uint maxSampleCount = 32;
   const float maxDist       = 1.0;
   const float stepLen       = maxDist / float(maxSampleCount);
   const uint raySampleCount = min(maxSampleCount, uint(t / stepLen));
@@ -381,7 +381,7 @@ vec3 volumetricLight(vec3 o, vec3 d, vec3 sunDir, float t) {
     MarchingResult volumetricLightResult;
     bool volumetricLightHit = cascadedMarching(volumetricLightResult, marchedPos, sunDir);
     if (!volumetricLightHit) {
-      col += vec3(0.02);
+      col += vec3(0.5) * stepLen;
     }
   }
   return col;

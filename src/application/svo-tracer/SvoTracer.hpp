@@ -21,6 +21,7 @@ class SvoBuilder;
 class DescriptorSetBundle;
 class ComputePipeline;
 class Camera;
+class ShadowMapCamera;
 class ShaderCompiler;
 class ShaderChangeListener;
 class TomlConfigReader;
@@ -28,7 +29,7 @@ class TomlConfigReader;
 class SvoTracer : public Scheduler {
 public:
   SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
-            Camera *camera, ShaderCompiler *shaderCompiler,
+            Camera *camera, ShadowMapCamera *shadowMapCamera, ShaderCompiler *shaderCompiler,
             ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader);
   ~SvoTracer() override;
 
@@ -60,6 +61,7 @@ private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
   Camera *_camera;
+  ShadowMapCamera *_shadowMapCamera;
   ShaderCompiler *_shaderCompiler;
   ShaderChangeListener *_shaderChangeListener;
   TomlConfigReader *_tomlConfigReader;

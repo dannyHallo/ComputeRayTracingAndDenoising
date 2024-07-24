@@ -16,6 +16,7 @@ class SvoBuilder;
 class SvoTracer;
 class ImguiManager;
 class Camera;
+class ShadowMapCamera;
 class FpsSink;
 class ShaderCompiler;
 class ShaderChangeListener;
@@ -32,7 +33,9 @@ public:
   Application(Application &&)                 = delete;
   Application &operator=(Application &&)      = delete;
 
-  Camera *getCamera();
+  Camera *getCamera() { return _camera.get(); }
+  ShadowMapCamera *getShadowMapCamera() { return _shadowMapCamera.get(); }
+
   void run();
 
 private:
@@ -47,6 +50,7 @@ private:
   std::unique_ptr<FpsSink> _fpsSink;
   std::unique_ptr<ImguiManager> _imguiManager;
   std::unique_ptr<Camera> _camera;
+  std::unique_ptr<ShadowMapCamera> _shadowMapCamera;
   std::unique_ptr<Window> _window;
   std::unique_ptr<ShaderCompiler> _shaderCompiler;
   std::unique_ptr<ShaderChangeListener> _shaderFileWatchListener;

@@ -5,6 +5,7 @@
 
 #include "BlockState.hpp"
 #include "camera/Camera.hpp"
+#include "camera/ShadowMapCamera.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "imgui-manager/gui-manager/ImguiManager.hpp"
 #include "utils/event-dispatcher/GlobalEventDispatcher.hpp"
@@ -17,9 +18,6 @@
 #include <chrono>
 
 // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
-
-Camera *Application::getCamera() { return _camera.get(); }
-
 Application::Application(Logger *logger)
     : _appContext(VulkanApplicationContext::getInstance()), _logger(logger),
       _shaderCompiler(std::make_unique<ShaderCompiler>(logger)),
@@ -32,14 +30,15 @@ Application::Application(Logger *logger)
   VulkanApplicationContext::GraphicsSettings settings{};
   settings.isFramerateLimited = _isFramerateLimited;
   _appContext->init(_logger, _window->getGlWindow(), &settings);
-  _camera = std::make_unique<Camera>(_window.get(), _tomlConfigReader.get());
+  _camera          = std::make_unique<Camera>(_window.get(), _tomlConfigReader.get());
+  _shadowMapCamera = std::make_unique<ShadowMapCamera>(_tomlConfigReader.get());
 
   _svoBuilder =
       std::make_unique<SvoBuilder>(_appContext, _logger, _shaderCompiler.get(),
                                    _shaderFileWatchListener.get(), _tomlConfigReader.get());
   _svoTracer = std::make_unique<SvoTracer>(_appContext, _logger, _framesInFlight, _camera.get(),
-                                           _shaderCompiler.get(), _shaderFileWatchListener.get(),
-                                           _tomlConfigReader.get());
+                                           _shadowMapCamera.get(), _shaderCompiler.get(),
+                                           _shaderFileWatchListener.get(), _tomlConfigReader.get());
 
   _imguiManager =
       std::make_unique<ImguiManager>(_appContext, _window.get(), _logger, _tomlConfigReader.get(),

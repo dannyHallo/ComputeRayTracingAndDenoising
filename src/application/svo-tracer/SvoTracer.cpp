@@ -3,6 +3,7 @@
 #include "../svo-builder/SvoBuilder.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
 #include "camera/Camera.hpp"
+#include "camera/ShadowMapCamera.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/io/ShaderFileReader.hpp"
@@ -44,11 +45,13 @@ std::string _makeShaderFullPath(std::string const &shaderName) {
 }; // namespace
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
-                     Camera *camera, ShaderCompiler *shaderCompiler,
-                     ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader)
-    : _appContext(appContext), _logger(logger), _camera(camera), _shaderCompiler(shaderCompiler),
-      _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader),
-      _tweakingData(tomlConfigReader), _framesInFlight(framesInFlight) {
+                     Camera *camera, ShadowMapCamera *shadowMapCamera,
+                     ShaderCompiler *shaderCompiler, ShaderChangeListener *shaderChangeListener,
+                     TomlConfigReader *tomlConfigReader)
+    : _appContext(appContext), _logger(logger), _camera(camera), _shadowMapCamera(shadowMapCamera),
+      _shaderCompiler(shaderCompiler), _shaderChangeListener(shaderChangeListener),
+      _tomlConfigReader(tomlConfigReader), _tweakingData(tomlConfigReader),
+      _framesInFlight(framesInFlight) {
   _loadConfig();
   _updateImageResolutions();
 }

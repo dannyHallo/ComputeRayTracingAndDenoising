@@ -1,0 +1,56 @@
+#pragma once
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>                  // IWYU pragma: export
+#include <glm/gtc/matrix_transform.hpp> // IWYU pragma: export
+#include <glm/gtx/hash.hpp>             // IWYU pragma: export
+
+class TomlConfigReader;
+
+class ShadowMapCamera {
+public:
+  ShadowMapCamera(TomlConfigReader *tomlConfigReader);
+  ~ShadowMapCamera();
+
+  // disable move and copy
+  ShadowMapCamera(const ShadowMapCamera &)            = delete;
+  ShadowMapCamera &operator=(const ShadowMapCamera &) = delete;
+  ShadowMapCamera(ShadowMapCamera &&)                 = delete;
+  ShadowMapCamera &operator=(ShadowMapCamera &&)      = delete;
+
+  [[nodiscard]] glm::mat4 getViewMatrix() const {
+    return glm::lookAt(_position, _position + _front, _up);
+  }
+
+  // processes input received from a mouse scroll-wheel event. Only requires
+  // input on the vertical wheel-axis void processMouseScroll(float yoffset);
+  [[nodiscard]] glm::mat4 getProjectionMatrix(float aspectRatio, float zNear = 0.1F,
+                                              float zFar = 10000) const;
+
+  [[nodiscard]] glm::dmat4 getProjectionMatrixDouble(float aspectRatio, float zNear = 0.1F,
+                                                     float zFar = 10000) const;
+
+  [[nodiscard]] glm::vec3 getPosition() const { return _position; }
+  [[nodiscard]] glm::vec3 getFront() const { return _front; }
+  [[nodiscard]] glm::vec3 getUp() const { return _up; }
+  [[nodiscard]] glm::vec3 getRight() const { return _right; }
+  [[nodiscard]] float getVFov() const { return _vFov; }
+
+  // calculates the front vector from the Camera's (updated) Euler Angles
+  void updateCameraVectors(glm::vec3 playerCameraPosition, glm::vec3 sunDir);
+
+private:
+  // config
+  glm::vec3 _position;
+  float _vFov;
+  float _range; // TODO:
+  //   void _loadConfig();
+
+  glm::vec3 _front = glm::vec3(0.F);
+  glm::vec3 _up    = glm::vec3(0.F);
+  glm::vec3 _right = glm::vec3(0.F);
+
+  TomlConfigReader *_tomlConfigReader;
+};

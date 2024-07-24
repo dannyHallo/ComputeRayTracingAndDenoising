@@ -16,6 +16,9 @@ movementSpeed = 0.2
 movementSpeedBoost = 3.0
 mouseSensitivity = 0.06
 
+[ShadowMapCamera]
+range = 10.0
+
 [ImguiManager]
 fontSize = 20
 
@@ -40,7 +43,7 @@ visualizeChunks = false
 visualizeOctree = false
 beamOptimization = true
 traceIndirectRay = true
-taa = true
+taa = false
 sunAngleA = 20.0
 sunAngleB = 0.0
 rayleighScatteringBase = [ 5.802, 13.558, 33.1 ]
@@ -52,7 +55,7 @@ atmosLuminance = 0.5
 sunSize = 0.5
 temporalAlpha = 0.01
 temporalPositionPhi = 0.99
-aTrousIterationCount = 3
+aTrousIterationCount = 0
 phiC = 1.0
 phiN = 20.0 
 phiP = 0.05
