@@ -11,8 +11,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 // buffer C calculates the actual sky-view
 // it's a non-linear lat-long (altitude-azimuth) map, and has more resolution
 // near the horizon.
-const int numScatteringSteps = 32;
-vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, int numSteps) {
+const uint numScatteringSteps = 32;
+vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, uint numSteps) {
   float cosTheta = dot(rayDir, sunDir);
 
   float dRayleighPhaseVal = getRayleighPhase(cosTheta);
@@ -25,7 +25,7 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, int numS
   float stepLen   = tMax / float(numSteps);
   vec3 unitStep   = stepLen * rayDir;
   vec3 marchedPos = pos - 0.5 * unitStep;
-  for (int stepI = 0; stepI < numSteps; stepI += 1) {
+  for (uint stepI = 0; stepI < numSteps; stepI += 1) {
     marchedPos += unitStep;
 
     vec3 rayleighScattering;

@@ -363,6 +363,21 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   return true;
 }
 
+vec3 volumetricLight(vec3 o, vec3 d, vec3 sunDir, float t) {
+  const uint maxSampleCount = 16;
+  const float maxDist       = 2.0;
+  const float stepLen       = maxDist / float(maxSampleCount);
+  const uint raySampleCount = uint(t / stepLen);
+
+  vec3 unitStep   = stepLen * d;
+  vec3 marchedPos = o - 0.5 * unitStep;
+  for (uint stepI = 0; stepI < raySampleCount; stepI += 1) {
+    marchedPos += unitStep;
+  }
+
+  return vec3(0);
+}
+
 void writeOutputBuffer(ivec2 uvi, bool hitVoxel, vec3 position) {
   // if uvi is not the center pixel, we don't write the output buffer
   if (uvi != ivec2(renderInfoUbo.data.lowResSize) / 2) {
@@ -414,7 +429,8 @@ void main() {
                          normal, voxHash, seed, o, d, optimizedDistance, sunDir);
 
   if (!hitVoxel) {
-    position = o + d * 1e10;
+    tMin     = 1e10;
+    position = o + d * tMin;
     color    = skyColor(d, sunDir, true);
   } else {
     imageStore(positionImage, uvi, vec4(position, 0));
@@ -422,6 +438,9 @@ void main() {
     imageStore(voxHashImage, uvi, uvec4(voxHash, 0, 0, 0));
     imageStore(depthImage, uvi, vec4(tMin, 0, 0, 0));
   }
+
+  // volumetric light
+  vec3 volumetricLightColor = volumetricLight(o, d, sunDir, tMin);
 
   // calculate the motion here avoids a store - load cycle for the position, and the motion vector
   // can be reused in temporal filter and the taa filter, also, using a motion vector is easier for

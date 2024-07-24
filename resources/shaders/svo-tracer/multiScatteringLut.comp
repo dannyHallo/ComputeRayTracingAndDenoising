@@ -60,7 +60,7 @@ vec3 getMulScattValues(vec3 pos, vec3 sunDir) {
       float stepLen   = tMax / float(mulScattSteps);
       vec3 unitStep   = stepLen * rayDir;
       vec3 marchedPos = pos - 0.5 * unitStep;
-      for (int stepI = 0; stepI < mulScattSteps; stepI += 1) {
+      for (uint stepI = 0; stepI < mulScattSteps; stepI += 1) {
         marchedPos += unitStep;
 
         vec3 rayleighScattering;
