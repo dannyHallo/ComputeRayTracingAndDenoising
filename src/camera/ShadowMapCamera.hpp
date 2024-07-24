@@ -36,7 +36,6 @@ public:
   [[nodiscard]] glm::vec3 getFront() const { return _front; }
   [[nodiscard]] glm::vec3 getUp() const { return _up; }
   [[nodiscard]] glm::vec3 getRight() const { return _right; }
-  [[nodiscard]] float getVFov() const { return _vFov; }
 
   // calculates the front vector from the Camera's (updated) Euler Angles
   void updateCameraVectors(glm::vec3 playerCameraPosition, glm::vec3 sunDir);
@@ -44,8 +43,7 @@ public:
 private:
   // config
   glm::vec3 _position;
-  float _vFov;
-  float _range; // TODO:
+  float _range; // TODO: implement this
   //   void _loadConfig();
 
   glm::vec3 _front = glm::vec3(0.F);

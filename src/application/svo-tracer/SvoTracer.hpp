@@ -51,7 +51,7 @@ public:
     return _deliveryCommandBuffers[imageIndex];
   }
 
-  void updateUboData(size_t currentFrame);
+  void drawFrame(size_t currentFrame);
 
   // this getter will be used for imguiManager
   SvoTracerTweakingData &getTweakingData() { return _tweakingData; }
@@ -93,6 +93,9 @@ private:
   uint32_t _highResHeight = 0;
 
   std::vector<glm::vec2> _subpixOffsets{};
+
+  void _updateShadowMapCamera();
+  void _updateUboData(size_t currentFrame);
 
   void _updateImageResolutions();
 

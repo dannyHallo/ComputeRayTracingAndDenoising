@@ -132,7 +132,7 @@ void Application::_drawFrame() {
   //   }
   // }
 
-  _svoTracer->updateUboData(currentFrame);
+  _svoTracer->drawFrame(currentFrame);
 
   _imguiManager->recordCommandBuffer(currentFrame, imageIndex);
   std::vector<VkCommandBuffer> submitCommandBuffers = {
@@ -247,8 +247,6 @@ void Application::_init() {
   _imguiManager->init();
 
   _createSemaphoresAndFences();
-
-  
 
   // attach application-level keyboard listeners
   _window->addKeyboardCallback(

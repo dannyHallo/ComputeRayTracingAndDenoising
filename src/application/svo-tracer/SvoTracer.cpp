@@ -110,7 +110,7 @@ void SvoTracer::init(SvoBuilder *svoBuilder) {
 
   // attach camera's mouse handler to the window mouse callback
   _window->addCursorMoveCallback(
-      [this](CursorMoveInfo const &mouseInfo) { _camera->handleMouseMovement(mouseInfo); });  
+      [this](CursorMoveInfo const &mouseInfo) { _camera->handleMouseMovement(mouseInfo); });
 }
 
 void SvoTracer::onSwapchainResize() {
@@ -590,7 +590,33 @@ void SvoTracer::_recordDeliveryCommandBuffers() {
   }
 }
 
-void SvoTracer::updateUboData(size_t currentFrame) {
+void SvoTracer::drawFrame(size_t currentFrame) {
+  _updateShadowMapCamera();
+  _updateUboData(currentFrame);
+}
+
+// translated from shader code
+namespace {
+// input: theta is the azimuthal angle
+//        phi is the polar angle (from the y-axis)
+glm::vec3 getSphericalDir(float theta, float phi) {
+  float sinPhi = sin(phi);
+  return glm::vec3(sinPhi * sin(theta), cos(phi), sinPhi * cos(theta));
+}
+
+double constexpr kPi      = 3.14159265358979323846;
+double constexpr kDeg2Rad = 0.0174532925;
+
+glm::vec3 getDirOnUnitSphere(float alt, float azi) { return getSphericalDir(azi, kPi / 2.F - alt); }
+} // namespace
+
+void SvoTracer::_updateShadowMapCamera() {
+  glm::vec3 sunDir =
+      getDirOnUnitSphere(kDeg2Rad * _tweakingData.sunAngleA, kDeg2Rad * _tweakingData.sunAngleB);
+  _shadowMapCamera->updateCameraVectors(_camera->getPosition(), sunDir);
+}
+
+void SvoTracer::_updateUboData(size_t currentFrame) {
   static uint32_t currentSample = 0;
   // identity matrix
   static glm::mat4 vMatPrev{1.0F};
