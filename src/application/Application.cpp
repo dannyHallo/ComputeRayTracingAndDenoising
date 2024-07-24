@@ -4,8 +4,6 @@
 #include "svo-tracer/SvoTracer.hpp"
 
 #include "BlockState.hpp"
-#include "camera/Camera.hpp"
-#include "camera/ShadowMapCamera.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "imgui-manager/gui-manager/ImguiManager.hpp"
 #include "utils/event-dispatcher/GlobalEventDispatcher.hpp"
@@ -30,15 +28,13 @@ Application::Application(Logger *logger)
   VulkanApplicationContext::GraphicsSettings settings{};
   settings.isFramerateLimited = _isFramerateLimited;
   _appContext->init(_logger, _window->getGlWindow(), &settings);
-  _camera          = std::make_unique<Camera>(_window.get(), _tomlConfigReader.get());
-  _shadowMapCamera = std::make_unique<ShadowMapCamera>(_tomlConfigReader.get());
 
   _svoBuilder =
       std::make_unique<SvoBuilder>(_appContext, _logger, _shaderCompiler.get(),
                                    _shaderFileWatchListener.get(), _tomlConfigReader.get());
-  _svoTracer = std::make_unique<SvoTracer>(_appContext, _logger, _framesInFlight, _camera.get(),
-                                           _shadowMapCamera.get(), _shaderCompiler.get(),
-                                           _shaderFileWatchListener.get(), _tomlConfigReader.get());
+  _svoTracer = std::make_unique<SvoTracer>(_appContext, _logger, _framesInFlight, _window.get(),
+                                           _shaderCompiler.get(), _shaderFileWatchListener.get(),
+                                           _tomlConfigReader.get());
 
   _imguiManager =
       std::make_unique<ImguiManager>(_appContext, _window.get(), _logger, _tomlConfigReader.get(),
@@ -229,7 +225,7 @@ void Application::_mainLoop() {
     _fpsSink->addRecord(1.0F / deltaTimeInSec);
 
     _imguiManager->draw(_fpsSink.get());
-    _camera->processInput(deltaTimeInSec);
+    _svoTracer->processInput(deltaTimeInSec);
 
     _drawFrame();
   }
@@ -252,9 +248,7 @@ void Application::_init() {
 
   _createSemaphoresAndFences();
 
-  // attach camera's mouse handler to the window mouse callback
-  _window->addCursorMoveCallback(
-      [this](CursorMoveInfo const &mouseInfo) { _camera->handleMouseMovement(mouseInfo); });
+  
 
   // attach application-level keyboard listeners
   _window->addKeyboardCallback(

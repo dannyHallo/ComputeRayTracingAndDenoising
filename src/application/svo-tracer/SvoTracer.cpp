@@ -45,13 +45,14 @@ std::string _makeShaderFullPath(std::string const &shaderName) {
 }; // namespace
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
-                     Camera *camera, ShadowMapCamera *shadowMapCamera,
-                     ShaderCompiler *shaderCompiler, ShaderChangeListener *shaderChangeListener,
-                     TomlConfigReader *tomlConfigReader)
-    : _appContext(appContext), _logger(logger), _camera(camera), _shadowMapCamera(shadowMapCamera),
-      _shaderCompiler(shaderCompiler), _shaderChangeListener(shaderChangeListener),
-      _tomlConfigReader(tomlConfigReader), _tweakingData(tomlConfigReader),
-      _framesInFlight(framesInFlight) {
+                     Window *window, ShaderCompiler *shaderCompiler,
+                     ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader)
+    : _appContext(appContext), _logger(logger), _window(window), _shaderCompiler(shaderCompiler),
+      _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader),
+      _tweakingData(tomlConfigReader), _framesInFlight(framesInFlight) {
+  _camera          = std::make_unique<Camera>(_window, _tomlConfigReader);
+  _shadowMapCamera = std::make_unique<ShadowMapCamera>(_tomlConfigReader);
+
   _loadConfig();
   _updateImageResolutions();
 }
@@ -70,6 +71,8 @@ void SvoTracer::_loadConfig() {
       _tomlConfigReader->getConfig<uint32_t>("SvoTracer.taaSamplingOffsetSize");
   _upscaleRatio = _tomlConfigReader->getConfig<float>("SvoTracer.upscaleRatio");
 }
+
+void SvoTracer::processInput(double deltaTime) { _camera->processInput(deltaTime); }
 
 void SvoTracer::_updateImageResolutions() {
   _highResWidth  = _appContext->getSwapchainExtentWidth();
@@ -104,6 +107,10 @@ void SvoTracer::init(SvoBuilder *svoBuilder) {
   _recordDeliveryCommandBuffers();
 
   _createTaaSamplingOffsets();
+
+  // attach camera's mouse handler to the window mouse callback
+  _window->addCursorMoveCallback(
+      [this](CursorMoveInfo const &mouseInfo) { _camera->handleMouseMovement(mouseInfo); });  
 }
 
 void SvoTracer::onSwapchainResize() {

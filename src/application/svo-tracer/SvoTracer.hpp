@@ -22,6 +22,7 @@ class DescriptorSetBundle;
 class ComputePipeline;
 class Camera;
 class ShadowMapCamera;
+class Window;
 class ShaderCompiler;
 class ShaderChangeListener;
 class TomlConfigReader;
@@ -29,7 +30,7 @@ class TomlConfigReader;
 class SvoTracer : public Scheduler {
 public:
   SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
-            Camera *camera, ShadowMapCamera *shadowMapCamera, ShaderCompiler *shaderCompiler,
+            Window *window, ShaderCompiler *shaderCompiler,
             ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader);
   ~SvoTracer() override;
 
@@ -57,11 +58,16 @@ public:
 
   G_OutputInfo getOutputInfo();
 
+  void processInput(double deltaTime);
+
 private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
-  Camera *_camera;
-  ShadowMapCamera *_shadowMapCamera;
+
+  Window *_window;
+  std::unique_ptr<Camera> _camera;
+  std::unique_ptr<ShadowMapCamera> _shadowMapCamera;
+
   ShaderCompiler *_shaderCompiler;
   ShaderChangeListener *_shaderChangeListener;
   TomlConfigReader *_tomlConfigReader;
