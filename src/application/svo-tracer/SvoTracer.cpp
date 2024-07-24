@@ -194,15 +194,15 @@ void SvoTracer::_createBlueNoiseImages() {
 
 void SvoTracer::_createSkyLutImages() {
   _transmittanceLutImage = std::make_unique<Image>(
-      kTransmittanceLutWidth, kTransmittanceLutHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+      kTransmittanceLutWidth, kTransmittanceLutHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler->getVkSampler());
 
   _multiScatteringLutImage = std::make_unique<Image>(
-      kMultiScatteringLutWidth, kMultiScatteringLutHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+      kMultiScatteringLutWidth, kMultiScatteringLutHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler->getVkSampler());
 
   _skyViewLutImage = std::make_unique<Image>(
-      kSkyViewLutWidth, kSkyViewLutHeight, 1, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+      kSkyViewLutWidth, kSkyViewLutHeight, 1, VK_FORMAT_R16G16B16A16_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _skyLutSampler->getVkSampler());
 }
 
