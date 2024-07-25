@@ -12,7 +12,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "../include/random.glsl"
 #include "../include/skyColor.glsl"
 
-
 // subpixOffset ranges from -0.5 to 0.5
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
   vec2 screenSpaceUv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5) + subpixOffset) /
@@ -113,7 +112,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   return true;
 }
 
-vec3 volumetricLight(vec3 o, vec3 d, vec3 sunDir, float t) {
+vec3 volumetricLight(vec3 o, vec3 d, float t) {
   const uint maxSampleCount = 32;
   const float maxDist       = 1.0;
   const float stepLen       = maxDist / float(maxSampleCount);
@@ -125,14 +124,16 @@ vec3 volumetricLight(vec3 o, vec3 d, vec3 sunDir, float t) {
   for (uint stepI = 0; stepI < raySampleCount; stepI += 1) {
     marchedPos += unitStep;
 
-    // MarchingResult volumetricLightResult;
-    // bool volumetricLightHit = cascadedMarching(volumetricLightResult, marchedPos, sunDir);
-    // if (!volumetricLightHit) {
-    //   col += vec3(0.5) * stepLen;
-    // }
+    vec2 shadowMapUv           = projectWorldPosToShadowMapUv(marchedPos);
+    vec3 shadowMapCamNearPoint = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
 
-    vec2 shadowMapUv  = projectWorldPosToShadowMapUv(marchedPos);
-    vec3 shadowMapPos = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
+    float shadowMapDepth = textureLod(shadowMapTexture, shadowMapUv, 0).r;
+    float dist           = length(shadowMapCamNearPoint - marchedPos);
+
+    // shadowMapDepth should only be <= dist, if they are close, then the point is being lit
+    if (dist - shadowMapDepth < 1e-2) {
+      col += vec3(0.8) * stepLen;
+    }
   }
   return col;
 }
@@ -191,7 +192,7 @@ void main() {
     imageStore(depthImage, uvi, vec4(tMin, 0, 0, 0));
   }
 
-  // color += volumetricLight(o, d, sunDir, tMin);
+  color += volumetricLight(o, d, tMin);
 
   // calculate the motion here avoids a store - load cycle for the position, and the motion vector
   // can be reused in temporal filter and the taa filter, also, using a motion vector is easier for
