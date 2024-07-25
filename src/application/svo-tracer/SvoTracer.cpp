@@ -259,8 +259,8 @@ void SvoTracer::_createFullSizedImages() {
   _rawImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                                       VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _godRayImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1,
-                                         VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+  _godRayImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
+                                         VK_IMAGE_USAGE_STORAGE_BIT);
 
   _depthImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_SFLOAT,
                                         VK_IMAGE_USAGE_STORAGE_BIT);
@@ -366,7 +366,7 @@ void SvoTracer::_createImageForwardingPairs() {
       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_GENERAL);
 
-  _accumedForwardingPair = std::make_unique<ImageForwardingPair>(
+  _godRayAccumedForwardingPair = std::make_unique<ImageForwardingPair>(
       _godRayAccumedImage->getVkImage(), _lastGodRayAccumedImage->getVkImage(), _lowResWidth,
       _lowResHeight, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_GENERAL);
@@ -590,6 +590,7 @@ void SvoTracer::_recordRenderingCommandBuffers() {
     _positionForwardingPair->forwardCopy(cmdBuffer);
     _voxHashForwardingPair->forwardCopy(cmdBuffer);
     _accumedForwardingPair->forwardCopy(cmdBuffer);
+    _godRayAccumedForwardingPair->forwardCopy(cmdBuffer);
     _taaForwardingPair->forwardCopy(cmdBuffer);
 
     vkEndCommandBuffer(cmdBuffer);

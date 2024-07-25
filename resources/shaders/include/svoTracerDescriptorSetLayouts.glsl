@@ -25,7 +25,7 @@ layout(binding = 7) uniform uimage3D chunksImage;
 layout(binding = 8) uniform uimage2D backgroundImage;
 layout(binding = 9) uniform image2D beamDepthImage;
 layout(binding = 10) uniform uimage2D rawImage;
-layout(binding = 45) uniform image2D godRayImage;
+layout(binding = 45) uniform uimage2D godRayImage;
 layout(binding = 11) uniform image2D depthImage;
 layout(binding = 12) uniform image2D octreeVisualizationImage;
 layout(binding = 13) uniform uimage2D hitImage;
@@ -40,7 +40,7 @@ layout(binding = 21) readonly uniform uimage2D lastVoxHashImage;
 layout(binding = 22) uniform uimage2D accumedImage;
 layout(binding = 23) readonly uniform uimage2D lastAccumedImage;
 layout(binding = 46) uniform uimage2D godRayAccumImage;
-layout(binding = 47) readonly uniform uimage2D lastGodRayAccumImage;
+layout(binding = 47) readonly uniform uimage2D lastGodRayAccumedImage;
 
 // these are not uint encoded because they need to be SAMPLED as textures, see lastTaaTexture
 layout(binding = 24) uniform image2D taaImage;
