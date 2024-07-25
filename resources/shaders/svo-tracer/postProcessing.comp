@@ -6,6 +6,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
 #include "../include/core/color.glsl"
+#include "../include/core/packer.glsl"
 #include "../include/core/postProcessing.glsl"
 
 #include "../include/projection.glsl"
@@ -47,12 +48,13 @@ vec3 debugInfoOverwrite(ivec2 lowResUvi) {
   return imageLoad(octreeVisualizationImage, lowResUvi).rgb;
 }
 
-// #define RAW_DIRECT_OUTPUT
+// #define SHADOW_MAP
+#define BLITTED
 
 void main() {
   ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
 
-#ifdef RAW_DIRECT_OUTPUT
+#ifdef SHADOW_MAP
   if (any(greaterThanEqual(uvi, ivec2(imageSize(shadowMapImage))))) {
     return;
   }
@@ -60,7 +62,16 @@ void main() {
   vec3 col   = vec3(exp(-dist * 0.1));
   imageStore(renderTargetImage, uvi, vec4(col.bgr, 1.0));
   return;
-#endif
+#endif // SHADOW_MAP
+
+#ifdef BLITTED
+  if (any(greaterThanEqual(uvi, ivec2(imageSize(blittedImage))))) {
+    return;
+  }
+  vec3 col = unpackRgbe(imageLoad(blittedImage, uvi).x);
+  imageStore(renderTargetImage, uvi, vec4(col.bgr, 1));
+  return;
+#endif // BLITTED
 
   ivec2 targetSize = imageSize(renderTargetImage);
   if (any(greaterThanEqual(uvi, targetSize))) {

@@ -120,7 +120,7 @@ vec3 godRayColor(vec3 o, vec3 d, float t) {
   }
 
   const uint maxSampleCount = 64;
-  const float maxDist       = 1.0;
+  const float maxDist       = 0.5;
   const float stepLen       = maxDist / float(maxSampleCount);
   const uint raySampleCount = min(maxSampleCount, uint(t / stepLen));
 
