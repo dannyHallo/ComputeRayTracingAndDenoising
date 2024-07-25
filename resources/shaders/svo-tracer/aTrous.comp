@@ -14,15 +14,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 const float waveletFac      = 0.5;
 const float kernel3x3[2][2] = {{1.0, waveletFac}, {waveletFac, waveletFac *waveletFac}};
 
-ivec2 jittering(int stepSize) {
-  uvec3 seed       = uvec3(gl_GlobalInvocationID.xy, renderInfoUbo.data.currentSample);
-  vec2 randomNoise = vec2(random(seed), random(seed));
-  randomNoise -= 0.5;
-  randomNoise *= 0.5;
-  ivec2 jitter = ivec2(randomNoise * stepSize);
-  return jitter;
-}
-
 void loadDataFromPingPong(out vec3 oNormal, out vec3 oColor, out vec3 oPosition, ivec2 uvi,
                           uint currentIteration) {
   oNormal   = unpackNormal(imageLoad(normalImage, uvi).x);

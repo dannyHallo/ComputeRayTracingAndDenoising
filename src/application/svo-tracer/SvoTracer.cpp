@@ -755,6 +755,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindUniformBufferBundle(3, _temporalFilterInfoBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(4, _spatialFilterInfoBufferBundle.get());
 
+  _descriptorSetBundle->bindStorageImage(48, _scalarBlueNoise.get());
   _descriptorSetBundle->bindStorageImage(5, _vec2BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(42, _vec3BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(6, _weightedCosineBlueNoise.get());

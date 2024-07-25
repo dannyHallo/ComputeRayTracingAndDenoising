@@ -86,7 +86,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   vec3 brdf = primaryRayResult.color * kInvPi;
 
   // direct contribution
-  vec3 shadowRayDir   = getRandomShadowRay(sunDir, seed, Disturbance(1));
+  vec3 shadowRayDir   = getRandomShadowRay(sunDir, makeDisturbedSeed(seed, 1));
   vec3 shadowRayColor = vec3(0.0);
   if (dot(shadowRayDir, primaryRayResult.normal) >= 0.0) {
     shadowRayColor = getShadowRayColor(primaryRayResult.nextTracingPosition, shadowRayDir, sunDir);
@@ -101,7 +101,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
 
   // indirect contribution
   vec3 indirectRayDir =
-      randomCosineWeightedHemispherePoint(primaryRayResult.normal, seed, Disturbance(1));
+      randomCosineWeightedHemispherePoint(primaryRayResult.normal, makeDisturbedSeed(seed, 2));
   vec3 indirectRayColor = getIndirectRayColor(primaryRayResult.nextTracingPosition, indirectRayDir,
                                               seed, sunDir, shadowRayDir);
 
@@ -115,11 +115,11 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
 bool checkerBoard(ivec2 uvi) { return (uvi.x % 2 == 0 && uvi.y % 2 == 0); }
 
 vec3 godRayColor(vec3 o, vec3 d, float t) {
-  if (!checkerBoard(ivec2(gl_GlobalInvocationID.xy))) {
-    return vec3(0.0);
-  }
+  // if (!checkerBoard(ivec2(gl_GlobalInvocationID.xy))) {
+  //   return vec3(0.0);
+  // }
 
-  const uint maxSampleCount = 64;
+  const uint maxSampleCount = 32;
   const float maxDist       = 0.5;
   const float stepLen       = maxDist / float(maxSampleCount);
   const uint raySampleCount = min(maxSampleCount, uint(t / stepLen));
@@ -141,7 +141,7 @@ vec3 godRayColor(vec3 o, vec3 d, float t) {
       col += vec3(0.8) * stepLen;
     }
   }
-  return col * 2.0;
+  return col;
 }
 
 void writeOutputBuffer(ivec2 uvi, bool hitVoxel, vec3 position) {

@@ -16,6 +16,7 @@ temporalFilterInfoUbo;
 layout(binding = 4) uniform SpatialFilterInfoUniformBuffer { G_SpatialFilterInfo data; }
 spatialFilterInfoUbo;
 
+layout(binding = 48) readonly uniform image2DArray scalarBlueNoise;
 layout(binding = 5) readonly uniform image2DArray vec2BlueNoise;
 layout(binding = 42) readonly uniform image2DArray vec3BlueNoise;
 layout(binding = 6) readonly uniform image2DArray weightedCosineBlueNoise;
