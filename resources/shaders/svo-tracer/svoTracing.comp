@@ -114,21 +114,29 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
 
 bool checkerBoard(ivec2 uvi) { return (uvi.x % 2 == 0 && uvi.y % 2 == 0); }
 
-vec3 godRayColor(vec3 o, vec3 d, float t) {
+vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
   // if (!checkerBoard(ivec2(gl_GlobalInvocationID.xy))) {
   //   return vec3(0.0);
   // }
 
-  const uint maxSampleCount = 32;
-  const float maxDist       = 0.5;
-  const float stepLen       = maxDist / float(maxSampleCount);
-  const uint raySampleCount = min(maxSampleCount, uint(t / stepLen));
+  const uint maxSampleCount  = 32;
+  const float maxDist        = 1.0;
+  const float regularStepLen = maxDist / float(maxSampleCount);
+  const uint raySampleCount  = min(maxSampleCount, uint(validRayDepth / regularStepLen) + 1);
 
-  vec3 col        = vec3(0.0);
-  vec3 unitStep   = stepLen * d;
-  vec3 marchedPos = o - 0.5 * unitStep;
+  vec3 col    = vec3(0.0);
+  float t     = 0.0;
+  float prevT = 0.0;
   for (uint stepI = 0; stepI < raySampleCount; stepI += 1) {
-    marchedPos += unitStep;
+    // float randDither = stbnScalar(makeDisturbedSeed(seed, 3));
+    // seed.z += 1;
+    // float randTOffset = randDither - 0.5;
+
+    t = (0.5 + stepI) * regularStepLen;
+
+    vec3 marchedPos = o + t * d;
+    float stepLen   = t - prevT;
+    prevT           = t;
 
     vec2 shadowMapUv           = projectWorldPosToShadowMapUv(marchedPos);
     vec3 shadowMapCamNearPoint = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
@@ -138,7 +146,7 @@ vec3 godRayColor(vec3 o, vec3 d, float t) {
 
     // shadowMapDepth should only be <= dist, if they are close, then the point is being lit
     if (dist - shadowMapDepth < 1e-2) {
-      col += vec3(0.8) * stepLen;
+      col += vec3(0.4) * stepLen;
     }
   }
   return col;
@@ -198,7 +206,7 @@ void main() {
     imageStore(depthImage, uvi, vec4(tMin, 0.0, 0.0, 0.0));
   }
 
-  vec3 godRayCol = godRayColor(o, d, tMin);
+  vec3 godRayCol = godRayColor(o, d, tMin, seed);
   imageStore(godRayImage, uvi, uvec4(packRgbe(godRayCol), 0, 0, 0));
 
   // calculate the motion here avoids a store - load cycle for the position, and the motion vector

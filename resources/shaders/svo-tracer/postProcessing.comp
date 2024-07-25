@@ -49,7 +49,7 @@ vec3 debugInfoOverwrite(ivec2 lowResUvi) {
 }
 
 // #define SHADOW_MAP
-#define BLITTED
+// #define BLITTED
 
 void main() {
   ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);

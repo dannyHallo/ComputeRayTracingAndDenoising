@@ -73,15 +73,15 @@ uvec3 makeDisturbedSeed(vec3 seed, uint disturb) {
                seed.y + offsetBasedOnDisturbance.y * kBlueNoiseSize.x, seed.z);
 }
 
-ivec3 getStbnSampleUvi(uvec3 seed) {
+ivec3 _getStbnSampleUvi(uvec3 seed) {
   return ivec3(seed.x % kBlueNoiseSize.x, seed.y % kBlueNoiseSize.y, seed.z % kBlueNoiseSize.z);
 }
 
-float stbnScalar(uvec3 seed) { return imageLoad(scalarBlueNoise, getStbnSampleUvi(seed)).r; }
-vec2 stbnVec2(uvec3 seed) { return imageLoad(vec2BlueNoise, getStbnSampleUvi(seed)).rg; }
-vec3 stbnVec3(uvec3 seed) { return imageLoad(vec3BlueNoise, getStbnSampleUvi(seed)).rgb; }
+float stbnScalar(uvec3 seed) { return imageLoad(scalarBlueNoise, _getStbnSampleUvi(seed)).r; }
+vec2 stbnVec2(uvec3 seed) { return imageLoad(vec2BlueNoise, _getStbnSampleUvi(seed)).rg; }
+vec3 stbnVec3(uvec3 seed) { return imageLoad(vec3BlueNoise, _getStbnSampleUvi(seed)).rgb; }
 vec3 stbnWeightedCosine(uvec3 seed) {
-  return imageLoad(weightedCosineBlueNoise, getStbnSampleUvi(seed)).rgb;
+  return imageLoad(weightedCosineBlueNoise, _getStbnSampleUvi(seed)).rgb;
 }
 
 vec3 randomPointOnSphere(uvec3 seed) {
