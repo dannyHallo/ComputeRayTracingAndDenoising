@@ -112,7 +112,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
 }
 
 vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
-  const uint maxSampleCount = 32;
+  const uint maxSampleCount = 64;
   const float maxRayDepth   = 1.0;
   const float stepLen       = maxRayDepth / float(maxSampleCount);
   const vec3 unitStep       = stepLen * d;
@@ -134,7 +134,7 @@ vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
     // shadowMapDepth should only be <= dist, if they are close, then the point is being lit
     if (dist - shadowMapDepth < 1e-2) {
       float mistWeight = 1.0 - smoothstep(0.0, 1.0, marchedPos.y);
-      col += mistWeight * stepLen * skyColor(environmentUbo.data.sunDir, true) * 0.08;
+      col += mistWeight * stepLen * skyColor(environmentUbo.data.sunDir, true) * 0.06;
     }
   }
   return col;
