@@ -110,6 +110,7 @@ private:
   std::unique_ptr<Sampler> _skyLutSampler;
 
   // spatial-temporal blue noise (arrays of images)
+  std::unique_ptr<Image> _scalarBlueNoise;
   std::unique_ptr<Image> _vec2BlueNoise;
   std::unique_ptr<Image> _vec3BlueNoise;
   std::unique_ptr<Image> _weightedCosineBlueNoise;

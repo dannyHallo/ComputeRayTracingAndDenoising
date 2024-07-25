@@ -188,40 +188,25 @@ void SvoTracer::_createImages() {
 void SvoTracer::_createSwapchainRelatedImages() { _createFullSizedImages(); }
 
 void SvoTracer::_createBlueNoiseImages() {
-  constexpr int kBlueNoiseArraySize = 64;
+  auto _loadNoise = [this](std::unique_ptr<Image> &noiseImage, std::string const &&stbnPath) {
+    _logger->info("loading blue noise images from {}", stbnPath);
 
-  std::vector<std::string> filenames{};
-  filenames.reserve(kBlueNoiseArraySize);
-  for (int i = 0; i < kBlueNoiseArraySize; i++) {
-    filenames.emplace_back(kPathToResourceFolder +
-                           "/textures/stbn/vec2_2d_1d/"
-                           "stbn_vec2_2Dx1D_128x128x64_" +
-                           std::to_string(i) + ".png");
-  }
-  _vec2BlueNoise = std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
-                                                          VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    constexpr int kBlueNoiseArraySize = 64;
+    std::vector<std::string> filenames{};
+    filenames.reserve(kBlueNoiseArraySize);
+    for (int i = 0; i < kBlueNoiseArraySize; i++) {
+      filenames.emplace_back(kPathToResourceFolder + "/textures/stbn/" + stbnPath +
+                             std::to_string(i) + ".png");
+    }
+    noiseImage = std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
+                                                        VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  };
 
-  filenames.clear();
-  filenames.reserve(kBlueNoiseArraySize);
-  for (int i = 0; i < kBlueNoiseArraySize; i++) {
-    filenames.emplace_back(kPathToResourceFolder +
-                           "/textures/stbn/vec3_2d_1d/"
-                           "stbn_vec3_2Dx1D_128x128x64_" +
-                           std::to_string(i) + ".png");
-  }
-  _vec3BlueNoise = std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
-                                                          VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  filenames.clear();
-  filenames.reserve(kBlueNoiseArraySize);
-  for (int i = 0; i < kBlueNoiseArraySize; i++) {
-    filenames.emplace_back(kPathToResourceFolder +
-                           "/textures/stbn/unitvec3_cosine_2d_1d/"
-                           "stbn_unitvec3_cosine_2Dx1D_128x128x64_" +
-                           std::to_string(i) + ".png");
-  }
-  _weightedCosineBlueNoise = std::make_unique<Image>(
-      filenames, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _loadNoise(_scalarBlueNoise, "scalar_2d_1d_1d/stbn_scalar_2Dx1Dx1D_128x128x64x1_");
+  _loadNoise(_vec2BlueNoise, "vec2_2d_1d/stbn_vec2_2Dx1D_128x128x64_");
+  _loadNoise(_vec3BlueNoise, "vec3_2d_1d/stbn_vec3_2Dx1D_128x128x64_");
+  _loadNoise(_weightedCosineBlueNoise,
+             "unitvec3_cosine_2d_1d/stbn_unitvec3_cosine_2Dx1D_128x128x64_");
 }
 
 void SvoTracer::_createSkyLutImages() {
