@@ -80,6 +80,7 @@ private:
   uint32_t _aTrousSizeMax{};
   uint32_t _beamResolution{};
   uint32_t _taaSamplingOffsetSize{};
+  uint32_t _shadowMapResolution{};
   float _upscaleRatio{};
   void _loadConfig();
 

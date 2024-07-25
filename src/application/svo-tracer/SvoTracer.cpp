@@ -25,9 +25,6 @@ constexpr uint32_t kMultiScatteringLutHeight = 32;
 constexpr uint32_t kSkyViewLutWidth          = 200;
 constexpr uint32_t kSkyViewLutHeight         = 200;
 
-constexpr uint32_t kShadowMapWidth  = 512;
-constexpr uint32_t kShadowMapHeight = 512;
-
 namespace {
 float halton(int base, int index) {
   float f = 1.F;
@@ -90,7 +87,8 @@ void SvoTracer::_loadConfig() {
   _beamResolution = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.beamResolution");
   _taaSamplingOffsetSize =
       _tomlConfigReader->getConfig<uint32_t>("SvoTracer.taaSamplingOffsetSize");
-  _upscaleRatio = _tomlConfigReader->getConfig<float>("SvoTracer.upscaleRatio");
+  _shadowMapResolution = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.shadowMapResolution");
+  _upscaleRatio        = _tomlConfigReader->getConfig<float>("SvoTracer.upscaleRatio");
 }
 
 void SvoTracer::processInput(double deltaTime) { _camera->processInput(deltaTime); }
@@ -225,7 +223,7 @@ void SvoTracer::_createSkyLutImages() {
 
 void SvoTracer::_createShadowMapImage() {
   _shadowMapImage = std::make_unique<Image>(
-      kShadowMapWidth, kShadowMapHeight, 1, VK_FORMAT_R32_SFLOAT,
+      _shadowMapResolution, _shadowMapResolution, 1, VK_FORMAT_R32_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler->getVkSampler());
 }
 
@@ -491,7 +489,8 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    _shadowMapPipeline->recordCommand(cmdBuffer, frameIndex, kShadowMapWidth, kShadowMapHeight, 1);
+    _shadowMapPipeline->recordCommand(cmdBuffer, frameIndex, _shadowMapResolution,
+                                      _shadowMapResolution, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,

@@ -48,7 +48,7 @@ vec3 debugInfoOverwrite(ivec2 lowResUvi) {
   return imageLoad(octreeVisualizationImage, lowResUvi).rgb;
 }
 
-// #define SHADOW_MAP
+#define SHADOW_MAP
 // #define BLITTED
 
 void main() {

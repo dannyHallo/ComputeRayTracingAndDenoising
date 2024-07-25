@@ -128,11 +128,15 @@ vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
   float t     = 0.0;
   float prevT = 0.0;
   for (uint stepI = 0; stepI < raySampleCount; stepI += 1) {
-    // float randDither = stbnScalar(makeDisturbedSeed(seed, 3));
-    // seed.z += 1;
-    // float randTOffset = randDither - 0.5;
+    float randDither = stbnScalar(makeDisturbedSeed(seed, 3));
+    seed.z += 1;
+    float randTOffset = randDither - 0.5;
+    // randTOffset = 0.0;
 
-    t = (0.5 + stepI) * regularStepLen;
+    t = (0.5 + stepI + randTOffset) * regularStepLen;
+    if (stepI == raySampleCount - 1 && t > validRayDepth) {
+      break;
+    }
 
     vec3 marchedPos = o + t * d;
     float stepLen   = t - prevT;
