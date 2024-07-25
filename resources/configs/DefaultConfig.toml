@@ -17,7 +17,7 @@ movementSpeedBoost = 3.0
 mouseSensitivity = 0.06
 
 [ShadowMapCamera]
-range = 10.0
+range = 2.0
 
 [ImguiManager]
 fontSize = 20

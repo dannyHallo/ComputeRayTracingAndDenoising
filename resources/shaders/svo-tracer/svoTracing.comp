@@ -5,12 +5,13 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
+#include "../include/cascadedMarching.glsl"
 #include "../include/core/definitions.glsl"
 #include "../include/core/packer.glsl"
-#include "../include/cascadedMarching.glsl"
 #include "../include/projection.glsl"
 #include "../include/random.glsl"
 #include "../include/skyColor.glsl"
+
 
 // subpixOffset ranges from -0.5 to 0.5
 void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
@@ -124,11 +125,14 @@ vec3 volumetricLight(vec3 o, vec3 d, vec3 sunDir, float t) {
   for (uint stepI = 0; stepI < raySampleCount; stepI += 1) {
     marchedPos += unitStep;
 
-    MarchingResult volumetricLightResult;
-    bool volumetricLightHit = cascadedMarching(volumetricLightResult, marchedPos, sunDir);
-    if (!volumetricLightHit) {
-      col += vec3(0.5) * stepLen;
-    }
+    // MarchingResult volumetricLightResult;
+    // bool volumetricLightHit = cascadedMarching(volumetricLightResult, marchedPos, sunDir);
+    // if (!volumetricLightHit) {
+    //   col += vec3(0.5) * stepLen;
+    // }
+
+    vec2 shadowMapUv  = projectWorldPosToShadowMapUv(marchedPos);
+    vec3 shadowMapPos = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
   }
   return col;
 }

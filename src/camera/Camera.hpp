@@ -52,13 +52,13 @@ public:
 
 private:
   // config
-  glm::vec3 _position;
-  float _yaw;   // in euler angles
-  float _pitch; // in euler angles
-  float _vFov;
-  float _movementSpeed;
-  float _movementSpeedBoost;
-  float _mouseSensitivity;
+  glm::vec3 _position{};
+  float _yaw{};   // in euler angles
+  float _pitch{}; // in euler angles
+  float _vFov{};
+  float _movementSpeed{};
+  float _movementSpeedBoost{};
+  float _mouseSensitivity{};
   void _loadConfig();
 
   glm::vec3 _front = glm::vec3(0.F);

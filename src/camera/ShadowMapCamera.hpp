@@ -38,9 +38,10 @@ public:
 
 private:
   // config
-  glm::vec3 _position;
-  float _range; // TODO: implement this
-  //   void _loadConfig();
+  float _range{};
+  void _loadConfig();
+
+  glm::vec3 _position = glm::vec3(0.F);
 
   glm::vec3 _front = glm::vec3(0.F);
   glm::vec3 _up    = glm::vec3(0.F);

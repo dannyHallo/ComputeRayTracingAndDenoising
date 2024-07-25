@@ -5,15 +5,14 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "../include/core/definitions.glsl"
 #include "../include/cascadedMarching.glsl"
+#include "../include/core/definitions.glsl"
 #include "../include/projection.glsl"
 
 void rayGen(out vec3 o, out vec3 d) {
-  vec2 screenSpaceUv =
-      (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / vec2(imageSize(shadowMapImage));
-  o = projectScreenUvToWorldCamFarPointShadowMap(screenSpaceUv) + environmentUbo.data.sunDir * 10.0;
-  d = -environmentUbo.data.sunDir;
+  vec2 shadowMapUv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / vec2(imageSize(shadowMapImage));
+  o                = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
+  d                = -environmentUbo.data.sunDir;
 }
 
 void main() {
@@ -31,7 +30,7 @@ void main() {
 
   float t = result.t;
   if (!hit) {
-    t = 0.0;
+    t = 1e10;
   }
 
   imageStore(shadowMapImage, uvi, vec4(t, 0.0, 0.0, 0.0));

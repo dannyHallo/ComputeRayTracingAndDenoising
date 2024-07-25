@@ -1,6 +1,8 @@
 #ifndef SVO_MARCHING_GLSL
 #define SVO_MARCHING_GLSL
 
+#include "../include/core/definitions.glsl"
+
 vec3 decompressNormal(uint packed) {
   // extract the components
   uvec3 quantized;

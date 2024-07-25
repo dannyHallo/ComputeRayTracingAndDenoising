@@ -7,19 +7,18 @@ float constexpr kShadowMapCameraDistance = 10.F;
 
 ShadowMapCamera::ShadowMapCamera(TomlConfigReader *tomlConfigReader)
     : _tomlConfigReader(tomlConfigReader) {
-  //   _loadConfig();
+  _loadConfig();
 }
 
 ShadowMapCamera::~ShadowMapCamera() = default;
 
-// void ShadowMapCamera::_loadConfig() {
-//   _position = glm::vec3(ps.at(0), ps.at(1), ps.at(2));
-//   _yaw      = _tomlConfigReader->getConfig<float>("ShadowMapCamera.yaw");
-//   _pitch    = _tomlConfigReader->getConfig<float>("ShadowMapCamera.pitch");
-//   _vFov     = _tomlConfigReader->getConfig<float>("ShadowMapCamera.vFov");
-// }
+void ShadowMapCamera::_loadConfig() {
+  _range = _tomlConfigReader->getConfig<float>("ShadowMapCamera.range");
+}
 
-glm::mat4 ShadowMapCamera::getProjectionMatrix() const { return glm::ortho(-5.F, 5.F, -5.F, 5.F, 0.1F, 10.F); }
+glm::mat4 ShadowMapCamera::getProjectionMatrix() const {
+  return glm::ortho(-_range, _range, -_range, _range, 0.1F, 10.F);
+}
 
 void ShadowMapCamera::updateCameraVectors(glm::vec3 playerCameraPosition, glm::vec3 sunDir) {
   _position = sunDir * kShadowMapCameraDistance + playerCameraPosition;
