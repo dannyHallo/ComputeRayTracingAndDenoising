@@ -48,29 +48,27 @@ vec3 debugInfoOverwrite(ivec2 lowResUvi) {
   return imageLoad(octreeVisualizationImage, lowResUvi).rgb;
 }
 
-#define SHADOW_MAP
+// #define SHADOW_MAP
 // #define BLITTED
 
 void main() {
   ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
 
 #ifdef SHADOW_MAP
-  if (any(greaterThanEqual(uvi, ivec2(imageSize(shadowMapImage))))) {
+  if (all(lessThan(uvi, ivec2(imageSize(shadowMapImage))))) {
+    float dist = imageLoad(shadowMapImage, uvi).x;
+    vec3 col   = vec3(exp(-dist * 0.1));
+    imageStore(renderTargetImage, uvi, vec4(col.bgr, 1.0));
     return;
   }
-  float dist = imageLoad(shadowMapImage, uvi).x;
-  vec3 col   = vec3(exp(-dist * 0.1));
-  imageStore(renderTargetImage, uvi, vec4(col.bgr, 1.0));
-  return;
 #endif // SHADOW_MAP
 
 #ifdef BLITTED
-  if (any(greaterThanEqual(uvi, ivec2(imageSize(blittedImage))))) {
+  if (all(lessThan(uvi, ivec2(imageSize(blittedImage))))) {
+    vec3 col = unpackRgbe(imageLoad(blittedImage, uvi).x);
+    imageStore(renderTargetImage, uvi, vec4(col.bgr, 1));
     return;
   }
-  vec3 col = unpackRgbe(imageLoad(blittedImage, uvi).x);
-  imageStore(renderTargetImage, uvi, vec4(col.bgr, 1));
-  return;
 #endif // BLITTED
 
   ivec2 targetSize = imageSize(renderTargetImage);
