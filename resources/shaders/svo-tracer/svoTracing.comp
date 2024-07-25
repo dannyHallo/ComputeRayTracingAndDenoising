@@ -112,7 +112,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   return true;
 }
 
-vec3 volumetricLight(vec3 o, vec3 d, float t) {
+vec3 godRayColor(vec3 o, vec3 d, float t) {
   const uint maxSampleCount = 32;
   const float maxDist       = 1.0;
   const float stepLen       = maxDist / float(maxSampleCount);
@@ -186,13 +186,14 @@ void main() {
                                      environmentUbo.data.sunDir);
 
   if (hitVoxel) {
-    imageStore(positionImage, uvi, vec4(position, 0));
+    imageStore(positionImage, uvi, vec4(position, 0.0));
     imageStore(normalImage, uvi, uvec4(packNormal(normal), 0, 0, 0));
     imageStore(voxHashImage, uvi, uvec4(voxHash, 0, 0, 0));
-    imageStore(depthImage, uvi, vec4(tMin, 0, 0, 0));
+    imageStore(depthImage, uvi, vec4(tMin, 0.0, 0.0, 0.0));
   }
 
-  color += volumetricLight(o, d, tMin);
+  vec3 godRayCol = godRayColor(o, d, tMin);
+  imageStore(godRayImage, uvi, vec4(godRayCol, 0.0));
 
   // calculate the motion here avoids a store - load cycle for the position, and the motion vector
   // can be reused in temporal filter and the taa filter, also, using a motion vector is easier for

@@ -51,15 +51,6 @@ vec3 projectShadowMapUvToShadowMapCamNearPoint(vec2 shadowMapUv) {
   return worldPosNear.xyz;
 }
 
-// vec3 projectWorldPosToCamNearPointShadowMap(vec3 worldPos) {
-//   vec4 clipPos = renderInfoUbo.data.vpMatShadowMapCam * vec4(worldPos, 1.0);
-//   clipPos /= clipPos.w;
-//   clipPos.z = 0.0;
-//   vec4 worldPosNear = renderInfoUbo.data.vpMatShadowMapCamInv * clipPos;
-//   worldPosNear /= worldPosNear.w;
-//   return worldPosNear.xyz;
-// }
-
 vec2 projectWorldPosToShadowMapUv(vec3 worldPos) {
   vec4 screenBoxCoord = renderInfoUbo.data.vpMatShadowMapCam * vec4(worldPos, 1.0);
   screenBoxCoord /= screenBoxCoord.w;

@@ -15,9 +15,10 @@ void main() {
 
   bool hit = imageLoad(hitImage, uvi).x != 0;
 
-  if (hit) {
-    imageStore(blittedImage, uvi, uvec4(packRgbe(imageLoad(aTrousPongImage, uvi).rgb), 0, 0, 0));
-  } else {
-    imageStore(blittedImage, uvi, imageLoad(backgroundImage, uvi));
-  }
+  vec3 color =
+      hit ? imageLoad(aTrousPongImage, uvi).rgb : unpackRgbe(imageLoad(backgroundImage, uvi).x);
+
+  color = imageLoad(godRayImage, uvi).rgb;
+
+  imageStore(blittedImage, uvi, uvec4(packRgbe(color), 0, 0, 0));
 }

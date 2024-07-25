@@ -13,10 +13,6 @@ const float kAtmosphereRadiusMm = 6.46;
 
 const vec3 kCamPos = vec3(0.0, 6.3602, 0.0);
 
-const vec2 kTLutRes   = vec2(256.0, 64.0);
-const vec2 kMsLutRes  = vec2(32.0);
-const vec2 kSkyLutRes = vec2(200.0);
-
 const vec3 kGroundAlbedo = vec3(0.3);
 
 // found in sec 4, table 1

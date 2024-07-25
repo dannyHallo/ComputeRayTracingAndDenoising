@@ -259,6 +259,9 @@ void SvoTracer::_createFullSizedImages() {
   _rawImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                                       VK_IMAGE_USAGE_STORAGE_BIT);
 
+  _godRayImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1,
+                                         VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
+
   _depthImage = std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_SFLOAT,
                                         VK_IMAGE_USAGE_STORAGE_BIT);
 
@@ -303,6 +306,14 @@ void SvoTracer::_createFullSizedImages() {
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _lastAccumedImage =
+      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+
+  _godRayAccumedImage =
+      std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+
+  _lastGodRayAccumedImage =
       std::make_unique<Image>(_lowResWidth, _lowResHeight, 1, VK_FORMAT_R32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
@@ -353,6 +364,11 @@ void SvoTracer::_createImageForwardingPairs() {
   _accumedForwardingPair = std::make_unique<ImageForwardingPair>(
       _accumedImage->getVkImage(), _lastAccumedImage->getVkImage(), _lowResWidth, _lowResHeight,
       VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+      VK_IMAGE_LAYOUT_GENERAL);
+
+  _accumedForwardingPair = std::make_unique<ImageForwardingPair>(
+      _godRayAccumedImage->getVkImage(), _lastGodRayAccumedImage->getVkImage(), _lowResWidth,
+      _lowResHeight, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
       VK_IMAGE_LAYOUT_GENERAL);
 
   _taaForwardingPair = std::make_unique<ImageForwardingPair>(
@@ -761,6 +777,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(8, _backgroundImage.get());
   _descriptorSetBundle->bindStorageImage(9, _beamDepthImage.get());
   _descriptorSetBundle->bindStorageImage(10, _rawImage.get());
+  _descriptorSetBundle->bindStorageImage(45, _godRayImage.get());
   _descriptorSetBundle->bindStorageImage(11, _depthImage.get());
   _descriptorSetBundle->bindStorageImage(12, _octreeVisualizationImage.get());
   _descriptorSetBundle->bindStorageImage(13, _hitImage.get());
@@ -774,6 +791,8 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(21, _lastVoxHashImage.get());
   _descriptorSetBundle->bindStorageImage(22, _accumedImage.get());
   _descriptorSetBundle->bindStorageImage(23, _lastAccumedImage.get());
+  _descriptorSetBundle->bindStorageImage(46, _godRayAccumedImage.get());
+  _descriptorSetBundle->bindStorageImage(47, _lastGodRayAccumedImage.get());
 
   _descriptorSetBundle->bindStorageImage(24, _taaImage.get());
   _descriptorSetBundle->bindStorageImage(25, _lastTaaImage.get());

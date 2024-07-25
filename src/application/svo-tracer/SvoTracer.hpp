@@ -124,6 +124,7 @@ private:
   std::unique_ptr<Image> _backgroundImage;
   std::unique_ptr<Image> _beamDepthImage;
   std::unique_ptr<Image> _rawImage;
+  std::unique_ptr<Image> _godRayImage;
   std::unique_ptr<Image> _depthImage;
   std::unique_ptr<Image> _octreeVisualizationImage;
   std::unique_ptr<Image> _hitImage;
@@ -145,6 +146,10 @@ private:
   std::unique_ptr<Image> _accumedImage;
   std::unique_ptr<Image> _lastAccumedImage;
   std::unique_ptr<ImageForwardingPair> _accumedForwardingPair;
+
+  std::unique_ptr<Image> _godRayAccumedImage;
+  std::unique_ptr<Image> _lastGodRayAccumedImage;
+  std::unique_ptr<ImageForwardingPair> _godRayAccumedForwardingPair;
 
   std::unique_ptr<Image> _taaImage;
   std::unique_ptr<Image> _lastTaaImage;
