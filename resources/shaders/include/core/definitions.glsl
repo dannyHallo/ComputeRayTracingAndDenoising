@@ -1,8 +1,9 @@
 #ifndef DEFINITIONS_GLSL
 #define DEFINITIONS_GLSL
 
-const float kEpsilon = 3.552713678800501e-15;
-const float kDeg2Rad = 0.0174532925;
+const float kEpsilon     = 3.552713678800501e-15;
+const float kDeg2Rad     = 0.0174532925;
+const float kGoldenRatio = 1.6180339887498948482;
 
 const float kQuarterPi = 0.785398163395;
 const float kHalfPi    = 1.57079632679;

@@ -56,10 +56,11 @@
 // shaders:
 // this solution avoids float rounding errors
 // https://www.shadertoy.com/view/4dtBWH
-// https://www.shadertoy.com/view/NdBSWm
 
 const uvec3 kBlueNoiseSize = uvec3(128, 128, 64);
 const float invExp         = 1 / exp2(24.);
+
+// float goldenLds(float base, float n) { return fract(base + kGoldenRatio * n); }
 
 vec2 _getOffsetFromDisturbance(uint disturb) {
   uint n         = disturb + 777123;

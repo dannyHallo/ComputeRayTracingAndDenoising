@@ -11,17 +11,17 @@ const float kSunAngleReal    = 0.01;
 const float kCosSunAngleReal = cos(kSunAngleReal);
 const float kTanSunAngleReal = tan(kSunAngleReal);
 
-vec3 getRandomShadowRay(vec3 sunDir, uvec3 seed) {
+vec3 getRandomShadowRay(uvec3 seed) {
   vec3 randInSphere = randomPointInSphere(seed);
-  return normalize(sunDir + randInSphere * kTanSunAngleReal);
+  return normalize(environmentUbo.data.sunDir + randInSphere * kTanSunAngleReal);
 }
 
-float _sunLuminance(vec3 rayDir, vec3 sunDir) {
+float _sunLuminance(vec3 rayDir) {
   const float dropoffFac    = 600.0;
   const float dropoffPreset = 0.02; // this should be fixed
   const float cutoff        = 5e-3;
 
-  float cosTheta = dot(rayDir, sunDir);
+  float cosTheta = dot(rayDir, environmentUbo.data.sunDir);
   if (cosTheta >= kCosSunAngleReal) {
     return 1.0;
   }
@@ -33,8 +33,8 @@ float _sunLuminance(vec3 rayDir, vec3 sunDir) {
   return max(0.0, lum - cutoff);
 }
 
-vec3 _sunColor(vec3 rayDir, vec3 sunDir) {
-  float lum = _sunLuminance(rayDir, sunDir);
+vec3 _sunColor(vec3 rayDir) {
+  float lum = _sunLuminance(rayDir);
 
   if (lum == 0.0) {
     return vec3(0.0);
@@ -43,18 +43,18 @@ vec3 _sunColor(vec3 rayDir, vec3 sunDir) {
   if (rayIntersectSphere(kCamPos, rayDir, kGroundRadiusMm) >= 0.0) {
     return vec3(0.0);
   }
-  vec2 tLutUv = getLookupUv1(kCamPos, sunDir);
+  vec2 tLutUv = getLookupUv1(kCamPos, environmentUbo.data.sunDir);
   return lum * textureLod(transmittanceLutTexture, tLutUv, 0).rgb;
 }
 
-vec3 skyColor(vec3 rayDir, vec3 sunDir, bool isSunAdded) {
-  vec2 skyLutUv = getLookupUv2(rayDir, sunDir);
+vec3 skyColor(vec3 rayDir, bool isSunAdded) {
+  vec2 skyLutUv = getLookupUv2(rayDir, environmentUbo.data.sunDir);
   vec3 atmosCol = textureLod(skyViewLutTexture, skyLutUv, 0).rgb;
   atmosCol *= 30.0 * environmentUbo.data.atmosLuminance;
 
   vec3 sunCol = vec3(0.0);
   if (isSunAdded) {
-    sunCol = _sunColor(rayDir, sunDir) * environmentUbo.data.sunLuminance * 10.0;
+    sunCol = _sunColor(rayDir) * environmentUbo.data.sunLuminance * 10.0;
   }
 
   vec3 skyCol = pow(atmosCol + sunCol, vec3(1.3));
