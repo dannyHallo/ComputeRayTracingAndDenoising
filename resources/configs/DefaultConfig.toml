@@ -25,9 +25,7 @@ fontSize = 20
 [SvoBuilder]
 # the voxel dimension within a chunk
 chunkVoxelDim = 256
-chunkDimX = 5
-chunkDimY = 1
-chunkDimZ = 5  
+chunkDim = [ 5, 1, 5 ]
 
 [SvoTracer]
 aTrousSizeMax = 5

@@ -83,17 +83,18 @@ private:
                        configItemPath);
         return std::nullopt;
       }
-      // check if the array contains the expected type
-      if (!array->is_homogeneous() || !array->get(0)->is_floating_point()) {
-        _logger->error("TomlConfigReader::_tryGetConfig() array element type mismatch at {}",
-                       configItemPath);
-        return std::nullopt;
-      }
 
       T res;
       size_t i = 0;
       for (auto const &item : *array) {
-        res[i++] = item.as_floating_point()->get();
+        auto val = item.value<typename ArrayTrait<T>::type>();
+        if (val == std::nullopt) {
+          _logger->error("TomlConfigReader::_tryGetConfig() array has invalid value for the {}th "
+                         "element at {}",
+                         i, configItemPath);
+          return std::nullopt;
+        }
+        res[i++] = val.value();
       }
       return res;
     }

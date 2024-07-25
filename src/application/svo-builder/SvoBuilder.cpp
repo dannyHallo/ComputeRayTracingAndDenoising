@@ -74,9 +74,10 @@ SvoBuilder::~SvoBuilder() {
 
 void SvoBuilder::_loadConfig() {
   _chunkVoxelDim = _tomlConfigReader->getConfig<uint32_t>("SvoBuilder.chunkVoxelDim");
-  _chunkDimX     = _tomlConfigReader->getConfig<uint32_t>("SvoBuilder.chunkDimX");
-  _chunkDimY     = _tomlConfigReader->getConfig<uint32_t>("SvoBuilder.chunkDimY");
-  _chunkDimZ     = _tomlConfigReader->getConfig<uint32_t>("SvoBuilder.chunkDimZ");
+  auto cd        = _tomlConfigReader->getConfig<std::array<uint32_t, 3>>("SvoBuilder.chunkDim");
+  _chunkDimX     = cd.at(0);
+  _chunkDimY     = cd.at(1);
+  _chunkDimZ     = cd.at(2);
 }
 
 void SvoBuilder::_createFence() {
