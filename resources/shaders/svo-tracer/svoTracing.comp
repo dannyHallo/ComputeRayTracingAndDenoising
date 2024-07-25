@@ -112,13 +112,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   return true;
 }
 
-bool checkerBoard(ivec2 uvi) { return (uvi.x % 2 == 0 && uvi.y % 2 == 0); }
-
 vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
-  // if (!checkerBoard(ivec2(gl_GlobalInvocationID.xy))) {
-  //   return vec3(0.0);
-  // }
-
   const uint maxSampleCount  = 32;
   const float maxDist        = 1.0;
   const float regularStepLen = maxDist / float(maxSampleCount);
@@ -131,7 +125,6 @@ vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
     float randDither = stbnScalar(makeDisturbedSeed(seed, 3));
     seed.z += 1;
     float randTOffset = randDither - 0.5;
-    // randTOffset = 0.0;
 
     t = (0.5 + stepI + randTOffset) * regularStepLen;
     if (stepI == raySampleCount - 1 && t > validRayDepth) {
