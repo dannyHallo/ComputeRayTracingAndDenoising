@@ -5,6 +5,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
+#include "../include/core/packer.glsl"
 #include "../include/core/perlinNoise.glsl"
 
 float computeNoise(vec3 p) {
@@ -22,13 +23,6 @@ float computeNoise(vec3 p) {
   }
 
   return total;
-}
-
-uint encode(float val) {
-  float boundary = 0.1;
-  // map from [-boundary, boundary] to [0, 255]
-  // return (float(encoded) / 255.0) * (2.0 * boundary) - boundary;
-  return uint((val + boundary) / (2.0 * boundary) * 255.0);
 }
 
 void main() {
@@ -51,9 +45,8 @@ void main() {
   float yPosition             = float(chunkPosition.y) - 0.5 +
                     float(uv.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
+  // this step takes ~80% of the time for the entire chunk generation
   float noise = (floorHeightMean - yPosition) + floorChangeVar * computeNoise(noiseLookupPos);
 
-  // float noise = uint(gl_GlobalInvocationID.x * 0.1) % 2 == 0 ? -1.0 : 1.0;
-
-  imageStore(chunkFieldImage, uv, uvec4(encode(noise), 0, 0, 0));
+  imageStore(chunkFieldImage, uv, uvec4(packFloatToUint8(noise, -0.1, 0.1), 0, 0, 0));
 }

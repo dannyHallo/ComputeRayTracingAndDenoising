@@ -7,6 +7,8 @@ layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROU
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
+#include "../include/core/packer.glsl"
+
 #define SHARED_SIZE (GROUP_SIZE + 1)
 #define SHARED_SIZE_3 (SHARED_SIZE * SHARED_SIZE * SHARED_SIZE)
 
@@ -25,12 +27,6 @@ uint compressNormal(vec3 normal) {
 ivec3 lookupOffsets[8] = ivec3[8](ivec3(0, 0, 0), ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(1, 1, 0),
                                   ivec3(0, 0, 1), ivec3(1, 0, 1), ivec3(0, 1, 1), ivec3(1, 1, 1));
 
-float decode(uint encoded) {
-  float boundary = 0.1;
-  // map from [0, 255] to [-boundary, boundary]
-  return (float(encoded) / 255.0) * (2.0 * boundary) - boundary;
-}
-
 void preload() {
   for (uint linearIdx = gl_LocalInvocationIndex; linearIdx < SHARED_SIZE_3;
        linearIdx += GROUP_SIZE_3) {
@@ -41,8 +37,8 @@ void preload() {
     sharedIdx.z = linearIdx / (SHARED_SIZE * SHARED_SIZE);
 
     ivec3 groupBase = ivec3(gl_WorkGroupID) * GROUP_SIZE;
-    sharedVoxelData[sharedIdx.x][sharedIdx.y][sharedIdx.z] =
-        decode(imageLoad(chunkFieldImage, groupBase + ivec3(sharedIdx)).x);
+    uint val        = imageLoad(chunkFieldImage, groupBase + ivec3(sharedIdx)).x;
+    sharedVoxelData[sharedIdx.x][sharedIdx.y][sharedIdx.z] = unpackUint8ToFloat(val, -0.1, 0.1);
   }
 }
 
@@ -69,7 +65,7 @@ void main() {
   // if all values are both less than 0 or all are greater than 0, then it's not a surface voxel
   bool allLessThanZero    = true;
   bool allGreaterThanZero = true;
-  
+
   for (int i = 0; i < 8; i++) {
     if (noiseValues[i] < 0) {
       allGreaterThanZero = false;
@@ -91,6 +87,10 @@ void main() {
   coordinatesData |= gl_GlobalInvocationID.y << 10;
   coordinatesData |= gl_GlobalInvocationID.z << 20;
   ufragment.coordinates = coordinatesData;
+
+  // for (int i = 0; i < 8; i++) {
+  // noiseValues[i] = noiseValues[i] < 0 ? -0.1 : 0.1;
+  // }
 
   // color and normal
   float gradX = ((noiseValues[0] + noiseValues[2] + noiseValues[4] + noiseValues[6]) -

@@ -74,4 +74,13 @@ vec3 unpackRgbe(uint x) {
   return v;
 }
 
+uint packFloatToUint8(float val, float boundaryMin, float boundaryMax) {
+  val = clamp(val, boundaryMin, boundaryMax);
+  return uint((val - boundaryMin) / (boundaryMax - boundaryMin) * 255.0);
+}
+
+float unpackUint8ToFloat(uint encoded, float boundaryMin, float boundaryMax) {
+  return (float(encoded) / 255.0) * (boundaryMax - boundaryMin) + boundaryMin;
+}
+
 #endif // PACKER_GLSL
