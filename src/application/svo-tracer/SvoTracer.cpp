@@ -754,43 +754,43 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindUniformBufferBundle(3, _temporalFilterInfoBufferBundle.get());
   _descriptorSetBundle->bindUniformBufferBundle(4, _spatialFilterInfoBufferBundle.get());
 
-  _descriptorSetBundle->bindStorageImage(48, _scalarBlueNoise.get());
-  _descriptorSetBundle->bindStorageImage(5, _vec2BlueNoise.get());
-  _descriptorSetBundle->bindStorageImage(42, _vec3BlueNoise.get());
-  _descriptorSetBundle->bindStorageImage(6, _weightedCosineBlueNoise.get());
+  _descriptorSetBundle->bindStorageImage(5, _scalarBlueNoise.get());
+  _descriptorSetBundle->bindStorageImage(6, _vec2BlueNoise.get());
+  _descriptorSetBundle->bindStorageImage(7, _vec3BlueNoise.get());
+  _descriptorSetBundle->bindStorageImage(8, _weightedCosineBlueNoise.get());
 
-  _descriptorSetBundle->bindStorageImage(7, _svoBuilder->getChunksImage());
-  _descriptorSetBundle->bindStorageImage(8, _backgroundImage.get());
-  _descriptorSetBundle->bindStorageImage(9, _beamDepthImage.get());
-  _descriptorSetBundle->bindStorageImage(10, _rawImage.get());
-  _descriptorSetBundle->bindStorageImage(45, _godRayImage.get());
-  _descriptorSetBundle->bindStorageImage(11, _depthImage.get());
-  _descriptorSetBundle->bindStorageImage(12, _octreeVisualizationImage.get());
-  _descriptorSetBundle->bindStorageImage(13, _hitImage.get());
-  _descriptorSetBundle->bindStorageImage(14, _temporalHistLengthImage.get());
-  _descriptorSetBundle->bindStorageImage(15, _motionImage.get());
-  _descriptorSetBundle->bindStorageImage(16, _normalImage.get());
-  _descriptorSetBundle->bindStorageImage(17, _lastNormalImage.get());
-  _descriptorSetBundle->bindStorageImage(18, _positionImage.get());
-  _descriptorSetBundle->bindStorageImage(19, _lastPositionImage.get());
-  _descriptorSetBundle->bindStorageImage(20, _voxHashImage.get());
-  _descriptorSetBundle->bindStorageImage(21, _lastVoxHashImage.get());
-  _descriptorSetBundle->bindStorageImage(22, _accumedImage.get());
-  _descriptorSetBundle->bindStorageImage(23, _lastAccumedImage.get());
-  _descriptorSetBundle->bindStorageImage(46, _godRayAccumedImage.get());
-  _descriptorSetBundle->bindStorageImage(47, _lastGodRayAccumedImage.get());
+  _descriptorSetBundle->bindStorageImage(9, _svoBuilder->getChunksImage());
+  _descriptorSetBundle->bindStorageImage(10, _backgroundImage.get());
+  _descriptorSetBundle->bindStorageImage(11, _beamDepthImage.get());
+  _descriptorSetBundle->bindStorageImage(12, _rawImage.get());
+  _descriptorSetBundle->bindStorageImage(13, _godRayImage.get());
+  _descriptorSetBundle->bindStorageImage(14, _depthImage.get());
+  _descriptorSetBundle->bindStorageImage(15, _octreeVisualizationImage.get());
+  _descriptorSetBundle->bindStorageImage(16, _hitImage.get());
+  _descriptorSetBundle->bindStorageImage(17, _temporalHistLengthImage.get());
+  _descriptorSetBundle->bindStorageImage(18, _motionImage.get());
+  _descriptorSetBundle->bindStorageImage(19, _normalImage.get());
+  _descriptorSetBundle->bindStorageImage(20, _lastNormalImage.get());
+  _descriptorSetBundle->bindStorageImage(21, _positionImage.get());
+  _descriptorSetBundle->bindStorageImage(22, _lastPositionImage.get());
+  _descriptorSetBundle->bindStorageImage(23, _voxHashImage.get());
+  _descriptorSetBundle->bindStorageImage(24, _lastVoxHashImage.get());
+  _descriptorSetBundle->bindStorageImage(25, _accumedImage.get());
+  _descriptorSetBundle->bindStorageImage(26, _lastAccumedImage.get());
+  _descriptorSetBundle->bindStorageImage(27, _godRayAccumedImage.get());
+  _descriptorSetBundle->bindStorageImage(28, _lastGodRayAccumedImage.get());
 
-  _descriptorSetBundle->bindStorageImage(24, _taaImage.get());
-  _descriptorSetBundle->bindStorageImage(25, _lastTaaImage.get());
+  _descriptorSetBundle->bindStorageImage(29, _taaImage.get());
+  _descriptorSetBundle->bindStorageImage(30, _lastTaaImage.get());
 
-  _descriptorSetBundle->bindStorageImage(26, _blittedImage.get());
+  _descriptorSetBundle->bindStorageImage(31, _blittedImage.get());
 
-  _descriptorSetBundle->bindStorageImage(27, _aTrousPingImage.get());
-  _descriptorSetBundle->bindStorageImage(28, _aTrousPongImage.get());
+  _descriptorSetBundle->bindStorageImage(32, _aTrousPingImage.get());
+  _descriptorSetBundle->bindStorageImage(33, _aTrousPongImage.get());
 
-  _descriptorSetBundle->bindStorageImage(30, _renderTargetImage.get());
+  _descriptorSetBundle->bindStorageImage(34, _renderTargetImage.get());
 
-  _descriptorSetBundle->bindImageSampler(31, _lastTaaImage.get());
+  _descriptorSetBundle->bindImageSampler(35, _lastTaaImage.get());
 
   _descriptorSetBundle->bindStorageImage(36, _transmittanceLutImage.get());
   _descriptorSetBundle->bindStorageImage(37, _multiScatteringLutImage.get());
@@ -799,13 +799,13 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindImageSampler(40, _multiScatteringLutImage.get());
   _descriptorSetBundle->bindImageSampler(41, _skyViewLutImage.get());
 
-  _descriptorSetBundle->bindStorageImage(43, _shadowMapImage.get());
-  _descriptorSetBundle->bindImageSampler(44, _shadowMapImage.get());
+  _descriptorSetBundle->bindStorageImage(42, _shadowMapImage.get());
+  _descriptorSetBundle->bindImageSampler(43, _shadowMapImage.get());
 
-  _descriptorSetBundle->bindStorageBuffer(32, _sceneInfoBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(33, _svoBuilder->getAppendedOctreeBuffer());
-  _descriptorSetBundle->bindStorageBuffer(34, _aTrousIterationBuffer.get());
-  _descriptorSetBundle->bindStorageBuffer(35, _outputInfoBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(44, _sceneInfoBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(45, _svoBuilder->getAppendedOctreeBuffer());
+  _descriptorSetBundle->bindStorageBuffer(46, _aTrousIterationBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(47, _outputInfoBuffer.get());
 
   _descriptorSetBundle->create();
 }
