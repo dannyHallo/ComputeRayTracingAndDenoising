@@ -1,11 +1,18 @@
 #ifndef DDA_MARCHING_GLSL
 #define DDA_MARCHING_GLSL
 
-bool inChunkRange(ivec3 pos) {
+#include "../include/svoTracerDescriptorSetLayouts.glsl"
+
+#include "../include/chunksBufferLayout.glsl"
+
+bool _inChunkRange(ivec3 pos) {
   return all(greaterThanEqual(pos, ivec3(0))) && all(lessThan(pos, sceneInfoBuffer.data.chunksDim));
 }
 
-bool hasChunk(ivec3 pos) { return imageLoad(chunksImage, pos).x > 0; }
+bool _hasChunk(uvec3 chunkIndex) {
+  return chunksBuffer.data[getChunksBufferLinearIndex(chunkIndex, sceneInfoBuffer.data.chunksDim)] >
+         0;
+}
 
 #define MAX_DDA_ITERATION 50
 
@@ -23,9 +30,9 @@ bool ddaMarching(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookupOffset, 
   for (int i = 0; i < MAX_DDA_ITERATION; i++) {
     ivec3 lookupPos = mapPos + ivec3((sceneInfoBuffer.data.chunksDim - 1) / 2);
 
-    if (inChunkRange(lookupPos)) {
+    if (_inChunkRange(lookupPos)) {
       enteredBigBoundingBox = true;
-      if (hasChunk(lookupPos)) {
+      if (_hasChunk(lookupPos)) {
         oHitChunkPosOffset    = mapPos;
         oHitChunkLookupOffset = lookupPos;
         return true;
@@ -57,9 +64,9 @@ bool ddaMarchingWithSave(out ivec3 oHitChunkPosOffset, out uvec3 oHitChunkLookup
     ivec3 thisMapPos = mapPos;
     mapPos += ivec3(vec3(mask)) * rayStep;
 
-    if (inChunkRange(lookupPos)) {
+    if (_inChunkRange(lookupPos)) {
       enteredBigBoundingBox = true;
-      if (hasChunk(lookupPos)) {
+      if (_hasChunk(lookupPos)) {
         oHitChunkPosOffset    = thisMapPos;
         oHitChunkLookupOffset = lookupPos;
         return true;

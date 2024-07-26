@@ -5,9 +5,11 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
+#include "../include/chunksBufferLayout.glsl"
+
 void main() {
   // store the octree buffer offset in the chunks image
   uvec3 chunkIndex = chunksInfoBuffer.data.currentlyWritingChunk;
-  imageStore(chunksImage, ivec3(chunkIndex),
-             uvec4(int(octreeBufferWriteOffsetBuffer.data + 1), 0, 0, 0));
+  chunksBuffer.data[getChunksBufferLinearIndex(chunkIndex, chunksInfoBuffer.data.chunksDim)] =
+      octreeBufferWriteOffsetBuffer.data + 1;
 }

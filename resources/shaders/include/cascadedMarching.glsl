@@ -1,6 +1,9 @@
 #ifndef CASCADED_MARCHING_GLSL
 #define CASCADED_MARCHING_GLSL
 
+#include "../include/svoTracerDescriptorSetLayouts.glsl"
+
+#include "../include/chunksBufferLayout.glsl"
 #include "../include/ddaMarching.glsl"
 #include "../include/svoMarching.glsl"
 
@@ -40,7 +43,8 @@ bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d) {
     const ivec3 preOffset   = ivec3(1);
     const vec3 originOffset = preOffset - hitChunkOffset;
 
-    uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
+    uint chunkBufferOffset =
+        chunksBuffer.data[getChunksBufferLinearIndex(hitChunkLookupOffset, sceneInfoBuffer.data.chunksDim)] - 1;
 
     uint chunkIterCount;
     hitVoxel = svoMarching(oResult.t, chunkIterCount, oResult.color, oResult.position,

@@ -79,7 +79,7 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
 
     // parent pointer is the address of first largest sub-octree (8 in total) of the parent
     voxHash = parent + (idx ^ oct_mask);
-    if (cur == 0u) cur = octreeBuffer[voxHash + chunkBufferOffset];
+    if (cur == 0u) cur = octreeBuffer.data[voxHash + chunkBufferOffset];
 
     vec3 t_corner = pos * t_coef - t_bias;
     float tc_max  = min(min(t_corner.x, t_corner.y), t_corner.z);

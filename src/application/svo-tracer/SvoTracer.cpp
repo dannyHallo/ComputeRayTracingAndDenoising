@@ -759,7 +759,6 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(7, _vec3BlueNoise.get());
   _descriptorSetBundle->bindStorageImage(8, _weightedCosineBlueNoise.get());
 
-  _descriptorSetBundle->bindStorageImage(9, _svoBuilder->getChunksImage());
   _descriptorSetBundle->bindStorageImage(10, _backgroundImage.get());
   _descriptorSetBundle->bindStorageImage(11, _beamDepthImage.get());
   _descriptorSetBundle->bindStorageImage(12, _rawImage.get());
@@ -802,6 +801,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(42, _shadowMapImage.get());
   _descriptorSetBundle->bindImageSampler(43, _shadowMapImage.get());
 
+  _descriptorSetBundle->bindStorageBuffer(9, _svoBuilder->getChunksBuffer());
   _descriptorSetBundle->bindStorageBuffer(44, _sceneInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(45, _svoBuilder->getAppendedOctreeBuffer());
   _descriptorSetBundle->bindStorageBuffer(46, _aTrousIterationBuffer.get());

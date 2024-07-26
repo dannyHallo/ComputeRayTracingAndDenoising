@@ -115,7 +115,8 @@ void SvoBuilder::update() {
 
   VkCommandBuffer commandBuffer =
       beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunksImage->clearImage(commandBuffer);
+  // FIXME: clear the buffer
+  // _chunksImage->clearImage(commandBuffer);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), commandBuffer);
 
@@ -265,13 +266,14 @@ void SvoBuilder::_createImages() {
   _chunkFieldImage =
       std::make_unique<Image>(_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1,
                               VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
-
-  _chunksImage = std::make_unique<Image>(_chunkDimX, _chunkDimY, _chunkDimZ, VK_FORMAT_R32_UINT,
-                                         VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
 // voxData is passed in to decide the size of some buffers dureing allocation
 void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
+  _chunksBuffer =
+      std::make_unique<Buffer>(sizeof(uint32_t) * _chunkDimX * _chunkDimY * _chunkDimZ,
+                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+
   _counterBuffer = std::make_unique<Buffer>(sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                             MemoryStyle::kDedicated);
 
@@ -331,8 +333,8 @@ void SvoBuilder::_createDescriptorSetBundle() {
       std::make_unique<DescriptorSetBundle>(_appContext, 1, VK_SHADER_STAGE_COMPUTE_BIT);
 
   _descriptorSetBundle->bindStorageImage(0, _chunkFieldImage.get());
-  _descriptorSetBundle->bindStorageImage(1, _chunksImage.get());
 
+  _descriptorSetBundle->bindStorageBuffer(1, _chunksBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(2, _indirectFragLengthBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(3, _counterBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(4, _chunkOctreeBuffer.get());

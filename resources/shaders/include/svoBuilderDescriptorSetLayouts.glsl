@@ -6,8 +6,9 @@
 #include "../include/svoBuilderDataStructs.glsl"
 
 layout(binding = 0) uniform uimage3D chunkFieldImage;
-layout(binding = 1) uniform uimage3D chunksImage;
 
+layout(std430, binding = 1) buffer ChunksBuffer { uint data[]; }
+chunksBuffer;
 layout(std430, binding = 2) writeonly buffer IndirectFragLengthBuffer {
   G_IndirectDispatchInfo data;
 }

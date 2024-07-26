@@ -38,7 +38,7 @@ public:
   void buildScene();
 
   Buffer *getAppendedOctreeBuffer() { return _appendedOctreeBuffer.get(); }
-  Image *getChunksImage() { return _chunksImage.get(); }
+  Buffer *getChunksBuffer() { return _chunksBuffer.get(); }
 
   [[nodiscard]] uint32_t getVoxelLevelCount() const { return _voxelLevelCount; }
   [[nodiscard]] glm::uvec3 getChunksDim() const;
@@ -76,11 +76,10 @@ private:
 
   /// IMAGES
   std::unique_ptr<Image> _chunkFieldImage;
-  std::unique_ptr<Image> _chunksImage;
-
   void _createImages();
 
   /// BUFFERS
+  std::unique_ptr<Buffer> _chunksBuffer;
   std::unique_ptr<Buffer> _appendedOctreeBuffer;
   std::unique_ptr<Buffer> _chunksInfoBuffer;
   std::unique_ptr<Buffer> _octreeBufferLengthBuffer;

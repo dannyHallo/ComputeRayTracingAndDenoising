@@ -21,7 +21,8 @@ layout(binding = 6) readonly uniform image2DArray vec2BlueNoise;
 layout(binding = 7) readonly uniform image2DArray vec3BlueNoise;
 layout(binding = 8) readonly uniform image2DArray weightedCosineBlueNoise;
 
-layout(binding = 9) uniform uimage3D chunksImage;
+layout(std430, binding = 9) readonly buffer ChunksBuffer { uint[] data; }
+chunksBuffer;
 
 layout(binding = 10) uniform uimage2D backgroundImage;
 layout(binding = 11) uniform image2D beamDepthImage;
@@ -69,7 +70,8 @@ layout(binding = 43) uniform sampler2D shadowMapTexture;
 
 layout(std430, binding = 44) readonly buffer SceneInfoBuffer { G_SceneInfo data; }
 sceneInfoBuffer;
-layout(std430, binding = 45) readonly buffer OctreeBuffer { uint[] octreeBuffer; };
+layout(std430, binding = 45) readonly buffer OctreeBuffer { uint[] data; }
+octreeBuffer;
 layout(binding = 46) readonly buffer ATrousIterationBuffer { uint data; }
 aTrousIterationBuffer;
 layout(binding = 47) buffer OutputInfoBuffer { G_OutputInfo data; }

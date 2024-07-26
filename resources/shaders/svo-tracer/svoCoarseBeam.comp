@@ -58,7 +58,7 @@ bool svoMarching(out float oT, out float oSize, vec3 o, vec3 d, float originalSi
     ++iter;
 
     voxHash = parent + (idx ^ oct_mask);
-    if (cur == 0u) cur = octreeBuffer[voxHash + chunkBufferOffset];
+    if (cur == 0u) cur = octreeBuffer.data[voxHash + chunkBufferOffset];
 
     vec3 t_corner = pos * t_coef - t_bias;
     float tc_max  = min(min(t_corner.x, t_corner.y), t_corner.z);
@@ -176,7 +176,8 @@ bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d, float original
     const ivec3 preOffset   = ivec3(1);
     const vec3 originOffset = preOffset - hitChunkOffset;
 
-    uint chunkBufferOffset = imageLoad(chunksImage, ivec3(hitChunkLookupOffset)).x - 1;
+    uint chunkBufferOffset =
+        chunksBuffer.data[getChunksBufferLinearIndex(hitChunkLookupOffset, sceneInfoBuffer.data.chunksDim)] - 1;
 
     hitOrReachedDetails = svoMarching(oResult.t, oResult.size, o + originOffset, d, originalSize,
                                       directionalSize, chunkBufferOffset);
