@@ -111,6 +111,19 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   return true;
 }
 
+// this is only an approximation, the shadow map is not perfect, so this function is only used in
+// the god ray calculation, to avoid frequent tracing into the scene
+bool pointInShadow(vec3 p) {
+  vec2 shadowMapUv           = projectWorldPosToShadowMapUv(p);
+  vec3 shadowMapCamNearPoint = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
+
+  float shadowMapDepth = textureLod(shadowMapTexture, shadowMapUv, 0).r;
+  float dist           = length(shadowMapCamNearPoint - p);
+
+  // shadowMapDepth should only be <= dist, if they are close, then the point is being lit
+  return (dist - shadowMapDepth) < 1e-2;
+}
+
 vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
   const uint maxSampleCount = 64;
   const float maxRayDepth   = 1.0;
@@ -125,14 +138,7 @@ vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
   for (uint stepI = 0; stepI < raySampleCount; stepI += 1) {
     marchedPos += unitStep;
 
-    vec2 shadowMapUv           = projectWorldPosToShadowMapUv(marchedPos);
-    vec3 shadowMapCamNearPoint = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
-
-    float shadowMapDepth = textureLod(shadowMapTexture, shadowMapUv, 0).r;
-    float dist           = length(shadowMapCamNearPoint - marchedPos);
-
-    // shadowMapDepth should only be <= dist, if they are close, then the point is being lit
-    if (dist - shadowMapDepth < 1e-2) {
+    if (pointInShadow(marchedPos)) {
       float mistWeight = 1.0 - smoothstep(0.0, 1.0, marchedPos.y);
       col += mistWeight * stepLen * skyColor(environmentUbo.data.sunDir, true) * 0.06;
     }
