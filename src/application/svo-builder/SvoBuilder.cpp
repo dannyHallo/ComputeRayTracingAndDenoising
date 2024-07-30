@@ -21,38 +21,10 @@
 
 namespace {
 
-// VoxData _fetchVoxData() {
-//   std::string const kFileName      = "128_monu2_light";
-//   std::string const kPathToVoxFile = kPathToResourceFolder + "models/vox/" + kFileName + ".vox";
-//   return VoxLoader::fetchDataFromFile(kPathToVoxFile);
-// }
-
-// the worst case: for every fragment, we assume they all reside in different parents, in the
-// current building algorithm, a non-leaf node's children must be initialized (to zero if empty at
-// last), however, when the estimated amount of nodes exceeds the actual amount, the size of the
-// octree is fixed.
-// https://eisenwave.github.io/voxel-compression-docs/svo/svo.html
-
-// uint32_t _getMaximumNodeCountOfOctree(VoxData const &voxData) {
-//   uint32_t maximumSize = 0;
-
-//   uint32_t res                     = voxData.voxelResolution;
-//   uint32_t elementCount            = voxData.fragmentList.size();
-//   uint32_t maximumNodeCountAtLevel = 0;
-
-//   while (res != 1) {
-//     maximumNodeCountAtLevel = std::min(elementCount * 8, res * res * res);
-//     maximumSize += maximumNodeCountAtLevel;
-//     res          = res >> 1;
-//     elementCount = std::ceil(static_cast<float>(elementCount) / 8);
-//   }
-
-//   return maximumSize;
-// }
-
 std::string _makeShaderFullPath(std::string const &shaderName) {
   return kPathToResourceFolder + "shaders/svo-builder/" + shaderName;
 }
+
 } // namespace
 
 SvoBuilder::SvoBuilder(VulkanApplicationContext *appContext, Logger *logger,
@@ -123,7 +95,7 @@ void SvoBuilder::update() {
 }
 
 // call me every time before building a new chunk
-void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWritingChunk) {
+void SvoBuilder::_resetBufferDataForNewChunkGeneration(ChunkIndex chunkIndex) {
   uint32_t atomicCounterInitData = 1;
   _counterBuffer->fillData(&atomicCounterInitData);
 
@@ -144,6 +116,7 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWriti
   fragmentListInfo.voxelFragmentCount = 0;
   _fragmentListInfoBuffer->fillData(&fragmentListInfo);
 
+  glm::uvec3 currentlyWritingChunk{chunkIndex.x, chunkIndex.y, chunkIndex.z};
   G_ChunksInfo chunksInfo{};
   chunksInfo.chunksDim             = getChunksDim();
   chunksInfo.currentlyWritingChunk = currentlyWritingChunk;
@@ -164,8 +137,10 @@ void SvoBuilder::buildScene() {
   for (uint32_t z = 0; z < _chunkDimZ; z++) {
     for (uint32_t y = 0; y < _chunkDimY; y++) {
       for (uint32_t x = 0; x < _chunkDimX; x++) {
+        ChunkIndex chunkIndex{x, y, z};
+
         auto start = std::chrono::steady_clock::now();
-        _buildChunk({x, y, z});
+        _buildChunk(chunkIndex);
         auto end      = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         minTimeMs     = std::min(minTimeMs, static_cast<uint32_t>(duration));
@@ -183,8 +158,8 @@ void SvoBuilder::buildScene() {
   _chunkBufferMemoryAllocator->printStats();
 }
 
-void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
-  _resetBufferDataForNewChunkGeneration(currentlyWritingChunk);
+void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
+  _resetBufferDataForNewChunkGeneration(chunkIndex);
 
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
   // wait until the image is ready
@@ -211,6 +186,9 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
   if (fragmentListInfo.voxelFragmentCount == 0) {
     return;
   }
+  
+  // create image for this chunk
+  _chunkIndexToFieldImagesMap[chunkIndex] = _createOneFieldImage();
 
   // step 2: octree construction (optional)
   std::vector<VkCommandBuffer> commandBuffersToSubmit2{_octreeCreationCommandBuffer};
@@ -261,10 +239,11 @@ void SvoBuilder::_buildChunk(glm::uvec3 currentlyWritingChunk) {
                         _appContext->getGraphicsQueue(), cmdBuffer);
 }
 
-void SvoBuilder::_createImages() {
-  _chunkFieldImage =
-      std::make_unique<Image>(_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1,
-                              VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
+void SvoBuilder::_createImages() { _chunkFieldImage = _createOneFieldImage(); }
+
+std::unique_ptr<Image> SvoBuilder::_createOneFieldImage() {
+  return std::make_unique<Image>(_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1,
+                                 VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
 // voxData is passed in to decide the size of some buffers dureing allocation

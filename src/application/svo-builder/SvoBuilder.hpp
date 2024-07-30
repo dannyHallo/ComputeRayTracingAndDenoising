@@ -6,6 +6,7 @@
 #include "glm/glm.hpp" // IWYU pragma: export
 
 #include <memory>
+#include <unordered_map>
 
 struct VoxData;
 
@@ -21,6 +22,27 @@ class TomlConfigReader;
 class CustomMemoryAllocator;
 
 class SvoBuilder : public Scheduler {
+private:
+  struct ChunkIndex {
+    uint32_t x;
+    uint32_t y;
+    uint32_t z;
+
+    bool operator==(const ChunkIndex &other) const {
+      return x == other.x && y == other.y && z == other.z;
+    }
+  };
+
+  struct ChunkIndexHash {
+    std::size_t operator()(const ChunkIndex &ci) const {
+      std::size_t hx = std::hash<uint32_t>()(ci.x);
+      std::size_t hy = std::hash<uint32_t>()(ci.y);
+      std::size_t hz = std::hash<uint32_t>()(ci.z);
+
+      return hx ^ (hy << 1) ^ (hz << 2);
+    }
+  };
+
 public:
   SvoBuilder(VulkanApplicationContext *appContext, Logger *logger, ShaderCompiler *shaderCompiler,
              ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader);
@@ -70,13 +92,17 @@ private:
   void _recordFragmentListCreationCommandBuffer();
   void _recordOctreeCreationCommandBuffer();
 
-  void _buildChunk(glm::uvec3 currentlyWritingChunk);
+  void _buildChunk(ChunkIndex chunkIndex);
 
   void _createFence();
 
   /// IMAGES
   std::unique_ptr<Image> _chunkFieldImage;
+  std::unordered_map<ChunkIndex, std::unique_ptr<Image>, ChunkIndexHash>
+      _chunkIndexToFieldImagesMap;
   void _createImages();
+
+  std::unique_ptr<Image> _createOneFieldImage();
 
   /// BUFFERS
   std::unique_ptr<Buffer> _chunksBuffer;
@@ -94,7 +120,7 @@ private:
   std::unique_ptr<Buffer> _fragmentListInfoBuffer;
 
   void _createBuffers(size_t octreeBufferSize);
-  void _resetBufferDataForNewChunkGeneration(glm::uvec3 currentlyWritingChunk);
+  void _resetBufferDataForNewChunkGeneration(ChunkIndex chunkIndex);
 
   /// PIPELINES
 
