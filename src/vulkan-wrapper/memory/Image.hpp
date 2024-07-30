@@ -18,6 +18,10 @@ struct ImageDimensions {
       : width(width), height(height), depth(depth) {}
 
   ImageDimensions(uint32_t width, uint32_t height) : ImageDimensions(width, height, 1) {}
+
+  bool operator==(ImageDimensions const &rhs) const {
+    return width == rhs.width && height == rhs.height && depth == rhs.depth;
+  }
 };
 
 // the wrapper class of VkImage and its corresponding VkImageView, handles
@@ -92,7 +96,7 @@ private:
 class ImageForwardingPair {
 public:
   // if the image wrapper is given, the dimensions information is stored alongside
-  ImageForwardingPair(Image* image1, Image* image2, VkImageLayout image1BeforeCopy,
+  ImageForwardingPair(Image *image1, Image *image2, VkImageLayout image1BeforeCopy,
                       VkImageLayout image2BeforeCopy, VkImageLayout image1AfterCopy,
                       VkImageLayout image2AfterCopy);
 
@@ -114,6 +118,6 @@ private:
   VkImageMemoryBarrier _image2AfterCopy{};
 
   void _init(VkImage image1, VkImage image2, ImageDimensions dimensions,
-            VkImageLayout image1BeforeCopy, VkImageLayout image2BeforeCopy,
-            VkImageLayout image1AfterCopy, VkImageLayout image2AfterCopy);
+             VkImageLayout image1BeforeCopy, VkImageLayout image2BeforeCopy,
+             VkImageLayout image1AfterCopy, VkImageLayout image2AfterCopy);
 };

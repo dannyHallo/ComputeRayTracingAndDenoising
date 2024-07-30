@@ -102,8 +102,6 @@ private:
       _chunkIndexToFieldImagesMap;
   void _createImages();
 
-  std::unique_ptr<Image> _createOneFieldImage();
-
   /// BUFFERS
   std::unique_ptr<Buffer> _chunksBuffer;
   std::unique_ptr<Buffer> _appendedOctreeBuffer;

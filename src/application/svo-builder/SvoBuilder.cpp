@@ -187,8 +187,18 @@ void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
     return;
   }
 
-  // create image for this chunk
-  _chunkIndexToFieldImagesMap[chunkIndex] = _createOneFieldImage();
+  // create image for this chunk and copy the field image to it
+  _chunkIndexToFieldImagesMap[chunkIndex] = std::make_unique<Image>(
+      ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
+      VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  ImageForwardingPair f{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
+                        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
+  VkCommandBuffer commandBuffer =
+      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  f.forwardCopy(commandBuffer);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), commandBuffer);
 
   // step 2: octree construction (optional)
   std::vector<VkCommandBuffer> commandBuffersToSubmit2{_octreeCreationCommandBuffer};
@@ -239,12 +249,10 @@ void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
                         _appContext->getGraphicsQueue(), cmdBuffer);
 }
 
-void SvoBuilder::_createImages() { _chunkFieldImage = _createOneFieldImage(); }
-
-std::unique_ptr<Image> SvoBuilder::_createOneFieldImage() {
-  return std::make_unique<Image>(
+void SvoBuilder::_createImages() {
+  _chunkFieldImage = std::make_unique<Image>(
       ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
-      VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
+      VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 }
 
 // voxData is passed in to decide the size of some buffers dureing allocation
