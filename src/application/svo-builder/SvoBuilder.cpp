@@ -186,7 +186,7 @@ void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
   if (fragmentListInfo.voxelFragmentCount == 0) {
     return;
   }
-  
+
   // create image for this chunk
   _chunkIndexToFieldImagesMap[chunkIndex] = _createOneFieldImage();
 
@@ -242,8 +242,9 @@ void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
 void SvoBuilder::_createImages() { _chunkFieldImage = _createOneFieldImage(); }
 
 std::unique_ptr<Image> SvoBuilder::_createOneFieldImage() {
-  return std::make_unique<Image>(_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1,
-                                 VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
+  return std::make_unique<Image>(
+      ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
+      VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 }
 
 // voxData is passed in to decide the size of some buffers dureing allocation

@@ -43,27 +43,18 @@ unsigned char *_loadImageFromPath(const std::string &path, int &width, int &heig
 void _freeImageData(unsigned char *imageData) { stbi_image_free(imageData); }
 } // namespace
 
-Image::Image(uint32_t width, uint32_t height, uint32_t depth, VkFormat format,
-             VkImageUsageFlags usage, VkSampler sampler, VkImageLayout initialImageLayout,
-             VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags)
+Image::Image(ImageDimensions dimensions, VkFormat format, VkImageUsageFlags usage,
+             VkSampler sampler, VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
+             VkImageTiling tiling, VkImageAspectFlags aspectFlags)
     : _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1),
-      _format(format), _width(width), _height(height), _depth(depth) {
+      _format(format), _dimensions(dimensions) {
   _createImage(numSamples, tiling, usage);
 
   if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
     _transitionImageLayout(initialImageLayout);
   }
   _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
-                                 format, aspectFlags, _depth, _layerCount);
-
-  // TODO: clear the image functionality
-  // auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
-  // auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
-  // auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
-
-  // VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
-  // clearImage(commandBuffer);
-  // endSingleTimeCommands(device, commandPool, queue, commandBuffer);
+                                 format, aspectFlags, _dimensions.depth, _layerCount);
 }
 
 Image::Image(const std::string &filename, VkImageUsageFlags usage, VkSampler sampler,
@@ -77,9 +68,7 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkSampler sam
   int channels    = 0;
   auto *imageData = _loadImageFromPath(filename, width, height, channels);
 
-  _width  = static_cast<uint32_t>(width);
-  _height = static_cast<uint32_t>(height);
-  _depth  = 1;
+  _dimensions = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
 
   _createImage(numSamples, tiling, usage);
 
@@ -99,7 +88,7 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkSampler sam
   }
 
   _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
-                                 _format, aspectFlags, _depth, _layerCount);
+                                 _format, aspectFlags, _dimensions.depth, _layerCount);
 }
 
 Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage, VkSampler sampler,
@@ -118,9 +107,7 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
     imageDatas.push_back(imageData);
   }
 
-  _width  = static_cast<uint32_t>(width);
-  _height = static_cast<uint32_t>(height);
-  _depth  = 1;
+  _dimensions = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1};
 
   _createImage(numSamples, tiling, usage);
 
@@ -140,7 +127,7 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
   }
 
   _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
-                                 _format, aspectFlags, _depth, _layerCount);
+                                 _format, aspectFlags, _dimensions.depth, _layerCount);
 }
 
 Image::~Image() {
@@ -163,7 +150,7 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
   auto const &allocator   = VulkanApplicationContext::getInstance()->getAllocator();
 
-  const uint32_t imagePixelCount = _width * _height * _depth;
+  const uint32_t imagePixelCount = _dimensions.width * _dimensions.height * _dimensions.depth;
   // the channel count is ignored here, because the VkFormat is enough
   const uint32_t imageDataSize = imagePixelCount * kVkFormatBytesPerPixelMap.at(_format);
 
@@ -201,7 +188,9 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   region.imageSubresource.baseArrayLayer = layerToCopyTo;
   region.imageSubresource.layerCount     = 1;
   region.imageOffset                     = {0, 0, 0};
-  region.imageExtent                     = {_width, _height, _depth};
+  region.imageExtent                     = {static_cast<uint32_t>(_dimensions.width),
+                                            static_cast<uint32_t>(_dimensions.height),
+                                            static_cast<uint32_t>(_dimensions.depth)};
 
   vkCmdCopyBufferToImage(commandBuffer, stagingBuffer, _vkImage,
                          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
@@ -216,10 +205,10 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
 VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
                              VkImageUsageFlags usage) {
   VkImageCreateInfo imageInfo{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
-  imageInfo.imageType     = _depth > 1 ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width  = _width;
-  imageInfo.extent.height = _height;
-  imageInfo.extent.depth  = _depth;
+  imageInfo.imageType     = _dimensions.depth > 1 ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D;
+  imageInfo.extent.width  = _dimensions.width;
+  imageInfo.extent.height = _dimensions.height;
+  imageInfo.extent.depth  = _dimensions.depth;
   imageInfo.mipLevels     = 1;
   imageInfo.arrayLayers   = _layerCount;
   imageInfo.format        = _format;
@@ -346,9 +335,9 @@ void Image::_transitionImageLayout(VkImageLayout newLayout) {
 }
 
 namespace {
-VkImageMemoryBarrier getMemoryBarrier(VkImage image, VkImageLayout oldLayout,
-                                      VkImageLayout newLayout, VkAccessFlags srcAccessMask,
-                                      VkAccessFlags dstAccessMask) {
+VkImageMemoryBarrier _getMemoryBarrier(VkImage image, VkImageLayout oldLayout,
+                                       VkImageLayout newLayout, VkAccessFlags srcAccessMask,
+                                       VkAccessFlags dstAccessMask) {
   VkImageMemoryBarrier memoryBarrier{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};
   memoryBarrier.oldLayout        = oldLayout;
   memoryBarrier.newLayout        = newLayout;
@@ -359,7 +348,7 @@ VkImageMemoryBarrier getMemoryBarrier(VkImage image, VkImageLayout oldLayout,
   return memoryBarrier;
 }
 
-VkImageCopy imageCopyRegion(uint32_t width, uint32_t height) {
+VkImageCopy _imageCopyRegion(ImageDimensions dimensions) {
   VkImageCopy region;
   region.dstOffset                     = {0, 0, 0};
   region.srcOffset                     = {0, 0, 0};
@@ -371,31 +360,51 @@ VkImageCopy imageCopyRegion(uint32_t width, uint32_t height) {
   region.srcSubresource.mipLevel       = 0;
   region.srcSubresource.baseArrayLayer = 0;
   region.srcSubresource.layerCount     = 1;
-  region.extent                        = {width, height, 1};
+  region.extent                        = {dimensions.width, dimensions.height, dimensions.depth};
   return region;
 }
 } // namespace
 
-ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2, uint32_t width,
-                                         uint32_t height, VkImageLayout image1BeforeCopy,
+ImageForwardingPair::ImageForwardingPair(Image *image1, Image *image2,
+                                         VkImageLayout image1BeforeCopy,
                                          VkImageLayout image2BeforeCopy,
                                          VkImageLayout image1AfterCopy,
-                                         VkImageLayout image2AfterCopy)
-    : _image1(image1), _image2(image2) {
-  _copyRegion = imageCopyRegion(width, height);
+                                         VkImageLayout image2AfterCopy) {
+  ImageDimensions dim1 = image1->getDimensions();
+  ImageDimensions dim2 = image2->getDimensions();
+  assert(dim1 == dim2 && "Image dimensions must match!");
+  _init(image1->getVkImage(), image2->getVkImage(), dim1, image1BeforeCopy, image2BeforeCopy,
+        image1AfterCopy, image2AfterCopy);
+}
 
-  _image1BeforeCopy = getMemoryBarrier(
+ImageForwardingPair::ImageForwardingPair(VkImage image1, VkImage image2, ImageDimensions dimensions,
+                                         VkImageLayout image1BeforeCopy,
+                                         VkImageLayout image2BeforeCopy,
+                                         VkImageLayout image1AfterCopy,
+                                         VkImageLayout image2AfterCopy) {
+  _init(image1, image2, dimensions, image1BeforeCopy, image2BeforeCopy, image1AfterCopy,
+        image2AfterCopy);
+}
+
+void ImageForwardingPair::_init(VkImage image1, VkImage image2, ImageDimensions dimensions,
+                                VkImageLayout image1BeforeCopy, VkImageLayout image2BeforeCopy,
+                                VkImageLayout image1AfterCopy, VkImageLayout image2AfterCopy) {
+  _image1     = image1;
+  _image2     = image2;
+  _copyRegion = _imageCopyRegion(dimensions);
+
+  _image1BeforeCopy = _getMemoryBarrier(
       image1, image1BeforeCopy, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-  _image2BeforeCopy = getMemoryBarrier(
+  _image2BeforeCopy = _getMemoryBarrier(
       image2, image2BeforeCopy, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT);
-  _image1AfterCopy = getMemoryBarrier(image1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image1AfterCopy,
-                                      VK_ACCESS_TRANSFER_READ_BIT,
-                                      VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
-  _image2AfterCopy = getMemoryBarrier(image2, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, image2AfterCopy,
-                                      VK_ACCESS_TRANSFER_WRITE_BIT,
-                                      VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
+  _image1AfterCopy = _getMemoryBarrier(image1, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                       image1AfterCopy, VK_ACCESS_TRANSFER_READ_BIT,
+                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
+  _image2AfterCopy = _getMemoryBarrier(image2, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                       image2AfterCopy, VK_ACCESS_TRANSFER_WRITE_BIT,
+                                       VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT);
 }
 
 void ImageForwardingPair::forwardCopy(VkCommandBuffer commandBuffer) {
