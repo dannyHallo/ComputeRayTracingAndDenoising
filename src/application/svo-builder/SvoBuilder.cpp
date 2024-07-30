@@ -113,12 +113,11 @@ void SvoBuilder::init() {
 void SvoBuilder::update() {
   _recordCommandBuffers();
 
-  VkCommandBuffer commandBuffer =
-      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  // FIXME: clear the buffer
-  // _chunksImage->clearImage(commandBuffer);
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), commandBuffer);
+  // VkCommandBuffer commandBuffer =
+  //     beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  // // clear the chunksBuffer here if needed later
+  // endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+  //                       _appContext->getGraphicsQueue(), commandBuffer);
 
   buildScene();
 }

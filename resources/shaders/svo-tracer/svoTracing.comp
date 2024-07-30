@@ -101,8 +101,8 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   // indirect contribution
   vec3 indirectRayDir =
       randomCosineWeightedHemispherePoint(primaryRayResult.normal, makeDisturbedSeed(seed, 2));
-  vec3 indirectRayColor = getIndirectRayColor(primaryRayResult.nextTracingPosition, indirectRayDir,
-                                              seed, shadowRayDir);
+  vec3 indirectRayColor =
+      getIndirectRayColor(primaryRayResult.nextTracingPosition, indirectRayDir, seed, shadowRayDir);
 
   float indirectRayPdf = dot(indirectRayDir, primaryRayResult.normal) / kPi;
   indirectRayColor *= brdf * dot(indirectRayDir, primaryRayResult.normal) / indirectRayPdf;
