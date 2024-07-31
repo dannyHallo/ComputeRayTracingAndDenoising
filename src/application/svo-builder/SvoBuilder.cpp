@@ -151,6 +151,7 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
 
   // if the chunk does not have save, create it to buffer
   if (_chunkIndexToFieldImagesMap.find(chunkIndex) == _chunkIndexToFieldImagesMap.end()) {
+    _logger->info("constructing new field image");
     cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
     _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
                                                    _chunkVoxelDim + 1, _chunkVoxelDim + 1);
@@ -178,6 +179,15 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
+  // save from buffer to image
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  ImageForwardingPair f{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
+                        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
+  f.forwardCopy(cmdBuffer);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+
   // construct voxels into fragmentlist buffer
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim, _chunkVoxelDim,
@@ -189,21 +199,14 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   G_FragmentListInfo fragmentListInfo{};
   _fragmentListInfoBuffer->fetchData(&fragmentListInfo);
   if (fragmentListInfo.voxelFragmentCount == 0) {
-
-    // remove the chunk image
-    auto const &it1 = _chunkIndexToFieldImagesMap.find(chunkIndex);
-    if (it1 != _chunkIndexToFieldImagesMap.end()) {
-      _chunkIndexToFieldImagesMap.erase(chunkIndex);
+    // remove svo buffer allocation rec
+    auto const &it = _chunkIndexToBufferAllocResult.find(chunkIndex);
+    if (it != _chunkIndexToBufferAllocResult.end()) {
+      _chunkBufferMemoryAllocator->deallocate(it->second);
+      _chunkIndexToBufferAllocResult.erase(chunkIndex);
     }
 
-    // remove allocation
-    auto const &it2 = _chunkIndexToFieldImagesMapAllocations.find(chunkIndex);
-    if (it2 != _chunkIndexToFieldImagesMapAllocations.end()) {
-      _chunkBufferMemoryAllocator->deallocate(it2->second);
-      _chunkIndexToFieldImagesMapAllocations.erase(chunkIndex);
-    }
-
-    // clear chunks buffer
+    // clear chunk indices buffer
     uint32_t zero = 0;
     _octreeBufferWriteOffsetBuffer->fillData(&zero);
     cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
@@ -216,16 +219,15 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
     return;
   }
 
-  ///
-
-  // save from buffer to image
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  ImageForwardingPair f2{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
-                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
-                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
-  f2.forwardCopy(cmdBuffer);
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), cmdBuffer);
+  auto const &it = _chunkIndexToFieldImagesMap.find(chunkIndex);
+  if (it == _chunkIndexToFieldImagesMap.end()) {
+    _logger->info("creating new image for chunk");
+    _chunkIndexToFieldImagesMap[chunkIndex] = std::make_unique<Image>(
+        ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
+        VK_FORMAT_R8_UINT,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  }
 
   // octree construction
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -248,15 +250,14 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   _octreeBufferLengthBuffer->fetchData(&octreeBufferLength);
 
   // remove allocation
-  auto const &it = _chunkIndexToFieldImagesMapAllocations.find(chunkIndex);
-  if (it != _chunkIndexToFieldImagesMapAllocations.end()) {
-    _chunkBufferMemoryAllocator->deallocate(it->second);
+  auto const &it2 = _chunkIndexToBufferAllocResult.find(chunkIndex);
+  if (it2 != _chunkIndexToBufferAllocResult.end()) {
+    _chunkBufferMemoryAllocator->deallocate(it2->second);
     // erasing is omitted here, since we will overwrite the allocation result
   }
-  _chunkIndexToFieldImagesMapAllocations[chunkIndex] =
+  _chunkIndexToBufferAllocResult[chunkIndex] =
       _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
-  uint32_t writeOffsetInBytes  = _chunkIndexToFieldImagesMapAllocations[chunkIndex].offset();
-  uint32_t writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
+  uint32_t writeOffsetInBytes  = _chunkIndexToBufferAllocResult[chunkIndex].offset();
 
   // print offset in mb
   _logger->info("allocated memory from the memory pool: {} mb",
@@ -275,6 +276,7 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
+  uint32_t writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t) + 1U;
   _octreeBufferWriteOffsetBuffer->fillData(&writeOffsetInUint32);
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   // write the chunks image, according to the accumulated buffer offset
@@ -289,23 +291,36 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
 
   VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
 
-  // create the standard memory barrier
-  VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-  shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-  shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-
+  // construct field image
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-
   _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
                                                  _chunkVoxelDim + 1, _chunkVoxelDim + 1);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
 
-  vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
-                       0, nullptr);
+  // save from buffer to image
+  auto const &it = _chunkIndexToFieldImagesMap.find(chunkIndex);
+  if (it == _chunkIndexToFieldImagesMap.end()) {
+    _chunkIndexToFieldImagesMap[chunkIndex] = std::make_unique<Image>(
+        ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
+        VK_FORMAT_R8_UINT,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  } else {
+    _logger->warn("chunk image shouldn't exist in building stages");
+  }
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  ImageForwardingPair f2{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
+                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
+  f2.forwardCopy(cmdBuffer);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
 
+  // construct voxels into fragmentlist buffer
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim, _chunkVoxelDim,
                                              _chunkVoxelDim);
-
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
@@ -315,22 +330,6 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
   if (fragmentListInfo.voxelFragmentCount == 0) {
     return;
   }
-
-  ///
-
-  // create image for this chunk and copy the field image to it
-  _chunkIndexToFieldImagesMap[chunkIndex] = std::make_unique<Image>(
-      ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
-      VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-
-  // save from buffer to image
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  ImageForwardingPair f2{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
-                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
-                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
-  f2.forwardCopy(cmdBuffer);
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), cmdBuffer);
 
   // octree construction
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -353,15 +352,14 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
   _octreeBufferLengthBuffer->fetchData(&octreeBufferLength);
 
   // remove allocation
-  auto const &it = _chunkIndexToFieldImagesMapAllocations.find(chunkIndex);
-  if (it != _chunkIndexToFieldImagesMapAllocations.end()) {
-    _chunkBufferMemoryAllocator->deallocate(it->second);
+  auto const &it2 = _chunkIndexToBufferAllocResult.find(chunkIndex);
+  if (it2 != _chunkIndexToBufferAllocResult.end()) {
+    _chunkBufferMemoryAllocator->deallocate(it2->second);
     // erasing is omitted here, since we will overwrite the allocation result
   }
-  _chunkIndexToFieldImagesMapAllocations[chunkIndex] =
+  _chunkIndexToBufferAllocResult[chunkIndex] =
       _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
-  uint32_t writeOffsetInBytes  = _chunkIndexToFieldImagesMapAllocations[chunkIndex].offset();
-  uint32_t writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
+  uint32_t writeOffsetInBytes  = _chunkIndexToBufferAllocResult[chunkIndex].offset();
 
   // print offset in mb
   _logger->info("allocated memory from the memory pool: {} mb",
@@ -380,6 +378,7 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
+  uint32_t writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t) + 1U;
   _octreeBufferWriteOffsetBuffer->fillData(&writeOffsetInUint32);
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   // write the chunks image, according to the accumulated buffer offset

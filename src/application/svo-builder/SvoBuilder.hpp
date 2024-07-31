@@ -99,7 +99,7 @@ private:
   std::unordered_map<ChunkIndex, std::unique_ptr<Image>, ChunkIndexHash>
       _chunkIndexToFieldImagesMap;
   std::unordered_map<ChunkIndex, CustomMemoryAllocationResult, ChunkIndexHash>
-      _chunkIndexToFieldImagesMapAllocations;
+      _chunkIndexToBufferAllocResult;
   void _createImages();
 
   /// BUFFERS

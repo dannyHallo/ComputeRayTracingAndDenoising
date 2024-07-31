@@ -11,5 +11,5 @@ void main() {
   // store the octree buffer offset in the chunks image
   uvec3 chunkIndex = chunksInfoBuffer.data.currentlyWritingChunk;
   chunkIndicesBuffer.data[getChunksBufferLinearIndex(chunkIndex, chunksInfoBuffer.data.chunksDim)] =
-      octreeBufferWriteOffsetBuffer.data + 1;
+      octreeBufferWriteOffsetBuffer.data;
 }
