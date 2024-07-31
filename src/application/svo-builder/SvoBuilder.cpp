@@ -2,7 +2,6 @@
 
 #include "VoxLoader.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
-#include "custom-mem-alloc/CustomMemoryAllocator.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/io/ShaderFileReader.hpp"
@@ -148,6 +147,87 @@ void SvoBuilder::buildScene() {
 void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   _resetBufferDataForNewChunkGeneration(chunkIndex);
 
+  VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
+
+  // if the chunk does not have save, create it to buffer
+  if (_chunkIndexToFieldImagesMap.find(chunkIndex) == _chunkIndexToFieldImagesMap.end()) {
+    cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+    _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
+                                                   _chunkVoxelDim + 1, _chunkVoxelDim + 1);
+    endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                          _appContext->getGraphicsQueue(), cmdBuffer);
+  }
+  // otherwise, load from save to buffer
+  else {
+    cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+    ImageForwardingPair f{_chunkIndexToFieldImagesMap[chunkIndex].get(),
+                          _chunkFieldImage.get(),
+                          VK_IMAGE_LAYOUT_GENERAL,
+                          VK_IMAGE_LAYOUT_UNDEFINED,
+                          VK_IMAGE_LAYOUT_GENERAL,
+                          VK_IMAGE_LAYOUT_GENERAL};
+    f.forwardCopy(cmdBuffer);
+    endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                          _appContext->getGraphicsQueue(), cmdBuffer);
+  }
+
+  // edit field image
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  _chunkFieldModificationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
+                                                 _chunkVoxelDim + 1, _chunkVoxelDim + 1);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // construct voxels into fragmentlist buffer
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim, _chunkVoxelDim,
+                                             _chunkVoxelDim);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // check if the fragment list is empty, if so, we can skip the octree creation
+  G_FragmentListInfo fragmentListInfo{};
+  _fragmentListInfoBuffer->fetchData(&fragmentListInfo);
+  if (fragmentListInfo.voxelFragmentCount == 0) {
+
+    // remove the chunk image
+    auto const &it1 = _chunkIndexToFieldImagesMap.find(chunkIndex);
+    if (it1 != _chunkIndexToFieldImagesMap.end()) {
+      _chunkIndexToFieldImagesMap.erase(chunkIndex);
+    }
+
+    // remove allocation
+    auto const &it2 = _chunkIndexToFieldImagesMapAllocations.find(chunkIndex);
+    if (it2 != _chunkIndexToFieldImagesMapAllocations.end()) {
+      _chunkBufferMemoryAllocator->deallocate(it2->second);
+      _chunkIndexToFieldImagesMapAllocations.erase(chunkIndex);
+    }
+
+    // clear chunks buffer
+    uint32_t zero = 0;
+    _octreeBufferWriteOffsetBuffer->fillData(&zero);
+    cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+    _chunkIndicesBufferUpdaterPipeline->recordCommand(cmdBuffer, 0, 1, 1, 1);
+    endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                          _appContext->getGraphicsQueue(), cmdBuffer);
+
+    _logger->info("no fragment, chunk has been removed");
+
+    return;
+  }
+
+  ///
+
+  // save from buffer to image
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  ImageForwardingPair f2{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
+                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
+  f2.forwardCopy(cmdBuffer);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // octree construction
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
   // wait until the image is ready
   submitInfo.waitSemaphoreCount = 0;
@@ -157,63 +237,6 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   VkPipelineStageFlags waitStages{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
   submitInfo.pWaitDstStageMask = &waitStages;
 
-  // create the standard memory barrier
-  VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-  shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-  shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-
-  ///
-
-  // load field iamge from save
-  VkCommandBuffer cmdBuffer =
-      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-
-  ImageForwardingPair f{_chunkIndexToFieldImagesMap[chunkIndex].get(),
-                        _chunkFieldImage.get(),
-                        VK_IMAGE_LAYOUT_GENERAL,
-                        VK_IMAGE_LAYOUT_UNDEFINED,
-                        VK_IMAGE_LAYOUT_GENERAL,
-                        VK_IMAGE_LAYOUT_GENERAL};
-  f.forwardCopy(cmdBuffer);
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), cmdBuffer);
-
-  // edit field image
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-
-  _chunkFieldModificationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
-                                                 _chunkVoxelDim + 1, _chunkVoxelDim + 1);
-
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), cmdBuffer);
-
-  // construct voxels
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-
-  _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim, _chunkVoxelDim,
-                                             _chunkVoxelDim);
-
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), cmdBuffer);
-
-  // check if the fragment list is empty, if so, we can skip the octree creation
-  G_FragmentListInfo fragmentListInfo{};
-  _fragmentListInfoBuffer->fetchData(&fragmentListInfo);
-  if (fragmentListInfo.voxelFragmentCount == 0) {
-    _logger->info("no fragments, skipping octree creation");
-    return;
-  }
-
-  // save the result again
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  ImageForwardingPair f2{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
-                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
-                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
-  f2.forwardCopy(cmdBuffer);
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), cmdBuffer);
-
-  // octree construction (optional)
   std::vector<VkCommandBuffer> commandBuffersToSubmit2{_octreeCreationCommandBuffer};
   submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit2.size());
   submitInfo.pCommandBuffers    = commandBuffersToSubmit2.data();
@@ -224,13 +247,16 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   uint32_t octreeBufferLength = 0;
   _octreeBufferLengthBuffer->fetchData(&octreeBufferLength);
 
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-
-  uint32_t writeOffsetInBytes  = 0;
-  uint32_t writeOffsetInUint32 = 0;
-  auto allocResult   = _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
-  writeOffsetInBytes = allocResult.offset();
-  writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
+  // remove allocation
+  auto const &it = _chunkIndexToFieldImagesMapAllocations.find(chunkIndex);
+  if (it != _chunkIndexToFieldImagesMapAllocations.end()) {
+    _chunkBufferMemoryAllocator->deallocate(it->second);
+    // erasing is omitted here, since we will overwrite the allocation result
+  }
+  _chunkIndexToFieldImagesMapAllocations[chunkIndex] =
+      _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
+  uint32_t writeOffsetInBytes  = _chunkIndexToFieldImagesMapAllocations[chunkIndex].offset();
+  uint32_t writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
 
   // print offset in mb
   _logger->info("allocated memory from the memory pool: {} mb",
@@ -242,16 +268,18 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
       octreeBufferLength * sizeof(uint32_t), // size
   };
 
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   // copy staging buffer to main buffer
   vkCmdCopyBuffer(cmdBuffer, _chunkOctreeBuffer->getVkBuffer(),
                   _appendedOctreeBuffer->getVkBuffer(), 1, &bufCopy);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
 
   _octreeBufferWriteOffsetBuffer->fillData(&writeOffsetInUint32);
-
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   // write the chunks image, according to the accumulated buffer offset
   // we should do it here, since we can cull null chunks here after the voxels are decided
-  _chunksBuilderPipeline->recordCommand(cmdBuffer, 0, 1, 1, 1);
-
+  _chunkIndicesBufferUpdaterPipeline->recordCommand(cmdBuffer, 0, 1, 1, 1);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 }
@@ -259,22 +287,14 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
 void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
   _resetBufferDataForNewChunkGeneration(chunkIndex);
 
-  VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
-  // wait until the image is ready
-  submitInfo.waitSemaphoreCount = 0;
-  // signal a semaphore after excecution finished
-  submitInfo.signalSemaphoreCount = 0;
-  // wait for no stage
-  VkPipelineStageFlags waitStages{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
-  submitInfo.pWaitDstStageMask = &waitStages;
+  VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
 
   // create the standard memory barrier
   VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
   shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
   shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
-  VkCommandBuffer cmdBuffer =
-      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
 
   _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
                                                  _chunkVoxelDim + 1, _chunkVoxelDim + 1);
@@ -296,19 +316,32 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
     return;
   }
 
+  ///
+
   // create image for this chunk and copy the field image to it
   _chunkIndexToFieldImagesMap[chunkIndex] = std::make_unique<Image>(
       ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
       VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
-  ImageForwardingPair f{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
-                        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
-                        VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
+
+  // save from buffer to image
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  f.forwardCopy(cmdBuffer);
+  ImageForwardingPair f2{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
+                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
+  f2.forwardCopy(cmdBuffer);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
-  // step 2: octree construction (optional)
+  // octree construction
+  VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+  // wait until the image is ready
+  submitInfo.waitSemaphoreCount = 0;
+  // signal a semaphore after excecution finished
+  submitInfo.signalSemaphoreCount = 0;
+  // wait for no stage
+  VkPipelineStageFlags waitStages{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+  submitInfo.pWaitDstStageMask = &waitStages;
+
   std::vector<VkCommandBuffer> commandBuffersToSubmit2{_octreeCreationCommandBuffer};
   submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit2.size());
   submitInfo.pCommandBuffers    = commandBuffersToSubmit2.data();
@@ -316,19 +349,19 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
   vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
   vkQueueWaitIdle(_appContext->getGraphicsQueue());
 
-  // after the fence, all work submitted to GPU has been finished, and we can read the buffer size
-  // data back from the staging buffer
-
   uint32_t octreeBufferLength = 0;
   _octreeBufferLengthBuffer->fetchData(&octreeBufferLength);
 
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-
-  uint32_t writeOffsetInBytes  = 0;
-  uint32_t writeOffsetInUint32 = 0;
-  auto allocResult   = _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
-  writeOffsetInBytes = allocResult.offset();
-  writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
+  // remove allocation
+  auto const &it = _chunkIndexToFieldImagesMapAllocations.find(chunkIndex);
+  if (it != _chunkIndexToFieldImagesMapAllocations.end()) {
+    _chunkBufferMemoryAllocator->deallocate(it->second);
+    // erasing is omitted here, since we will overwrite the allocation result
+  }
+  _chunkIndexToFieldImagesMapAllocations[chunkIndex] =
+      _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
+  uint32_t writeOffsetInBytes  = _chunkIndexToFieldImagesMapAllocations[chunkIndex].offset();
+  uint32_t writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
 
   // print offset in mb
   _logger->info("allocated memory from the memory pool: {} mb",
@@ -340,16 +373,18 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
       octreeBufferLength * sizeof(uint32_t), // size
   };
 
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   // copy staging buffer to main buffer
   vkCmdCopyBuffer(cmdBuffer, _chunkOctreeBuffer->getVkBuffer(),
                   _appendedOctreeBuffer->getVkBuffer(), 1, &bufCopy);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
 
   _octreeBufferWriteOffsetBuffer->fillData(&writeOffsetInUint32);
-
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   // write the chunks image, according to the accumulated buffer offset
   // we should do it here, since we can cull null chunks here after the voxels are decided
-  _chunksBuilderPipeline->recordCommand(cmdBuffer, 0, 1, 1, 1);
-
+  _chunkIndicesBufferUpdaterPipeline->recordCommand(cmdBuffer, 0, 1, 1, 1);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 }
@@ -364,7 +399,7 @@ void SvoBuilder::_createImages() {
 
 // voxData is passed in to decide the size of some buffers dureing allocation
 void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
-  _chunksBuffer =
+  _chunkIndicesBuffer =
       std::make_unique<Buffer>(sizeof(uint32_t) * _chunkDimX * _chunkDimY * _chunkDimZ,
                                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
@@ -425,7 +460,7 @@ void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
 void SvoBuilder::_initBufferData() {
   // clear the chunks buffer
   std::vector<uint32_t> chunksData(_chunkDimX * _chunkDimY * _chunkDimZ, 0);
-  _chunksBuffer->fillData(chunksData.data());
+  _chunkIndicesBuffer->fillData(chunksData.data());
 }
 
 void SvoBuilder::_createDescriptorSetBundle() {
@@ -434,7 +469,7 @@ void SvoBuilder::_createDescriptorSetBundle() {
 
   _descriptorSetBundle->bindStorageImage(0, _chunkFieldImage.get());
 
-  _descriptorSetBundle->bindStorageBuffer(1, _chunksBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(1, _chunkIndicesBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(2, _indirectFragLengthBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(3, _counterBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(4, _chunkOctreeBuffer.get());
@@ -450,11 +485,11 @@ void SvoBuilder::_createDescriptorSetBundle() {
 }
 
 void SvoBuilder::_createPipelines() {
-  _chunksBuilderPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, _makeShaderFullPath("chunksBuilder.comp"), WorkGroupSize{8, 8, 8},
-      _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _chunksBuilderPipeline->compileAndCacheShaderModule(false);
-  _chunksBuilderPipeline->build();
+  _chunkIndicesBufferUpdaterPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, _makeShaderFullPath("chunkIndicesBufferUpdater.comp"),
+      WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
+  _chunkIndicesBufferUpdaterPipeline->compileAndCacheShaderModule(false);
+  _chunkIndicesBufferUpdaterPipeline->build();
 
   _chunkFieldConstructionPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("chunkFieldConstruction.comp"),

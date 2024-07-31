@@ -21,8 +21,8 @@ layout(binding = 6) readonly uniform image2DArray vec2BlueNoise;
 layout(binding = 7) readonly uniform image2DArray vec3BlueNoise;
 layout(binding = 8) readonly uniform image2DArray weightedCosineBlueNoise;
 
-layout(std430, binding = 9) readonly buffer ChunksBuffer { uint[] data; }
-chunksBuffer;
+layout(std430, binding = 9) readonly buffer ChunkIndicesBuffer { uint[] data; }
+chunkIndicesBuffer;
 
 layout(binding = 10) uniform uimage2D backgroundImage;
 layout(binding = 11) uniform image2D beamDepthImage;

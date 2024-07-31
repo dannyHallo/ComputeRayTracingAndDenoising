@@ -11,6 +11,7 @@ struct FreeList {
 
 class CustomMemoryAllocationResult {
 public:
+  CustomMemoryAllocationResult() : _offset(0), _size(0) {}
   CustomMemoryAllocationResult(size_t offset, size_t size) : _offset(offset), _size(size) {}
   size_t offset() const { return _offset; }
   size_t size() const { return _size; }

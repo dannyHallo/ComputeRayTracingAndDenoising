@@ -176,8 +176,9 @@ bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d, float original
     const ivec3 preOffset   = ivec3(1);
     const vec3 originOffset = preOffset - hitChunkOffset;
 
-    uint chunkBufferOffset =
-        chunksBuffer.data[getChunksBufferLinearIndex(hitChunkLookupOffset, sceneInfoBuffer.data.chunksDim)] - 1;
+    uint chunkBufferOffset = chunkIndicesBuffer.data[getChunksBufferLinearIndex(
+                                 hitChunkLookupOffset, sceneInfoBuffer.data.chunksDim)] -
+                             1;
 
     hitOrReachedDetails = svoMarching(oResult.t, oResult.size, o + originOffset, d, originalSize,
                                       directionalSize, chunkBufferOffset);

@@ -10,7 +10,7 @@ bool _inChunkRange(ivec3 pos) {
 }
 
 bool _hasChunk(uvec3 chunkIndex) {
-  return chunksBuffer.data[getChunksBufferLinearIndex(chunkIndex, sceneInfoBuffer.data.chunksDim)] >
+  return chunkIndicesBuffer.data[getChunksBufferLinearIndex(chunkIndex, sceneInfoBuffer.data.chunksDim)] >
          0;
 }
 

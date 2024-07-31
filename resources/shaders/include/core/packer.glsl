@@ -74,7 +74,7 @@ vec3 unpackRgbe(uint x) {
   return v;
 }
 
-const float f = 0.1;
+const float f = 0.2;
 
 uint packFloatToUint8(float val, float boundaryMin, float boundaryMax) {
   boundaryMin = -f;

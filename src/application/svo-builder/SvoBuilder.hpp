@@ -1,5 +1,6 @@
 #pragma once
 
+#include "custom-mem-alloc/CustomMemoryAllocator.hpp"
 #include "scheduler/Scheduler.hpp"
 #include "volk.h"
 
@@ -19,7 +20,6 @@ class Image;
 class ShaderCompiler;
 class ShaderChangeListener;
 class TomlConfigReader;
-class CustomMemoryAllocator;
 
 class SvoBuilder : public Scheduler {
 private:
@@ -62,7 +62,7 @@ public:
   void editExistingChunk(ChunkIndex chunkIndex);
 
   Buffer *getAppendedOctreeBuffer() { return _appendedOctreeBuffer.get(); }
-  Buffer *getChunksBuffer() { return _chunksBuffer.get(); }
+  Buffer *getChunkIndicesBuffer() { return _chunkIndicesBuffer.get(); }
 
   [[nodiscard]] uint32_t getVoxelLevelCount() const { return _voxelLevelCount; }
   [[nodiscard]] glm::uvec3 getChunksDim() const;
@@ -98,10 +98,12 @@ private:
   std::unique_ptr<Image> _chunkFieldImage;
   std::unordered_map<ChunkIndex, std::unique_ptr<Image>, ChunkIndexHash>
       _chunkIndexToFieldImagesMap;
+  std::unordered_map<ChunkIndex, CustomMemoryAllocationResult, ChunkIndexHash>
+      _chunkIndexToFieldImagesMapAllocations;
   void _createImages();
 
   /// BUFFERS
-  std::unique_ptr<Buffer> _chunksBuffer;
+  std::unique_ptr<Buffer> _chunkIndicesBuffer;
   std::unique_ptr<Buffer> _appendedOctreeBuffer;
   std::unique_ptr<Buffer> _chunksInfoBuffer;
   std::unique_ptr<Buffer> _octreeBufferLengthBuffer;
@@ -121,7 +123,7 @@ private:
 
   /// PIPELINES
 
-  std::unique_ptr<ComputePipeline> _chunksBuilderPipeline;
+  std::unique_ptr<ComputePipeline> _chunkIndicesBufferUpdaterPipeline;
 
   std::unique_ptr<ComputePipeline> _chunkFieldConstructionPipeline;
   std::unique_ptr<ComputePipeline> _chunkFieldModificationPipeline;
