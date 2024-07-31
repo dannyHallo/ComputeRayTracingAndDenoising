@@ -74,12 +74,18 @@ vec3 unpackRgbe(uint x) {
   return v;
 }
 
+const float f = 0.1;
+
 uint packFloatToUint8(float val, float boundaryMin, float boundaryMax) {
+  boundaryMin = -f;
+  boundaryMax = f;
   val = clamp(val, boundaryMin, boundaryMax);
   return uint((val - boundaryMin) / (boundaryMax - boundaryMin) * 255.0);
 }
 
 float unpackUint8ToFloat(uint encoded, float boundaryMin, float boundaryMax) {
+  boundaryMin = -f;
+  boundaryMax = f;
   return (float(encoded) / 255.0) * (boundaryMax - boundaryMin) + boundaryMin;
 }
 

@@ -198,6 +198,7 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   G_FragmentListInfo fragmentListInfo{};
   _fragmentListInfoBuffer->fetchData(&fragmentListInfo);
   if (fragmentListInfo.voxelFragmentCount == 0) {
+    _logger->info("no fragments, skipping octree creation");
     return;
   }
 

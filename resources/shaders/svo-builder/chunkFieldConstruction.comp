@@ -6,7 +6,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
 #include "../include/core/packer.glsl"
-#include "../include/core/perlinNoise.glsl"
+// #include "../include/core/perlinNoise.glsl"
+#include "../include/core/simplexNoise.glsl"
 
 float computeNoise(vec3 p) {
   float total       = 0.0;
@@ -17,7 +18,7 @@ float computeNoise(vec3 p) {
   int octaves       = 4;
 
   for (int i = 0; i < octaves; i++) {
-    total += cnoise(p * frequency) * amplitude;
+    total += snoise(p * frequency) * amplitude;
     frequency *= lacunarity;
     amplitude *= persistence;
   }

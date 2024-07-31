@@ -126,11 +126,11 @@ void Application::_drawFrame() {
   if (_window->getCursorInfo().leftButtonPressed) {
     auto outputInfo = _svoTracer->getOutputInfo();
     if (outputInfo.midRayHit) {
-      _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
-                    std::to_string(outputInfo.midRayHitPos.y) + ", " +
-                    std::to_string(outputInfo.midRayHitPos.z));
+      // _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
+      //               std::to_string(outputInfo.midRayHitPos.y) + ", " +
+      //               std::to_string(outputInfo.midRayHitPos.z));
 
-      _svoBuilder->editExistingChunk({0, 0, 0});
+      // _svoBuilder->editExistingChunk({0, 0, 0});
     }
   }
 
