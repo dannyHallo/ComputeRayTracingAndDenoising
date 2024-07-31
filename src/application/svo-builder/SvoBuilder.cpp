@@ -125,7 +125,7 @@ void SvoBuilder::buildScene() {
         ChunkIndex chunkIndex{x, y, z};
 
         auto start = std::chrono::steady_clock::now();
-        _buildChunk(chunkIndex);
+        _buildChunkFromNoise(chunkIndex);
         auto end      = std::chrono::steady_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         minTimeMs     = std::min(minTimeMs, static_cast<uint32_t>(duration));
@@ -143,7 +143,7 @@ void SvoBuilder::buildScene() {
   _chunkBufferMemoryAllocator->printStats();
 }
 
-void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
+void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   _resetBufferDataForNewChunkGeneration(chunkIndex);
 
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
@@ -160,9 +160,119 @@ void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
   shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
   shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
-  // step 1: fragment list creation
+  ///
+
+  // load field iamge from save
   VkCommandBuffer cmdBuffer =
       beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+
+  ImageForwardingPair f{_chunkIndexToFieldImagesMap[chunkIndex].get(),
+                        _chunkFieldImage.get(),
+                        VK_IMAGE_LAYOUT_GENERAL,
+                        VK_IMAGE_LAYOUT_UNDEFINED,
+                        VK_IMAGE_LAYOUT_GENERAL,
+                        VK_IMAGE_LAYOUT_GENERAL};
+  f.forwardCopy(cmdBuffer);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // edit field image
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+
+  _chunkFieldModificationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
+                                                 _chunkVoxelDim + 1, _chunkVoxelDim + 1);
+
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // construct voxels
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+
+  _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim, _chunkVoxelDim,
+                                             _chunkVoxelDim);
+
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // check if the fragment list is empty, if so, we can skip the octree creation
+  G_FragmentListInfo fragmentListInfo{};
+  _fragmentListInfoBuffer->fetchData(&fragmentListInfo);
+  if (fragmentListInfo.voxelFragmentCount == 0) {
+    return;
+  }
+
+  // save the result again
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  ImageForwardingPair f2{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
+                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
+                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
+  f2.forwardCopy(cmdBuffer);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // octree construction (optional)
+  std::vector<VkCommandBuffer> commandBuffersToSubmit2{_octreeCreationCommandBuffer};
+  submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit2.size());
+  submitInfo.pCommandBuffers    = commandBuffersToSubmit2.data();
+
+  vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(_appContext->getGraphicsQueue());
+
+  uint32_t octreeBufferLength = 0;
+  _octreeBufferLengthBuffer->fetchData(&octreeBufferLength);
+
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+
+  uint32_t writeOffsetInBytes  = 0;
+  uint32_t writeOffsetInUint32 = 0;
+  auto allocResult   = _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
+  writeOffsetInBytes = allocResult.offset();
+  writeOffsetInUint32 = writeOffsetInBytes / sizeof(uint32_t);
+
+  // print offset in mb
+  _logger->info("allocated memory from the memory pool: {} mb",
+                static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
+
+  VkBufferCopy bufCopy = {
+      0,                                     // srcOffset
+      writeOffsetInBytes,                    // dstOffset,
+      octreeBufferLength * sizeof(uint32_t), // size
+  };
+
+  // copy staging buffer to main buffer
+  vkCmdCopyBuffer(cmdBuffer, _chunkOctreeBuffer->getVkBuffer(),
+                  _appendedOctreeBuffer->getVkBuffer(), 1, &bufCopy);
+
+  _octreeBufferWriteOffsetBuffer->fillData(&writeOffsetInUint32);
+
+  // write the chunks image, according to the accumulated buffer offset
+  // we should do it here, since we can cull null chunks here after the voxels are decided
+  _chunksBuilderPipeline->recordCommand(cmdBuffer, 0, 1, 1, 1);
+
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+}
+
+void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
+  _resetBufferDataForNewChunkGeneration(chunkIndex);
+
+  VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
+  // wait until the image is ready
+  submitInfo.waitSemaphoreCount = 0;
+  // signal a semaphore after excecution finished
+  submitInfo.signalSemaphoreCount = 0;
+  // wait for no stage
+  VkPipelineStageFlags waitStages{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+  submitInfo.pWaitDstStageMask = &waitStages;
+
+  // create the standard memory barrier
+  VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
+  shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+
+  VkCommandBuffer cmdBuffer =
+      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+
   _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
                                                  _chunkVoxelDim + 1, _chunkVoxelDim + 1);
 
@@ -244,7 +354,9 @@ void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
 void SvoBuilder::_createImages() {
   _chunkFieldImage = std::make_unique<Image>(
       ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
-      VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+      VK_FORMAT_R8_UINT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+          VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 }
 
 // voxData is passed in to decide the size of some buffers dureing allocation
@@ -342,6 +454,13 @@ void SvoBuilder::_createPipelines() {
   _chunkFieldConstructionPipeline->compileAndCacheShaderModule(false);
   _chunkFieldConstructionPipeline->build();
 
+  _chunkFieldModificationPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, _makeShaderFullPath("chunkFieldModification.comp"),
+      WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
+      true);
+  _chunkFieldModificationPipeline->compileAndCacheShaderModule(false);
+  _chunkFieldModificationPipeline->build();
+
   _chunkVoxelCreationPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("chunkVoxelCreation.comp"),
       WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener,
@@ -385,47 +504,7 @@ void SvoBuilder::_createPipelines() {
   _modifyArgPipeline->build();
 }
 
-void SvoBuilder::_recordCommandBuffers() {
-  // _recordFragmentListCreationCommandBuffer();
-  _recordOctreeCreationCommandBuffer();
-}
-
-// void SvoBuilder::_recordFragmentListCreationCommandBuffer() {
-//   VkCommandBufferAllocateInfo allocInfo{};
-//   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-//   allocInfo.commandPool        = _appContext->getCommandPool();
-//   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-//   allocInfo.commandBufferCount = 1;
-
-//   vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo,
-//                            &_fragmentListCreationCommandBuffer);
-
-//   VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-//   vkBeginCommandBuffer(_fragmentListCreationCommandBuffer, &beginInfo);
-
-//   // create the standard memory barrier
-//   VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-//   shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-//   shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-
-//   _chunkFieldConstructionPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0,
-//                                                  _chunkVoxelDim + 1, _chunkVoxelDim + 1,
-//                                                  _chunkVoxelDim + 1);
-
-//   vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-//                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
-//                        nullptr, 0, nullptr);
-
-//   _chunkVoxelCreationPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0,
-//   _chunkVoxelDim,
-//                                              _chunkVoxelDim, _chunkVoxelDim);
-
-//   vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-//                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
-//                        nullptr, 0, nullptr);
-
-//   vkEndCommandBuffer(_fragmentListCreationCommandBuffer);
-// }
+void SvoBuilder::_recordCommandBuffers() { _recordOctreeCreationCommandBuffer(); }
 
 void SvoBuilder::_recordOctreeCreationCommandBuffer() {
   VkCommandBufferAllocateInfo allocInfo{};

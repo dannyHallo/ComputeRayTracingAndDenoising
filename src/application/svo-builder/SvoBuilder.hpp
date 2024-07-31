@@ -59,6 +59,8 @@ public:
 
   void buildScene();
 
+  void editExistingChunk(ChunkIndex chunkIndex);
+
   Buffer *getAppendedOctreeBuffer() { return _appendedOctreeBuffer.get(); }
   Buffer *getChunksBuffer() { return _chunksBuffer.get(); }
 
@@ -90,7 +92,7 @@ private:
   // void _recordChunkFieldConstructionCommandBuffer();
   void _recordOctreeCreationCommandBuffer();
 
-  void _buildChunk(ChunkIndex chunkIndex);
+  void _buildChunkFromNoise(ChunkIndex chunkIndex);
 
   /// IMAGES
   std::unique_ptr<Image> _chunkFieldImage;
@@ -121,6 +123,7 @@ private:
   std::unique_ptr<ComputePipeline> _chunksBuilderPipeline;
 
   std::unique_ptr<ComputePipeline> _chunkFieldConstructionPipeline;
+  std::unique_ptr<ComputePipeline> _chunkFieldModificationPipeline;
   std::unique_ptr<ComputePipeline> _chunkVoxelCreationPipeline;
   std::unique_ptr<ComputePipeline> _chunkModifyArgPipeline;
 

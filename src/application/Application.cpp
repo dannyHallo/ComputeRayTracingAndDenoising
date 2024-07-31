@@ -129,6 +129,8 @@ void Application::_drawFrame() {
       _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
                     std::to_string(outputInfo.midRayHitPos.y) + ", " +
                     std::to_string(outputInfo.midRayHitPos.z));
+
+      _svoBuilder->editExistingChunk({0, 0, 0});
     }
   }
 
