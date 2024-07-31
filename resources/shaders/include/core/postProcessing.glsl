@@ -7,18 +7,16 @@
 // taken from: https://64.github.io/tonemapping
 // combined jodie-reinhard with exteneded reinhard (luminance tune map) for auto exposure
 vec3 jodieReinhardTmo(vec3 c, float explosure) {
-  const float maxWhiteLum = explosure;
-
   vec3 a = c / (lum(c) + 1.0);
 
-  if (maxWhiteLum <= 1.0) {
-    vec3 b = c / maxWhiteLum;
+  if (explosure <= 1.0) {
+    vec3 b = c / explosure;
     return b;
   }
 
-  vec3 b = c * (1.0 + (c / (maxWhiteLum * maxWhiteLum))) / (c + 1.0);
+  vec3 b = c * (1.0 + (c / (explosure * explosure))) / (c + 1.0);
 
-  float mixFac = smoothstep(1.0, 1.1, maxWhiteLum);
+  float mixFac = smoothstep(1.0, 1.1, explosure);
   return mix(b, mix(a, b, b), mixFac);
 }
 

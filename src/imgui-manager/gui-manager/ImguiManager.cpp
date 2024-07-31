@@ -257,16 +257,15 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t imageIndex)
 
 void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
-    ImGui::SeparatorText("Debug Parameters");
+    ImGui::SeparatorText("Debug");
 
     ImGui::Checkbox("Debug B1", &_svoTracerTweakingData->debugB1);
     ImGui::SliderFloat("Debug F1", &_svoTracerTweakingData->debugF1, 0.0F, 1.0F);
     ImGui::SliderInt("Debug I1", &_svoTracerTweakingData->debugI1, 0, 10);
 
-    ImGui::SliderFloat("Explosure", &_svoTracerTweakingData->explosure, 0.0F, 20.0F);
+    ///
 
-    ImGui::SeparatorText("Environment Parameters");
-
+    ImGui::SeparatorText("Atmos");
     ImGui::SliderFloat("Sun Altitude", &_svoTracerTweakingData->sunAltitude, 0.F, 180.F);
     ImGui::SliderFloat("Sun Azimuth", &_svoTracerTweakingData->sunAzimuth, -180.F, 180.F);
     ImGui::InputFloat3("Rayleigh Scattering Base",
@@ -280,33 +279,30 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SliderFloat("Atmos Luminance", &_svoTracerTweakingData->atmosLuminance, 0.0F, 10.0F);
     ImGui::SliderFloat("Sun Size", &_svoTracerTweakingData->sunSize, 0.0F, 100.0F);
 
-    ImGui::SeparatorText("Tweakable Parameters");
+    ///
 
+    ImGui::SeparatorText("Tracing");
     ImGui::Checkbox("Visualize Chunks", &_svoTracerTweakingData->visualizeChunks);
     ImGui::Checkbox("Visualize Octree", &_svoTracerTweakingData->visualizeOctree);
     ImGui::Checkbox("Beam Optimization", &_svoTracerTweakingData->beamOptimization);
     ImGui::Checkbox("Trace Indirect Ray", &_svoTracerTweakingData->traceIndirectRay);
+
+    ///
+
+    ImGui::SeparatorText("Filtering");
     ImGui::Checkbox("TAA", &_svoTracerTweakingData->taa);
-
-    ImGui::SeparatorText("Temporal Filter Info");
-
     ImGui::SliderFloat("Temporal Alpha", &_svoTracerTweakingData->temporalAlpha, 0.0F, 1.0F);
-    // ImGui::SliderFloat("Temporal Position Phi", &_svoTracerTweakingData->temporalPositionPhi,
-    // 0.0F,
-    //                    1.0F);
-
-    ImGui::SeparatorText("Spatial Filter Info");
-
     ImGui::SliderInt("A-Trous Iteration Count", &_svoTracerTweakingData->aTrousIterationCount, 0,
                      5);
-    // ImGui::SliderFloat("Phi C", &_svoTracerTweakingData->phiC, 0.0F, 100.0F);
-    // ImGui::SliderFloat("Phi N", &_svoTracerTweakingData->phiN, 0.0F, 200.0F);
-    // ImGui::SliderFloat("Phi P", &_svoTracerTweakingData->phiP, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Z - Far End", &_svoTracerTweakingData->minPhiZ, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Z - Near End", &_svoTracerTweakingData->maxPhiZ, 0.0F, 1.0F);
-    // ImGui::SliderFloat("Phi Z - SSC x256", &_svoTracerTweakingData->phiZStableSampleCount, 0.0F,
-    //                    1.0F);
-    // ImGui::Checkbox("Changing Luminance Phi", &_svoTracerTweakingData->changingLuminancePhi);
+
+    ///
+
+    ImGui::SeparatorText("Post Processing");
+    ImGui::SliderFloat("Explosure", &_svoTracerTweakingData->explosure, 0.0F, 20.0F);
+
+    ///
 
     ImGui::EndMenu();
   }
