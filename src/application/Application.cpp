@@ -123,14 +123,14 @@ void Application::_drawFrame() {
   }
 
   // this is some debuging features, which are disabled for release builds
-  // if (_window->getCursorInfo().leftButtonPressed) {
-  //   auto outputInfo = _svoTracer->getOutputInfo();
-  //   if (outputInfo.midRayHit) {
-  //     _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
-  //                   std::to_string(outputInfo.midRayHitPos.y) + ", " +
-  //                   std::to_string(outputInfo.midRayHitPos.z));
-  //   }
-  // }
+  if (_window->getCursorInfo().leftButtonPressed) {
+    auto outputInfo = _svoTracer->getOutputInfo();
+    if (outputInfo.midRayHit) {
+      _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
+                    std::to_string(outputInfo.midRayHitPos.y) + ", " +
+                    std::to_string(outputInfo.midRayHitPos.z));
+    }
+  }
 
   _svoTracer->drawFrame(currentFrame);
 

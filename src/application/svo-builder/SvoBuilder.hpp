@@ -84,17 +84,13 @@ private:
   std::unique_ptr<DescriptorSetBundle> _descriptorSetBundle;
   std::unique_ptr<CustomMemoryAllocator> _chunkBufferMemoryAllocator;
 
-  VkFence _timelineFence                             = VK_NULL_HANDLE;
-  VkCommandBuffer _fragmentListCreationCommandBuffer = VK_NULL_HANDLE;
-  VkCommandBuffer _octreeCreationCommandBuffer       = VK_NULL_HANDLE;
+  VkCommandBuffer _octreeCreationCommandBuffer = VK_NULL_HANDLE;
 
   void _recordCommandBuffers();
-  void _recordFragmentListCreationCommandBuffer();
+  // void _recordChunkFieldConstructionCommandBuffer();
   void _recordOctreeCreationCommandBuffer();
 
   void _buildChunk(ChunkIndex chunkIndex);
-
-  void _createFence();
 
   /// IMAGES
   std::unique_ptr<Image> _chunkFieldImage;

@@ -33,13 +33,9 @@ SvoBuilder::SvoBuilder(VulkanApplicationContext *appContext, Logger *logger,
     : _appContext(appContext), _logger(logger), _shaderCompiler(shaderCompiler),
       _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader) {
   _loadConfig();
-  _createFence();
 }
 
 SvoBuilder::~SvoBuilder() {
-  vkDestroyFence(_appContext->getDevice(), _timelineFence, nullptr);
-  vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
-                       &_fragmentListCreationCommandBuffer);
   vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                        &_octreeCreationCommandBuffer);
 }
@@ -50,13 +46,6 @@ void SvoBuilder::_loadConfig() {
   _chunkDimX     = cd.at(0);
   _chunkDimY     = cd.at(1);
   _chunkDimZ     = cd.at(2);
-}
-
-void SvoBuilder::_createFence() {
-  VkFenceCreateInfo fenceCreateInfoNotSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-  // VkFenceCreateInfo fenceCreateInfoPreSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
-  // fenceCreateInfoPreSignalled.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-  vkCreateFence(_appContext->getDevice(), &fenceCreateInfoNotSignalled, nullptr, &_timelineFence);
 }
 
 glm::uvec3 SvoBuilder::getChunksDim() const { return {_chunkDimX, _chunkDimY, _chunkDimZ}; }
@@ -85,11 +74,7 @@ void SvoBuilder::init() {
 void SvoBuilder::update() {
   _recordCommandBuffers();
 
-  // VkCommandBuffer commandBuffer =
-  //     beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  // // clear the chunksBuffer here if needed later
-  // endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-  //                       _appContext->getGraphicsQueue(), commandBuffer);
+  // mayby clear the chunksBuffer here
 
   buildScene();
 }
@@ -170,15 +155,26 @@ void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
   VkPipelineStageFlags waitStages{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
   submitInfo.pWaitDstStageMask = &waitStages;
 
+  // create the standard memory barrier
+  VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+  shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
+  shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+
   // step 1: fragment list creation
-  std::vector<VkCommandBuffer> commandBuffersToSubmit1{_fragmentListCreationCommandBuffer};
-  submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit1.size());
-  submitInfo.pCommandBuffers    = commandBuffersToSubmit1.data();
+  VkCommandBuffer cmdBuffer =
+      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
+                                                 _chunkVoxelDim + 1, _chunkVoxelDim + 1);
 
-  vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo, _timelineFence);
+  vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
+                       0, nullptr);
 
-  vkWaitForFences(_appContext->getDevice(), 1, &_timelineFence, VK_TRUE, UINT64_MAX);
-  vkResetFences(_appContext->getDevice(), 1, &_timelineFence);
+  _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim, _chunkVoxelDim,
+                                             _chunkVoxelDim);
+
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
 
   // intermediate step: check if the fragment list is empty, if so, we can skip the octree creation
   G_FragmentListInfo fragmentListInfo{};
@@ -194,21 +190,18 @@ void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
   ImageForwardingPair f{_chunkFieldImage.get(),  _chunkIndexToFieldImagesMap[chunkIndex].get(),
                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_UNDEFINED,
                         VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_GENERAL};
-  VkCommandBuffer commandBuffer =
-      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  f.forwardCopy(commandBuffer);
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  f.forwardCopy(cmdBuffer);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), commandBuffer);
+                        _appContext->getGraphicsQueue(), cmdBuffer);
 
   // step 2: octree construction (optional)
   std::vector<VkCommandBuffer> commandBuffersToSubmit2{_octreeCreationCommandBuffer};
   submitInfo.commandBufferCount = static_cast<uint32_t>(commandBuffersToSubmit2.size());
   submitInfo.pCommandBuffers    = commandBuffersToSubmit2.data();
 
-  vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo, _timelineFence);
-
-  vkWaitForFences(_appContext->getDevice(), 1, &_timelineFence, VK_TRUE, UINT64_MAX);
-  vkResetFences(_appContext->getDevice(), 1, &_timelineFence);
+  vkQueueSubmit(_appContext->getGraphicsQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(_appContext->getGraphicsQueue());
 
   // after the fence, all work submitted to GPU has been finished, and we can read the buffer size
   // data back from the staging buffer
@@ -216,8 +209,7 @@ void SvoBuilder::_buildChunk(ChunkIndex chunkIndex) {
   uint32_t octreeBufferLength = 0;
   _octreeBufferLengthBuffer->fetchData(&octreeBufferLength);
 
-  VkCommandBuffer cmdBuffer =
-      beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
 
   uint32_t writeOffsetInBytes  = 0;
   uint32_t writeOffsetInUint32 = 0;
@@ -394,45 +386,46 @@ void SvoBuilder::_createPipelines() {
 }
 
 void SvoBuilder::_recordCommandBuffers() {
-  _recordFragmentListCreationCommandBuffer();
+  // _recordFragmentListCreationCommandBuffer();
   _recordOctreeCreationCommandBuffer();
 }
 
-void SvoBuilder::_recordFragmentListCreationCommandBuffer() {
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool        = _appContext->getCommandPool();
-  allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = 1;
+// void SvoBuilder::_recordFragmentListCreationCommandBuffer() {
+//   VkCommandBufferAllocateInfo allocInfo{};
+//   allocInfo.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+//   allocInfo.commandPool        = _appContext->getCommandPool();
+//   allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+//   allocInfo.commandBufferCount = 1;
 
-  vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo,
-                           &_fragmentListCreationCommandBuffer);
+//   vkAllocateCommandBuffers(_appContext->getDevice(), &allocInfo,
+//                            &_fragmentListCreationCommandBuffer);
 
-  VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-  vkBeginCommandBuffer(_fragmentListCreationCommandBuffer, &beginInfo);
+//   VkCommandBufferBeginInfo beginInfo{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+//   vkBeginCommandBuffer(_fragmentListCreationCommandBuffer, &beginInfo);
 
-  // create the standard memory barrier
-  VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
-  shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
-  shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+//   // create the standard memory barrier
+//   VkMemoryBarrier shaderAccessBarrier = {VK_STRUCTURE_TYPE_MEMORY_BARRIER};
+//   shaderAccessBarrier.srcAccessMask   = VK_ACCESS_SHADER_WRITE_BIT;
+//   shaderAccessBarrier.dstAccessMask   = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 
-  _chunkFieldConstructionPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0,
-                                                 _chunkVoxelDim + 1, _chunkVoxelDim + 1,
-                                                 _chunkVoxelDim + 1);
+//   _chunkFieldConstructionPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0,
+//                                                  _chunkVoxelDim + 1, _chunkVoxelDim + 1,
+//                                                  _chunkVoxelDim + 1);
 
-  vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
-                       0, nullptr);
+//   vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+//                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
+//                        nullptr, 0, nullptr);
 
-  _chunkVoxelCreationPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0, _chunkVoxelDim,
-                                             _chunkVoxelDim, _chunkVoxelDim);
+//   _chunkVoxelCreationPipeline->recordCommand(_fragmentListCreationCommandBuffer, 0,
+//   _chunkVoxelDim,
+//                                              _chunkVoxelDim, _chunkVoxelDim);
 
-  vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0, nullptr,
-                       0, nullptr);
+//   vkCmdPipelineBarrier(_fragmentListCreationCommandBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+//                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &shaderAccessBarrier, 0,
+//                        nullptr, 0, nullptr);
 
-  vkEndCommandBuffer(_fragmentListCreationCommandBuffer);
-}
+//   vkEndCommandBuffer(_fragmentListCreationCommandBuffer);
+// }
 
 void SvoBuilder::_recordOctreeCreationCommandBuffer() {
   VkCommandBufferAllocateInfo allocInfo{};
