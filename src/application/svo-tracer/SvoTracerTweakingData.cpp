@@ -11,6 +11,8 @@ void SvoTracerTweakingData::_loadConfig() {
   debugB1 = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.debugB1");
   debugF1 = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.debugF1");
   debugI1 = _tomlConfigReader->getConfig<int>("SvoTracerTweakingData.debugI1");
+  
+  explosure = _tomlConfigReader->getConfig<float>("SvoTracerTweakingData.explosure");
 
   visualizeChunks  = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.visualizeChunks");
   visualizeOctree  = _tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.visualizeOctree");

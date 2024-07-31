@@ -79,7 +79,7 @@ void main() {
   vec3 hdrColor = imageLoad(taaImage, uvi).rgb;
 
   vec3 color = hdrColor;
-  color      = jodieReinhardTmo(hdrColor);
+  color      = jodieReinhardTmo(hdrColor, tweakableParametersUbo.data.explosure);
 
   // dithering pattern, to reduce banding
   color += getDitherMask(uvi);

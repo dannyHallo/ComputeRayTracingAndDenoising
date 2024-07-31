@@ -31,22 +31,22 @@ void main() {
     return;
   }
 
-  ivec3 uv = ivec3(gl_GlobalInvocationID);
+  ivec3 uvi = ivec3(gl_GlobalInvocationID);
 
   uvec3 currentlyWritingChunk = chunksInfoBuffer.data.currentlyWritingChunk;
   ivec3 chunkPosition =
       ivec3(currentlyWritingChunk) - ivec3((chunksInfoBuffer.data.chunksDim - 1) / 2);
 
   vec3 noiseLookupPos =
-      vec3(chunkPosition) + vec3(uv) / float(fragmentListInfoBuffer.data.voxelResolution);
+      vec3(chunkPosition) + vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   const float floorHeightMean = 0.0;
   const float floorChangeVar  = 2.5;
   float yPosition             = float(chunkPosition.y) - 0.5 +
-                    float(uv.y) / float(fragmentListInfoBuffer.data.voxelResolution);
+                    float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   // this step takes ~80% of the time for the entire chunk generation
   float noise = (floorHeightMean - yPosition) + floorChangeVar * computeNoise(noiseLookupPos);
 
-  imageStore(chunkFieldImage, uv, uvec4(packFloatToUint8(noise, -0.1, 0.1), 0, 0, 0));
+  imageStore(chunkFieldImage, uvi, uvec4(packFloatToUint8(noise, -0.1, 0.1), 0, 0, 0));
 }

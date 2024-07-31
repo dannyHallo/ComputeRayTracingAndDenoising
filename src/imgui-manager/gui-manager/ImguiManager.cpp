@@ -263,6 +263,8 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SliderFloat("Debug F1", &_svoTracerTweakingData->debugF1, 0.0F, 1.0F);
     ImGui::SliderInt("Debug I1", &_svoTracerTweakingData->debugI1, 0, 10);
 
+    ImGui::SliderFloat("Explosure", &_svoTracerTweakingData->explosure, 0.0F, 20.0F);
+
     ImGui::SeparatorText("Environment Parameters");
 
     ImGui::SliderFloat("Sun Altitude", &_svoTracerTweakingData->sunAltitude, 0.F, 180.F);

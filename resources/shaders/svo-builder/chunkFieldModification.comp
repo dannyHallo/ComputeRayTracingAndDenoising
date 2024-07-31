@@ -1,0 +1,21 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+#include "../include/svoBuilderDescriptorSetLayouts.glsl"
+
+#include "../include/core/packer.glsl"
+
+void main() {
+  if (any(greaterThanEqual(gl_GlobalInvocationID,
+                           ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
+    return;
+  }
+
+  ivec3 uvi = ivec3(gl_GlobalInvocationID);
+
+  float weight = unpackUint8ToFloat(imageLoad(chunkFieldImage, uvi).r, -0.1, 0.1);
+  weight -= 0.01;
+  imageStore(chunkFieldImage, uvi, uvec4(packFloatToUint8(weight, -0.1, 0.1), 0, 0, 0));
+}

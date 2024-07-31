@@ -6,8 +6,8 @@
 // tunemap operators
 // taken from: https://64.github.io/tonemapping
 // combined jodie-reinhard with exteneded reinhard (luminance tune map) for auto exposure
-vec3 jodieReinhardTmo(vec3 c) {
-  float maxWhiteLum = tweakableParametersUbo.data.debugF1 * 20.0;
+vec3 jodieReinhardTmo(vec3 c, float explosure) {
+  const float maxWhiteLum = explosure;
 
   vec3 a = c / (lum(c) + 1.0);
 
