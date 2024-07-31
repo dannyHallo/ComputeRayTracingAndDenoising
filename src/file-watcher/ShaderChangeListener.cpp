@@ -49,8 +49,8 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
 
   std::string normalizedPathToFile = _normalizePath(dir + '/' + filename);
 
-  auto it = _watchingShaderFiles.find(normalizedPathToFile);
-  if (it == _watchingShaderFiles.end()) {
+  auto it = _shaderFileNameToPipeline.find(normalizedPathToFile);
+  if (it == _shaderFileNameToPipeline.end()) {
     return;
   }
 
@@ -61,8 +61,7 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
 
   // request to block the render loop, when the render loop is blocked, the pipelines will be
   // rebuilt
-  uint32_t blockStateBits = it->second ? BlockState::kRebuildSvoBuildingPipelines
-                                       : BlockState::kRebuildSvoTracingPipelines;
+  uint32_t blockStateBits = BlockState::kShaderChanged;
   GlobalEventDispatcher::get().trigger<E_RenderLoopBlockRequest>(
       E_RenderLoopBlockRequest{blockStateBits});
 }
@@ -106,11 +105,10 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
   // then the render loop can be continued
 }
 
-void ShaderChangeListener::addWatchingItem(Pipeline *pipeline, bool needToRebuildSvo) {
+void ShaderChangeListener::addWatchingItem(Pipeline *pipeline) {
   auto const fullPathToFile = pipeline->getFullPathToShaderSourceCode();
 
   _logger->info("file added to change watch list: {}", fullPathToFile);
-  _watchingShaderFiles[fullPathToFile] = needToRebuildSvo;
 
   if (_shaderFileNameToPipeline.find(fullPathToFile) != _shaderFileNameToPipeline.end()) {
     _logger->error("shader file: {} called to be watched twice!", fullPathToFile);
@@ -123,6 +121,5 @@ void ShaderChangeListener::addWatchingItem(Pipeline *pipeline, bool needToRebuil
 void ShaderChangeListener::removeWatchingItem(Pipeline *pipeline) {
   auto const fullPathToFile = pipeline->getFullPathToShaderSourceCode();
 
-  _watchingShaderFiles.erase(fullPathToFile);
   _shaderFileNameToPipeline.erase(fullPathToFile);
 }

@@ -195,14 +195,9 @@ void Application::_mainLoop() {
     if (_blockStateBits != 0) {
       vkDeviceWaitIdle(_appContext->getDevice());
 
-      if (_blockStateBits &
-          (BlockState::kRebuildSvoTracingPipelines | BlockState::kRebuildSvoBuildingPipelines)) {
+      if (_blockStateBits & BlockState::kShaderChanged) {
         GlobalEventDispatcher::get().trigger<E_RenderLoopBlocked>();
         // then some rebuilding will happen
-
-        if (_blockStateBits & BlockState::kRebuildSvoBuildingPipelines) {
-          _buildScene();
-        }
       }
 
       if (_blockStateBits & BlockState::kWindowResized) {

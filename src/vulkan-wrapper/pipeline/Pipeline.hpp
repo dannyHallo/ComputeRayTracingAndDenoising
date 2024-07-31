@@ -19,7 +19,7 @@ public:
   Pipeline(VulkanApplicationContext *appContext, Logger *logger, Scheduler *scheduler,
            std::string fullPathToShaderSourceCode, DescriptorSetBundle *descriptorSetBundle,
            VkShaderStageFlags shaderStageFlags,
-           ShaderChangeListener *shaderChangeListener = nullptr, bool needToRebuildSvo = false);
+           ShaderChangeListener *shaderChangeListener = nullptr);
   virtual ~Pipeline();
 
   // disable copy and move

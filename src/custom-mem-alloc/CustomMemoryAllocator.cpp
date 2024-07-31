@@ -178,6 +178,15 @@ void CustomMemoryAllocator::_addFreeList(size_t offset, size_t size, FreeList *p
   prev->next = std::move(freeList);
 }
 
+void CustomMemoryAllocator::freeAll() {
+  _firstFreeList         = std::make_unique<FreeList>();
+  _firstFreeList->offset = 0;
+  _firstFreeList->size   = _poolSize;
+  _logger->info("all memory has been freed");
+
+  printStats();
+}
+
 void CustomMemoryAllocator::printStats() const {
   FreeList *current = _firstFreeList.get();
   while (current != nullptr) {
