@@ -130,7 +130,7 @@ void Application::_drawFrame() {
       //               std::to_string(outputInfo.midRayHitPos.y) + ", " +
       //               std::to_string(outputInfo.midRayHitPos.z));
 
-      // _svoBuilder->editExistingChunk({0, 0, 0});
+      _svoBuilder->editExistingChunk({0, 0, 0});
     }
   }
 

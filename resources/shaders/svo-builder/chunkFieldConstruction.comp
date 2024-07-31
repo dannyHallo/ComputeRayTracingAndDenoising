@@ -6,15 +6,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
 #include "../include/core/packer.glsl"
-#include "../include/core/perlinNoise.glsl"
-#include "../include/core/perlin3D.glsl"
-
-#include "../include/core/FastNoiseLite.glsl"
-
-
-// #define USE_PREV
-
-#ifdef USE_PREV
+#include "../include/core/cnoise.glsl"
 
 float computeNoise(vec3 p) {
   float total       = 0.0;
@@ -22,7 +14,7 @@ float computeNoise(vec3 p) {
   float frequency   = 2.0;
   float persistence = 0.4;
   float lacunarity  = 2.2;
-  int octaves       = 20;
+  int octaves       = 4;
 
   for (int i = 0; i < octaves; i++) {
     total += cnoise(p * frequency) * amplitude;
@@ -32,21 +24,6 @@ float computeNoise(vec3 p) {
 
   return total;
 }
-
-#else
-
-float computeNoise(vec3 p) {
-  fnl_state state    = fnlCreateState(1337);
-  state.fractal_type = FNL_FRACTAL_FBM;
-  state.noise_type   = FNL_NOISE_OPENSIMPLEX2;
-  state.octaves      = 20;
-  state.frequency    = 1.6;
-  state.lacunarity   = 2.2;
-  state.gain         = 0.4;
-
-  return fnlGetNoise3D(state, p.x, p.y, p.z) * 1.0;
-}
-#endif // USE_PREV
 
 void main() {
   if (any(greaterThanEqual(gl_GlobalInvocationID,

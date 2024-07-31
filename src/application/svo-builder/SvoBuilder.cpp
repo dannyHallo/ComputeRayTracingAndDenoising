@@ -64,6 +64,7 @@ void SvoBuilder::init() {
 
   // buffers
   _createBuffers(octreeBufferSize);
+  _initBufferData();
 
   // pipelines
   _createDescriptorSetBundle();
@@ -75,6 +76,8 @@ void SvoBuilder::update() {
   _recordCommandBuffers();
 
   _chunkBufferMemoryAllocator->freeAll();
+  _initBufferData();
+
   buildScene();
 }
 
@@ -417,6 +420,12 @@ void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
 
   _octreeBufferWriteOffsetBuffer = std::make_unique<Buffer>(
       sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+}
+
+void SvoBuilder::_initBufferData() {
+  // clear the chunks buffer
+  std::vector<uint32_t> chunksData(_chunkDimX * _chunkDimY * _chunkDimZ, 0);
+  _chunksBuffer->fillData(chunksData.data());
 }
 
 void SvoBuilder::_createDescriptorSetBundle() {

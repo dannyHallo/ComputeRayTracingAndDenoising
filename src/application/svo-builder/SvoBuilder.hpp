@@ -116,6 +116,7 @@ private:
   std::unique_ptr<Buffer> _fragmentListInfoBuffer;
 
   void _createBuffers(size_t octreeBufferSize);
+  void _initBufferData();
   void _resetBufferDataForNewChunkGeneration(ChunkIndex chunkIndex);
 
   /// PIPELINES
