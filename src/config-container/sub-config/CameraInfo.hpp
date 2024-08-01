@@ -1,11 +1,9 @@
 #pragma once
 
-#include <glm/glm.hpp>
-
 class TomlConfigReader;
 
 struct CameraInfo {
-  glm::vec3 initPosition{};
+  float initHeight{};
   float initYaw{};   // in euler angles
   float initPitch{}; // in euler angles
   float vFov{};
