@@ -59,7 +59,7 @@ public:
 
   void buildScene();
 
-  void editExistingChunk(ChunkIndex chunkIndex);
+  void handleCursorHit(glm::vec3 hitPos, bool isLmbPressed);
 
   Buffer *getAppendedOctreeBuffer() { return _appendedOctreeBuffer.get(); }
   Buffer *getChunkIndicesBuffer() { return _chunkIndicesBuffer.get(); }
@@ -89,9 +89,9 @@ private:
   VkCommandBuffer _octreeCreationCommandBuffer = VK_NULL_HANDLE;
 
   void _recordCommandBuffers();
-  // void _recordChunkFieldConstructionCommandBuffer();
   void _recordOctreeCreationCommandBuffer();
 
+  void _editExistingChunk(ChunkIndex chunkIndex);
   void _buildChunkFromNoise(ChunkIndex chunkIndex);
 
   /// IMAGES
@@ -106,6 +106,7 @@ private:
   std::unique_ptr<Buffer> _chunkIndicesBuffer;
   std::unique_ptr<Buffer> _appendedOctreeBuffer;
   std::unique_ptr<Buffer> _chunksInfoBuffer;
+  std::unique_ptr<Buffer> _chunkEditingInfoBuffer;
   std::unique_ptr<Buffer> _octreeBufferLengthBuffer;
   std::unique_ptr<Buffer> _octreeBufferWriteOffsetBuffer;
 

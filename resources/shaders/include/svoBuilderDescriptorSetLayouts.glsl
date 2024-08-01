@@ -32,4 +32,7 @@ octreeBufferLengthBuffer;
 layout(std430, binding = 11) buffer OctreeBufferWriteOffsetBuffer { uint data; }
 octreeBufferWriteOffsetBuffer;
 
+layout(std430, binding = 12) buffer ChunkEditingInfo { G_ChunkEditingInfo data; }
+chunkEditingInfo;
+
 #endif // SVO_BUILDER_DESCRIPTOR_SET_GLSL

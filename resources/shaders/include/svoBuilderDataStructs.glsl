@@ -6,6 +6,11 @@ struct G_ChunksInfo {
   uvec3 currentlyWritingChunk;
 };
 
+struct G_ChunkEditingInfo {
+  vec3 pos;
+  float radius;
+};
+
 struct G_FragmentListEntry {
   uint coordinates;
   uint properties;

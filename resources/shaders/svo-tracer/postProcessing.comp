@@ -87,7 +87,7 @@ void main() {
   ivec2 lowResUv = highResToLowRes(uvi);
   color += debugInfoOverwrite(lowResUv);
 
-  // color = blendWithDot(color, uvi);
+  color = blendWithDot(color, uvi);
 
   imageStore(renderTargetImage, uvi, vec4(color.bgr, 1));
 }

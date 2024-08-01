@@ -102,10 +102,9 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(ChunkIndex chunkIndex) {
   fragmentListInfo.voxelFragmentCount = 0;
   _fragmentListInfoBuffer->fillData(&fragmentListInfo);
 
-  glm::uvec3 currentlyWritingChunk{chunkIndex.x, chunkIndex.y, chunkIndex.z};
   G_ChunksInfo chunksInfo{};
   chunksInfo.chunksDim             = getChunksDim();
-  chunksInfo.currentlyWritingChunk = currentlyWritingChunk;
+  chunksInfo.currentlyWritingChunk = {chunkIndex.x, chunkIndex.y, chunkIndex.z};
   _chunksInfoBuffer->fillData(&chunksInfo);
 
   // the first 8 are not calculated, so pre-allocate them
@@ -144,7 +143,19 @@ void SvoBuilder::buildScene() {
   _chunkBufferMemoryAllocator->printStats();
 }
 
-void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
+void SvoBuilder::handleCursorHit(glm::vec3 hitPos, bool isLmbPressed) {
+  ChunkIndex chunkIndex{static_cast<uint32_t>(hitPos.x), static_cast<uint32_t>(hitPos.y),
+                        static_cast<uint32_t>(hitPos.z)};
+  // change chunk editing buffer
+  G_ChunkEditingInfo chunkEditingInfo{};
+  chunkEditingInfo.pos    = hitPos;
+  chunkEditingInfo.radius = 0.1;
+  _chunksInfoBuffer->fillData(&chunkEditingInfo);
+
+  _editExistingChunk(chunkIndex);
+}
+
+void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   _resetBufferDataForNewChunkGeneration(chunkIndex);
 
   VkCommandBuffer cmdBuffer = VK_NULL_HANDLE;
@@ -257,7 +268,7 @@ void SvoBuilder::editExistingChunk(ChunkIndex chunkIndex) {
   }
   _chunkIndexToBufferAllocResult[chunkIndex] =
       _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
-  uint32_t writeOffsetInBytes  = _chunkIndexToBufferAllocResult[chunkIndex].offset();
+  uint32_t writeOffsetInBytes = _chunkIndexToBufferAllocResult[chunkIndex].offset();
 
   // print offset in mb
   _logger->info("allocated memory from the memory pool: {} mb",
@@ -359,7 +370,7 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
   }
   _chunkIndexToBufferAllocResult[chunkIndex] =
       _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
-  uint32_t writeOffsetInBytes  = _chunkIndexToBufferAllocResult[chunkIndex].offset();
+  uint32_t writeOffsetInBytes = _chunkIndexToBufferAllocResult[chunkIndex].offset();
 
   // print offset in mb
   _logger->info("allocated memory from the memory pool: {} mb",
@@ -449,6 +460,9 @@ void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
   _chunksInfoBuffer = std::make_unique<Buffer>(
       sizeof(G_ChunksInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
+  _chunkEditingInfoBuffer = std::make_unique<Buffer>(
+      sizeof(G_ChunkEditingInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+
   _octreeBufferLengthBuffer = std::make_unique<Buffer>(
       sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
@@ -479,6 +493,7 @@ void SvoBuilder::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageBuffer(9, _chunksInfoBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(10, _octreeBufferLengthBuffer.get());
   _descriptorSetBundle->bindStorageBuffer(11, _octreeBufferWriteOffsetBuffer.get());
+  _descriptorSetBundle->bindStorageBuffer(12, _chunkEditingInfoBuffer.get());
 
   _descriptorSetBundle->create();
 }
