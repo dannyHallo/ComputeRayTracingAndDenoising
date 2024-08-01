@@ -19,6 +19,9 @@ mouseSensitivity = 0.06
 [ShadowMapCamera]
 range = 1.0
 
+[Brush]
+size = 0.1
+
 [ImguiManager]
 fontSize = 20
 

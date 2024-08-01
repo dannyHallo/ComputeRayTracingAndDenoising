@@ -1,13 +1,14 @@
 #pragma once
 
 #include "SvoTracerDataGpu.hpp"
-#include "SvoTracerTweakingData.hpp"
 #include "glm/glm.hpp" // IWYU pragma: export
 #include "scheduler/Scheduler.hpp"
 #include "volk.h"
 
 #include <memory>
 #include <vector>
+
+struct SvoTracerTweakingData;
 
 class Logger;
 class VulkanApplicationContext;
@@ -54,7 +55,7 @@ public:
   void drawFrame(size_t currentFrame);
 
   // this getter will be used for imguiManager
-  SvoTracerTweakingData &getTweakingData() { return _tweakingData; }
+  SvoTracerTweakingData *getTweakingData() { return _tweakingData.get(); }
 
   G_OutputInfo getOutputInfo();
 
@@ -67,12 +68,11 @@ private:
   Window *_window;
   std::unique_ptr<Camera> _camera;
   std::unique_ptr<ShadowMapCamera> _shadowMapCamera;
+  std::unique_ptr<SvoTracerTweakingData> _tweakingData;
 
   ShaderCompiler *_shaderCompiler;
   ShaderChangeListener *_shaderChangeListener;
   TomlConfigReader *_tomlConfigReader;
-
-  SvoTracerTweakingData _tweakingData;
 
   SvoBuilder *_svoBuilder = nullptr;
 

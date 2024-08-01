@@ -38,7 +38,7 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
 
   _windowStyle = windowStyle;
 
-  if (_cursorState == CursorState::kInvisible) {
+  if (_cursorInfo.cursorState == CursorState::kInvisible) {
     hideCursor();
   } else {
     showCursor();
@@ -113,7 +113,7 @@ void Window::setWindowStyle(WindowStyle newStyle) {
 
 void Window::showCursor() {
   glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-  _cursorState = CursorState::kVisible;
+  _cursorInfo.cursorState = CursorState::kVisible;
   glfwSetCursorPos(_window, static_cast<float>(getFrameBufferWidth()) / 2.F,
                    static_cast<float>(getFrameBufferHeight()) / 2.F);
 }
@@ -125,11 +125,11 @@ void Window::hideCursor() {
     glfwSetInputMode(_window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
   }
 
-  _cursorState = CursorState::kInvisible;
+  _cursorInfo.cursorState = CursorState::kInvisible;
 }
 
 void Window::toggleCursor() {
-  if (_cursorState == CursorState::kInvisible) {
+  if (_cursorInfo.cursorState == CursorState::kInvisible) {
     showCursor();
   } else {
     hideCursor();

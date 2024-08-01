@@ -11,7 +11,9 @@
 #include "utils/logger/Logger.hpp"
 #include "utils/shader-compiler/ShaderCompiler.hpp"
 #include "utils/toml-config/TomlConfigReader.hpp"
+#include "window/CursorInfo.hpp"
 #include "window/Window.hpp"
+
 
 #include <chrono>
 
@@ -23,7 +25,8 @@ Application::Application(Logger *logger)
       _tomlConfigReader(std::make_unique<TomlConfigReader>(_logger)) {
   _loadConfig();
 
-  _window = std::make_unique<Window>(WindowStyle::kMaximized);
+  _brushData = std::make_unique<BrushData>(_tomlConfigReader.get());
+  _window    = std::make_unique<Window>(WindowStyle::kMaximized);
 
   VulkanApplicationContext::GraphicsSettings settings{};
   settings.isFramerateLimited = _isFramerateLimited;
@@ -36,10 +39,10 @@ Application::Application(Logger *logger)
                                            _shaderCompiler.get(), _shaderFileWatchListener.get(),
                                            _tomlConfigReader.get());
 
-  _imguiManager =
-      std::make_unique<ImguiManager>(_appContext, _window.get(), _logger, _tomlConfigReader.get(),
-                                     _framesInFlight, &_svoTracer->getTweakingData());
-  _fpsSink = std::make_unique<FpsSink>();
+  _imguiManager = std::make_unique<ImguiManager>(_appContext, _window.get(), _logger,
+                                                 _tomlConfigReader.get(), _framesInFlight,
+                                                 _svoTracer->getTweakingData(), _brushData.get());
+  _fpsSink      = std::make_unique<FpsSink>();
 
   _init();
 
@@ -123,14 +126,15 @@ void Application::_drawFrame() {
   }
 
   // this is some debuging features, which are disabled for release builds
-  if (_window->getCursorInfo().leftButtonPressed) {
+  CursorInfo const &cursorInfo = _window->getCursorInfo();
+  if (cursorInfo.cursorState == CursorState::kInvisible && cursorInfo.leftButtonPressed) {
     auto outputInfo = _svoTracer->getOutputInfo();
     if (outputInfo.midRayHit) {
       // _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
       //               std::to_string(outputInfo.midRayHitPos.y) + ", " +
       //               std::to_string(outputInfo.midRayHitPos.z));
 
-      _svoBuilder->handleCursorHit(outputInfo.midRayHitPos, true);
+      _svoBuilder->handleCursorHit(outputInfo.midRayHitPos, true, _brushData.get());
     }
   }
 

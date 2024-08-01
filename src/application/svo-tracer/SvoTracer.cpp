@@ -1,6 +1,7 @@
 #include "SvoTracer.hpp"
 
 #include "../svo-builder/SvoBuilder.hpp"
+#include "SvoTracerTweakingData.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
 #include "camera/Camera.hpp"
 #include "camera/ShadowMapCamera.hpp"
@@ -67,7 +68,8 @@ SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_
                      ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader)
     : _appContext(appContext), _logger(logger), _window(window), _shaderCompiler(shaderCompiler),
       _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader),
-      _tweakingData(tomlConfigReader), _framesInFlight(framesInFlight) {
+      _framesInFlight(framesInFlight) {
+  _tweakingData    = std::make_unique<SvoTracerTweakingData>(_tomlConfigReader);
   _camera          = std::make_unique<Camera>(_window, _tomlConfigReader);
   _shadowMapCamera = std::make_unique<ShadowMapCamera>(_tomlConfigReader);
 
@@ -631,7 +633,7 @@ void SvoTracer::drawFrame(size_t currentFrame) {
 }
 
 void SvoTracer::_updateShadowMapCamera() {
-  glm::vec3 sunDir = _getSunDir(_tweakingData.sunAltitude, _tweakingData.sunAzimuth);
+  glm::vec3 sunDir = _getSunDir(_tweakingData->sunAltitude, _tweakingData->sunAzimuth);
   _shadowMapCamera->updateCameraVectors(_camera->getPosition(), sunDir);
 }
 
@@ -695,45 +697,45 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
   vpMatPrev    = vpMat;
   vpMatPrevInv = vpMatInv;
 
-  glm::vec3 sunDir = _getSunDir(_tweakingData.sunAltitude, _tweakingData.sunAzimuth);
+  glm::vec3 sunDir = _getSunDir(_tweakingData->sunAltitude, _tweakingData->sunAzimuth);
   G_EnvironmentInfo environmentInfo{};
   environmentInfo.sunDir                 = sunDir;
-  environmentInfo.rayleighScatteringBase = _tweakingData.rayleighScatteringBase;
-  environmentInfo.mieScatteringBase      = _tweakingData.mieScatteringBase;
-  environmentInfo.mieAbsorptionBase      = _tweakingData.mieAbsorptionBase;
-  environmentInfo.ozoneAbsorptionBase    = _tweakingData.ozoneAbsorptionBase;
-  environmentInfo.sunLuminance           = _tweakingData.sunLuminance;
-  environmentInfo.atmosLuminance         = _tweakingData.atmosLuminance;
-  environmentInfo.sunSize                = _tweakingData.sunSize;
+  environmentInfo.rayleighScatteringBase = _tweakingData->rayleighScatteringBase;
+  environmentInfo.mieScatteringBase      = _tweakingData->mieScatteringBase;
+  environmentInfo.mieAbsorptionBase      = _tweakingData->mieAbsorptionBase;
+  environmentInfo.ozoneAbsorptionBase    = _tweakingData->ozoneAbsorptionBase;
+  environmentInfo.sunLuminance           = _tweakingData->sunLuminance;
+  environmentInfo.atmosLuminance         = _tweakingData->atmosLuminance;
+  environmentInfo.sunSize                = _tweakingData->sunSize;
   _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
 
   G_TweakableParameters tweakableParameters{};
-  tweakableParameters.debugB1          = _tweakingData.debugB1;
-  tweakableParameters.debugF1          = _tweakingData.debugF1;
-  tweakableParameters.debugI1          = _tweakingData.debugI1;
-  tweakableParameters.explosure        = _tweakingData.explosure;
-  tweakableParameters.visualizeChunks  = _tweakingData.visualizeChunks;
-  tweakableParameters.visualizeOctree  = _tweakingData.visualizeOctree;
-  tweakableParameters.beamOptimization = _tweakingData.beamOptimization;
-  tweakableParameters.traceIndirectRay = _tweakingData.traceIndirectRay;
-  tweakableParameters.taa              = _tweakingData.taa;
+  tweakableParameters.debugB1          = _tweakingData->debugB1;
+  tweakableParameters.debugF1          = _tweakingData->debugF1;
+  tweakableParameters.debugI1          = _tweakingData->debugI1;
+  tweakableParameters.explosure        = _tweakingData->explosure;
+  tweakableParameters.visualizeChunks  = _tweakingData->visualizeChunks;
+  tweakableParameters.visualizeOctree  = _tweakingData->visualizeOctree;
+  tweakableParameters.beamOptimization = _tweakingData->beamOptimization;
+  tweakableParameters.traceIndirectRay = _tweakingData->traceIndirectRay;
+  tweakableParameters.taa              = _tweakingData->taa;
   _tweakableParametersBufferBundle->getBuffer(currentFrame)->fillData(&tweakableParameters);
 
   G_TemporalFilterInfo temporalFilterInfo{};
-  temporalFilterInfo.temporalAlpha       = _tweakingData.temporalAlpha;
-  temporalFilterInfo.temporalPositionPhi = _tweakingData.temporalPositionPhi;
+  temporalFilterInfo.temporalAlpha       = _tweakingData->temporalAlpha;
+  temporalFilterInfo.temporalPositionPhi = _tweakingData->temporalPositionPhi;
   _temporalFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&temporalFilterInfo);
 
   G_SpatialFilterInfo spatialFilterInfo{};
   spatialFilterInfo.aTrousIterationCount =
-      static_cast<uint32_t>(_tweakingData.aTrousIterationCount);
-  spatialFilterInfo.phiC                  = _tweakingData.phiC;
-  spatialFilterInfo.phiN                  = _tweakingData.phiN;
-  spatialFilterInfo.phiP                  = _tweakingData.phiP;
-  spatialFilterInfo.minPhiZ               = _tweakingData.minPhiZ;
-  spatialFilterInfo.maxPhiZ               = _tweakingData.maxPhiZ;
-  spatialFilterInfo.phiZStableSampleCount = _tweakingData.phiZStableSampleCount;
-  spatialFilterInfo.changingLuminancePhi  = _tweakingData.changingLuminancePhi;
+      static_cast<uint32_t>(_tweakingData->aTrousIterationCount);
+  spatialFilterInfo.phiC                  = _tweakingData->phiC;
+  spatialFilterInfo.phiN                  = _tweakingData->phiN;
+  spatialFilterInfo.phiP                  = _tweakingData->phiP;
+  spatialFilterInfo.minPhiZ               = _tweakingData->minPhiZ;
+  spatialFilterInfo.maxPhiZ               = _tweakingData->maxPhiZ;
+  spatialFilterInfo.phiZStableSampleCount = _tweakingData->phiZStableSampleCount;
+  spatialFilterInfo.changingLuminancePhi  = _tweakingData->changingLuminancePhi;
   _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
 
   currentSample++;

@@ -1,5 +1,7 @@
 #pragma once
 
+enum class CursorState { kInvisible, kVisible };
+
 struct CursorMoveInfo {
   bool firstMove  = true;
   double currentX = 0.F;
@@ -12,6 +14,7 @@ struct CursorMoveInfo {
 
 struct CursorInfo {
   CursorMoveInfo cursorMoveInfo = {};
+  CursorState cursorState       = CursorState::kInvisible;
   bool leftButtonPressed        = false;
   bool rightButtonPressed       = false;
   bool middleButtonPressed      = false;

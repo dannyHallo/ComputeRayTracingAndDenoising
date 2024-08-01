@@ -7,6 +7,8 @@
 #include "../imgui-backends/imgui_impl_glfw.h"
 #include "../imgui-backends/imgui_impl_vulkan.h"
 #include "app-context/VulkanApplicationContext.hpp"
+// TODO: change loc
+#include "application/BrushData.hpp"
 #include "application/svo-tracer/SvoTracerTweakingData.hpp"
 #include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
@@ -17,15 +19,15 @@
 
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
                            TomlConfigReader *tomlConfigReader, int framesInFlight,
-                           SvoTracerTweakingData *SvoTracerDataGpu)
+                           SvoTracerTweakingData *SvoTracerDataGpu, BrushData *brushData)
     : _appContext(appContext), _window(window), _logger(logger),
       _tomlConfigReader(tomlConfigReader), _framesInFlight(framesInFlight),
-      _svoTracerTweakingData(SvoTracerDataGpu), _colorPalette(std::make_unique<ColorPalette>()) {
+      _svoTracerTweakingData(SvoTracerDataGpu), _brushData(brushData),
+      _colorPalette(std::make_unique<ColorPalette>()) {
   _loadConfig();
 }
 
 ImguiManager::~ImguiManager() {
-
   for (auto &guiCommandBuffer : _guiCommandBuffers) {
     vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getGuiCommandPool(), 1,
                          &guiCommandBuffer);
@@ -266,6 +268,9 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SliderInt("Debug I1", &_svoTracerTweakingData->debugI1, 0, 10);
 
     ///
+
+    ImGui::SeparatorText("Brush");
+    ImGui::SliderFloat("Brush Size", &_brushData->size, 0.0F, 1.0F);
 
     ImGui::SeparatorText("Atmos");
     ImGui::SliderFloat("Sun Altitude", &_svoTracerTweakingData->sunAltitude, 0.F, 180.F);

@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+struct BrushData;
 struct SvoTracerTweakingData;
 
 class FpsGui;
@@ -20,7 +21,7 @@ class ImguiManager {
 public:
   ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
                TomlConfigReader *tomlConfigReader, int framesInFlight,
-               SvoTracerTweakingData *SvoTracerDataGpu);
+               SvoTracerTweakingData *SvoTracerDataGpu, BrushData *brushData);
   ~ImguiManager();
 
   // delete copy and move
@@ -51,6 +52,7 @@ private:
   bool _showFpsGraph = false;
 
   SvoTracerTweakingData *_svoTracerTweakingData;
+  BrushData *_brushData;
 
   // config
   float _fontSize{};

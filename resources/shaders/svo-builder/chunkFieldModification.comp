@@ -33,7 +33,10 @@ void main() {
     return;
   }
 
-  float weightDecay = (1 - smoothstep(0.0, radius, distance)) * 0.001;
+  float weightDecay01 = 1 - smoothstep(0.0, radius, distance);
+  weightDecay01 = pow(weightDecay01, 4.0);
+  float weightDecay = mix(0.0, 0.001, weightDecay01);
+  // float weightDecay = mix(0.0, 0.001, radius - distance);
 
   float weight = unpackUint8ToFloat(imageLoad(chunkFieldImage, uvi).r, -0.1, 0.1);
   weight -= weightDecay;

@@ -2,9 +2,9 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
+#include "BrushData.hpp"
 #include "utils/event-types/EventType.hpp"
 #include "utils/logger/Logger.hpp"
-#include "window/CursorInfo.hpp"
 #include "window/KeyboardInfo.hpp"
 
 #include <memory>
@@ -44,6 +44,8 @@ private:
   bool _isFramerateLimited{};
   void _loadConfig();
 
+  std::unique_ptr<BrushData> _brushData;
+
   std::unique_ptr<FpsSink> _fpsSink;
   std::unique_ptr<ImguiManager> _imguiManager;
   std::unique_ptr<Window> _window;
@@ -62,7 +64,6 @@ private:
   // BlockState _blockState = BlockState::kUnblocked;
   uint32_t _blockStateBits = 0;
 
-  void _syncMouseInfo(CursorMoveInfo const &mouseInfo);
   void _applicationKeyboardCallback(KeyboardInfo const &keyboardInfo);
 
   void _createSemaphoresAndFences();

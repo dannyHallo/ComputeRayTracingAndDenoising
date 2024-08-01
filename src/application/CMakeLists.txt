@@ -4,6 +4,7 @@ add_library(src-application STATIC
     svo-tracer/SvoTracer.cpp
     svo-tracer/SvoTracerTweakingData.cpp
     Application.cpp
+    BrushData.cpp
 )
 
 target_include_directories(src-application PRIVATE

@@ -9,7 +9,8 @@
 #include <memory>
 #include <unordered_map>
 
-struct VoxData;
+// struct VoxData;
+struct BrushData;
 
 class DescriptorSetBundle;
 class ComputePipeline;
@@ -59,7 +60,7 @@ public:
 
   void buildScene();
 
-  void handleCursorHit(glm::vec3 hitPos, bool isLmbPressed);
+  void handleCursorHit(glm::vec3 hitPos, bool isLmbPressed, BrushData *brushData);
 
   Buffer *getAppendedOctreeBuffer() { return _appendedOctreeBuffer.get(); }
   Buffer *getChunkIndicesBuffer() { return _chunkIndicesBuffer.get(); }

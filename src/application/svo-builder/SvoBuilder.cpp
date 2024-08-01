@@ -2,6 +2,7 @@
 
 #include "VoxLoader.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
+#include "application/BrushData.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/io/ShaderFileReader.hpp"
@@ -15,8 +16,6 @@
 
 #include <chrono>
 #include <cmath>
-
-// TODO: change 3D image into a flattened storage buffer, to support 1x1x1 chunk
 
 namespace {
 
@@ -143,14 +142,14 @@ void SvoBuilder::buildScene() {
   _chunkBufferMemoryAllocator->printStats();
 }
 
-void SvoBuilder::handleCursorHit(glm::vec3 hitPos, bool isLmbPressed) {
+void SvoBuilder::handleCursorHit(glm::vec3 hitPos, bool isLmbPressed, BrushData *brushData) {
   ChunkIndex chunkIndex{static_cast<uint32_t>(hitPos.x), static_cast<uint32_t>(hitPos.y),
                         static_cast<uint32_t>(hitPos.z)};
   // change chunk editing buffer
   G_ChunkEditingInfo chunkEditingInfo{};
   chunkEditingInfo.pos    = hitPos;
-  chunkEditingInfo.radius = 0.1;
-  _chunksInfoBuffer->fillData(&chunkEditingInfo);
+  chunkEditingInfo.radius = brushData->size;
+  _chunkEditingInfoBuffer->fillData(&chunkEditingInfo);
 
   _editExistingChunk(chunkIndex);
 }

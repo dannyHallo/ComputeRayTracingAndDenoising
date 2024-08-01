@@ -15,7 +15,6 @@
 #include <vector>
 
 enum class WindowStyle { kNone, kFullScreen, kMaximized, kHover };
-enum class CursorState { kNone, kInvisible, kVisible };
 
 class Window {
 public:
@@ -32,7 +31,7 @@ public:
   [[nodiscard]] GLFWmonitor *getMonitor() const { return _monitor; }
 
   [[nodiscard]] WindowStyle getWindowStyle() const { return _windowStyle; }
-  [[nodiscard]] CursorState getCursorState() const { return _cursorState; }
+  [[nodiscard]] CursorState getCursorState() const { return _cursorInfo.cursorState; }
 
   // be careful to use these two functions, you might want to query the
   // framebuffer size, not the window size
@@ -95,7 +94,6 @@ public:
 
 private:
   WindowStyle _windowStyle = WindowStyle::kNone;
-  CursorState _cursorState = CursorState::kInvisible;
 
   int _widthIfWindowed;
   int _heightIfWindowed;
