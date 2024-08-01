@@ -4,8 +4,7 @@
 
 class TomlConfigReader;
 
-struct SvoTracerTweakingData {
-  SvoTracerTweakingData(TomlConfigReader *tomlConfigReader);
+struct SvoTracerTweakingInfo {
   // debug parameters
   bool debugB1{};
   float debugF1{};
@@ -45,8 +44,5 @@ struct SvoTracerTweakingData {
   float phiZStableSampleCount{};
   bool changingLuminancePhi{};
 
-private:
-  TomlConfigReader *_tomlConfigReader;
-
-  void _loadConfig();
+  void loadConfig(TomlConfigReader *tomlConfigReader);
 };

@@ -8,7 +8,7 @@
       "name": "debug using C/C++ extension",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/apps/voxel-lab.exe"
+      "program": "${workspaceFolder}/build/Debug/apps/run.exe"
     }
   ]
 }

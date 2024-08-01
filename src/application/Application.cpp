@@ -3,6 +3,9 @@
 #include "svo-builder/SvoBuilder.hpp"
 #include "svo-tracer/SvoTracer.hpp"
 
+#include "config-container/ConfigContainer.hpp"
+#include "config-container/sub-config/ApplicationInfo.hpp"
+
 #include "BlockState.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "imgui-manager/gui-manager/ImguiManager.hpp"
@@ -10,10 +13,8 @@
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
 #include "utils/shader-compiler/ShaderCompiler.hpp"
-#include "utils/toml-config/TomlConfigReader.hpp"
 #include "window/CursorInfo.hpp"
 #include "window/Window.hpp"
-
 
 #include <chrono>
 
@@ -21,28 +22,25 @@
 Application::Application(Logger *logger)
     : _appContext(VulkanApplicationContext::getInstance()), _logger(logger),
       _shaderCompiler(std::make_unique<ShaderCompiler>(logger)),
-      _shaderFileWatchListener(std::make_unique<ShaderChangeListener>(_logger)),
-      _tomlConfigReader(std::make_unique<TomlConfigReader>(_logger)) {
-  _loadConfig();
+      _shaderFileWatchListener(std::make_unique<ShaderChangeListener>(_logger)) {
+  _configContainer = std::make_unique<ConfigContainer>(_logger);
 
-  _brushData = std::make_unique<BrushData>(_tomlConfigReader.get());
-  _window    = std::make_unique<Window>(WindowStyle::kMaximized);
+  _window = std::make_unique<Window>(WindowStyle::kMaximized);
 
   VulkanApplicationContext::GraphicsSettings settings{};
-  settings.isFramerateLimited = _isFramerateLimited;
+  settings.isFramerateLimited = _configContainer->applicationInfo->isFramerateLimited;
   _appContext->init(_logger, _window->getGlWindow(), &settings);
 
   _svoBuilder =
       std::make_unique<SvoBuilder>(_appContext, _logger, _shaderCompiler.get(),
-                                   _shaderFileWatchListener.get(), _tomlConfigReader.get());
-  _svoTracer = std::make_unique<SvoTracer>(_appContext, _logger, _framesInFlight, _window.get(),
-                                           _shaderCompiler.get(), _shaderFileWatchListener.get(),
-                                           _tomlConfigReader.get());
+                                   _shaderFileWatchListener.get(), _configContainer.get());
+  _svoTracer = std::make_unique<SvoTracer>(
+      _appContext, _logger, _configContainer->applicationInfo->framesInFlight, _window.get(),
+      _shaderCompiler.get(), _shaderFileWatchListener.get(), _configContainer.get());
 
-  _imguiManager = std::make_unique<ImguiManager>(_appContext, _window.get(), _logger,
-                                                 _tomlConfigReader.get(), _framesInFlight,
-                                                 _svoTracer->getTweakingData(), _brushData.get());
-  _fpsSink      = std::make_unique<FpsSink>();
+  _imguiManager =
+      std::make_unique<ImguiManager>(_appContext, _window.get(), _logger, _configContainer.get());
+  _fpsSink = std::make_unique<FpsSink>();
 
   _init();
 
@@ -53,11 +51,6 @@ Application::Application(Logger *logger)
 
 Application::~Application() { GlobalEventDispatcher::get().disconnect<>(this); }
 
-void Application::_loadConfig() {
-  _framesInFlight     = _tomlConfigReader->getConfig<uint32_t>("Application.framesInFlight");
-  _isFramerateLimited = _tomlConfigReader->getConfig<bool>("Application.isFramerateLimited");
-}
-
 void Application::run() {
   _mainLoop();
   _cleanup();
@@ -66,7 +59,7 @@ void Application::run() {
 void Application::_cleanup() {
   _logger->info("application is cleaning up resources...");
 
-  for (size_t i = 0; i < _framesInFlight; i++) {
+  for (size_t i = 0; i < _configContainer->applicationInfo->framesInFlight; i++) {
     vkDestroySemaphore(_appContext->getDevice(), _renderFinishedSemaphores[i], nullptr);
     vkDestroySemaphore(_appContext->getDevice(), _imageAvailableSemaphores[i], nullptr);
     vkDestroyFence(_appContext->getDevice(), _framesInFlightFences[i], nullptr);
@@ -78,22 +71,22 @@ void Application::_onRenderLoopBlockRequest(E_RenderLoopBlockRequest const &even
 }
 
 void Application::_onSwapchainResize() {
-  _appContext->onSwapchainResize(_isFramerateLimited);
+  _appContext->onSwapchainResize(_configContainer->applicationInfo->isFramerateLimited);
   _imguiManager->onSwapchainResize();
   _svoTracer->onSwapchainResize();
 }
 
 void Application::_createSemaphoresAndFences() {
-  _imageAvailableSemaphores.resize(_framesInFlight);
-  _renderFinishedSemaphores.resize(_framesInFlight);
-  _framesInFlightFences.resize(_framesInFlight);
+  _imageAvailableSemaphores.resize(_configContainer->applicationInfo->framesInFlight);
+  _renderFinishedSemaphores.resize(_configContainer->applicationInfo->framesInFlight);
+  _framesInFlightFences.resize(_configContainer->applicationInfo->framesInFlight);
 
   VkSemaphoreCreateInfo semaphoreInfo{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
   VkFenceCreateInfo fenceCreateInfoPreSignalled{VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
   fenceCreateInfoPreSignalled.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  for (size_t i = 0; i < _framesInFlight; i++) {
+  for (size_t i = 0; i < _configContainer->applicationInfo->framesInFlight; i++) {
     vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
                       &_imageAvailableSemaphores[i]);
     vkCreateSemaphore(_appContext->getDevice(), &semaphoreInfo, nullptr,
@@ -134,7 +127,7 @@ void Application::_drawFrame() {
       //               std::to_string(outputInfo.midRayHitPos.y) + ", " +
       //               std::to_string(outputInfo.midRayHitPos.z));
 
-      _svoBuilder->handleCursorHit(outputInfo.midRayHitPos, true, _brushData.get());
+      _svoBuilder->handleCursorHit(outputInfo.midRayHitPos, true);
     }
   }
 
@@ -175,7 +168,7 @@ void Application::_drawFrame() {
 
   vkQueuePresentKHR(_appContext->getPresentQueue(), &presentInfo);
 
-  currentFrame = (currentFrame + 1) % _framesInFlight;
+  currentFrame = (currentFrame + 1) % _configContainer->applicationInfo->framesInFlight;
 }
 
 void Application::_waitForTheWindowToBeResumed() {

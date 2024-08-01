@@ -7,25 +7,23 @@
 #include "../imgui-backends/imgui_impl_glfw.h"
 #include "../imgui-backends/imgui_impl_vulkan.h"
 #include "app-context/VulkanApplicationContext.hpp"
-// TODO: change loc
-#include "application/BrushData.hpp"
-#include "application/svo-tracer/SvoTracerTweakingData.hpp"
 #include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
-#include "utils/toml-config/TomlConfigReader.hpp"
 #include "window/Window.hpp"
 
+#include "config-container/ConfigContainer.hpp"
+#include "config-container/sub-config/ApplicationInfo.hpp"
+#include "config-container/sub-config/BrushInfo.hpp"
+#include "config-container/sub-config/ImguiManagerInfo.hpp"
+#include "config-container/sub-config/SvoTracerTweakingInfo.hpp"
+
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
-                           TomlConfigReader *tomlConfigReader, int framesInFlight,
-                           SvoTracerTweakingData *SvoTracerDataGpu, BrushData *brushData)
-    : _appContext(appContext), _window(window), _logger(logger),
-      _tomlConfigReader(tomlConfigReader), _framesInFlight(framesInFlight),
-      _svoTracerTweakingData(SvoTracerDataGpu), _brushData(brushData),
-      _colorPalette(std::make_unique<ColorPalette>()) {
-  _loadConfig();
-}
+                           ConfigContainer *configContainer)
+    : _appContext(appContext), _window(window), _logger(logger), _configContainer(configContainer),
+      _framesInFlight(configContainer->applicationInfo->framesInFlight),
+      _colorPalette(std::make_unique<ColorPalette>()) {}
 
 ImguiManager::~ImguiManager() {
   for (auto &guiCommandBuffer : _guiCommandBuffers) {
@@ -44,10 +42,6 @@ ImguiManager::~ImguiManager() {
 
   ImPlot::DestroyContext();
   ImGui::DestroyContext();
-}
-
-void ImguiManager::_loadConfig() {
-  _fontSize = _tomlConfigReader->getConfig<float>("ImguiManager.fontSize");
 }
 
 void ImguiManager::_buildColorPalette() {
@@ -86,7 +80,7 @@ void ImguiManager::init() {
 
   ImGuiIO &io = ImGui::GetIO();
   io.Fonts->AddFontFromFileTTF((kPathToResourceFolder + "/fonts/editundo/editundo.ttf").c_str(),
-                               _fontSize);
+                               _configContainer->imguiManagerInfo->fontSize);
 
   io.ConfigFlags |= ImGuiWindowFlags_NoNavInputs;
 
@@ -262,52 +256,51 @@ void ImguiManager::_drawConfigMenuItem() {
 
     ///
 
+    auto &stti = _configContainer->svoTracerTweakingInfo;
+    auto &bi   = _configContainer->brushInfo;
+
     ImGui::SeparatorText("Debug");
-    ImGui::Checkbox("Debug B1", &_svoTracerTweakingData->debugB1);
-    ImGui::SliderFloat("Debug F1", &_svoTracerTweakingData->debugF1, 0.0F, 1.0F);
-    ImGui::SliderInt("Debug I1", &_svoTracerTweakingData->debugI1, 0, 10);
+    ImGui::Checkbox("Debug B1", &stti->debugB1);
+    ImGui::SliderFloat("Debug F1", &stti->debugF1, 0.0F, 1.0F);
+    ImGui::SliderInt("Debug I1", &stti->debugI1, 0, 10);
 
     ///
 
     ImGui::SeparatorText("Brush");
-    ImGui::SliderFloat("Brush Size", &_brushData->size, 0.0F, 1.0F);
+    ImGui::SliderFloat("Brush Size", &bi->size, 0.0F, 1.0F);
 
     ImGui::SeparatorText("Atmos");
-    ImGui::SliderFloat("Sun Altitude", &_svoTracerTweakingData->sunAltitude, 0.F, 180.F);
-    ImGui::SliderFloat("Sun Azimuth", &_svoTracerTweakingData->sunAzimuth, -180.F, 180.F);
-    ImGui::InputFloat3("Rayleigh Scattering Base",
-                       &_svoTracerTweakingData->rayleighScatteringBase.x);
-    ImGui::SliderFloat("Mie Scattering Base", &_svoTracerTweakingData->mieScatteringBase, 0.0F,
-                       10.0F);
-    ImGui::SliderFloat("Mie Absorption Base", &_svoTracerTweakingData->mieAbsorptionBase, 0.0F,
-                       10.0F);
-    ImGui::InputFloat3("Ozone Absorption Base", &_svoTracerTweakingData->ozoneAbsorptionBase.x);
-    ImGui::SliderFloat("Sun Luminance", &_svoTracerTweakingData->sunLuminance, 0.0F, 10.0F);
-    ImGui::SliderFloat("Atmos Luminance", &_svoTracerTweakingData->atmosLuminance, 0.0F, 10.0F);
-    ImGui::SliderFloat("Sun Size", &_svoTracerTweakingData->sunSize, 0.0F, 100.0F);
+    ImGui::SliderFloat("Sun Altitude", &stti->sunAltitude, 0.F, 180.F);
+    ImGui::SliderFloat("Sun Azimuth", &stti->sunAzimuth, -180.F, 180.F);
+    ImGui::InputFloat3("Rayleigh Scattering Base", &stti->rayleighScatteringBase.x);
+    ImGui::SliderFloat("Mie Scattering Base", &stti->mieScatteringBase, 0.0F, 10.0F);
+    ImGui::SliderFloat("Mie Absorption Base", &stti->mieAbsorptionBase, 0.0F, 10.0F);
+    ImGui::InputFloat3("Ozone Absorption Base", &stti->ozoneAbsorptionBase.x);
+    ImGui::SliderFloat("Sun Luminance", &stti->sunLuminance, 0.0F, 10.0F);
+    ImGui::SliderFloat("Atmos Luminance", &stti->atmosLuminance, 0.0F, 10.0F);
+    ImGui::SliderFloat("Sun Size", &stti->sunSize, 0.0F, 100.0F);
 
     ///
 
     ImGui::SeparatorText("Tracing");
-    ImGui::Checkbox("Visualize Chunks", &_svoTracerTweakingData->visualizeChunks);
-    ImGui::Checkbox("Visualize Octree", &_svoTracerTweakingData->visualizeOctree);
-    ImGui::Checkbox("Beam Optimization", &_svoTracerTweakingData->beamOptimization);
-    ImGui::Checkbox("Trace Indirect Ray", &_svoTracerTweakingData->traceIndirectRay);
+    ImGui::Checkbox("Visualize Chunks", &stti->visualizeChunks);
+    ImGui::Checkbox("Visualize Octree", &stti->visualizeOctree);
+    ImGui::Checkbox("Beam Optimization", &stti->beamOptimization);
+    ImGui::Checkbox("Trace Indirect Ray", &stti->traceIndirectRay);
 
     ///
 
     ImGui::SeparatorText("Filtering");
-    ImGui::Checkbox("TAA", &_svoTracerTweakingData->taa);
-    ImGui::SliderFloat("Temporal Alpha", &_svoTracerTweakingData->temporalAlpha, 0.0F, 1.0F);
-    ImGui::SliderInt("A-Trous Iteration Count", &_svoTracerTweakingData->aTrousIterationCount, 0,
-                     5);
-    ImGui::SliderFloat("Phi Z - Far End", &_svoTracerTweakingData->minPhiZ, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Z - Near End", &_svoTracerTweakingData->maxPhiZ, 0.0F, 1.0F);
+    ImGui::Checkbox("TAA", &stti->taa);
+    ImGui::SliderFloat("Temporal Alpha", &stti->temporalAlpha, 0.0F, 1.0F);
+    ImGui::SliderInt("A-Trous Iteration Count", &stti->aTrousIterationCount, 0, 5);
+    ImGui::SliderFloat("Phi Z - Far End", &stti->minPhiZ, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Z - Near End", &stti->maxPhiZ, 0.0F, 1.0F);
 
     ///
 
     ImGui::SeparatorText("Post Processing");
-    ImGui::SliderFloat("Explosure", &_svoTracerTweakingData->explosure, 0.0F, 20.0F);
+    ImGui::SliderFloat("Explosure", &stti->explosure, 0.0F, 20.0F);
 
     ///
 
@@ -339,7 +332,6 @@ void ImguiManager::_drawFpsMenuItem(double fpsInTimeBucket) {
 void ImguiManager::_syncMousePosition() {
   auto &io = ImGui::GetIO();
 
-  // TODO: query for the info directly from the window class
   // the mousePos is not synced correctly when the window is not focused
   // so we set it manually here
   io.MousePos = ImVec2(static_cast<float>(_window->getCursorXPos()),

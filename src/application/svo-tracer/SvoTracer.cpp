@@ -1,20 +1,23 @@
 #include "SvoTracer.hpp"
 
 #include "../svo-builder/SvoBuilder.hpp"
-#include "SvoTracerTweakingData.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
 #include "camera/Camera.hpp"
 #include "camera/ShadowMapCamera.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/io/ShaderFileReader.hpp"
-#include "utils/toml-config/TomlConfigReader.hpp"
+#include "utils/logger/Logger.hpp"
 #include "vulkan-wrapper/descriptor-set/DescriptorSetBundle.hpp"
 #include "vulkan-wrapper/memory/Buffer.hpp"
 #include "vulkan-wrapper/memory/BufferBundle.hpp"
 #include "vulkan-wrapper/memory/Image.hpp"
 #include "vulkan-wrapper/pipeline/ComputePipeline.hpp"
 #include "vulkan-wrapper/sampler/Sampler.hpp"
+
+#include "config-container/ConfigContainer.hpp"
+#include "config-container/sub-config/SvoTracerInfo.hpp"
+#include "config-container/sub-config/SvoTracerTweakingInfo.hpp"
 
 #include <string>
 
@@ -65,15 +68,13 @@ glm::vec3 _getSunDir(float sunAltitude, float sunAzimuth) {
 
 SvoTracer::SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
                      Window *window, ShaderCompiler *shaderCompiler,
-                     ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader)
+                     ShaderChangeListener *shaderChangeListener, ConfigContainer *configContainer)
     : _appContext(appContext), _logger(logger), _window(window), _shaderCompiler(shaderCompiler),
-      _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader),
+      _shaderChangeListener(shaderChangeListener), _configContainer(configContainer),
       _framesInFlight(framesInFlight) {
-  _tweakingData    = std::make_unique<SvoTracerTweakingData>(_tomlConfigReader);
-  _camera          = std::make_unique<Camera>(_window, _tomlConfigReader);
-  _shadowMapCamera = std::make_unique<ShadowMapCamera>(_tomlConfigReader);
+  _camera          = std::make_unique<Camera>(_window, configContainer);
+  _shadowMapCamera = std::make_unique<ShadowMapCamera>(configContainer);
 
-  _loadConfig();
   _updateImageResolutions();
 }
 
@@ -84,23 +85,16 @@ SvoTracer::~SvoTracer() {
   }
 }
 
-void SvoTracer::_loadConfig() {
-  _aTrousSizeMax  = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.aTrousSizeMax");
-  _beamResolution = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.beamResolution");
-  _taaSamplingOffsetSize =
-      _tomlConfigReader->getConfig<uint32_t>("SvoTracer.taaSamplingOffsetSize");
-  _shadowMapResolution = _tomlConfigReader->getConfig<uint32_t>("SvoTracer.shadowMapResolution");
-  _upscaleRatio        = _tomlConfigReader->getConfig<float>("SvoTracer.upscaleRatio");
-}
-
 void SvoTracer::processInput(double deltaTime) { _camera->processInput(deltaTime); }
 
 void SvoTracer::_updateImageResolutions() {
   _highResWidth  = _appContext->getSwapchainExtentWidth();
   _highResHeight = _appContext->getSwapchainExtentHeight();
 
-  _lowResWidth  = static_cast<uint32_t>(_highResWidth / _upscaleRatio);
-  _lowResHeight = static_cast<uint32_t>(_highResHeight / _upscaleRatio);
+  _lowResWidth =
+      static_cast<uint32_t>(_highResWidth / _configContainer->svoTracerInfo->upscaleRatio);
+  _lowResHeight =
+      static_cast<uint32_t>(_highResHeight / _configContainer->svoTracerInfo->upscaleRatio);
 
   _logger->info("target res: {}x{}", _highResWidth, _highResHeight);
   _logger->info("rendering res: {}x{}", _lowResWidth, _lowResHeight);
@@ -150,8 +144,8 @@ void SvoTracer::onSwapchainResize() {
 }
 
 void SvoTracer::_createTaaSamplingOffsets() {
-  _subpixOffsets.resize(_taaSamplingOffsetSize);
-  for (int i = 0; i < _taaSamplingOffsetSize; i++) {
+  _subpixOffsets.resize(_configContainer->svoTracerInfo->taaSamplingOffsetSize);
+  for (int i = 0; i < _configContainer->svoTracerInfo->taaSamplingOffsetSize; i++) {
     _subpixOffsets[i] = {halton(2, i + 1) - 0.5F, halton(3, i + 1) - 0.5F};
     // _subpixOffsets[i] = {0, 0};
   }
@@ -227,8 +221,10 @@ void SvoTracer::_createSkyLutImages() {
 
 void SvoTracer::_createShadowMapImage() {
   _shadowMapImage = std::make_unique<Image>(
-      ImageDimensions{_shadowMapResolution, _shadowMapResolution}, VK_FORMAT_R32_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _defaultSampler->getVkSampler());
+      ImageDimensions{_configContainer->svoTracerInfo->shadowMapResolution,
+                      _configContainer->svoTracerInfo->shadowMapResolution},
+      VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+      _defaultSampler->getVkSampler());
 }
 
 // https://docs.vulkan.org/spec/latest/chapters/formats.html
@@ -239,12 +235,15 @@ void SvoTracer::_createFullSizedImages() {
 
   // w = 16 -> 3, w = 17 -> 4
   _beamDepthImage = std::make_unique<Image>(
-      ImageDimensions{static_cast<uint32_t>(std::ceil(static_cast<float>(_lowResWidth) /
-                                                      static_cast<float>(_beamResolution)) +
-                                            1),
-                      static_cast<uint32_t>(std::ceil(static_cast<float>(_lowResHeight) /
-                                                      static_cast<float>(_beamResolution)) +
-                                            1)},
+      ImageDimensions{
+          static_cast<uint32_t>(
+              std::ceil(static_cast<float>(_lowResWidth) /
+                        static_cast<float>(_configContainer->svoTracerInfo->beamResolution)) +
+              1),
+          static_cast<uint32_t>(
+              std::ceil(static_cast<float>(_lowResHeight) /
+                        static_cast<float>(_configContainer->svoTracerInfo->beamResolution)) +
+              1)},
       VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _rawImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
@@ -383,8 +382,8 @@ void SvoTracer::_createBuffersAndBufferBundles() {
       MemoryStyle::kDedicated);
 
   _aTrousIterationStagingBuffers.clear();
-  _aTrousIterationStagingBuffers.reserve(_aTrousSizeMax);
-  for (int i = 0; i < _aTrousSizeMax; i++) {
+  _aTrousIterationStagingBuffers.reserve(_configContainer->svoTracerInfo->aTrousSizeMax);
+  for (int i = 0; i < _configContainer->svoTracerInfo->aTrousSizeMax; i++) {
     _aTrousIterationStagingBuffers.emplace_back(std::make_unique<Buffer>(
         sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryStyle::kDedicated));
   }
@@ -415,11 +414,11 @@ void SvoTracer::_createBuffersAndBufferBundles() {
 }
 
 void SvoTracer::_initBufferData() {
-  G_SceneInfo sceneData = {_beamResolution, _svoBuilder->getVoxelLevelCount(),
-                           _svoBuilder->getChunksDim()};
+  G_SceneInfo sceneData = {_configContainer->svoTracerInfo->beamResolution,
+                           _svoBuilder->getVoxelLevelCount(), _svoBuilder->getChunksDim()};
   _sceneInfoBuffer->fillData(&sceneData);
 
-  for (uint32_t i = 0; i < _aTrousSizeMax; i++) {
+  for (uint32_t i = 0; i < _configContainer->svoTracerInfo->aTrousSizeMax; i++) {
     uint32_t aTrousIteration = i;
     _aTrousIterationStagingBuffers[i]->fillData(&aTrousIteration);
   }
@@ -491,8 +490,9 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    _shadowMapPipeline->recordCommand(cmdBuffer, frameIndex, _shadowMapResolution,
-                                      _shadowMapResolution, 1);
+    _shadowMapPipeline->recordCommand(cmdBuffer, frameIndex,
+                                      _configContainer->svoTracerInfo->shadowMapResolution,
+                                      _configContainer->svoTracerInfo->shadowMapResolution, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
@@ -501,10 +501,12 @@ void SvoTracer::_recordRenderingCommandBuffers() {
     _svoCourseBeamPipeline->recordCommand(
         cmdBuffer, frameIndex,
         static_cast<uint32_t>(
-            std::ceil(static_cast<float>(_lowResWidth) / static_cast<float>(_beamResolution))) +
+            std::ceil(static_cast<float>(_lowResWidth) /
+                      static_cast<float>(_configContainer->svoTracerInfo->beamResolution))) +
             1,
         static_cast<uint32_t>(
-            std::ceil(static_cast<float>(_lowResHeight) / static_cast<float>(_beamResolution))) +
+            std::ceil(static_cast<float>(_lowResHeight) /
+                      static_cast<float>(_configContainer->svoTracerInfo->beamResolution))) +
             1,
         1);
 
@@ -524,7 +526,7 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
                          nullptr);
 
-    for (int i = 0; i < _aTrousSizeMax; i++) {
+    for (int i = 0; i < _configContainer->svoTracerInfo->aTrousSizeMax; i++) {
       VkBufferCopy bufCopy = {
           0,                                 // srcOffset
           0,                                 // dstOffset,
@@ -633,7 +635,8 @@ void SvoTracer::drawFrame(size_t currentFrame) {
 }
 
 void SvoTracer::_updateShadowMapCamera() {
-  glm::vec3 sunDir = _getSunDir(_tweakingData->sunAltitude, _tweakingData->sunAzimuth);
+  glm::vec3 sunDir = _getSunDir(_configContainer->svoTracerTweakingInfo->sunAltitude,
+                                _configContainer->svoTracerTweakingInfo->sunAzimuth);
   _shadowMapCamera->updateCameraVectors(_camera->getPosition(), sunDir);
 }
 
@@ -665,7 +668,7 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
   G_RenderInfo renderInfo = {
       _camera->getPosition(),
       _shadowMapCamera->getPosition(),
-      _subpixOffsets[currentSample % _taaSamplingOffsetSize],
+      _subpixOffsets[currentSample % _configContainer->svoTracerInfo->taaSamplingOffsetSize],
       vMat,
       vMatInv,
       vMatPrev,
@@ -697,45 +700,45 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
   vpMatPrev    = vpMat;
   vpMatPrevInv = vpMatInv;
 
-  glm::vec3 sunDir = _getSunDir(_tweakingData->sunAltitude, _tweakingData->sunAzimuth);
+  SvoTracerTweakingInfo const &td = *_configContainer->svoTracerTweakingInfo;
+  glm::vec3 sunDir                = _getSunDir(td.sunAltitude, td.sunAzimuth);
   G_EnvironmentInfo environmentInfo{};
   environmentInfo.sunDir                 = sunDir;
-  environmentInfo.rayleighScatteringBase = _tweakingData->rayleighScatteringBase;
-  environmentInfo.mieScatteringBase      = _tweakingData->mieScatteringBase;
-  environmentInfo.mieAbsorptionBase      = _tweakingData->mieAbsorptionBase;
-  environmentInfo.ozoneAbsorptionBase    = _tweakingData->ozoneAbsorptionBase;
-  environmentInfo.sunLuminance           = _tweakingData->sunLuminance;
-  environmentInfo.atmosLuminance         = _tweakingData->atmosLuminance;
-  environmentInfo.sunSize                = _tweakingData->sunSize;
+  environmentInfo.rayleighScatteringBase = td.rayleighScatteringBase;
+  environmentInfo.mieScatteringBase      = td.mieScatteringBase;
+  environmentInfo.mieAbsorptionBase      = td.mieAbsorptionBase;
+  environmentInfo.ozoneAbsorptionBase    = td.ozoneAbsorptionBase;
+  environmentInfo.sunLuminance           = td.sunLuminance;
+  environmentInfo.atmosLuminance         = td.atmosLuminance;
+  environmentInfo.sunSize                = td.sunSize;
   _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
 
   G_TweakableParameters tweakableParameters{};
-  tweakableParameters.debugB1          = _tweakingData->debugB1;
-  tweakableParameters.debugF1          = _tweakingData->debugF1;
-  tweakableParameters.debugI1          = _tweakingData->debugI1;
-  tweakableParameters.explosure        = _tweakingData->explosure;
-  tweakableParameters.visualizeChunks  = _tweakingData->visualizeChunks;
-  tweakableParameters.visualizeOctree  = _tweakingData->visualizeOctree;
-  tweakableParameters.beamOptimization = _tweakingData->beamOptimization;
-  tweakableParameters.traceIndirectRay = _tweakingData->traceIndirectRay;
-  tweakableParameters.taa              = _tweakingData->taa;
+  tweakableParameters.debugB1          = td.debugB1;
+  tweakableParameters.debugF1          = td.debugF1;
+  tweakableParameters.debugI1          = td.debugI1;
+  tweakableParameters.explosure        = td.explosure;
+  tweakableParameters.visualizeChunks  = td.visualizeChunks;
+  tweakableParameters.visualizeOctree  = td.visualizeOctree;
+  tweakableParameters.beamOptimization = td.beamOptimization;
+  tweakableParameters.traceIndirectRay = td.traceIndirectRay;
+  tweakableParameters.taa              = td.taa;
   _tweakableParametersBufferBundle->getBuffer(currentFrame)->fillData(&tweakableParameters);
 
   G_TemporalFilterInfo temporalFilterInfo{};
-  temporalFilterInfo.temporalAlpha       = _tweakingData->temporalAlpha;
-  temporalFilterInfo.temporalPositionPhi = _tweakingData->temporalPositionPhi;
+  temporalFilterInfo.temporalAlpha       = td.temporalAlpha;
+  temporalFilterInfo.temporalPositionPhi = td.temporalPositionPhi;
   _temporalFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&temporalFilterInfo);
 
   G_SpatialFilterInfo spatialFilterInfo{};
-  spatialFilterInfo.aTrousIterationCount =
-      static_cast<uint32_t>(_tweakingData->aTrousIterationCount);
-  spatialFilterInfo.phiC                  = _tweakingData->phiC;
-  spatialFilterInfo.phiN                  = _tweakingData->phiN;
-  spatialFilterInfo.phiP                  = _tweakingData->phiP;
-  spatialFilterInfo.minPhiZ               = _tweakingData->minPhiZ;
-  spatialFilterInfo.maxPhiZ               = _tweakingData->maxPhiZ;
-  spatialFilterInfo.phiZStableSampleCount = _tweakingData->phiZStableSampleCount;
-  spatialFilterInfo.changingLuminancePhi  = _tweakingData->changingLuminancePhi;
+  spatialFilterInfo.aTrousIterationCount  = static_cast<uint32_t>(td.aTrousIterationCount);
+  spatialFilterInfo.phiC                  = td.phiC;
+  spatialFilterInfo.phiN                  = td.phiN;
+  spatialFilterInfo.phiP                  = td.phiP;
+  spatialFilterInfo.minPhiZ               = td.minPhiZ;
+  spatialFilterInfo.maxPhiZ               = td.maxPhiZ;
+  spatialFilterInfo.phiZStableSampleCount = td.phiZStableSampleCount;
+  spatialFilterInfo.changingLuminancePhi  = td.changingLuminancePhi;
   _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
 
   currentSample++;

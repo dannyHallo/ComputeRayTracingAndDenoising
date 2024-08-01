@@ -1,18 +1,20 @@
 #include "SvoBuilder.hpp"
 
-#include "VoxLoader.hpp"
+#include "SvoBuilderDataGpu.hpp"
 #include "app-context/VulkanApplicationContext.hpp"
-#include "application/BrushData.hpp"
 #include "file-watcher/ShaderChangeListener.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/io/ShaderFileReader.hpp"
 #include "utils/logger/Logger.hpp"
-#include "utils/toml-config/TomlConfigReader.hpp"
 #include "vulkan-wrapper/descriptor-set/DescriptorSetBundle.hpp"
 #include "vulkan-wrapper/memory/Buffer.hpp"
 #include "vulkan-wrapper/memory/Image.hpp"
 #include "vulkan-wrapper/pipeline/ComputePipeline.hpp"
 #include "vulkan-wrapper/utils/SimpleCommands.hpp"
+
+#include "config-container/ConfigContainer.hpp"
+#include "config-container/sub-config/BrushInfo.hpp"
+#include "config-container/sub-config/SvoBuilderInfo.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -27,29 +29,20 @@ std::string _makeShaderFullPath(std::string const &shaderName) {
 
 SvoBuilder::SvoBuilder(VulkanApplicationContext *appContext, Logger *logger,
                        ShaderCompiler *shaderCompiler, ShaderChangeListener *shaderChangeListener,
-                       TomlConfigReader *tomlConfigReader)
+                       ConfigContainer *configContainer)
     : _appContext(appContext), _logger(logger), _shaderCompiler(shaderCompiler),
-      _shaderChangeListener(shaderChangeListener), _tomlConfigReader(tomlConfigReader) {
-  _loadConfig();
-}
+      _shaderChangeListener(shaderChangeListener), _configContainer(configContainer) {}
 
 SvoBuilder::~SvoBuilder() {
   vkFreeCommandBuffers(_appContext->getDevice(), _appContext->getCommandPool(), 1,
                        &_octreeCreationCommandBuffer);
 }
 
-void SvoBuilder::_loadConfig() {
-  _chunkVoxelDim = _tomlConfigReader->getConfig<uint32_t>("SvoBuilder.chunkVoxelDim");
-  auto cd        = _tomlConfigReader->getConfig<std::array<uint32_t, 3>>("SvoBuilder.chunkDim");
-  _chunkDimX     = cd.at(0);
-  _chunkDimY     = cd.at(1);
-  _chunkDimZ     = cd.at(2);
-}
-
-glm::uvec3 SvoBuilder::getChunksDim() const { return {_chunkDimX, _chunkDimY, _chunkDimZ}; }
+glm::uvec3 SvoBuilder::getChunksDim() const { return _configContainer->svoBuilderInfo->chunksDim; }
 
 void SvoBuilder::init() {
-  _voxelLevelCount = static_cast<uint32_t>(std::log2(_chunkVoxelDim));
+  _voxelLevelCount =
+      static_cast<uint32_t>(std::log2(_configContainer->svoBuilderInfo->chunkVoxelDim));
 
   size_t constexpr kMb    = 1024 * 1024;
   size_t constexpr kGb    = 1024 * kMb;
@@ -97,7 +90,7 @@ void SvoBuilder::_resetBufferDataForNewChunkGeneration(ChunkIndex chunkIndex) {
   _indirectFragLengthBuffer->fillData(&indirectDispatchInfo);
 
   G_FragmentListInfo fragmentListInfo{};
-  fragmentListInfo.voxelResolution    = _chunkVoxelDim;
+  fragmentListInfo.voxelResolution    = _configContainer->svoBuilderInfo->chunkVoxelDim;
   fragmentListInfo.voxelFragmentCount = 0;
   _fragmentListInfoBuffer->fillData(&fragmentListInfo);
 
@@ -118,9 +111,9 @@ void SvoBuilder::buildScene() {
   uint32_t minTimeMs = std::numeric_limits<uint32_t>::max();
   uint32_t maxTimeMs = 0;
   uint32_t avgTimeMs = 0;
-  for (uint32_t z = 0; z < _chunkDimZ; z++) {
-    for (uint32_t y = 0; y < _chunkDimY; y++) {
-      for (uint32_t x = 0; x < _chunkDimX; x++) {
+  for (uint32_t z = 0; z < _configContainer->svoBuilderInfo->chunksDim.z; z++) {
+    for (uint32_t y = 0; y < _configContainer->svoBuilderInfo->chunksDim.y; y++) {
+      for (uint32_t x = 0; x < _configContainer->svoBuilderInfo->chunksDim.x; x++) {
         ChunkIndex chunkIndex{x, y, z};
 
         auto start = std::chrono::steady_clock::now();
@@ -134,7 +127,9 @@ void SvoBuilder::buildScene() {
     }
   }
 
-  avgTimeMs /= _chunkDimX * _chunkDimY * _chunkDimZ;
+  avgTimeMs /= _configContainer->svoBuilderInfo->chunksDim.x *
+               _configContainer->svoBuilderInfo->chunksDim.y *
+               _configContainer->svoBuilderInfo->chunksDim.z;
 
   _logger->info("min time: {} ms, max time: {} ms, avg time: {} ms", minTimeMs, maxTimeMs,
                 avgTimeMs);
@@ -142,13 +137,13 @@ void SvoBuilder::buildScene() {
   _chunkBufferMemoryAllocator->printStats();
 }
 
-void SvoBuilder::handleCursorHit(glm::vec3 hitPos, bool isLmbPressed, BrushData *brushData) {
+void SvoBuilder::handleCursorHit(glm::vec3 hitPos, bool isLmbPressed) {
   ChunkIndex chunkIndex{static_cast<uint32_t>(hitPos.x), static_cast<uint32_t>(hitPos.y),
                         static_cast<uint32_t>(hitPos.z)};
   // change chunk editing buffer
   G_ChunkEditingInfo chunkEditingInfo{};
   chunkEditingInfo.pos    = hitPos;
-  chunkEditingInfo.radius = brushData->size;
+  chunkEditingInfo.radius = _configContainer->brushInfo->size;
   _chunkEditingInfoBuffer->fillData(&chunkEditingInfo);
 
   _editExistingChunk(chunkIndex);
@@ -163,8 +158,10 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   if (_chunkIndexToFieldImagesMap.find(chunkIndex) == _chunkIndexToFieldImagesMap.end()) {
     _logger->info("constructing new field image");
     cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-    _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
-                                                   _chunkVoxelDim + 1, _chunkVoxelDim + 1);
+    _chunkFieldConstructionPipeline->recordCommand(
+        cmdBuffer, 0, _configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+        _configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+        _configContainer->svoBuilderInfo->chunkVoxelDim + 1);
     endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                           _appContext->getGraphicsQueue(), cmdBuffer);
   }
@@ -184,8 +181,10 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
 
   // edit field image
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkFieldModificationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
-                                                 _chunkVoxelDim + 1, _chunkVoxelDim + 1);
+  _chunkFieldModificationPipeline->recordCommand(
+      cmdBuffer, 0, _configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+      _configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+      _configContainer->svoBuilderInfo->chunkVoxelDim + 1);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
@@ -200,8 +199,10 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
 
   // construct voxels into fragmentlist buffer
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim, _chunkVoxelDim,
-                                             _chunkVoxelDim);
+  _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0,
+                                             _configContainer->svoBuilderInfo->chunkVoxelDim,
+                                             _configContainer->svoBuilderInfo->chunkVoxelDim,
+                                             _configContainer->svoBuilderInfo->chunkVoxelDim);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
@@ -233,7 +234,9 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   if (it == _chunkIndexToFieldImagesMap.end()) {
     _logger->info("creating new image for chunk");
     _chunkIndexToFieldImagesMap[chunkIndex] = std::make_unique<Image>(
-        ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
+        ImageDimensions{_configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+                        _configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+                        _configContainer->svoBuilderInfo->chunkVoxelDim + 1},
         VK_FORMAT_R8_UINT,
         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
             VK_IMAGE_USAGE_TRANSFER_DST_BIT);
@@ -303,8 +306,10 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
 
   // construct field image
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim + 1,
-                                                 _chunkVoxelDim + 1, _chunkVoxelDim + 1);
+  _chunkFieldConstructionPipeline->recordCommand(
+      cmdBuffer, 0, _configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+      _configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+      _configContainer->svoBuilderInfo->chunkVoxelDim + 1);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
@@ -312,7 +317,9 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
   auto const &it = _chunkIndexToFieldImagesMap.find(chunkIndex);
   if (it == _chunkIndexToFieldImagesMap.end()) {
     _chunkIndexToFieldImagesMap[chunkIndex] = std::make_unique<Image>(
-        ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
+        ImageDimensions{_configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+                        _configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+                        _configContainer->svoBuilderInfo->chunkVoxelDim + 1},
         VK_FORMAT_R8_UINT,
         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
             VK_IMAGE_USAGE_TRANSFER_DST_BIT);
@@ -329,8 +336,10 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
 
   // construct voxels into fragmentlist buffer
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0, _chunkVoxelDim, _chunkVoxelDim,
-                                             _chunkVoxelDim);
+  _chunkVoxelCreationPipeline->recordCommand(cmdBuffer, 0,
+                                             _configContainer->svoBuilderInfo->chunkVoxelDim,
+                                             _configContainer->svoBuilderInfo->chunkVoxelDim,
+                                             _configContainer->svoBuilderInfo->chunkVoxelDim);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
@@ -399,31 +408,39 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
 }
 
 void SvoBuilder::_createImages() {
-  _chunkFieldImage = std::make_unique<Image>(
-      ImageDimensions{_chunkVoxelDim + 1, _chunkVoxelDim + 1, _chunkVoxelDim + 1},
-      VK_FORMAT_R8_UINT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-          VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _chunkFieldImage =
+      std::make_unique<Image>(ImageDimensions{_configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+                                              _configContainer->svoBuilderInfo->chunkVoxelDim + 1,
+                                              _configContainer->svoBuilderInfo->chunkVoxelDim + 1},
+                              VK_FORMAT_R8_UINT,
+                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                                  VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 }
 
 // voxData is passed in to decide the size of some buffers dureing allocation
 void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
   _chunkIndicesBuffer =
-      std::make_unique<Buffer>(sizeof(uint32_t) * _chunkDimX * _chunkDimY * _chunkDimZ,
+      std::make_unique<Buffer>(sizeof(uint32_t) * _configContainer->svoBuilderInfo->chunksDim.x *
+                                   _configContainer->svoBuilderInfo->chunksDim.y *
+                                   _configContainer->svoBuilderInfo->chunksDim.z,
                                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   _counterBuffer = std::make_unique<Buffer>(sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                             MemoryStyle::kDedicated);
 
   uint32_t sizeInWorstCase =
-      std::ceil(static_cast<float>(_chunkVoxelDim * _chunkVoxelDim * _chunkVoxelDim) *
+      std::ceil(static_cast<float>(_configContainer->svoBuilderInfo->chunkVoxelDim *
+                                   _configContainer->svoBuilderInfo->chunkVoxelDim *
+                                   _configContainer->svoBuilderInfo->chunkVoxelDim) *
                 sizeof(uint32_t) * 8.F / 7.F);
 
   _logger->info("estimated chunk staging buffer size : {} mb",
                 static_cast<float>(sizeInWorstCase) / (1024 * 1024));
 
   _chunkOctreeBuffer = std::make_unique<Buffer>(
-      sizeof(uint32_t) * _chunkVoxelDim * _chunkVoxelDim * _chunkVoxelDim,
+      sizeof(uint32_t) * _configContainer->svoBuilderInfo->chunkVoxelDim *
+          _configContainer->svoBuilderInfo->chunkVoxelDim *
+          _configContainer->svoBuilderInfo->chunkVoxelDim,
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       MemoryStyle::kHostVisible);
 
@@ -437,8 +454,10 @@ void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                                    MemoryStyle::kDedicated);
 
-  uint32_t maximumFragmentListBufferSize =
-      sizeof(G_FragmentListEntry) * _chunkVoxelDim * _chunkVoxelDim * _chunkVoxelDim;
+  uint32_t maximumFragmentListBufferSize = sizeof(G_FragmentListEntry) *
+                                           _configContainer->svoBuilderInfo->chunkVoxelDim *
+                                           _configContainer->svoBuilderInfo->chunkVoxelDim *
+                                           _configContainer->svoBuilderInfo->chunkVoxelDim;
   _fragmentListBuffer = std::make_unique<Buffer>(
       maximumFragmentListBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
@@ -471,7 +490,10 @@ void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
 
 void SvoBuilder::_initBufferData() {
   // clear the chunks buffer
-  std::vector<uint32_t> chunksData(_chunkDimX * _chunkDimY * _chunkDimZ, 0);
+  std::vector<uint32_t> chunksData(_configContainer->svoBuilderInfo->chunksDim.x *
+                                       _configContainer->svoBuilderInfo->chunksDim.y *
+                                       _configContainer->svoBuilderInfo->chunksDim.z,
+                                   0);
   _chunkIndicesBuffer->fillData(chunksData.data());
 }
 

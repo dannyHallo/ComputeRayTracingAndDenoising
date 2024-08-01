@@ -6,8 +6,7 @@
 #include <memory>
 #include <vector>
 
-struct BrushData;
-struct SvoTracerTweakingData;
+struct ConfigContainer;
 
 class FpsGui;
 class VulkanApplicationContext;
@@ -15,13 +14,11 @@ class Window;
 class Logger;
 class FpsSink;
 class ColorPalette;
-class TomlConfigReader;
 
 class ImguiManager {
 public:
   ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
-               TomlConfigReader *tomlConfigReader, int framesInFlight,
-               SvoTracerTweakingData *SvoTracerDataGpu, BrushData *brushData);
+               ConfigContainer *configContainer);
   ~ImguiManager();
 
   // delete copy and move
@@ -46,17 +43,10 @@ private:
   VulkanApplicationContext *_appContext;
   Window *_window;
   Logger *_logger;
-  TomlConfigReader *_tomlConfigReader;
+  ConfigContainer *_configContainer;
 
   int _framesInFlight;
   bool _showFpsGraph = false;
-
-  SvoTracerTweakingData *_svoTracerTweakingData;
-  BrushData *_brushData;
-
-  // config
-  float _fontSize{};
-  void _loadConfig();
 
   std::unique_ptr<FpsGui> _fpsGui;
   std::unique_ptr<ColorPalette> _colorPalette;

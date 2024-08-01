@@ -10,11 +10,11 @@
 #include "window/CursorInfo.hpp"
 #include "window/Window.hpp"
 
-class TomlConfigReader;
+struct ConfigContainer;
 
 class Camera {
 public:
-  Camera(Window *window, TomlConfigReader *tomlConfigReader);
+  Camera(Window *window, ConfigContainer *configContainer);
   ~Camera();
 
   // disable move and copy
@@ -48,26 +48,20 @@ public:
   [[nodiscard]] glm::vec3 getFront() const { return _front; }
   [[nodiscard]] glm::vec3 getUp() const { return _up; }
   [[nodiscard]] glm::vec3 getRight() const { return _right; }
-  [[nodiscard]] float getVFov() const { return _vFov; }
+  [[nodiscard]] float getVFov() const;
 
 private:
-  // config
-  glm::vec3 _position{};
-  float _yaw{};   // in euler angles
-  float _pitch{}; // in euler angles
-  float _vFov{};
-  float _movementSpeed{};
-  float _movementSpeedBoost{};
-  float _mouseSensitivity{};
-  void _loadConfig();
-
   glm::vec3 _front = glm::vec3(0.F);
   glm::vec3 _up    = glm::vec3(0.F);
   glm::vec3 _right = glm::vec3(0.F);
 
   // window is owned by the Application class
   Window *_window;
-  TomlConfigReader *_tomlConfigReader;
+  ConfigContainer *_configContainer;
+
+  glm::vec3 _position{};
+  float _yaw{};
+  float _pitch{};
 
   float _movementSpeedMultiplier = 1.F;
 

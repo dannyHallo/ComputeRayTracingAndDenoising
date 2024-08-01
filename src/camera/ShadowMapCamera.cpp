@@ -1,23 +1,19 @@
 #include "ShadowMapCamera.hpp"
 
-#include "utils/toml-config/TomlConfigReader.hpp"
+#include "config-container/ConfigContainer.hpp"
+#include "config-container/sub-config/ShadowMapCameraInfo.hpp"
 
 glm::vec3 constexpr kWorldUp             = {0.F, 1.F, 0.F};
 float constexpr kShadowMapCameraDistance = 10.F;
 
-ShadowMapCamera::ShadowMapCamera(TomlConfigReader *tomlConfigReader)
-    : _tomlConfigReader(tomlConfigReader) {
-  _loadConfig();
-}
+ShadowMapCamera::ShadowMapCamera(ConfigContainer *configContainer)
+    : _configContainer(configContainer) {}
 
 ShadowMapCamera::~ShadowMapCamera() = default;
 
-void ShadowMapCamera::_loadConfig() {
-  _range = _tomlConfigReader->getConfig<float>("ShadowMapCamera.range");
-}
-
 glm::mat4 ShadowMapCamera::getProjectionMatrix() const {
-  return glm::ortho(-_range, _range, -_range, _range, 0.1F, 10.F);
+  auto const range = _configContainer->shadowMapCameraInfo->range;
+  return glm::ortho(-range, range, -range, range, 0.1F, 10.F);
 }
 
 void ShadowMapCamera::updateCameraVectors(glm::vec3 playerCameraPosition, glm::vec3 sunDir) {

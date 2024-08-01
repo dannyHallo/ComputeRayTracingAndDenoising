@@ -8,7 +8,7 @@
 #include <memory>
 #include <vector>
 
-struct SvoTracerTweakingData;
+struct ConfigContainer;
 
 class Logger;
 class VulkanApplicationContext;
@@ -26,13 +26,12 @@ class ShadowMapCamera;
 class Window;
 class ShaderCompiler;
 class ShaderChangeListener;
-class TomlConfigReader;
 
 class SvoTracer : public Scheduler {
 public:
   SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
             Window *window, ShaderCompiler *shaderCompiler,
-            ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader);
+            ShaderChangeListener *shaderChangeListener, ConfigContainer *configContainer);
   ~SvoTracer() override;
 
   // disable copy and move
@@ -54,9 +53,6 @@ public:
 
   void drawFrame(size_t currentFrame);
 
-  // this getter will be used for imguiManager
-  SvoTracerTweakingData *getTweakingData() { return _tweakingData.get(); }
-
   G_OutputInfo getOutputInfo();
 
   void processInput(double deltaTime);
@@ -68,21 +64,12 @@ private:
   Window *_window;
   std::unique_ptr<Camera> _camera;
   std::unique_ptr<ShadowMapCamera> _shadowMapCamera;
-  std::unique_ptr<SvoTracerTweakingData> _tweakingData;
 
+  ConfigContainer *_configContainer;
   ShaderCompiler *_shaderCompiler;
   ShaderChangeListener *_shaderChangeListener;
-  TomlConfigReader *_tomlConfigReader;
 
   SvoBuilder *_svoBuilder = nullptr;
-
-  // config
-  uint32_t _aTrousSizeMax{};
-  uint32_t _beamResolution{};
-  uint32_t _taaSamplingOffsetSize{};
-  uint32_t _shadowMapResolution{};
-  float _upscaleRatio{};
-  void _loadConfig();
 
   size_t _framesInFlight;
   std::vector<VkCommandBuffer> _tracingCommandBuffers{};

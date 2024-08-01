@@ -7,11 +7,11 @@
 #include <glm/gtc/matrix_transform.hpp> // IWYU pragma: export
 #include <glm/gtx/hash.hpp>             // IWYU pragma: export
 
-class TomlConfigReader;
+struct ConfigContainer;
 
 class ShadowMapCamera {
 public:
-  ShadowMapCamera(TomlConfigReader *tomlConfigReader);
+  ShadowMapCamera(ConfigContainer *configContainer);
   ~ShadowMapCamera();
 
   // disable move and copy
@@ -37,15 +37,11 @@ public:
   void updateCameraVectors(glm::vec3 playerCameraPosition, glm::vec3 sunDir);
 
 private:
-  // config
-  float _range{};
-  void _loadConfig();
-
   glm::vec3 _position = glm::vec3(0.F);
 
   glm::vec3 _front = glm::vec3(0.F);
   glm::vec3 _up    = glm::vec3(0.F);
   glm::vec3 _right = glm::vec3(0.F);
 
-  TomlConfigReader *_tomlConfigReader;
+  ConfigContainer *_configContainer;
 };

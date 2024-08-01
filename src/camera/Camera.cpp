@@ -1,41 +1,38 @@
 #include "Camera.hpp"
 
-#include "utils/toml-config/TomlConfigReader.hpp"
 #include "window/KeyboardInfo.hpp"
+
+#include "config-container/ConfigContainer.hpp"
+#include "config-container/sub-config/CameraInfo.hpp"
 
 glm::vec3 constexpr kWorldUp = {0.F, 1.F, 0.F};
 
-Camera::Camera(Window *window, TomlConfigReader *tomlConfigReader)
-    : _window(window), _tomlConfigReader(tomlConfigReader) {
-  _loadConfig();
+Camera::Camera(Window *window, ConfigContainer *configContainer)
+    : _window(window), _configContainer(configContainer) {
+  _position = _configContainer->cameraInfo->initPosition;
+  _yaw      = _configContainer->cameraInfo->initYaw;
+  _pitch    = _configContainer->cameraInfo->initPitch;
+
   _updateCameraVectors();
 }
 
 Camera::~Camera() = default;
 
-void Camera::_loadConfig() {
-  auto ps             = _tomlConfigReader->getConfig<std::array<float, 3>>("Camera.position");
-  _position           = glm::vec3(ps.at(0), ps.at(1), ps.at(2));
-  _yaw                = _tomlConfigReader->getConfig<float>("Camera.yaw");
-  _pitch              = _tomlConfigReader->getConfig<float>("Camera.pitch");
-  _vFov               = _tomlConfigReader->getConfig<float>("Camera.vFov");
-  _movementSpeed      = _tomlConfigReader->getConfig<float>("Camera.movementSpeed");
-  _movementSpeedBoost = _tomlConfigReader->getConfig<float>("Camera.movementSpeedBoost");
-  _mouseSensitivity   = _tomlConfigReader->getConfig<float>("Camera.mouseSensitivity");
-}
-
 glm::mat4 Camera::getProjectionMatrix(float aspectRatio, float zNear, float zFar) const {
-  glm::mat4 projection =
-      glm::perspective(glm::radians(_vFov), // The vertical Field of View, in radians: the amount
-                                            // of "zoom". Think "camera lens". Usually between
-                                            // 90° (extra wide) and 30° (quite zoomed in)
-                       aspectRatio,
-                       zNear, // Near clipping plane. Keep as big as possible, or you'll get
-                              // precision issues.
-                       zFar   // Far clipping plane. Keep as little as possible.
-      );
+  glm::mat4 projection = glm::perspective(
+      glm::radians(
+          _configContainer->cameraInfo->vFov), // The vertical Field of View, in radians: the amount
+                                               // of "zoom". Think "camera lens". Usually between
+                                               // 90° (extra wide) and 30° (quite zoomed in)
+      aspectRatio,
+      zNear, // Near clipping plane. Keep as big as possible, or you'll get
+             // precision issues.
+      zFar   // Far clipping plane. Keep as little as possible.
+  );
   return projection;
 }
+
+float Camera::getVFov() const { return _configContainer->cameraInfo->vFov; }
 
 void Camera::processInput(double deltaTime) { processKeyboard(deltaTime); }
 
@@ -44,7 +41,8 @@ void Camera::processKeyboard(double deltaTime) {
     return;
   }
 
-  float velocity = _movementSpeedMultiplier * _movementSpeed * static_cast<float>(deltaTime);
+  float velocity = _movementSpeedMultiplier * _configContainer->cameraInfo->movementSpeed *
+                   static_cast<float>(deltaTime);
 
   KeyboardInfo const &ki = _window->getKeyboardInfo();
 
@@ -64,7 +62,7 @@ void Camera::processKeyboard(double deltaTime) {
     _position += kWorldUp * velocity;
   }
   if (ki.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
-    _movementSpeedMultiplier = _movementSpeedBoost;
+    _movementSpeedMultiplier = _configContainer->cameraInfo->movementSpeedBoost;
   } else {
     _movementSpeedMultiplier = 1.F;
   }
@@ -81,8 +79,8 @@ void Camera::handleMouseMovement(CursorMoveInfo const &mouseInfo) {
   float mouseDx = mouseInfo.dx;
   float mouseDy = mouseInfo.dy;
 
-  mouseDx *= -_mouseSensitivity;
-  mouseDy *= _mouseSensitivity;
+  mouseDx *= -_configContainer->cameraInfo->mouseSensitivity;
+  mouseDy *= _configContainer->cameraInfo->mouseSensitivity;
 
   _yaw += mouseDx;
   _pitch += mouseDy;

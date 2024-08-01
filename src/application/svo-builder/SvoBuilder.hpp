@@ -9,8 +9,7 @@
 #include <memory>
 #include <unordered_map>
 
-// struct VoxData;
-struct BrushData;
+struct ConfigContainer;
 
 class DescriptorSetBundle;
 class ComputePipeline;
@@ -20,7 +19,6 @@ class Buffer;
 class Image;
 class ShaderCompiler;
 class ShaderChangeListener;
-class TomlConfigReader;
 
 class SvoBuilder : public Scheduler {
 private:
@@ -46,7 +44,7 @@ private:
 
 public:
   SvoBuilder(VulkanApplicationContext *appContext, Logger *logger, ShaderCompiler *shaderCompiler,
-             ShaderChangeListener *shaderChangeListener, TomlConfigReader *tomlConfigReader);
+             ShaderChangeListener *shaderChangeListener, ConfigContainer *configContainer);
   ~SvoBuilder() override;
 
   // disable copy and move
@@ -60,7 +58,7 @@ public:
 
   void buildScene();
 
-  void handleCursorHit(glm::vec3 hitPos, bool isLmbPressed, BrushData *brushData);
+  void handleCursorHit(glm::vec3 hitPos, bool isLmbPressed);
 
   Buffer *getAppendedOctreeBuffer() { return _appendedOctreeBuffer.get(); }
   Buffer *getChunkIndicesBuffer() { return _chunkIndicesBuffer.get(); }
@@ -73,14 +71,8 @@ private:
   Logger *_logger;
   ShaderCompiler *_shaderCompiler;
   ShaderChangeListener *_shaderChangeListener;
-  TomlConfigReader *_tomlConfigReader;
 
-  // config
-  uint32_t _chunkVoxelDim{};
-  uint32_t _chunkDimX{};
-  uint32_t _chunkDimY{};
-  uint32_t _chunkDimZ{};
-  void _loadConfig();
+  ConfigContainer *_configContainer;
 
   uint32_t _voxelLevelCount = 0;
 

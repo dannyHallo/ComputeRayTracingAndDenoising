@@ -2,13 +2,14 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-#include "BrushData.hpp"
 #include "utils/event-types/EventType.hpp"
 #include "utils/logger/Logger.hpp"
 #include "window/KeyboardInfo.hpp"
 
 #include <memory>
 #include <vector>
+
+struct ConfigContainer;
 
 class Logger;
 class Window;
@@ -20,7 +21,6 @@ class ShadowMapCamera;
 class FpsSink;
 class ShaderCompiler;
 class ShaderChangeListener;
-class TomlConfigReader;
 
 class Application {
 public:
@@ -39,19 +39,13 @@ private:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
 
-  // config
-  uint32_t _framesInFlight{};
-  bool _isFramerateLimited{};
-  void _loadConfig();
-
-  std::unique_ptr<BrushData> _brushData;
+  std::unique_ptr<ConfigContainer> _configContainer;
 
   std::unique_ptr<FpsSink> _fpsSink;
   std::unique_ptr<ImguiManager> _imguiManager;
   std::unique_ptr<Window> _window;
   std::unique_ptr<ShaderCompiler> _shaderCompiler;
   std::unique_ptr<ShaderChangeListener> _shaderFileWatchListener;
-  std::unique_ptr<TomlConfigReader> _tomlConfigReader;
 
   std::unique_ptr<SvoBuilder> _svoBuilder;
   std::unique_ptr<SvoTracer> _svoTracer;
