@@ -5,17 +5,9 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
+#include "../include/chunkIndex.glsl"
+
 #include "../include/core/packer.glsl"
-
-// TODO: merge...
-ivec3 getChunkPosition() {
-  return ivec3(chunksInfoBuffer.data.currentlyWritingChunk) -
-         ivec3((chunksInfoBuffer.data.chunksDim - 1) / 2);
-}
-
-vec3 getFieldNodePosition(ivec3 chunkPosition, ivec3 uvi) {
-  return vec3(chunkPosition) + vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
-}
 
 void main() {
   if (any(greaterThanEqual(gl_GlobalInvocationID,
@@ -25,7 +17,7 @@ void main() {
 
   ivec3 uvi = ivec3(gl_GlobalInvocationID);
 
-  vec3 fieldNodePos = getFieldNodePosition(getChunkPosition(), uvi);
+  vec3 fieldNodePos = getFieldNodePosition(getChunkCornerOffset(), uvi);
   vec3 editingPos   = chunkEditingInfo.data.pos;
   float radius      = chunkEditingInfo.data.radius;
   float distance    = distance(fieldNodePos, editingPos);
@@ -34,8 +26,8 @@ void main() {
   }
 
   float weightDecay01 = 1 - smoothstep(0.0, radius, distance);
-  weightDecay01 = pow(weightDecay01, 4.0);
-  float weightDecay = mix(0.0, 0.001, weightDecay01);
+  weightDecay01       = pow(weightDecay01, 4.0);
+  float weightDecay   = mix(0.0, 0.001, weightDecay01);
   // float weightDecay = mix(0.0, 0.001, radius - distance);
 
   float weight = unpackUint8ToFloat(imageLoad(chunkFieldImage, uvi).r, -0.1, 0.1);

@@ -58,7 +58,7 @@ public:
 
   void buildScene();
 
-  void handleCursorHit(glm::vec3 hitPos, bool isLmbPressed);
+  void handleCursorHit(glm::vec3 hitPos, bool deletionMode);
 
   Buffer *getAppendedOctreeBuffer() { return _appendedOctreeBuffer.get(); }
   Buffer *getChunkIndicesBuffer() { return _chunkIndicesBuffer.get(); }
@@ -80,6 +80,8 @@ private:
   std::unique_ptr<CustomMemoryAllocator> _chunkBufferMemoryAllocator;
 
   VkCommandBuffer _octreeCreationCommandBuffer = VK_NULL_HANDLE;
+
+  std::vector<ChunkIndex> _getEditingChunks(glm::vec3 centerPos, float radius);
 
   void _recordCommandBuffers();
   void _recordOctreeCreationCommandBuffer();

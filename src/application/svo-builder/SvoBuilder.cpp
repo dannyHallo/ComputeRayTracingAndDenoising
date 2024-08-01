@@ -137,16 +137,33 @@ void SvoBuilder::buildScene() {
   _chunkBufferMemoryAllocator->printStats();
 }
 
-void SvoBuilder::handleCursorHit(glm::vec3 hitPos, bool isLmbPressed) {
-  ChunkIndex chunkIndex{static_cast<uint32_t>(hitPos.x), static_cast<uint32_t>(hitPos.y),
-                        static_cast<uint32_t>(hitPos.z)};
+std::vector<SvoBuilder::ChunkIndex> SvoBuilder::_getEditingChunks(glm::vec3 centerPos,
+                                                                  float radius) {
+  std::vector<ChunkIndex> chunks{};
+  chunks.emplace_back(ChunkIndex{0, 0, 0});
+
+  // print using logger
+  // _logger->info("------");
+  // for (auto const &chunk : chunks) {
+  //   _logger->info("editing chunk: x: {}, y: {}, z: {}", chunk.x, chunk.y, chunk.z);
+  // }
+  // _logger->info("------");
+
+  return chunks;
+}
+
+void SvoBuilder::handleCursorHit(glm::vec3 hitPos, bool deletionMode) {
+
   // change chunk editing buffer
   G_ChunkEditingInfo chunkEditingInfo{};
   chunkEditingInfo.pos    = hitPos;
   chunkEditingInfo.radius = _configContainer->brushInfo->size;
   _chunkEditingInfoBuffer->fillData(&chunkEditingInfo);
 
-  _editExistingChunk(chunkIndex);
+  const auto &chunks = _getEditingChunks(hitPos, _configContainer->brushInfo->size);
+  for (auto const &chunk : chunks) {
+    _editExistingChunk(chunk);
+  }
 }
 
 void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {

@@ -5,6 +5,8 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
+#include "../include/chunkIndex.glsl"
+
 #include "../include/core/cnoise.glsl"
 #include "../include/core/packer.glsl"
 
@@ -25,15 +27,6 @@ float computeNoise(vec3 p) {
   return total;
 }
 
-ivec3 getChunkPosition() {
-  return ivec3(chunksInfoBuffer.data.currentlyWritingChunk) -
-         ivec3((chunksInfoBuffer.data.chunksDim - 1) / 2);
-}
-
-vec3 getFieldNodePosition(ivec3 chunkPosition, ivec3 uvi) {
-  return vec3(chunkPosition) + vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
-}
-
 void main() {
   if (any(greaterThanEqual(gl_GlobalInvocationID,
                            ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
@@ -42,7 +35,7 @@ void main() {
 
   ivec3 uvi = ivec3(gl_GlobalInvocationID);
 
-  ivec3 chunkPosition = getChunkPosition();
+  ivec3 chunkPosition = getChunkCornerOffset();
   vec3 fieldNodePos   = getFieldNodePosition(chunkPosition, uvi);
 
   const float floorHeightMean = 0.0;
