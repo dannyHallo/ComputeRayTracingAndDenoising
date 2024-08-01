@@ -3,7 +3,7 @@
 
 #include "../include/svoTracerDescriptorSetLayouts.glsl"
 
-#include "../include/chunksBufferLayout.glsl"
+#include "../include/chunking.glsl"
 #include "../include/ddaMarching.glsl"
 #include "../include/svoMarching.glsl"
 
@@ -21,8 +21,7 @@ struct MarchingResult {
 
 // this marching algorithm fetches leaf properties
 bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d) {
-  ivec3 hitChunkOffset;
-  uvec3 hitChunkLookupOffset;
+  ivec3 chunkIndex;
   bool hitVoxel = false;
 
   oResult.iter           = 0;
@@ -37,14 +36,16 @@ bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d) {
   vec3 sideDist              = (((sign(d) * 0.5) + 0.5) + sign(d) * (vec3(mapPos) - o)) * deltaDist;
   bool enteredBigBoundingBox = false;
   uint ddaIteration          = 0;
-  while (ddaMarchingWithSave(hitChunkOffset, hitChunkLookupOffset, mapPos, sideDist,
-                             enteredBigBoundingBox, ddaIteration, deltaDist, rayStep, o, d)) {
+  while (ddaMarchingWithSave(chunkIndex, mapPos, sideDist, enteredBigBoundingBox, ddaIteration,
+                             deltaDist, rayStep, o, d)) {
     // preOffset is to offset the octree tracing position, which works best with the range of [1, 2]
     const ivec3 preOffset   = ivec3(1);
-    const vec3 originOffset = preOffset - hitChunkOffset;
+    const vec3 originOffset = preOffset - chunkIndex;
 
     uint chunkBufferOffset =
-        chunkIndicesBuffer.data[getChunksBufferLinearIndex(hitChunkLookupOffset, sceneInfoBuffer.data.chunksDim)] - 1;
+        chunkIndicesBuffer
+            .data[getChunksBufferLinearIndex(uvec3(chunkIndex), sceneInfoBuffer.data.chunksDim)] -
+        1;
 
     uint chunkIterCount;
     hitVoxel = svoMarching(oResult.t, chunkIterCount, oResult.color, oResult.position,

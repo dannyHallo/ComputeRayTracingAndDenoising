@@ -5,8 +5,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
-#include "../include/chunkIndex.glsl"
-
 #include "../include/core/cnoise.glsl"
 #include "../include/core/packer.glsl"
 
@@ -35,12 +33,12 @@ void main() {
 
   ivec3 uvi = ivec3(gl_GlobalInvocationID);
 
-  ivec3 chunkPosition = getChunkCornerOffset();
-  vec3 fieldNodePos   = getFieldNodePosition(chunkPosition, uvi);
+  vec3 fieldNodePos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
+                      vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   const float floorHeightMean = 0.0;
   const float floorChangeVar  = 2.5;
-  float yPosition             = float(chunkPosition.y) - 0.5 +
+  float yPosition             = float(chunksInfoBuffer.data.currentlyWritingChunk.y) - 0.5 +
                     float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   // this step takes ~80% of the time for the entire chunk generation

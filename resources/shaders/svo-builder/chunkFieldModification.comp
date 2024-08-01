@@ -5,8 +5,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
-#include "../include/chunkIndex.glsl"
-
 #include "../include/core/packer.glsl"
 
 void main() {
@@ -17,10 +15,12 @@ void main() {
 
   ivec3 uvi = ivec3(gl_GlobalInvocationID);
 
-  vec3 fieldNodePos = getFieldNodePosition(getChunkCornerOffset(), uvi);
-  vec3 editingPos   = chunkEditingInfo.data.pos;
-  float radius      = chunkEditingInfo.data.radius;
-  float distance    = distance(fieldNodePos, editingPos);
+  vec3 fieldNodePos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
+                      vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
+
+  vec3 editingPos = chunkEditingInfo.data.pos;
+  float radius    = chunkEditingInfo.data.radius;
+  float distance  = distance(fieldNodePos, editingPos);
   if (distance > radius) {
     return;
   }
