@@ -8,7 +8,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 #include "../include/core/cnoise.glsl"
 #include "../include/core/packer.glsl"
 
-
 float computeNoise(vec3 p) {
   float total       = 0.0;
   float amplitude   = 0.15;
@@ -26,6 +25,15 @@ float computeNoise(vec3 p) {
   return total;
 }
 
+ivec3 getChunkPosition() {
+  return ivec3(chunksInfoBuffer.data.currentlyWritingChunk) -
+         ivec3((chunksInfoBuffer.data.chunksDim - 1) / 2);
+}
+
+vec3 getFieldNodePosition(ivec3 chunkPosition, ivec3 uvi) {
+  return vec3(chunkPosition) + vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
+}
+
 void main() {
   if (any(greaterThanEqual(gl_GlobalInvocationID,
                            ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
@@ -34,12 +42,8 @@ void main() {
 
   ivec3 uvi = ivec3(gl_GlobalInvocationID);
 
-  uvec3 currentlyWritingChunk = chunksInfoBuffer.data.currentlyWritingChunk;
-  ivec3 chunkPosition =
-      ivec3(currentlyWritingChunk) - ivec3((chunksInfoBuffer.data.chunksDim - 1) / 2);
-
-  vec3 noiseLookupPos =
-      vec3(chunkPosition) + vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
+  ivec3 chunkPosition = getChunkPosition();
+  vec3 fieldNodePos   = getFieldNodePosition(chunkPosition, uvi);
 
   const float floorHeightMean = 0.0;
   const float floorChangeVar  = 2.5;
@@ -47,7 +51,7 @@ void main() {
                     float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   // this step takes ~80% of the time for the entire chunk generation
-  float noise = (floorHeightMean - yPosition) + floorChangeVar * computeNoise(noiseLookupPos);
+  float noise = (floorHeightMean - yPosition) + floorChangeVar * computeNoise(fieldNodePos);
 
   imageStore(chunkFieldImage, uvi, uvec4(packFloatToUint8(noise, -0.1, 0.1), 0, 0, 0));
 }

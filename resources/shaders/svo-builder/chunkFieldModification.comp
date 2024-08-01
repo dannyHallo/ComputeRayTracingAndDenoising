@@ -7,6 +7,16 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/core/packer.glsl"
 
+// TODO: merge...
+ivec3 getChunkPosition() {
+  return ivec3(chunksInfoBuffer.data.currentlyWritingChunk) -
+         ivec3((chunksInfoBuffer.data.chunksDim - 1) / 2);
+}
+
+vec3 getFieldNodePosition(ivec3 chunkPosition, ivec3 uvi) {
+  return vec3(chunkPosition) + vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
+}
+
 void main() {
   if (any(greaterThanEqual(gl_GlobalInvocationID,
                            ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
@@ -15,7 +25,17 @@ void main() {
 
   ivec3 uvi = ivec3(gl_GlobalInvocationID);
 
+  vec3 fieldNodePos = getFieldNodePosition(getChunkPosition(), uvi);
+  vec3 editingPos   = chunkEditingInfo.data.pos;
+  float radius      = chunkEditingInfo.data.radius;
+  float distance    = distance(fieldNodePos, editingPos);
+  if (distance > radius) {
+    return;
+  }
+
+  float weightDecay = (1 - smoothstep(0.0, radius, distance)) * 0.001;
+
   float weight = unpackUint8ToFloat(imageLoad(chunkFieldImage, uvi).r, -0.1, 0.1);
-  weight -= 0.001;
+  weight -= weightDecay;
   imageStore(chunkFieldImage, uvi, uvec4(packFloatToUint8(weight, -0.1, 0.1), 0, 0, 0));
 }
