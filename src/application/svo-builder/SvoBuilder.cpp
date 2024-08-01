@@ -139,7 +139,23 @@ void SvoBuilder::buildScene() {
 std::vector<SvoBuilder::ChunkIndex> SvoBuilder::_getEditingChunks(glm::vec3 centerPos,
                                                                   float radius) {
   std::vector<ChunkIndex> chunks{};
-  chunks.emplace_back(ChunkIndex{0, 0, 0});
+
+  glm::vec3 minPos = centerPos - glm::vec3{radius, radius, radius};
+  glm::vec3 maxPos = centerPos + glm::vec3{radius, radius, radius};
+  glm::uvec3 minChunkIndex =
+      glm::uvec3{static_cast<uint32_t>(minPos.x), static_cast<uint32_t>(minPos.y),
+                 static_cast<uint32_t>(minPos.z)};
+  glm::uvec3 maxChunkIndex =
+      glm::uvec3{static_cast<uint32_t>(maxPos.x), static_cast<uint32_t>(maxPos.y),
+                 static_cast<uint32_t>(maxPos.z)};
+
+  for (uint32_t z = minChunkIndex.z; z <= maxChunkIndex.z; z++) {
+    for (uint32_t y = minChunkIndex.y; y <= maxChunkIndex.y; y++) {
+      for (uint32_t x = minChunkIndex.x; x <= maxChunkIndex.x; x++) {
+        chunks.emplace_back(ChunkIndex{x, y, z});
+      }
+    }
+  }
 
   // print using logger
   // _logger->info("------");
@@ -147,6 +163,9 @@ std::vector<SvoBuilder::ChunkIndex> SvoBuilder::_getEditingChunks(glm::vec3 cent
   //   _logger->info("editing chunk: x: {}, y: {}, z: {}", chunk.x, chunk.y, chunk.z);
   // }
   // _logger->info("------");
+
+  // print no only
+  // _logger->info("editing chunks: {}", chunks.size());
 
   return chunks;
 }
