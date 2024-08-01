@@ -25,7 +25,7 @@ size = 0.1
 [ImguiManager]
 fontSize = 20
 
-[SvoBuilder]
+[Terrain]
 # the voxel dimension within a chunk
 chunkVoxelDim = 256
 chunkDim = [ 3, 1, 3 ]

@@ -7,7 +7,7 @@ struct BrushInfo;
 struct CameraInfo;
 struct ImguiManagerInfo;
 struct ShadowMapCameraInfo;
-struct SvoBuilderInfo;
+struct TerrainInfo;
 struct SvoTracerInfo;
 struct SvoTracerTweakingInfo;
 
@@ -28,7 +28,7 @@ struct ConfigContainer {
   std::unique_ptr<CameraInfo> cameraInfo;
   std::unique_ptr<ImguiManagerInfo> imguiManagerInfo;
   std::unique_ptr<ShadowMapCameraInfo> shadowMapCameraInfo;
-  std::unique_ptr<SvoBuilderInfo> svoBuilderInfo;
+  std::unique_ptr<TerrainInfo> terrainInfo;
   std::unique_ptr<SvoTracerInfo> svoTracerInfo;
   std::unique_ptr<SvoTracerTweakingInfo> svoTracerTweakingInfo;
 

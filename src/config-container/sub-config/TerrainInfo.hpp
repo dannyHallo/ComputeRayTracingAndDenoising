@@ -6,7 +6,7 @@
 
 class TomlConfigReader;
 
-struct SvoBuilderInfo {
+struct TerrainInfo {
   uint32_t chunkVoxelDim{};
   glm::uvec3 chunksDim{};
 

@@ -4,14 +4,14 @@
 
 #include "config-container/ConfigContainer.hpp"
 #include "config-container/sub-config/CameraInfo.hpp"
-#include "config-container/sub-config/SvoBuilderInfo.hpp"
+#include "config-container/sub-config/TerrainInfo.hpp"
 
 glm::vec3 constexpr kWorldUp = {0.F, 1.F, 0.F};
 
 Camera::Camera(Window *window, ConfigContainer *configContainer)
     : _window(window), _configContainer(configContainer) {
   auto const &h   = _configContainer->cameraInfo->initHeight;
-  auto const &dim = _configContainer->svoBuilderInfo->chunksDim;
+  auto const &dim = _configContainer->terrainInfo->chunksDim;
   _position       = glm::vec3(dim.x * 0.5F, h, dim.z * 0.5F);
   _yaw            = _configContainer->cameraInfo->initYaw;
   _pitch          = _configContainer->cameraInfo->initPitch;

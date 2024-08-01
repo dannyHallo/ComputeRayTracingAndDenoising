@@ -15,14 +15,14 @@ void SvoTracerTweakingInfo::loadConfig(TomlConfigReader *tomlConfigReader) {
   traceIndirectRay = tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.traceIndirectRay");
   taa              = tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.taa");
 
-  sunAltitude = tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAltitude");
-  sunAzimuth  = tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAzimuth");
-  auto rsb    = tomlConfigReader->getConfig<std::array<float, 3>>(
+  sunAltitude     = tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAltitude");
+  sunAzimuth      = tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunAzimuth");
+  auto const &rsb = tomlConfigReader->getConfig<std::array<float, 3>>(
       "SvoTracerTweakingData.rayleighScatteringBase");
   rayleighScatteringBase = glm::vec3(rsb.at(0), rsb.at(1), rsb.at(2));
   mieScatteringBase = tomlConfigReader->getConfig<float>("SvoTracerTweakingData.mieScatteringBase");
   mieAbsorptionBase = tomlConfigReader->getConfig<float>("SvoTracerTweakingData.mieAbsorptionBase");
-  auto oab          = tomlConfigReader->getConfig<std::array<float, 3>>(
+  auto const &oab   = tomlConfigReader->getConfig<std::array<float, 3>>(
       "SvoTracerTweakingData.ozoneAbsorptionBase");
   ozoneAbsorptionBase = glm::vec3(oab.at(0), oab.at(1), oab.at(2));
   sunLuminance        = tomlConfigReader->getConfig<float>("SvoTracerTweakingData.sunLuminance");
