@@ -123,9 +123,9 @@ void Application::_drawFrame() {
   if (cursorInfo.cursorState == CursorState::kInvisible && cursorInfo.leftButtonPressed) {
     auto outputInfo = _svoTracer->getOutputInfo();
     if (outputInfo.midRayHit) {
-      _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
-                    std::to_string(outputInfo.midRayHitPos.y) + ", " +
-                    std::to_string(outputInfo.midRayHitPos.z));
+      // _logger->info("mid ray hit at: " + std::to_string(outputInfo.midRayHitPos.x) + ", " +
+      //               std::to_string(outputInfo.midRayHitPos.y) + ", " +
+      //               std::to_string(outputInfo.midRayHitPos.z));
 
       _svoBuilder->handleCursorHit(outputInfo.midRayHitPos, true);
     }

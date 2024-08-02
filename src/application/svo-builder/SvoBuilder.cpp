@@ -200,7 +200,7 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
     endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                           _appContext->getGraphicsQueue(), cmdBuffer);
   }
-  // otherwise, load from save to buffer
+  // otherwise, load from save to buffer, caching this doesn't offer performance boost
   else {
     cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
     ImageForwardingPair f{_chunkIndexToFieldImagesMap[chunkIndex].get(),
@@ -314,8 +314,8 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   uint32_t writeOffsetInBytes = _chunkIndexToBufferAllocResult[chunkIndex].offset();
 
   // print offset in mb
-  _logger->info("allocated memory from the memory pool: {} mb",
-                static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
+  // _logger->info("allocated memory from the memory pool: {} mb",
+  //               static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
 
   VkBufferCopy bufCopy = {
       0,                                     // srcOffset
