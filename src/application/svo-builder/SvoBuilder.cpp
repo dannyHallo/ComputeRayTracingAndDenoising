@@ -177,11 +177,11 @@ std::vector<SvoBuilder::ChunkIndex> SvoBuilder::_getEditingChunks(glm::vec3 cent
 }
 
 void SvoBuilder::handleCursorHit(glm::vec3 hitPos, bool deletionMode) {
-
   // change chunk editing buffer
   G_ChunkEditingInfo chunkEditingInfo{};
-  chunkEditingInfo.pos    = hitPos;
-  chunkEditingInfo.radius = _configContainer->brushInfo->size;
+  chunkEditingInfo.pos       = hitPos;
+  chunkEditingInfo.radius    = _configContainer->brushInfo->size;
+  chunkEditingInfo.operation = deletionMode ? 0U : 1U; // 0 for deletion, 1 for addition
   _chunkEditingInfoBuffer->fillData(&chunkEditingInfo);
 
   const auto &chunks = _getEditingChunks(hitPos, _configContainer->brushInfo->size);

@@ -9,6 +9,7 @@ struct G_ChunksInfo {
 struct G_ChunkEditingInfo {
   vec3 pos;
   float radius;
+  uint operation; // 0: deletion, 1: addition
 };
 
 struct G_FragmentListEntry {
