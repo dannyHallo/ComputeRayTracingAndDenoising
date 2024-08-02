@@ -149,6 +149,12 @@ std::vector<SvoBuilder::ChunkIndex> SvoBuilder::_getEditingChunks(glm::vec3 cent
       glm::uvec3{static_cast<uint32_t>(maxPos.x), static_cast<uint32_t>(maxPos.y),
                  static_cast<uint32_t>(maxPos.z)};
 
+  // ensure min and max is in the range
+  auto const &chunksDim = getChunksDim();
+  minChunkIndex         = glm::max(minChunkIndex, glm::uvec3{0, 0, 0});
+  maxChunkIndex =
+      glm::min(maxChunkIndex, glm::uvec3{chunksDim.x - 1, chunksDim.y - 1, chunksDim.z - 1});
+
   for (uint32_t z = minChunkIndex.z; z <= maxChunkIndex.z; z++) {
     for (uint32_t y = minChunkIndex.y; y <= maxChunkIndex.y; y++) {
       for (uint32_t x = minChunkIndex.x; x <= maxChunkIndex.x; x++) {
@@ -256,7 +262,8 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
       _chunkIndexToFieldImagesMap.erase(it2);
     }
 
-    _logger->info("no fragment, chunk has been removed");
+    _logger->info("chunk {} {} {} is removed because it's empty", chunkIndex.x, chunkIndex.y,
+                  chunkIndex.z);
 
     return;
   }
