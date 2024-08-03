@@ -178,7 +178,6 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   if (norm.x != 0) oPosition.x = norm.x > 0 ? pos.x + scale_exp2 + kEpsilon : pos.x - kEpsilon;
   if (norm.y != 0) oPosition.y = norm.y > 0 ? pos.y + scale_exp2 + kEpsilon : pos.y - kEpsilon;
   if (norm.z != 0) oPosition.z = norm.z > 0 ? pos.z + scale_exp2 + kEpsilon : pos.z - kEpsilon;
-  // oNormal = norm;
 
   // scale_exp2 is the length of the edges of the voxel
   oNormal = decompressNormal((cur & 0x1FFFFF00u) >> 8u);

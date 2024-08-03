@@ -10,7 +10,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/blockType.glsl"
 
-// // returns 3D fbm and its 3 derivatives
+// returns 3D fbm and its 3 derivatives
 // vec4 fbm(in vec3 x, int octaves) {
 //   float f = 1.98; // could be 2.0
 //   float s = 0.49; // could be 0.5
@@ -35,19 +35,26 @@ vec4 computeNoise(vec3 p) {
   float frequency   = 2.0;
   float persistence = 0.3;
   float lacunarity  = 2.0;
-  int octaves       = 1;
+  int octaves       = 2;
   vec3 normal       = vec3(0.0);
+  mat3 m            = mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+  // scaling by freq
+  mat3 m3  = mat3(frequency, 0.0, 0.0, 0.0, frequency, 0.0, 0.0, 0.0, frequency);
+  mat3 m3i = inverse(m3);
 
   for (int i = 0; i < octaves; i++) {
-    vec4 noise = noised(p * frequency);
-    total += noise.x * amplitude;
-    normal += noise.yzw * amplitude;
-    frequency *= lacunarity;
+    vec4 noise = noised(p);
+    total += amplitude * noise.x;
+    normal += amplitude * m * noise.yzw;
     amplitude *= persistence;
+    // frequency *= lacunarity;
+
+    p = lacunarity * m3 * p;
+    m = lacunarity * m3i * m;
   }
 
-  // TODO: add gradient eval
-  return vec4(total, normalize(normal));
+  normal = normalize(normal);
+  return vec4(total, -normal);
 }
 
 // takes 21 bits
@@ -79,14 +86,15 @@ void main() {
   // x: noise val, yzw: gradient
   // this step takes ~80% of the time for the entire chunk generation
   vec4 noise            = computeNoise(fieldNodePos);
-  uint compressedNormal = compressNormal(noise.yzw);
+  uint compressedNormal = compressNormal(normalize(noise.yzw));
 
-  float weight = (floorHeightMean - yPosition) + noise.x;
+  float weight   = (floorHeightMean - yPosition) + noise.x;
+  weight         = noise.x;
   uint blockType = getBlockTypeFromWeight(weight);
 
-  imageStore(chunkFieldImage, uvi, uvec4(blockType, compressedNormal, 0, 0));
-  
-  if(blockType == kBlockTypeEmpty) {
+  //   imageStore(chunkFieldImage, uvi, uvec4(blockType, compressedNormal, 0, 0));
+
+  if (blockType == kBlockTypeEmpty) {
     return;
   }
 

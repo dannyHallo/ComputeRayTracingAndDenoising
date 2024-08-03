@@ -82,6 +82,9 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
     return false;
   }
 
+  // TODO: experimental, to be removed
+  // return true;
+
   vec3 brdf = primaryRayResult.color * kInvPi;
 
   // direct contribution
