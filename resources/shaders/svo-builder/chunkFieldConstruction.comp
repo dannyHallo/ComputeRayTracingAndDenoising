@@ -6,20 +6,23 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
 #include "../include/core/cnoise.glsl"
+#include "../include/core/inoise.glsl"
 #include "../include/core/packer.glsl"
+
 
 #include "../include/blockTypes.glsl"
 
 float computeNoise(vec3 p) {
   float total       = 0.0;
-  float amplitude   = 0.15;
+  float amplitude   = 0.6;
   float frequency   = 2.0;
-  float persistence = 0.4;
-  float lacunarity  = 2.2;
+  float persistence = 0.3;
+  float lacunarity  = 2.0;
   int octaves       = 4;
 
   for (int i = 0; i < octaves; i++) {
-    total += cnoise(p * frequency) * amplitude;
+    // total += cnoise(p * frequency) * amplitude;
+    total += noised(p * frequency).x * amplitude;
     frequency *= lacunarity;
     amplitude *= persistence;
   }
@@ -39,12 +42,11 @@ void main() {
                       vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   const float floorHeightMean = 0.0;
-  const float floorChangeVar  = 2.5;
   float yPosition             = float(chunksInfoBuffer.data.currentlyWritingChunk.y) - 0.5 +
                     float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   // this step takes ~80% of the time for the entire chunk generation
-  float noise = (floorHeightMean - yPosition) + floorChangeVar * computeNoise(fieldNodePos);
+  float noise = (floorHeightMean - yPosition) + computeNoise(fieldNodePos);
 
   uint blockType     = getBlockTypeFromWeight(noise);
   uint encodedWeight = packFloatToUint8(noise, -0.1, 0.1);

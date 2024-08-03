@@ -6,16 +6,6 @@
 #include "../include/core/definitions.glsl"
 #include "../include/core/geom.glsl"
 
-// // this hashing function is probably to be the best one of its kind
-// // https://nullprogram.com/blog/2018/07/31/
-// uint hash(uint x) {
-//   x ^= x >> 16;
-//   x *= 0x7feb352dU;
-//   x ^= x >> 15;
-//   x *= 0x846ca68bU;
-//   x ^= x >> 16;
-//   return x;
-// }
 
 // // Construct a float with half-open range [0:1] using low 23 bits.
 // // All zeroes yields 0.0, all ones yields the next smallest representable value

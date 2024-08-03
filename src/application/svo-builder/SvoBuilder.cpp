@@ -66,6 +66,10 @@ void SvoBuilder::update() {
   _recordCommandBuffers();
 
   _chunkBufferMemoryAllocator->freeAll();
+  _chunkIndexToBufferAllocResult.clear();
+
+  _chunkIndexToFieldImagesMap.clear();
+
   _initBufferData();
 
   buildScene();
@@ -321,8 +325,8 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   uint32_t writeOffsetInBytes = _chunkIndexToBufferAllocResult[chunkIndex].offset();
 
   // print offset in mb
-  // _logger->info("allocated memory from the memory pool: {} mb",
-  //               static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
+  _logger->info("allocated memory from the memory pool: {} mb",
+                static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
 
   VkBufferCopy bufCopy = {
       0,                                     // srcOffset
