@@ -69,10 +69,10 @@ void main() {
   float weightData[8];
   for (int i = 0; i < 8; i++) {
     // noise lookup position
-    ivec3 p          = ivec3(gl_GlobalInvocationID) + lookupOffsets[i];
+    ivec3 p          = ivec3(gl_LocalInvocationID) + lookupOffsets[i];
     uint data        = sharedFieldData[p.x][p.y][p.z];
     blockTypeData[i] = (data & 0xFF00) >> 8;
-    weightData[i]    = unpackUint8ToFloat(data & 0x00FF, -0.1, 0.1);
+    weightData[i]    = unpackUint8ToFloat(data & 0xFF, -0.1, 0.1);
   }
 
   if (!voxelAtInterface(blockTypeData)) {
