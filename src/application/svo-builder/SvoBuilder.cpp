@@ -276,7 +276,7 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
         std::make_unique<Image>(ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim + 1,
                                                 _configContainer->terrainInfo->chunkVoxelDim + 1,
                                                 _configContainer->terrainInfo->chunkVoxelDim + 1},
-                                VK_FORMAT_R8_UINT,
+                                VK_FORMAT_R16_UINT,
                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   }
@@ -438,7 +438,7 @@ void SvoBuilder::_createImages() {
       std::make_unique<Image>(ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim + 1,
                                               _configContainer->terrainInfo->chunkVoxelDim + 1,
                                               _configContainer->terrainInfo->chunkVoxelDim + 1},
-                              VK_FORMAT_R8_UINT,
+                              VK_FORMAT_R16_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 }

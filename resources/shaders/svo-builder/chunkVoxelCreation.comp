@@ -12,7 +12,7 @@ layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROU
 #define SHARED_SIZE (GROUP_SIZE + 1)
 #define SHARED_SIZE_3 (SHARED_SIZE * SHARED_SIZE * SHARED_SIZE)
 
-shared float sharedVoxelData[SHARED_SIZE][SHARED_SIZE][SHARED_SIZE];
+shared uint sharedFieldData[SHARED_SIZE][SHARED_SIZE][SHARED_SIZE];
 
 uint compressNormal(vec3 normal) {
   // scale and bias from [-1, 1] to [0, 127]
@@ -38,8 +38,22 @@ void preload() {
 
     ivec3 groupBase = ivec3(gl_WorkGroupID) * GROUP_SIZE;
     uint val        = imageLoad(chunkFieldImage, groupBase + ivec3(sharedIdx)).x;
-    sharedVoxelData[sharedIdx.x][sharedIdx.y][sharedIdx.z] = unpackUint8ToFloat(val, -0.1, 0.1);
+    sharedFieldData[sharedIdx.x][sharedIdx.y][sharedIdx.z] = val;
   }
+}
+
+bool voxelAtInterface(uint[8] blockTypeData) {
+  bool hasEmpty = false;
+  bool hasFull  = false;
+  for (int i = 0; i < 8; i++) {
+    uint blockType = blockTypeData[i];
+    if (blockType == 0) {
+      hasEmpty = true;
+    } else {
+      hasFull = true;
+    }
+  }
+  return hasEmpty && hasFull;
 }
 
 void main() {
@@ -51,30 +65,17 @@ void main() {
     return;
   }
 
-  ivec3 noiseLookupPositions[8];
+  uint blockTypeData[8];
+  float weightData[8];
   for (int i = 0; i < 8; i++) {
-    noiseLookupPositions[i] = ivec3(gl_LocalInvocationID) + lookupOffsets[i];
+    // noise lookup position
+    ivec3 p          = ivec3(gl_GlobalInvocationID) + lookupOffsets[i];
+    uint data        = sharedFieldData[p.x][p.y][p.z];
+    blockTypeData[i] = (data & 0xFF00) >> 8;
+    weightData[i]    = unpackUint8ToFloat(data & 0x00FF, -0.1, 0.1);
   }
 
-  float noiseValues[8];
-  for (int i = 0; i < 8; i++) {
-    noiseValues[i] = sharedVoxelData[noiseLookupPositions[i].x][noiseLookupPositions[i].y]
-                                    [noiseLookupPositions[i].z];
-  }
-
-  // if all values are both less than 0 or all are greater than 0, then it's not a surface voxel
-  bool allLessThanZero    = true;
-  bool allGreaterThanZero = true;
-
-  for (int i = 0; i < 8; i++) {
-    if (noiseValues[i] < 0) {
-      allGreaterThanZero = false;
-    } else {
-      allLessThanZero = false;
-    }
-  }
-
-  if (allLessThanZero || allGreaterThanZero) {
+  if (!voxelAtInterface(blockTypeData)) {
     return;
   }
 
@@ -88,19 +89,15 @@ void main() {
   coordinatesData |= gl_GlobalInvocationID.z << 20;
   ufragment.coordinates = coordinatesData;
 
-  // for (int i = 0; i < 8; i++) {
-  // noiseValues[i] = noiseValues[i] < 0 ? -0.1 : 0.1;
-  // }
-
   // color and normal
-  float gradX = ((noiseValues[0] + noiseValues[2] + noiseValues[4] + noiseValues[6]) -
-                 (noiseValues[1] + noiseValues[3] + noiseValues[5] + noiseValues[7])) *
+  float gradX = ((weightData[0] + weightData[2] + weightData[4] + weightData[6]) -
+                 (weightData[1] + weightData[3] + weightData[5] + weightData[7])) *
                 0.25;
-  float gradY = ((noiseValues[0] + noiseValues[1] + noiseValues[4] + noiseValues[5]) -
-                 (noiseValues[2] + noiseValues[3] + noiseValues[6] + noiseValues[7])) *
+  float gradY = ((weightData[0] + weightData[1] + weightData[4] + weightData[5]) -
+                 (weightData[2] + weightData[3] + weightData[6] + weightData[7])) *
                 0.25;
-  float gradZ = ((noiseValues[0] + noiseValues[1] + noiseValues[2] + noiseValues[3]) -
-                 (noiseValues[4] + noiseValues[5] + noiseValues[6] + noiseValues[7])) *
+  float gradZ = ((weightData[0] + weightData[1] + weightData[2] + weightData[3]) -
+                 (weightData[4] + weightData[5] + weightData[6] + weightData[7])) *
                 0.25;
   vec3 normal         = normalize(vec3(gradX, gradY, gradZ));
   uint propertiesData = 0;
