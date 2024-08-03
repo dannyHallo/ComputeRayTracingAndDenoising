@@ -10,25 +10,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/blockType.glsl"
 
-// returns 3D fbm and its 3 derivatives
-// vec4 fbm(in vec3 x, int octaves) {
-//   float f = 1.98; // could be 2.0
-//   float s = 0.49; // could be 0.5
-//   float a = 0.0;
-//   float b = 0.5;
-//   vec3 d  = vec3(0.0);
-//   mat3 m  = mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
-//   for (int i = 0; i < octaves; i++) {
-//     vec4 n = noised(x);
-//     a += b * n.x;       // accumulate values
-//     d += b * m * n.yzw; // accumulate derivatives
-//     b *= s;
-//     x = f * m3 * x;
-//     m = f * m3i * m;
-//   }
-//   return vec4(a, d);
-// }
-
 vec4 computeNoise(vec3 p) {
   float total       = 0.0;
   float amplitude   = 0.6;
@@ -36,18 +17,18 @@ vec4 computeNoise(vec3 p) {
   float persistence = 0.3;
   float lacunarity  = 2.0;
   int octaves       = 2;
-  vec3 normal       = vec3(0.0);
-  mat3 m            = mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+
   // scaling by freq
   mat3 m3  = mat3(frequency, 0.0, 0.0, 0.0, frequency, 0.0, 0.0, 0.0, frequency);
   mat3 m3i = inverse(m3);
 
+  vec3 normal = vec3(0.0);
+  mat3 m      = mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
   for (int i = 0; i < octaves; i++) {
     vec4 noise = noised(p);
     total += amplitude * noise.x;
     normal += amplitude * m * noise.yzw;
     amplitude *= persistence;
-    // frequency *= lacunarity;
 
     p = lacunarity * m3 * p;
     m = lacunarity * m3i * m;
@@ -79,16 +60,15 @@ void main() {
   vec3 fieldNodePos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
                       (vec3(uvi) + 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
 
-  const float floorHeightMean = 0.0;
-  float yPosition             = float(chunksInfoBuffer.data.currentlyWritingChunk.y) - 0.5 +
-                    float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
-
   // x: noise val, yzw: gradient
   // this step takes ~80% of the time for the entire chunk generation
   vec4 noise            = computeNoise(fieldNodePos);
   uint compressedNormal = compressNormal(normalize(noise.yzw));
 
-  float weight   = (floorHeightMean - yPosition) + noise.x;
+  float yPosition = float(chunksInfoBuffer.data.currentlyWritingChunk.y) - 0.5 +
+                    float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
+
+  float weight   = noise.x - yPosition;
   weight         = noise.x;
   uint blockType = getBlockTypeFromWeight(weight);
 
