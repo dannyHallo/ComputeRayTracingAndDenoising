@@ -42,34 +42,36 @@ uint compressNormal(vec3 normal) {
 }
 
 void main() {
-  if (any(greaterThanEqual(gl_GlobalInvocationID,
-                           ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
+  ivec3 uvi = ivec3(gl_GlobalInvocationID);
+  if (any(greaterThanEqual(uvi, ivec3(fragmentListInfoBuffer.data.voxelResolution + 2)))) {
     return;
   }
-
-  ivec3 uvi = ivec3(gl_GlobalInvocationID);
-
-  vec3 fieldNodePos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
-                      (vec3(uvi) + 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
+  vec3 localVoxelPos  = (vec3(uvi) - 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
+  vec3 chunkPos       = vec3(chunksInfoBuffer.data.currentlyWritingChunk);
+  vec3 globalVoxelPos = chunkPos + localVoxelPos;
 
   // x: noise val, yzw: gradient
   // this step takes ~80% of the time for the entire chunk generation
-  vec4 noise = computeNoise(fieldNodePos);
+  vec4 noise = computeNoise(globalVoxelPos);
 
-  float yPosition = float(chunksInfoBuffer.data.currentlyWritingChunk.y) - 0.5 +
-                    float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
-
-  float weight = noise.x - yPosition;
+  float weight = noise.x - (globalVoxelPos.y - 0.5);
 
   // noise gradient + heightDropoff gradient
   vec3 gradient         = noise.yzw - vec3(0, 1, 0);
   uint compressedNormal = compressNormal(normalize(-gradient));
 
   uint blockType = getBlockTypeFromWeight(weight);
-  //   imageStore(chunkFieldImage, uvi, uvec4(blockType, compressedNormal, 0, 0));
+  // imageStore(chunkFieldImage, uvi, uvec4(blockType, compressedNormal, 0, 0));
   if (blockType == kBlockTypeEmpty) {
     return;
   }
+
+  ivec3 p = ivec3(gl_GlobalInvocationID) - ivec3(1);
+  if (any(lessThan(p, ivec3(0))) ||
+      any(greaterThanEqual(p, ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
+    return;
+  }
+  uvec3 boundedCoord = uvec3(p);
 
   ///
 
@@ -78,9 +80,9 @@ void main() {
   // position
   G_FragmentListEntry ufragment;
   uint coordinatesData = 0;
-  coordinatesData |= gl_GlobalInvocationID.x;
-  coordinatesData |= gl_GlobalInvocationID.y << 10;
-  coordinatesData |= gl_GlobalInvocationID.z << 20;
+  coordinatesData |= boundedCoord.x;
+  coordinatesData |= boundedCoord.y << 10;
+  coordinatesData |= boundedCoord.z << 20;
   ufragment.coordinates = coordinatesData;
 
   // color and normal

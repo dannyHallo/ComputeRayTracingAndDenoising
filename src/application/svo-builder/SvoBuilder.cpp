@@ -235,7 +235,8 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   // cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   // _chunkVoxelCreationPipeline->recordCommand(
   //     cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
-  //     _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
+  //     _configContainer->terrainInfo->chunkVoxelDim,
+  //     _configContainer->terrainInfo->chunkVoxelDim);
   // endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
   //                       _appContext->getGraphicsQueue(), cmdBuffer);
 
@@ -356,9 +357,10 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
 
   // construct field image
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkFieldConstructionPipeline->recordCommand(
-      cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
-      _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
+  _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0,
+                                                 _configContainer->terrainInfo->chunkVoxelDim + 2,
+                                                 _configContainer->terrainInfo->chunkVoxelDim + 2,
+                                                 _configContainer->terrainInfo->chunkVoxelDim + 2);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
@@ -366,7 +368,8 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
   // cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
   // _chunkVoxelCreationPipeline->recordCommand(
   //     cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
-  //     _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
+  //     _configContainer->terrainInfo->chunkVoxelDim,
+  //     _configContainer->terrainInfo->chunkVoxelDim);
   // endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
   //                       _appContext->getGraphicsQueue(), cmdBuffer);
 
@@ -565,7 +568,8 @@ void SvoBuilder::_createPipelines() {
 
   // _chunkVoxelCreationPipeline = std::make_unique<ComputePipeline>(
   //     _appContext, _logger, this, _makeShaderFullPath("chunkVoxelCreation.comp"),
-  //     WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
+  //     WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler,
+  //     _shaderChangeListener);
   // _chunkVoxelCreationPipeline->compileAndCacheShaderModule(false);
   // _chunkVoxelCreationPipeline->build();
 
