@@ -16,26 +16,18 @@ vec4 computeNoise(vec3 p) {
   float frequency   = 2.0;
   float persistence = 0.3;
   float lacunarity  = 2.0;
-  int octaves       = 2;
+  int octaves       = 4;
 
-  // scaling by freq
-  mat3 m3  = mat3(frequency, 0.0, 0.0, 0.0, frequency, 0.0, 0.0, 0.0, frequency);
-  mat3 m3i = inverse(m3);
-
-  vec3 normal = vec3(0.0);
-  mat3 m      = mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+  vec3 gradient = vec3(0.0);
   for (int i = 0; i < octaves; i++) {
-    vec4 noise = noised(p);
+    vec4 noise = noised(p * frequency);
     total += amplitude * noise.x;
-    normal += amplitude * m * noise.yzw;
+    gradient += amplitude * frequency * noise.yzw;
     amplitude *= persistence;
-
-    p = lacunarity * m3 * p;
-    m = lacunarity * m3i * m;
+    frequency *= lacunarity;
   }
 
-  normal = normalize(normal);
-  return vec4(total, -normal);
+  return vec4(total, gradient);
 }
 
 // takes 21 bits
@@ -62,18 +54,19 @@ void main() {
 
   // x: noise val, yzw: gradient
   // this step takes ~80% of the time for the entire chunk generation
-  vec4 noise            = computeNoise(fieldNodePos);
-  uint compressedNormal = compressNormal(normalize(noise.yzw));
+  vec4 noise = computeNoise(fieldNodePos);
 
   float yPosition = float(chunksInfoBuffer.data.currentlyWritingChunk.y) - 0.5 +
                     float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
-  float weight   = noise.x - yPosition;
-  weight         = noise.x;
+  float weight = noise.x - yPosition;
+
+  // noise gradient + heightDropoff gradient
+  vec3 gradient         = noise.yzw - vec3(0, 1, 0);
+  uint compressedNormal = compressNormal(normalize(-gradient));
+
   uint blockType = getBlockTypeFromWeight(weight);
-
   //   imageStore(chunkFieldImage, uvi, uvec4(blockType, compressedNormal, 0, 0));
-
   if (blockType == kBlockTypeEmpty) {
     return;
   }
