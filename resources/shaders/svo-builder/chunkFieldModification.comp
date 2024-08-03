@@ -7,27 +7,48 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/core/packer.glsl"
 
+#include "../include/blockType.glsl"
+
+
+bool atInterface(ivec3 uvi) {
+  const ivec3 lookupOffsets[6] = ivec3[6](ivec3(-1, 0, 0), ivec3(1, 0, 0), ivec3(0, -1, 0),
+                                          ivec3(0, 1, 0), ivec3(0, 0, -1), ivec3(0, 0, 1));
+
+  bool hasSolid = false;
+  bool hasAir   = false;
+  for (int i = 0; i < 6; i++) {
+    uint data      = imageLoad(chunkFieldImage, uvi + lookupOffsets[i] + 1).x;
+    uint blockType = (data & 0xFFE00000) >> 21;
+
+    if (blockType == kBlockTypeEmpty) {
+      hasAir = true;
+    } else {
+      hasSolid = true;
+    }
+  }
+  return hasSolid && hasAir;
+}
+
 void main() {
-  if (any(greaterThanEqual(gl_GlobalInvocationID,
-                           ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
+  ivec3 uvi = ivec3(gl_GlobalInvocationID);
+  if (any(greaterThanEqual(uvi, ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
     return;
   }
 
-  // ivec3 uvi = ivec3(gl_GlobalInvocationID);
+  vec3 localVoxelPos  = (vec3(uvi) - 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
+  vec3 chunkPos       = vec3(chunksInfoBuffer.data.currentlyWritingChunk);
+  vec3 globalVoxelPos = chunkPos + localVoxelPos;
 
-  // vec3 fieldNodePos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
-  //                     vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
+  vec3 editingPos = chunkEditingInfo.data.pos;
+  float radius    = chunkEditingInfo.data.radius;
+  bool isAddition = chunkEditingInfo.data.operation == 1;
 
-  // vec3 editingPos = chunkEditingInfo.data.pos;
-  // float radius    = chunkEditingInfo.data.radius;
-  // bool isAddition = chunkEditingInfo.data.operation == 1;
+  float dist = distance(globalVoxelPos, editingPos);
+  if (dist > radius) {
+    return;
+  }
 
-  // float distance = distance(fieldNodePos, editingPos);
-  // if (distance > radius) {
-  //   return;
-  // }
-
-  // float modificationWeight01 = 1 - smoothstep(0.0, radius, distance);
+  float modificationWeight01 = 1 - smoothstep(0.0, radius, dist);
   // modificationWeight01       = pow(modificationWeight01, 4.0);
   // float modificationWeight   = mix(0.0, 0.001, modificationWeight01);
 
@@ -39,5 +60,17 @@ void main() {
   //   weight -= modificationWeight;
   // }
 
-  // imageStore(chunkFieldImage, uvi, uvec4(packFloatToUint8(weight, -0.1, 0.1), 0, 0, 0));
+  uint prevData = imageLoad(chunkFieldImage, uvi).x;
+  uint prevBlockType = (prevData & 0xFFE00000) >> 21;
+
+  float weight = modificationWeight01 * 2.0 - 1.0;
+  if (!isAddition) {
+    weight = -weight;
+  }
+  uint blockType = getBlockTypeFromWeight(weight);
+
+  vec3 normal       = normalize(globalVoxelPos - editingPos);
+  uint packedNormal = packNormal21Bits(normal);
+
+  imageStore(chunkFieldImage, uvi, uvec4((blockType << 21) | packedNormal, 0, 0, 0));
 }

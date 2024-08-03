@@ -2,19 +2,7 @@
 #define SVO_MARCHING_GLSL
 
 #include "../include/core/definitions.glsl"
-
-vec3 decompressNormal(uint packed) {
-  // extract the components
-  uvec3 quantized;
-  quantized.r = packed & 0x7F;
-  quantized.g = (packed >> 7) & 0x7F;
-  quantized.b = (packed >> 14) & 0x7F;
-
-  // convert back to [-1, 1] range
-  vec3 normal = vec3(quantized) / 127.0 * 2.0 - 1.0;
-
-  return normal;
-}
+#include "../include/core/packer.glsl"
 
 const uint STACK_SIZE = 23;
 struct StackItem {
@@ -180,7 +168,7 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   if (norm.z != 0) oPosition.z = norm.z > 0 ? pos.z + scale_exp2 + kEpsilon : pos.z - kEpsilon;
 
   // scale_exp2 is the length of the edges of the voxel
-  oNormal = decompressNormal((cur & 0x1FFFFF00u) >> 8u);
+  oNormal = unpackNormal21Bits((cur & 0x1FFFFF00u) >> 8u);
 
   oNextTracingPosition = pos + scale_exp2 * 0.5 + 0.87 * scale_exp2 * oNormal;
   // oNextTracingPosition = oPosition + 1e-7 * norm;

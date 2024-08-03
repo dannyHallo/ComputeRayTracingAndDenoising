@@ -128,7 +128,7 @@ void Application::_drawFrame() {
                     std::to_string(outputInfo.midRayHitPos.y) + ", " +
                     std::to_string(outputInfo.midRayHitPos.z));
 
-      // _svoBuilder->handleCursorHit(outputInfo.midRayHitPos, cursorInfo.leftButtonPressed);
+      _svoBuilder->handleCursorHit(outputInfo.midRayHitPos, cursorInfo.leftButtonPressed);
     }
   }
 

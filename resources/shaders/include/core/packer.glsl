@@ -38,6 +38,32 @@ vec3 unpackNormal(uint enc) {
   return normalize(n);
 }
 
+// use the lower 21 bits of a uint to store a normal
+uint packNormal21Bits(vec3 normal) {
+  // scale and bias from [-1, 1] to [0, 127]
+  uvec3 quantized = uvec3(((normal + 1.0) * 0.5) * 127.0);
+
+  // pack the 7-bit components into a single uint
+  uint packed = (quantized.r) | (quantized.g << 7) | (quantized.b << 14);
+
+  return packed;
+}
+
+
+vec3 unpackNormal21Bits(uint packed) {
+  // extract the components
+  uvec3 quantized;
+  quantized.r = packed & 0x7F;
+  quantized.g = (packed >> 7) & 0x7F;
+  quantized.b = (packed >> 14) & 0x7F;
+
+  // convert back to [-1, 1] range
+  vec3 normal = vec3(quantized) / 127.0 * 2.0 - 1.0;
+
+  return normal;
+}
+
+
 // if sampling is not needed, this is an alternative to R16G16B16A16_SFLOAT, it trades time for
 // space
 // it uses 9 bits for each color channel, compared to regular 8 bits (UNORM), this method also
@@ -73,20 +99,5 @@ vec3 unpackRgbe(uint x) {
 
   return v;
 }
-
-// const float f = 0.2;
-
-// uint packFloatToUint8(float val, float boundaryMin, float boundaryMax) {
-//   boundaryMin = -f;
-//   boundaryMax = f;
-//   val = clamp(val, boundaryMin, boundaryMax);
-//   return uint((val - boundaryMin) / (boundaryMax - boundaryMin) * 255.0);
-// }
-
-// float unpackUint8ToFloat(uint encoded, float boundaryMin, float boundaryMax) {
-//   boundaryMin = -f;
-//   boundaryMax = f;
-//   return (float(encoded) / 255.0) * (boundaryMax - boundaryMin) + boundaryMin;
-// }
 
 #endif // PACKER_GLSL

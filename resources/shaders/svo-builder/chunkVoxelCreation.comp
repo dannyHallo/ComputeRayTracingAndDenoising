@@ -34,11 +34,16 @@ void main() {
     return;
   }
 
-  if (!atInterface(uvi)) {
+  uint thisData             = imageLoad(chunkFieldImage, uvi + 1).x;
+  uint blockType            = (thisData & 0xFFE00000) >> 21;
+  uint compressedNormalData = thisData & 0x001FFFFF;
+  if (thisData == kBlockTypeEmpty) {
     return;
   }
 
-  uint compressedNormalData = imageLoad(chunkFieldImage, uvi + 1).x & 0x001FFFFF;
+  if (!atInterface(uvi)) {
+    return;
+  }
 
   uint fragmentListCur = atomicAdd(fragmentListInfoBuffer.data.voxelFragmentCount, 1);
 
