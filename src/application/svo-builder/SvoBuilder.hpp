@@ -123,7 +123,7 @@ private:
 
   std::unique_ptr<ComputePipeline> _chunkFieldConstructionPipeline;
   std::unique_ptr<ComputePipeline> _chunkFieldModificationPipeline;
-  // std::unique_ptr<ComputePipeline> _chunkVoxelCreationPipeline;
+  std::unique_ptr<ComputePipeline> _chunkVoxelCreationPipeline;
   std::unique_ptr<ComputePipeline> _chunkModifyArgPipeline;
 
   std::unique_ptr<ComputePipeline> _initNodePipeline;

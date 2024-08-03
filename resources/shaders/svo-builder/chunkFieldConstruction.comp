@@ -61,7 +61,8 @@ void main() {
   uint compressedNormal = compressNormal(normalize(-gradient));
 
   uint blockType = getBlockTypeFromWeight(weight);
-  // imageStore(chunkFieldImage, uvi, uvec4(blockType, compressedNormal, 0, 0));
+  imageStore(chunkFieldImage, uvi, uvec4(blockType << 21 | compressedNormal, 0, 0, 0));
+
   if (blockType == kBlockTypeEmpty) {
     return;
   }
@@ -71,25 +72,5 @@ void main() {
       any(greaterThanEqual(p, ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
     return;
   }
-  uvec3 boundedCoord = uvec3(p);
 
-  ///
-
-  uint fragmentListCur = atomicAdd(fragmentListInfoBuffer.data.voxelFragmentCount, 1);
-
-  // position
-  G_FragmentListEntry ufragment;
-  uint coordinatesData = 0;
-  coordinatesData |= boundedCoord.x;
-  coordinatesData |= boundedCoord.y << 10;
-  coordinatesData |= boundedCoord.z << 20;
-  ufragment.coordinates = coordinatesData;
-
-  // color and normal
-  uint propertiesData = 0;
-  propertiesData |= 0;
-  propertiesData |= compressedNormal << 8;
-  ufragment.properties = propertiesData;
-
-  fragmentListBuffer.datas[fragmentListCur] = ufragment;
 }

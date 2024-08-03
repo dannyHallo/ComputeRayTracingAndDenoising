@@ -7,25 +7,54 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/core/packer.glsl"
 
+#include "../include/blockType.glsl"
+
+bool atInterface(ivec3 uvi) {
+  const ivec3 lookupOffsets[6] = ivec3[6](ivec3(-1, 0, 0), ivec3(1, 0, 0), ivec3(0, -1, 0),
+                                          ivec3(0, 1, 0), ivec3(0, 0, -1), ivec3(0, 0, 1));
+
+  bool hasSolid = false;
+  bool hasAir   = false;
+  for (int i = 0; i < 6; i++) {
+    uint data      = imageLoad(chunkFieldImage, uvi + lookupOffsets[i] + 1).x;
+    uint blockType = (data & 0xFFE00000) >> 21;
+
+    if (blockType == kBlockTypeEmpty) {
+      hasAir = true;
+    } else {
+      hasSolid = true;
+    }
+  }
+  return hasSolid && hasAir;
+}
+
 void main() {
-  if (any(greaterThanEqual(gl_GlobalInvocationID,
-                           ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
+  ivec3 uvi = ivec3(gl_GlobalInvocationID);
+  if (any(greaterThanEqual(uvi, ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
     return;
   }
 
-  // uint blockTypeData[8];
-  // float weightData[8];
-  // for (int i = 0; i < 8; i++) {
-  //   // noise lookup position
-  //   ivec3 p          = ivec3(gl_LocalInvocationID) + lookupOffsets[i];
-  //   uint data        = sharedFieldData[p.x][p.y][p.z];
-  //   blockTypeData[i] = (data & 0xFF00) >> 8;
-  //   weightData[i]    = unpackUint8ToFloat(data & 0xFF, -0.1, 0.1);
-  // }
+  if (!atInterface(uvi)) {
+    return;
+  }
 
-  // if (!voxelAtInterface(blockTypeData)) {
-  //   return;
-  // }
+  uint compressedNormalData = imageLoad(chunkFieldImage, uvi + 1).x & 0x001FFFFF;
 
-  
+  uint fragmentListCur = atomicAdd(fragmentListInfoBuffer.data.voxelFragmentCount, 1);
+
+  // position
+  G_FragmentListEntry ufragment;
+  uint coordinatesData = 0;
+  coordinatesData |= uvi.x;
+  coordinatesData |= uvi.y << 10;
+  coordinatesData |= uvi.z << 20;
+  ufragment.coordinates = coordinatesData;
+
+  // color and normal
+  uint propertiesData = 0;
+  propertiesData |= 0;
+  propertiesData |= compressedNormalData << 8;
+  ufragment.properties = propertiesData;
+
+  fragmentListBuffer.datas[fragmentListCur] = ufragment;
 }
