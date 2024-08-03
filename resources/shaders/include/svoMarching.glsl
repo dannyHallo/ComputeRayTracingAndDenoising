@@ -191,7 +191,7 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   oLightSourceHit = false;
   // oColor         = vec3(236, 177, 89) / 255.0;
   oColor = oNormal * 0.5 + 0.5;
-  oColor = oColor.rbg;
+  oColor = oColor.rgb;
 
   oIter    = iter;
   oVoxHash = voxHash;

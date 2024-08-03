@@ -1,109 +1,31 @@
 #version 450
 #extension GL_GOOGLE_include_directive : require
 
-#define GROUP_SIZE 8
-#define GROUP_SIZE_3 (GROUP_SIZE * GROUP_SIZE * GROUP_SIZE)
-layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROUP_SIZE) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
 #include "../include/core/packer.glsl"
 
-#define SHARED_SIZE (GROUP_SIZE + 1)
-#define SHARED_SIZE_3 (SHARED_SIZE * SHARED_SIZE * SHARED_SIZE)
-
-shared uint sharedFieldData[SHARED_SIZE][SHARED_SIZE][SHARED_SIZE];
-
-uint compressNormal(vec3 normal) {
-  // scale and bias from [-1, 1] to [0, 127]
-  uvec3 quantized = uvec3(((normal + 1) * 0.5) * 127.0);
-
-  // pack the 7-bit components into a single uint
-  uint packed = (quantized.r) | (quantized.g << 7) | (quantized.b << 14);
-
-  return packed;
-}
-
-ivec3 lookupOffsets[8] = ivec3[8](ivec3(0, 0, 0), ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(1, 1, 0),
-                                  ivec3(0, 0, 1), ivec3(1, 0, 1), ivec3(0, 1, 1), ivec3(1, 1, 1));
-
-void preload() {
-  for (uint linearIdx = gl_LocalInvocationIndex; linearIdx < SHARED_SIZE_3;
-       linearIdx += GROUP_SIZE_3) {
-
-    uvec3 sharedIdx;
-    sharedIdx.x = linearIdx % SHARED_SIZE;
-    sharedIdx.y = (linearIdx / SHARED_SIZE) % SHARED_SIZE;
-    sharedIdx.z = linearIdx / (SHARED_SIZE * SHARED_SIZE);
-
-    ivec3 groupBase = ivec3(gl_WorkGroupID) * GROUP_SIZE;
-    uint val        = imageLoad(chunkFieldImage, groupBase + ivec3(sharedIdx)).x;
-    sharedFieldData[sharedIdx.x][sharedIdx.y][sharedIdx.z] = val;
-  }
-}
-
-bool voxelAtInterface(uint[8] blockTypeData) {
-  bool hasEmpty = false;
-  bool hasFull  = false;
-  for (int i = 0; i < 8; i++) {
-    uint blockType = blockTypeData[i];
-    if (blockType == 0) {
-      hasEmpty = true;
-    } else {
-      hasFull = true;
-    }
-  }
-  return hasEmpty && hasFull;
-}
-
 void main() {
-  preload();
-  barrier();
-
   if (any(greaterThanEqual(gl_GlobalInvocationID,
                            ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
     return;
   }
 
-  uint blockTypeData[8];
-  float weightData[8];
-  for (int i = 0; i < 8; i++) {
-    // noise lookup position
-    ivec3 p          = ivec3(gl_LocalInvocationID) + lookupOffsets[i];
-    uint data        = sharedFieldData[p.x][p.y][p.z];
-    blockTypeData[i] = (data & 0xFF00) >> 8;
-    weightData[i]    = unpackUint8ToFloat(data & 0xFF, -0.1, 0.1);
-  }
+  // uint blockTypeData[8];
+  // float weightData[8];
+  // for (int i = 0; i < 8; i++) {
+  //   // noise lookup position
+  //   ivec3 p          = ivec3(gl_LocalInvocationID) + lookupOffsets[i];
+  //   uint data        = sharedFieldData[p.x][p.y][p.z];
+  //   blockTypeData[i] = (data & 0xFF00) >> 8;
+  //   weightData[i]    = unpackUint8ToFloat(data & 0xFF, -0.1, 0.1);
+  // }
 
-  if (!voxelAtInterface(blockTypeData)) {
-    return;
-  }
+  // if (!voxelAtInterface(blockTypeData)) {
+  //   return;
+  // }
 
-  uint fragmentListCur = atomicAdd(fragmentListInfoBuffer.data.voxelFragmentCount, 1);
-
-  // position
-  G_FragmentListEntry ufragment;
-  uint coordinatesData = 0;
-  coordinatesData |= gl_GlobalInvocationID.x;
-  coordinatesData |= gl_GlobalInvocationID.y << 10;
-  coordinatesData |= gl_GlobalInvocationID.z << 20;
-  ufragment.coordinates = coordinatesData;
-
-  // color and normal
-  float gradX = ((weightData[0] + weightData[2] + weightData[4] + weightData[6]) -
-                 (weightData[1] + weightData[3] + weightData[5] + weightData[7])) *
-                0.25;
-  float gradY = ((weightData[0] + weightData[1] + weightData[4] + weightData[5]) -
-                 (weightData[2] + weightData[3] + weightData[6] + weightData[7])) *
-                0.25;
-  float gradZ = ((weightData[0] + weightData[1] + weightData[2] + weightData[3]) -
-                 (weightData[4] + weightData[5] + weightData[6] + weightData[7])) *
-                0.25;
-  vec3 normal         = normalize(vec3(gradX, gradY, gradZ));
-  uint propertiesData = 0;
-  propertiesData |= 0;
-  propertiesData |= compressNormal(normal) << 8;
-  ufragment.properties = propertiesData;
-
-  fragmentListBuffer.datas[fragmentListCur] = ufragment;
+  
 }

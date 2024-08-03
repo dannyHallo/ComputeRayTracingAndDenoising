@@ -5,51 +5,108 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
-#include "../include/core/cnoise.glsl"
 #include "../include/core/inoise.glsl"
 #include "../include/core/packer.glsl"
 
+#include "../include/blockType.glsl"
 
-#include "../include/blockTypes.glsl"
+// // returns 3D fbm and its 3 derivatives
+// vec4 fbm(in vec3 x, int octaves) {
+//   float f = 1.98; // could be 2.0
+//   float s = 0.49; // could be 0.5
+//   float a = 0.0;
+//   float b = 0.5;
+//   vec3 d  = vec3(0.0);
+//   mat3 m  = mat3(1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+//   for (int i = 0; i < octaves; i++) {
+//     vec4 n = noised(x);
+//     a += b * n.x;       // accumulate values
+//     d += b * m * n.yzw; // accumulate derivatives
+//     b *= s;
+//     x = f * m3 * x;
+//     m = f * m3i * m;
+//   }
+//   return vec4(a, d);
+// }
 
-float computeNoise(vec3 p) {
+vec4 computeNoise(vec3 p) {
   float total       = 0.0;
   float amplitude   = 0.6;
   float frequency   = 2.0;
   float persistence = 0.3;
   float lacunarity  = 2.0;
-  int octaves       = 4;
+  int octaves       = 1;
+  vec3 normal       = vec3(0.0);
 
   for (int i = 0; i < octaves; i++) {
-    // total += cnoise(p * frequency) * amplitude;
-    total += noised(p * frequency).x * amplitude;
+    vec4 noise = noised(p * frequency);
+    total += noise.x * amplitude;
+    normal += noise.yzw * amplitude;
     frequency *= lacunarity;
     amplitude *= persistence;
   }
 
-  return total;
+  // TODO: add gradient eval
+  return vec4(total, normalize(normal));
+}
+
+// takes 21 bits
+uint compressNormal(vec3 normal) {
+  // scale and bias from [-1, 1] to [0, 127]
+  uvec3 quantized = uvec3(((normal + 1.0) * 0.5) * 127.0);
+
+  // pack the 7-bit components into a single uint
+  uint packed = (quantized.r) | (quantized.g << 7) | (quantized.b << 14);
+
+  return packed;
 }
 
 void main() {
   if (any(greaterThanEqual(gl_GlobalInvocationID,
-                           ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
+                           ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
     return;
   }
 
   ivec3 uvi = ivec3(gl_GlobalInvocationID);
 
   vec3 fieldNodePos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
-                      vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
+                      (vec3(uvi) + 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
 
   const float floorHeightMean = 0.0;
   float yPosition             = float(chunksInfoBuffer.data.currentlyWritingChunk.y) - 0.5 +
                     float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
 
+  // x: noise val, yzw: gradient
   // this step takes ~80% of the time for the entire chunk generation
-  float noise = (floorHeightMean - yPosition) + computeNoise(fieldNodePos);
+  vec4 noise            = computeNoise(fieldNodePos);
+  uint compressedNormal = compressNormal(noise.yzw);
 
-  uint blockType     = getBlockTypeFromWeight(noise);
-  uint encodedWeight = packFloatToUint8(noise, -0.1, 0.1);
-  uint value         = (blockType << 8) | encodedWeight;
-  imageStore(chunkFieldImage, uvi, uvec4(value, 0, 0, 0));
+  float weight = (floorHeightMean - yPosition) + noise.x;
+  uint blockType = getBlockTypeFromWeight(weight);
+
+  imageStore(chunkFieldImage, uvi, uvec4(blockType, compressedNormal, 0, 0));
+  
+  if(blockType == kBlockTypeEmpty) {
+    return;
+  }
+
+  ///
+
+  uint fragmentListCur = atomicAdd(fragmentListInfoBuffer.data.voxelFragmentCount, 1);
+
+  // position
+  G_FragmentListEntry ufragment;
+  uint coordinatesData = 0;
+  coordinatesData |= gl_GlobalInvocationID.x;
+  coordinatesData |= gl_GlobalInvocationID.y << 10;
+  coordinatesData |= gl_GlobalInvocationID.z << 20;
+  ufragment.coordinates = coordinatesData;
+
+  // color and normal
+  uint propertiesData = 0;
+  propertiesData |= 0;
+  propertiesData |= compressedNormal << 8;
+  ufragment.properties = propertiesData;
+
+  fragmentListBuffer.datas[fragmentListCur] = ufragment;
 }

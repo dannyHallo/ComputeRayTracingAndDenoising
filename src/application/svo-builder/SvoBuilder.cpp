@@ -204,9 +204,8 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
     _logger->info("constructing new field image");
     cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
     _chunkFieldConstructionPipeline->recordCommand(
-        cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim + 1,
-        _configContainer->terrainInfo->chunkVoxelDim + 1,
-        _configContainer->terrainInfo->chunkVoxelDim + 1);
+        cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
+        _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
     endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                           _appContext->getGraphicsQueue(), cmdBuffer);
   }
@@ -226,20 +225,19 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
 
   // edit field image
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkFieldModificationPipeline->recordCommand(cmdBuffer, 0,
-                                                 _configContainer->terrainInfo->chunkVoxelDim + 1,
-                                                 _configContainer->terrainInfo->chunkVoxelDim + 1,
-                                                 _configContainer->terrainInfo->chunkVoxelDim + 1);
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), cmdBuffer);
-
-  // construct voxels into fragmentlist buffer
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkVoxelCreationPipeline->recordCommand(
+  _chunkFieldModificationPipeline->recordCommand(
       cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
       _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // construct voxels into fragmentlist buffer
+  // cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  // _chunkVoxelCreationPipeline->recordCommand(
+  //     cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
+  //     _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
+  // endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+  //                       _appContext->getGraphicsQueue(), cmdBuffer);
 
   // check if the fragment list is empty, if so, we can skip the octree creation
   G_FragmentListInfo fragmentListInfo{};
@@ -277,10 +275,10 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   if (it == _chunkIndexToFieldImagesMap.end()) {
     _logger->info("creating new image for chunk");
     _chunkIndexToFieldImagesMap[chunkIndex] =
-        std::make_unique<Image>(ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim + 1,
-                                                _configContainer->terrainInfo->chunkVoxelDim + 1,
-                                                _configContainer->terrainInfo->chunkVoxelDim + 1},
-                                VK_FORMAT_R16_UINT,
+        std::make_unique<Image>(ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim,
+                                                _configContainer->terrainInfo->chunkVoxelDim,
+                                                _configContainer->terrainInfo->chunkVoxelDim},
+                                VK_FORMAT_R32G32_UINT,
                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                                     VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   }
@@ -358,20 +356,19 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
 
   // construct field image
   cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkFieldConstructionPipeline->recordCommand(cmdBuffer, 0,
-                                                 _configContainer->terrainInfo->chunkVoxelDim + 1,
-                                                 _configContainer->terrainInfo->chunkVoxelDim + 1,
-                                                 _configContainer->terrainInfo->chunkVoxelDim + 1);
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), cmdBuffer);
-
-  // construct voxels into fragmentlist buffer
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkVoxelCreationPipeline->recordCommand(
+  _chunkFieldConstructionPipeline->recordCommand(
       cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
       _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // construct voxels into fragmentlist buffer
+  // cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  // _chunkVoxelCreationPipeline->recordCommand(
+  //     cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
+  //     _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
+  // endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+  //                       _appContext->getGraphicsQueue(), cmdBuffer);
 
   // intermediate step: check if the fragment list is empty, if so, we can skip the octree creation
   G_FragmentListInfo fragmentListInfo{};
@@ -439,10 +436,10 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
 
 void SvoBuilder::_createImages() {
   _chunkFieldImage =
-      std::make_unique<Image>(ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim + 1,
-                                              _configContainer->terrainInfo->chunkVoxelDim + 1,
-                                              _configContainer->terrainInfo->chunkVoxelDim + 1},
-                              VK_FORMAT_R16_UINT,
+      std::make_unique<Image>(ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim,
+                                              _configContainer->terrainInfo->chunkVoxelDim,
+                                              _configContainer->terrainInfo->chunkVoxelDim},
+                              VK_FORMAT_R32G32_UINT,
                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                                   VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 }
@@ -566,11 +563,11 @@ void SvoBuilder::_createPipelines() {
   _chunkFieldModificationPipeline->compileAndCacheShaderModule(false);
   _chunkFieldModificationPipeline->build();
 
-  _chunkVoxelCreationPipeline = std::make_unique<ComputePipeline>(
-      _appContext, _logger, this, _makeShaderFullPath("chunkVoxelCreation.comp"),
-      WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _chunkVoxelCreationPipeline->compileAndCacheShaderModule(false);
-  _chunkVoxelCreationPipeline->build();
+  // _chunkVoxelCreationPipeline = std::make_unique<ComputePipeline>(
+  //     _appContext, _logger, this, _makeShaderFullPath("chunkVoxelCreation.comp"),
+  //     WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
+  // _chunkVoxelCreationPipeline->compileAndCacheShaderModule(false);
+  // _chunkVoxelCreationPipeline->build();
 
   _chunkModifyArgPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("chunkModifyArg.comp"),
