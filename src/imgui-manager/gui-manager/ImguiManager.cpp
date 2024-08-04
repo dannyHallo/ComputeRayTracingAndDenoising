@@ -268,6 +268,7 @@ void ImguiManager::_drawConfigMenuItem() {
 
     ImGui::SeparatorText("Brush");
     ImGui::SliderFloat("Brush Size", &bi->size, 0.0F, 1.0F);
+    ImGui::SliderFloat("Brush Strength", &bi->strength, 0.001F, 0.01F);
 
     ImGui::SeparatorText("Atmos");
     ImGui::SliderFloat("Sun Altitude", &stti->sunAltitude, 0.F, 180.F);

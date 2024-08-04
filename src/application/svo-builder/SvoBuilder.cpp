@@ -185,6 +185,7 @@ void SvoBuilder::handleCursorHit(glm::vec3 hitPos, bool deletionMode) {
   G_ChunkEditingInfo chunkEditingInfo{};
   chunkEditingInfo.pos       = hitPos;
   chunkEditingInfo.radius    = _configContainer->brushInfo->size;
+  chunkEditingInfo.strength  = _configContainer->brushInfo->strength;
   chunkEditingInfo.operation = deletionMode ? 0U : 1U; // 0 for deletion, 1 for addition
   _chunkEditingInfoBuffer->fillData(&chunkEditingInfo);
 

@@ -35,9 +35,9 @@ void main() {
   if (any(greaterThanEqual(uvi, ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
     return;
   }
-  vec3 localVoxelPos  = (vec3(uvi) - 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
-  vec3 chunkPos       = vec3(chunksInfoBuffer.data.currentlyWritingChunk);
-  vec3 globalVoxelPos = chunkPos + localVoxelPos;
+  const vec3 localVoxelPos = (vec3(uvi) - 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
+  const vec3 chunkPos      = vec3(chunksInfoBuffer.data.currentlyWritingChunk);
+  const vec3 globalVoxelPos = chunkPos + localVoxelPos;
 
   // x: noise val, yzw: gradient
   // this step takes ~80% of the time for the entire chunk generation

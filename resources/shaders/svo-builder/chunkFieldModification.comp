@@ -12,13 +12,14 @@ void main() {
   if (any(greaterThanEqual(uvi, ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
     return;
   }
-  vec3 localVoxelPos  = (vec3(uvi) - 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
-  vec3 chunkPos       = vec3(chunksInfoBuffer.data.currentlyWritingChunk);
-  vec3 globalVoxelPos = chunkPos + localVoxelPos;
+  const vec3 localVoxelPos = (vec3(uvi) - 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
+  const vec3 chunkPos      = vec3(chunksInfoBuffer.data.currentlyWritingChunk);
+  const vec3 globalVoxelPos = chunkPos + localVoxelPos;
 
-  vec3 editingPos = chunkEditingInfo.data.pos;
-  float radius    = chunkEditingInfo.data.radius;
-  bool isAddition = chunkEditingInfo.data.operation == 1;
+  const vec3 editingPos = chunkEditingInfo.data.pos;
+  const float radius    = chunkEditingInfo.data.radius;
+  const float strength  = chunkEditingInfo.data.strength;
+  const bool isAddition = chunkEditingInfo.data.operation == 1;
 
   float distance = distance(globalVoxelPos, editingPos);
   if (distance > radius) {
@@ -27,7 +28,7 @@ void main() {
 
   float modificationWeight01 = 1 - smoothstep(0.0, radius, distance);
   modificationWeight01       = pow(modificationWeight01, 4.0);
-  float modificationWeight   = mix(0.0, 0.001, modificationWeight01);
+  float modificationWeight   = mix(0.0, strength, modificationWeight01);
 
   uint blockType;
   float weight;

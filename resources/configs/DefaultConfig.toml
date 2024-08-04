@@ -21,6 +21,7 @@ range = 1.0
 
 [Brush]
 size = 0.1
+strength = 0.002
 
 [ImguiManager]
 fontSize = 20
