@@ -50,7 +50,7 @@ bool atInterface(uint[8] blockTypeData) {
   bool hasFull  = false;
   for (int i = 0; i < 8; i++) {
     uint blockType = blockTypeData[i];
-    if (blockType == 0) {
+    if (blockType == kBlockTypeEmpty) {
       hasEmpty = true;
     } else {
       hasFull = true;
@@ -71,11 +71,9 @@ void main() {
   uint blockTypeData[8];
   float weightData[8];
   for (int i = 0; i < 8; i++) {
-    // noise lookup position
-    ivec3 p          = ivec3(gl_LocalInvocationID) + lookupOffsets[i];
-    uint data        = sharedFieldData[p.x][p.y][p.z];
-    blockTypeData[i] = (data & 0xFF00) >> 8;
-    weightData[i]    = unpackWeight(data & 0xFF);
+    ivec3 p   = ivec3(gl_LocalInvocationID) + lookupOffsets[i];
+    uint data = sharedFieldData[p.x][p.y][p.z];
+    unpackBlockTypeAndWeight(blockTypeData[i], weightData[i], data);
   }
 
   if (!atInterface(blockTypeData)) {

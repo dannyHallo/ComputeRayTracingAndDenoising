@@ -5,39 +5,40 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
-#include "../include/core/packer.glsl"
+#include "../include/blockTypes.glsl"
 
 void main() {
-  if (any(greaterThanEqual(gl_GlobalInvocationID,
-                           ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
+  ivec3 uvi = ivec3(gl_GlobalInvocationID);
+  if (any(greaterThanEqual(uvi, ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
+    return;
+  }
+  vec3 localVoxelPos  = (vec3(uvi) - 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
+  vec3 chunkPos       = vec3(chunksInfoBuffer.data.currentlyWritingChunk);
+  vec3 globalVoxelPos = chunkPos + localVoxelPos;
+
+  vec3 editingPos = chunkEditingInfo.data.pos;
+  float radius    = chunkEditingInfo.data.radius;
+  bool isAddition = chunkEditingInfo.data.operation == 1;
+
+  float distance = distance(globalVoxelPos, editingPos);
+  if (distance > radius) {
     return;
   }
 
-  // ivec3 uvi = ivec3(gl_GlobalInvocationID);
+  float modificationWeight01 = 1 - smoothstep(0.0, radius, distance);
+  modificationWeight01       = pow(modificationWeight01, 4.0);
+  float modificationWeight   = mix(0.0, 0.001, modificationWeight01);
 
-  // vec3 fieldNodePos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
-  //                     vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
+  uint blockType;
+  float weight;
+  unpackBlockTypeAndWeight(blockType, weight, imageLoad(chunkFieldImage, uvi).x);
 
-  // vec3 editingPos = chunkEditingInfo.data.pos;
-  // float radius    = chunkEditingInfo.data.radius;
-  // bool isAddition = chunkEditingInfo.data.operation == 1;
+  if (isAddition) {
+    weight += modificationWeight;
+  } else {
+    weight -= modificationWeight;
+  }
 
-  // float distance = distance(fieldNodePos, editingPos);
-  // if (distance > radius) {
-  //   return;
-  // }
-
-  // float modificationWeight01 = 1 - smoothstep(0.0, radius, distance);
-  // modificationWeight01       = pow(modificationWeight01, 4.0);
-  // float modificationWeight   = mix(0.0, 0.001, modificationWeight01);
-
-  // float weight = unpackUint8ToFloat(imageLoad(chunkFieldImage, uvi).r, -0.1, 0.1);
-
-  // if (isAddition) {
-  //   weight += modificationWeight * 10.0;
-  // } else {
-  //   weight -= modificationWeight;
-  // }
-
-  // imageStore(chunkFieldImage, uvi, uvec4(packFloatToUint8(weight, -0.1, 0.1), 0, 0, 0));
+  blockType = getBlockTypeFromWeight(weight);
+  imageStore(chunkFieldImage, uvi, uvec4(packBlockTypeAndWeight(blockType, weight), 0, 0, 0));
 }

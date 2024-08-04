@@ -7,7 +7,6 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/core/cnoise.glsl"
 #include "../include/core/inoise.glsl"
-#include "../include/core/packer.glsl"
 
 #include "../include/blockTypes.glsl"
 
@@ -46,9 +45,8 @@ void main() {
 
   float weight = noise.x - (globalVoxelPos.y - 0.5);
 
-  uint blockType    = getBlockTypeFromWeight(weight);
-  uint packedWeight = packWeight(weight);
+  uint blockType = getBlockTypeFromWeight(weight);
+  uint packed    = packBlockTypeAndWeight(blockType, weight);
 
-  uint value = (blockType << 8) | (packedWeight & 0xFF);
-  imageStore(chunkFieldImage, uvi, uvec4(value, 0, 0, 0));
+  imageStore(chunkFieldImage, uvi, uvec4(packed, 0, 0, 0));
 }

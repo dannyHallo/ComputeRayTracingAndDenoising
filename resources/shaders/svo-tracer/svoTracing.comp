@@ -82,7 +82,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
     return false;
   }
   
-  // TODO: debug feature
+  // TODO: debug feature: show normal
   return true;
 
   vec3 brdf = primaryRayResult.color * kInvPi;

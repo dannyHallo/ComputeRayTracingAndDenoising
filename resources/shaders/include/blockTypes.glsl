@@ -15,8 +15,9 @@ uint getBlockTypeFromWeight(float weight) {
   return kBlockTypeRock;
 }
 
-const float boundaryMin = -0.01;
-const float boundaryMax = 0.01;
+const float f = 1.0 / 100.0;
+const float boundaryMin = -f;
+const float boundaryMax = f;
 
 uint packWeight(float weight) {
   weight = clamp(weight, boundaryMin, boundaryMax);
@@ -25,6 +26,15 @@ uint packWeight(float weight) {
 
 float unpackWeight(uint encodedWeight) {
   return (float(encodedWeight) / 255.0) * (boundaryMax - boundaryMin) + boundaryMin;
+}
+
+uint packBlockTypeAndWeight(uint blockType, float weight) {
+  return (blockType << 8) | packWeight(weight);
+}
+
+void unpackBlockTypeAndWeight(out uint oBlockType, out float oWeight, uint data) {
+  oBlockType = (data >> 8) & 0xFF;
+  oWeight    = unpackWeight(data & 0xFF);
 }
 
 #endif // BLOCK_TYPES_GLSL
