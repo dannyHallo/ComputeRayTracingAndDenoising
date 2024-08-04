@@ -27,8 +27,7 @@ void main() {
   }
 
   float modificationWeight01 = 1 - smoothstep(0.0, radius, distance);
-  modificationWeight01       = pow(modificationWeight01, 4.0);
-  float modificationWeight   = mix(0.0, strength, modificationWeight01);
+  float modificationWeight   = modificationWeight01 * strength;
 
   uint blockType;
   float weight;

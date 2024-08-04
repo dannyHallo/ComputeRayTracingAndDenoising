@@ -42,6 +42,7 @@ void main() {
   // x: noise val, yzw: gradient
   // this step takes ~80% of the time for the entire chunk generation
   float noise = computeNoise(globalVoxelPos).x;
+  // noise = 0.0;
 
   float weight = noise.x - (globalVoxelPos.y - 0.5);
 
