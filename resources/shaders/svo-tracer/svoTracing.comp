@@ -81,6 +81,9 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
     oColor    = skyColor(d, true);
     return false;
   }
+  
+  // TODO: debug feature
+  return true;
 
   vec3 brdf = primaryRayResult.color * kInvPi;
 

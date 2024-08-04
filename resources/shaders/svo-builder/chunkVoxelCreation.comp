@@ -9,6 +9,8 @@ layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROU
 
 #include "../include/core/packer.glsl"
 
+#include "../include/blockTypes.glsl"
+
 #define SHARED_SIZE (GROUP_SIZE + 1)
 #define SHARED_SIZE_3 (SHARED_SIZE * SHARED_SIZE * SHARED_SIZE)
 
@@ -23,9 +25,6 @@ uint compressNormal(vec3 normal) {
 
   return packed;
 }
-
-ivec3 lookupOffsets[8] = ivec3[8](ivec3(0, 0, 0), ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(1, 1, 0),
-                                  ivec3(0, 0, 1), ivec3(1, 0, 1), ivec3(0, 1, 1), ivec3(1, 1, 1));
 
 void preload() {
   for (uint linearIdx = gl_LocalInvocationIndex; linearIdx < SHARED_SIZE_3;
@@ -42,7 +41,11 @@ void preload() {
   }
 }
 
-bool voxelAtInterface(uint[8] blockTypeData) {
+const ivec3 lookupOffsets[8] =
+    ivec3[8](ivec3(0, 0, 0), ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(1, 1, 0), ivec3(0, 0, 1),
+             ivec3(1, 0, 1), ivec3(0, 1, 1), ivec3(1, 1, 1));
+
+bool atInterface(uint[8] blockTypeData) {
   bool hasEmpty = false;
   bool hasFull  = false;
   for (int i = 0; i < 8; i++) {
@@ -72,10 +75,10 @@ void main() {
     ivec3 p          = ivec3(gl_LocalInvocationID) + lookupOffsets[i];
     uint data        = sharedFieldData[p.x][p.y][p.z];
     blockTypeData[i] = (data & 0xFF00) >> 8;
-    weightData[i]    = unpackUint8ToFloat(data & 0xFF, -0.1, 0.1);
+    weightData[i]    = unpackWeight(data & 0xFF);
   }
 
-  if (!voxelAtInterface(blockTypeData)) {
+  if (!atInterface(blockTypeData)) {
     return;
   }
 

@@ -9,10 +9,9 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 #include "../include/core/inoise.glsl"
 #include "../include/core/packer.glsl"
 
-
 #include "../include/blockTypes.glsl"
 
-float computeNoise(vec3 p) {
+vec4 computeNoise(vec3 p) {
   float total       = 0.0;
   float amplitude   = 0.6;
   float frequency   = 2.0;
@@ -20,36 +19,36 @@ float computeNoise(vec3 p) {
   float lacunarity  = 2.0;
   int octaves       = 4;
 
+  vec3 gradient = vec3(0.0);
   for (int i = 0; i < octaves; i++) {
-    // total += cnoise(p * frequency) * amplitude;
-    total += noised(p * frequency).x * amplitude;
-    frequency *= lacunarity;
+    vec4 noise = noised(p * frequency);
+    total += amplitude * noise.x;
+    gradient += amplitude * frequency * noise.yzw;
     amplitude *= persistence;
+    frequency *= lacunarity;
   }
 
-  return total;
+  return vec4(total, gradient);
 }
 
 void main() {
-  if (any(greaterThanEqual(gl_GlobalInvocationID,
-                           ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
+  ivec3 uvi = ivec3(gl_GlobalInvocationID);
+  if (any(greaterThanEqual(uvi, ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
     return;
   }
+  vec3 localVoxelPos  = (vec3(uvi) - 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
+  vec3 chunkPos       = vec3(chunksInfoBuffer.data.currentlyWritingChunk);
+  vec3 globalVoxelPos = chunkPos + localVoxelPos;
 
-  ivec3 uvi = ivec3(gl_GlobalInvocationID);
-
-  vec3 fieldNodePos = vec3(chunksInfoBuffer.data.currentlyWritingChunk) +
-                      vec3(uvi) / float(fragmentListInfoBuffer.data.voxelResolution);
-
-  const float floorHeightMean = 0.0;
-  float yPosition             = float(chunksInfoBuffer.data.currentlyWritingChunk.y) - 0.5 +
-                    float(uvi.y) / float(fragmentListInfoBuffer.data.voxelResolution);
-
+  // x: noise val, yzw: gradient
   // this step takes ~80% of the time for the entire chunk generation
-  float noise = (floorHeightMean - yPosition) + computeNoise(fieldNodePos);
+  float noise = computeNoise(globalVoxelPos).x;
 
-  uint blockType     = getBlockTypeFromWeight(noise);
-  uint encodedWeight = packFloatToUint8(noise, -0.1, 0.1);
-  uint value         = (blockType << 8) | encodedWeight;
+  float weight = noise.x - (globalVoxelPos.y - 0.5);
+
+  uint blockType    = getBlockTypeFromWeight(weight);
+  uint packedWeight = packWeight(weight);
+
+  uint value = (blockType << 8) | (packedWeight & 0xFF);
   imageStore(chunkFieldImage, uvi, uvec4(value, 0, 0, 0));
 }
