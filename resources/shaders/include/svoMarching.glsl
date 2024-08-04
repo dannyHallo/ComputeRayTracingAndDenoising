@@ -176,9 +176,7 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
   // uint colorIndex = cur & 0x000000FFu;
   oLightSourceHit = false;
-  // oColor         = vec3(236, 177, 89) / 255.0;
-  oColor = oNormal * 0.5 + 0.5;
-  oColor = oColor.rgb;
+  oColor = (tweakableParametersUbo.data.debugB1 != 0) ? oNormal * 0.5 + 0.5 : vec3(236, 177, 89) / 255.0;
 
   oIter    = iter;
   oVoxHash = voxHash;
