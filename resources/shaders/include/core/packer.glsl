@@ -91,9 +91,9 @@ vec3 unpackRgbe(uint x) {
   float scale  = pow(2, exponent) / 256.0;
 
   vec3 v;
-  v.r = float(x & 0x1ff) * scale;
-  v.g = float((x >> 9) & 0x1ff) * scale;
-  v.b = float((x >> 18) & 0x1ff) * scale;
+  v.r = float(x & 0x1FF) * scale;
+  v.g = float((x >> 9) & 0x1FF) * scale;
+  v.b = float((x >> 18) & 0x1FF) * scale;
 
   return v;
 }
