@@ -268,7 +268,7 @@ void ImguiManager::_drawConfigMenuItem() {
     ///
 
     ImGui::SeparatorText("Brush");
-    ImGui::SliderFloat("Brush Size", &bi->size, 0.0F, 1.0F);
+    ImGui::SliderFloat("Brush Size", &bi->size, 0.0F, 0.2F);
     ImGui::SliderFloat("Brush Strength", &bi->strength, 0.001F, 0.01F);
 
     ImGui::SeparatorText("Atmos");

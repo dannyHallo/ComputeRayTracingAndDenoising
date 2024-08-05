@@ -5,6 +5,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
+#include "../include/blockType.glsl"
 #include "../include/blockTypeAndWeight.glsl"
 
 void main() {
@@ -12,6 +13,7 @@ void main() {
   if (any(greaterThanEqual(uvi, ivec3(fragmentListInfoBuffer.data.voxelResolution + 1)))) {
     return;
   }
+
   const vec3 localVoxelPos = (vec3(uvi) - 0.5) / float(fragmentListInfoBuffer.data.voxelResolution);
   const vec3 chunkPos      = vec3(chunksInfoBuffer.data.currentlyWritingChunk);
   const vec3 globalVoxelPos = chunkPos + localVoxelPos;
@@ -35,13 +37,15 @@ void main() {
 
   if (isAddition) {
     weight += modificationWeight;
+    if (weight > 0.0 && blockType == kBlockTypeEmpty) {
+      blockType = kBlockTypeDirt;
+    }
   } else {
     weight -= modificationWeight;
+    if (weight < 0.0) {
+      blockType = kBlockTypeEmpty;
+    }
   }
 
-  // blockType = getBlockTypeFromWeight(weight);
-  if(weight < 0.0){
-    blockType = kBlockTypeEmpty;
-  }
   imageStore(chunkFieldImage, uvi, uvec4(packBlockTypeAndWeight(blockType, weight), 0, 0, 0));
 }
