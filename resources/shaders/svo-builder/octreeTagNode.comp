@@ -6,12 +6,12 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
 uvec4 LeafToUvec4(uint val) {
-  return uvec4((val & 0xffu), ((val >> 8u) & 0xffu), ((val >> 16u) & 0xffu),
-               ((val >> 24u) & 0x3fu));
+  return uvec4((val & 0xFF), ((val >> 8) & 0xFF), ((val >> 16) & 0xFF),
+               ((val >> 24) & 0x3F));
 }
 uint Uvec4ToLeaf(uvec4 vec) {
-  return (min(vec.w, 0x3fu) << 24u) | (vec.x & 0xffu) | ((vec.y & 0xffu) << 8u) |
-         ((vec.z & 0xffu) << 16u) | 0xC0000000u;
+  return (min(vec.w, 0x3F) << 24) | (vec.x & 0xFF) | ((vec.y & 0xFF) << 8) |
+         ((vec.z & 0xFF) << 16) | 0xC0000000;
 }
 
 // returns the index of the node to be tagged (it has just been initialized to
@@ -24,8 +24,8 @@ uint TraverseOctree(in const uvec3 voxel_pos, out bool is_leaf) {
   do {
     // fast division by 2, level_dim is always 2^n, n >= 0
     bvec3 cmp = greaterThanEqual(level_pos, uvec3(level_dim >>= 1));
-    idx       = cur | uint(cmp.x) | (uint(cmp.y) << 1u) | (uint(cmp.z) << 2u);
-    cur       = octreeBuffer.data[idx] & 0x3fffffffu; // read node pointer
+    idx       = cur | uint(cmp.x) | (uint(cmp.y) << 1) | (uint(cmp.z) << 2);
+    cur       = octreeBuffer.data[idx] & 0x3FFFFFFF; // read node pointer
     level_pos -= uvec3(cmp) * level_dim;
   } while (cur != 0 && level_dim > 1u);
   is_leaf = level_dim == 1u;
@@ -37,8 +37,8 @@ void main() {
   G_FragmentListEntry ufragment = fragmentListBuffer.datas[gl_GlobalInvocationID.x];
 
   uint coordinates = ufragment.coordinates;
-  uvec3 voxel_pos  = uvec3((coordinates & 0x000003FFu), (coordinates & 0x000FFC00u) >> 10u,
-                           (coordinates & 0x3FF00000u) >> 20u);
+  uvec3 voxel_pos  = uvec3((coordinates & 0x000003FF), (coordinates & 0x000FFC00) >> 10,
+                           (coordinates & 0x3FF00000) >> 20);
 
   bool is_leaf;
   // is_leaf is only true when the leaf node is allocated

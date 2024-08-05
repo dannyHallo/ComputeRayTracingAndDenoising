@@ -59,12 +59,26 @@ bool atInterface(uint[8] blockTypeData) {
   return hasEmpty && hasFull;
 }
 
+vec3 getNormalByWeight(float[8] weightData) {
+  vec3 normal;
+  normal.x = ((weightData[0] + weightData[2] + weightData[4] + weightData[6]) -
+              (weightData[1] + weightData[3] + weightData[5] + weightData[7])) *
+             0.25;
+  normal.y = ((weightData[0] + weightData[1] + weightData[4] + weightData[5]) -
+              (weightData[2] + weightData[3] + weightData[6] + weightData[7])) *
+             0.25;
+  normal.z = ((weightData[0] + weightData[1] + weightData[2] + weightData[3]) -
+              (weightData[4] + weightData[5] + weightData[6] + weightData[7])) *
+             0.25;
+  return normalize(normal);
+}
+
 void main() {
   preload();
   barrier();
 
-  if (any(greaterThanEqual(gl_GlobalInvocationID,
-                           ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
+  ivec3 uvi = ivec3(gl_GlobalInvocationID);
+  if (any(greaterThanEqual(uvi, ivec3(fragmentListInfoBuffer.data.voxelResolution)))) {
     return;
   }
 
@@ -84,23 +98,14 @@ void main() {
 
   // position
   G_FragmentListEntry ufragment;
-  uint coordinatesData = 0;
-  coordinatesData |= gl_GlobalInvocationID.x;
-  coordinatesData |= gl_GlobalInvocationID.y << 10;
-  coordinatesData |= gl_GlobalInvocationID.z << 20;
+  uint coordinatesData = uvi.x;
+  coordinatesData |= uvi.y << 10;
+  coordinatesData |= uvi.z << 20;
   ufragment.coordinates = coordinatesData;
 
   // color and normal
-  float gradX = ((weightData[0] + weightData[2] + weightData[4] + weightData[6]) -
-                 (weightData[1] + weightData[3] + weightData[5] + weightData[7])) *
-                0.25;
-  float gradY = ((weightData[0] + weightData[1] + weightData[4] + weightData[5]) -
-                 (weightData[2] + weightData[3] + weightData[6] + weightData[7])) *
-                0.25;
-  float gradZ = ((weightData[0] + weightData[1] + weightData[2] + weightData[3]) -
-                 (weightData[4] + weightData[5] + weightData[6] + weightData[7])) *
-                0.25;
-  vec3 normal         = normalize(vec3(gradX, gradY, gradZ));
+  vec3 normal = getNormalByWeight(weightData);
+
   uint propertiesData = 0;
   propertiesData |= 0;
   propertiesData |= compressNormal(normal) << 8;
