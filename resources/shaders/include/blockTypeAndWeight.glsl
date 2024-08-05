@@ -1,13 +1,14 @@
-#ifndef BLOCK_TYPES_GLSL
-#define BLOCK_TYPES_GLSL
+#ifndef BLOCK_TYPE_AND_WEIGHT_GLSL
+#define BLOCK_TYPE_AND_WEIGHT_GLSL
 
-const uint kBlockTypeEmpty = 0;
-const uint kBlockTypeDirt  = 1;
-const uint kBlockTypeRock  = 2;
+#include "../include/blockType.glsl"
 
 uint getBlockTypeFromWeight(float weight) {
   if (weight < 0.0) {
     return kBlockTypeEmpty;
+  }
+  if (weight < 0.02) {
+    return kBlockTypeSand;
   }
   if (weight < 0.1) {
     return kBlockTypeDirt;
@@ -23,23 +24,23 @@ const uint nBits        = 12;
 const uint nLevels      = (1 << nBits) - 1;
 const uint encodedMask  = nLevels;
 
-uint packWeight(float weight) {
+uint _packWeight(float weight) {
   weight          = clamp(weight, boundaryMin, boundaryMax);
   const float f01 = (weight - boundaryMin) / (boundaryMax - boundaryMin);
   return uint(f01 * nLevels);
 }
 
-float unpackWeight(uint encodedWeight) {
+float _unpackWeight(uint encodedWeight) {
   return (float(encodedWeight) / float(nLevels)) * (boundaryMax - boundaryMin) + boundaryMin;
 }
 
 uint packBlockTypeAndWeight(uint blockType, float weight) {
-  return (blockType << nBits) | packWeight(weight);
+  return (blockType << nBits) | _packWeight(weight);
 }
 
 void unpackBlockTypeAndWeight(out uint oBlockType, out float oWeight, uint data) {
   oBlockType = (data >> nBits);
-  oWeight    = unpackWeight(data & encodedMask);
+  oWeight    = _unpackWeight(data & encodedMask);
 }
 
-#endif // BLOCK_TYPES_GLSL
+#endif // BLOCK_TYPE_AND_WEIGHT_GLSL

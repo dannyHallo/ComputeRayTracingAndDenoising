@@ -8,7 +8,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 #include "../include/core/cnoise.glsl"
 #include "../include/core/inoise.glsl"
 
-#include "../include/blockTypes.glsl"
+#include "../include/blockTypeAndWeight.glsl"
 
 vec4 computeNoise(vec3 p) {
   float total       = 0.0;

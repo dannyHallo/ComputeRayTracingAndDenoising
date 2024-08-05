@@ -3,6 +3,8 @@
 
 #include "../include/core/definitions.glsl"
 
+#include "../include/blockType.glsl"
+
 vec3 decompressNormal(uint packed) {
   // extract the components
   uvec3 quantized;
@@ -181,17 +183,17 @@ bool svoMarching(out float oT, out uint oIter, out vec3 oColor, out vec3 oPositi
   // oNormal = norm;
 
   // scale_exp2 is the length of the edges of the voxel
-  oNormal = decompressNormal((cur & 0x1FFFFF00u) >> 8u);
+  oNormal = decompressNormal((cur & 0x1FFFFF00u) >> 8);
 
   oNextTracingPosition = pos + scale_exp2 * 0.5 + 0.87 * scale_exp2 * oNormal;
   // oNextTracingPosition = oPosition + 1e-7 * norm;
 
-  // https://registry.khronos.org/OpenGL-Refpages/gl4/html/unpackUnorm.xhtml
-  // uint colorIndex = cur & 0x000000FFu;
   oLightSourceHit = false;
-  // oColor         = vec3(236, 177, 89) / 255.0;
-  oColor = oNormal * 0.5 + 0.5;
-  oColor = oColor.rbg;
+
+  uint blockType = cur & 0xFF;
+
+  oColor = getBlockColor(blockType);
+  // oColor = oNormal * 0.5 + 0.5;
 
   oIter    = iter;
   oVoxHash = voxHash;

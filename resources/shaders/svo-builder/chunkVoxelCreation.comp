@@ -9,7 +9,7 @@ layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE, local_size_z = GROU
 
 #include "../include/core/packer.glsl"
 
-#include "../include/blockTypes.glsl"
+#include "../include/blockTypeAndWeight.glsl"
 
 #define SHARED_SIZE (GROUP_SIZE + 1)
 #define SHARED_SIZE_3 (SHARED_SIZE * SHARED_SIZE * SHARED_SIZE)
@@ -45,18 +45,21 @@ const ivec3 lookupOffsets[8] =
     ivec3[8](ivec3(0, 0, 0), ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(1, 1, 0), ivec3(0, 0, 1),
              ivec3(1, 0, 1), ivec3(0, 1, 1), ivec3(1, 1, 1));
 
-bool atInterface(uint[8] blockTypeData) {
-  bool hasEmpty = false;
-  bool hasFull  = false;
+bool atInterface(out uint oDensiestBlockType, uint[8] blockTypeData) {
+  oDensiestBlockType     = kBlockTypeEmpty;
+  uint lightestBlockType = kBlockTypeMax;
+
   for (int i = 0; i < 8; i++) {
     uint blockType = blockTypeData[i];
-    if (blockType == kBlockTypeEmpty) {
-      hasEmpty = true;
-    } else {
-      hasFull = true;
+    if (blockType > oDensiestBlockType) {
+      oDensiestBlockType = blockType;
+    }
+    if (blockType < lightestBlockType) {
+      lightestBlockType = blockType;
     }
   }
-  return hasEmpty && hasFull;
+  // return hasEmpty && hasFull;
+  return lightestBlockType == kBlockTypeEmpty && oDensiestBlockType != kBlockTypeEmpty;
 }
 
 vec3 getNormalByWeight(float[8] weightData) {
@@ -90,7 +93,8 @@ void main() {
     unpackBlockTypeAndWeight(blockTypeData[i], weightData[i], data);
   }
 
-  if (!atInterface(blockTypeData)) {
+  uint densistBlockType;
+  if (!atInterface(densistBlockType, blockTypeData)) {
     return;
   }
 
@@ -107,7 +111,7 @@ void main() {
   vec3 normal = getNormalByWeight(weightData);
 
   uint propertiesData = 0;
-  propertiesData |= 0;
+  propertiesData |= densistBlockType & 0xFF;
   propertiesData |= compressNormal(normal) << 8;
   ufragment.properties = propertiesData;
 

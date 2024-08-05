@@ -5,7 +5,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include "../include/svoBuilderDescriptorSetLayouts.glsl"
 
-#include "../include/blockTypes.glsl"
+#include "../include/blockTypeAndWeight.glsl"
 
 void main() {
   ivec3 uvi = ivec3(gl_GlobalInvocationID);
@@ -39,6 +39,9 @@ void main() {
     weight -= modificationWeight;
   }
 
-  blockType = getBlockTypeFromWeight(weight);
+  // blockType = getBlockTypeFromWeight(weight);
+  if(weight < 0.0){
+    blockType = kBlockTypeEmpty;
+  }
   imageStore(chunkFieldImage, uvi, uvec4(packBlockTypeAndWeight(blockType, weight), 0, 0, 0));
 }
