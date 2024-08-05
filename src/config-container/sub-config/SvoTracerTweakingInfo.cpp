@@ -6,6 +6,9 @@ void SvoTracerTweakingInfo::loadConfig(TomlConfigReader *tomlConfigReader) {
   debugB1 = tomlConfigReader->getConfig<bool>("SvoTracerTweakingData.debugB1");
   debugF1 = tomlConfigReader->getConfig<float>("SvoTracerTweakingData.debugF1");
   debugI1 = tomlConfigReader->getConfig<int>("SvoTracerTweakingData.debugI1");
+  auto const &dc1 =
+      tomlConfigReader->getConfig<std::array<float, 3>>("SvoTracerTweakingData.debugC1");
+  debugC1 = glm::vec3(dc1.at(0), dc1.at(1), dc1.at(2));
 
   explosure = tomlConfigReader->getConfig<float>("SvoTracerTweakingData.explosure");
 

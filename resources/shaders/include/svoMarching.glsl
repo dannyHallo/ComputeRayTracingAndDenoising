@@ -3,6 +3,7 @@
 
 #include "../include/core/definitions.glsl"
 
+#include "../include/blockColor.glsl"
 #include "../include/blockType.glsl"
 
 vec3 decompressNormal(uint packed) {

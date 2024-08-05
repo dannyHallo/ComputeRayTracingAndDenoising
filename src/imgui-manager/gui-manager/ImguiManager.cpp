@@ -263,6 +263,7 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::Checkbox("Debug B1", &stti->debugB1);
     ImGui::SliderFloat("Debug F1", &stti->debugF1, 0.0F, 1.0F);
     ImGui::SliderInt("Debug I1", &stti->debugI1, 0, 10);
+    ImGui::ColorEdit3("Debug C1", &stti->debugC1.x);
 
     ///
 

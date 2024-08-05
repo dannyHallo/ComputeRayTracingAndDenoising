@@ -43,6 +43,7 @@ struct G_TweakableParameters {
   uint debugB1; // bool
   float debugF1;
   uint debugI1;
+  vec3 debugC1;
   float explosure;
   uint visualizeChunks;  // bool
   uint visualizeOctree;  // bool

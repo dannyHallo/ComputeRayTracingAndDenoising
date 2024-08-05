@@ -9,6 +9,7 @@ struct SvoTracerTweakingInfo {
   bool debugB1{};
   float debugF1{};
   int debugI1{};
+  glm::vec3 debugC1{};
 
   float explosure{};
 

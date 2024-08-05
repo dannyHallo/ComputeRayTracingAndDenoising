@@ -717,6 +717,7 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
   tweakableParameters.debugB1          = td.debugB1;
   tweakableParameters.debugF1          = td.debugF1;
   tweakableParameters.debugI1          = td.debugI1;
+  tweakableParameters.debugC1          = td.debugC1;
   tweakableParameters.explosure        = td.explosure;
   tweakableParameters.visualizeChunks  = td.visualizeChunks;
   tweakableParameters.visualizeOctree  = td.visualizeOctree;

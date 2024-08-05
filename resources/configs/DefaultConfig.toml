@@ -42,6 +42,7 @@ upscaleRatio = 2.0
 debugB1 = false
 debugF1 = 0.0
 debugI1 = 0
+debugC1 = [ 0.0, 0.0, 0.0 ]
 explosure = 10.0
 visualizeChunks = false
 visualizeOctree = false
