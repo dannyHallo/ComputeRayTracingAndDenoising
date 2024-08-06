@@ -20,7 +20,7 @@ vec4 computeNoise(vec3 p) {
 
   vec3 gradient = vec3(0.0);
   for (int i = 0; i < octaves; i++) {
-    vec4 noise = noised(p * frequency);
+    vec4 noise = noised(p * frequency) + 0.5;
     // vec4 noise = vec4(cnoise(p * frequency));
     total += amplitude * noise.x;
     gradient += amplitude * frequency * noise.yzw;
@@ -29,6 +29,13 @@ vec4 computeNoise(vec3 p) {
   }
 
   return vec4(total, gradient);
+}
+
+float islandGradientFalloff(ivec3 chunkDimension, vec3 globalVoxelPos) {
+  vec2 halfWorldDim2D = chunkDimension.xz / 2.0;
+  vec2 center         = halfWorldDim2D;
+  return 1.0 - smoothstep(0.0, min(halfWorldDim2D.x, halfWorldDim2D.y),
+                          distance(center, globalVoxelPos.xz));
 }
 
 void main() {
@@ -42,13 +49,20 @@ void main() {
 
   // x: noise val, yzw: gradient
   // this step takes ~80% of the time for the entire chunk generation
-  float noise = computeNoise(globalVoxelPos).x;
-  // noise = 0.0;
+  float noise   = computeNoise(globalVoxelPos).x;
+  float falloff = islandGradientFalloff(ivec3(chunksInfoBuffer.data.chunksDim), globalVoxelPos);
+  // noise -= (1.0 - islandGradientFalloff(ivec3(chunksInfoBuffer.data.chunksDim), globalVoxelPos));
+  noise *= falloff;
 
-  float weight = noise.x - (globalVoxelPos.y - 0.5);
+  float weight = noise - globalVoxelPos.y;
 
   uint blockType = getBlockTypeFromWeight(weight);
-  uint packed    = packBlockTypeAndWeight(blockType, weight);
+
+  // if (globalVoxelPos.y < 0.2) {
+  //   blockType = kBlockTypeSand;
+  // }
+
+  uint packed = packBlockTypeAndWeight(blockType, weight);
 
   imageStore(chunkFieldImage, uvi, uvec4(packed, 0, 0, 0));
 }
