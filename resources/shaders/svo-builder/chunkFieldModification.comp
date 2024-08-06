@@ -38,7 +38,7 @@ void main() {
   if (isAddition) {
     weight += modificationWeight;
     if (weight > 0.0 && blockType == kBlockTypeEmpty) {
-      blockType = kBlockTypeDirt;
+      blockType = kBlockTypeSand;
     }
   } else {
     weight -= modificationWeight;

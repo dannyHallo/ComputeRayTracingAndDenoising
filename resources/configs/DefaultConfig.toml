@@ -14,7 +14,7 @@ initPitch = 0.0
 vFov = 60.0
 movementSpeed = 0.2
 movementSpeedBoost = 3.0
-mouseSensitivity = 0.06
+mouseSensitivity = 0.08
 
 [ShadowMapCamera]
 range = 1.0

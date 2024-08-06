@@ -7,10 +7,10 @@ uint getBlockTypeFromWeight(float weight) {
   if (weight < 0.0) {
     return kBlockTypeEmpty;
   }
-  if (weight < 0.02) {
-    return kBlockTypeSand;
+  if (weight < 0.2) {
+    return kBlockTypeGrass;
   }
-  if (weight < 0.1) {
+  if (weight < 0.6) {
     return kBlockTypeDirt;
   }
   return kBlockTypeRock;

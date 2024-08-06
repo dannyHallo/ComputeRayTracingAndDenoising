@@ -3,7 +3,7 @@
 
 #include "../include/blockType.glsl"
 
-// return tweakableParametersUbo.data.debugC1;
+// for debugging: return tweakableParametersUbo.data.debugC1;
 
 // https://colorhunt.co/palette/973131e0a75ef9d689f5e7b2
 vec3 getBlockColor(uint blockType) {
@@ -13,8 +13,9 @@ vec3 getBlockColor(uint blockType) {
   case kBlockTypeRock:
     return vec3(128.0, 128.0, 128.0) / 255.0;
   case kBlockTypeSand:
-    // return vec3(223.0, 193.0, 158.0) / 255.0;
     return vec3(255.0, 186.0, 239.0) / 255.0;
+  case kBlockTypeGrass:
+    return vec3(86.0, 159.0, 46.0) / 255.0;
   default:
     return vec3(0.0);
   }
