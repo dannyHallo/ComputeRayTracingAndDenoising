@@ -234,45 +234,6 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
-  // construct voxels into fragmentlist buffer
-  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-  _chunkVoxelCreationPipeline->recordCommand(
-      cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
-      _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
-  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                        _appContext->getGraphicsQueue(), cmdBuffer);
-
-  // check if the fragment list is empty, if so, we can skip the octree creation
-  G_FragmentListInfo fragmentListInfo{};
-  _fragmentListInfoBuffer->fetchData(&fragmentListInfo);
-  if (fragmentListInfo.voxelFragmentCount == 0) {
-    // remove svo buffer allocation rec, so new allocations can be made to this memory region
-    auto const &it = _chunkIndexToBufferAllocResult.find(chunkIndex);
-    if (it != _chunkIndexToBufferAllocResult.end()) {
-      _chunkBufferMemoryAllocator->deallocate(it->second);
-      _chunkIndexToBufferAllocResult.erase(chunkIndex);
-    }
-
-    // alter the pointer stored in the chunk indices buffer
-    uint32_t zero = 0;
-    _octreeBufferWriteOffsetBuffer->fillData(&zero);
-    cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
-    _chunkIndicesBufferUpdaterPipeline->recordCommand(cmdBuffer, 0, 1, 1, 1);
-    endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
-                          _appContext->getGraphicsQueue(), cmdBuffer);
-
-    // delete the image
-    auto const &it2 = _chunkIndexToFieldImagesMap.find(chunkIndex);
-    if (it2 != _chunkIndexToFieldImagesMap.end()) {
-      _chunkIndexToFieldImagesMap.erase(it2);
-    }
-
-    _logger->info("chunk {} {} {} is removed because it's empty", chunkIndex.x, chunkIndex.y,
-                  chunkIndex.z);
-
-    return;
-  }
-
   // ensure the image has been created before copying
   auto const &it = _chunkIndexToFieldImagesMap.find(chunkIndex);
   if (it == _chunkIndexToFieldImagesMap.end()) {
@@ -295,6 +256,37 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
                         _appContext->getGraphicsQueue(), cmdBuffer);
 
+  // remove svo buffer allocation rec, so new allocations can be made to this memory region
+  auto const &it2 = _chunkIndexToBufferAllocResult.find(chunkIndex);
+  if (it2 != _chunkIndexToBufferAllocResult.end()) {
+    _chunkBufferMemoryAllocator->deallocate(it2->second);
+    _chunkIndexToBufferAllocResult.erase(it2);
+  }
+
+  // construct voxels into fragmentlist buffer
+  cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+  _chunkVoxelCreationPipeline->recordCommand(
+      cmdBuffer, 0, _configContainer->terrainInfo->chunkVoxelDim,
+      _configContainer->terrainInfo->chunkVoxelDim, _configContainer->terrainInfo->chunkVoxelDim);
+  endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                        _appContext->getGraphicsQueue(), cmdBuffer);
+
+  // check if the fragment list is empty, if so, we can skip the octree creation
+  G_FragmentListInfo fragmentListInfo{};
+  _fragmentListInfoBuffer->fetchData(&fragmentListInfo);
+  if (fragmentListInfo.voxelFragmentCount == 0) {
+    // alter the pointer stored in the chunk indices buffer
+    uint32_t zero = 0;
+    _octreeBufferWriteOffsetBuffer->fillData(&zero);
+    cmdBuffer = beginSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool());
+    _chunkIndicesBufferUpdaterPipeline->recordCommand(cmdBuffer, 0, 1, 1, 1);
+    endSingleTimeCommands(_appContext->getDevice(), _appContext->getCommandPool(),
+                          _appContext->getGraphicsQueue(), cmdBuffer);
+
+    // but maintain the image, because the weight has been altered
+    return;
+  }
+
   // octree construction
   VkSubmitInfo submitInfo{VK_STRUCTURE_TYPE_SUBMIT_INFO};
   // wait until the image is ready
@@ -315,19 +307,12 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   uint32_t octreeBufferLength = 0;
   _octreeBufferLengthBuffer->fetchData(&octreeBufferLength);
 
-  // remove allocation
-  auto const &it2 = _chunkIndexToBufferAllocResult.find(chunkIndex);
-  if (it2 != _chunkIndexToBufferAllocResult.end()) {
-    _chunkBufferMemoryAllocator->deallocate(it2->second);
-    // erasing is omitted here, since we will overwrite the allocation result
-  }
   _chunkIndexToBufferAllocResult[chunkIndex] =
       _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
   uint32_t writeOffsetInBytes = _chunkIndexToBufferAllocResult[chunkIndex].offset();
 
   // print offset in mb
-  _logger->info("allocated memory from the memory pool: {} mb",
-                static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
+  _logger->info("memory offset: {} mb", static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
 
   VkBufferCopy bufCopy = {
       0,                                     // srcOffset
@@ -411,9 +396,7 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
       _chunkBufferMemoryAllocator->allocate(octreeBufferLength * sizeof(uint32_t));
   uint32_t writeOffsetInBytes = _chunkIndexToBufferAllocResult[chunkIndex].offset();
 
-  // print offset in mb
-  _logger->info("allocated memory from the memory pool: {} mb",
-                static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
+  _logger->info("memory offset: {} mb", static_cast<float>(writeOffsetInBytes) / (1024 * 1024));
 
   VkBufferCopy bufCopy = {
       0,                                     // srcOffset

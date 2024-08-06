@@ -108,9 +108,9 @@ void main() {
 
   vec3 normal = getNormalByWeight(weightData);
 
-  if (dot(normal, vec3(0.0, 1.0, 0.0)) < 0.8) {
-    densestBlockType = kBlockTypeRock;
-  }
+  // if (dot(normal, vec3(0.0, 1.0, 0.0)) < 0.6) {
+  //   densestBlockType = kBlockTypeRock;
+  // }
 
   uint propertiesData = 0;
   propertiesData |= densestBlockType & 0xFF;

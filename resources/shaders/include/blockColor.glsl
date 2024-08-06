@@ -9,7 +9,7 @@
 vec3 getBlockColor(uint blockType) {
   switch (blockType) {
   case kBlockTypeDirt:
-    return vec3(84.0, 20.0, 20.0) / 255.0;
+    return vec3(69.0, 49.0, 49.0) / 255.0;
   case kBlockTypeRock:
     return vec3(128.0, 128.0, 128.0) / 255.0;
   case kBlockTypeSand:
