@@ -45,21 +45,20 @@ const ivec3 lookupOffsets[8] =
     ivec3[8](ivec3(0, 0, 0), ivec3(1, 0, 0), ivec3(0, 1, 0), ivec3(1, 1, 0), ivec3(0, 0, 1),
              ivec3(1, 0, 1), ivec3(0, 1, 1), ivec3(1, 1, 1));
 
-bool atInterface(out uint oDensiestBlockType, uint[8] blockTypeData) {
-  oDensiestBlockType     = kBlockTypeEmpty;
-  uint lightestBlockType = kBlockTypeMax;
+bool atInterface(out uint oLightestBlockType, out uint oDensiestBlockType, uint[8] blockTypeData) {
+  oDensiestBlockType = kBlockTypeEmpty;
+  oLightestBlockType = kBlockTypeMax;
 
   for (int i = 0; i < 8; i++) {
     uint blockType = blockTypeData[i];
     if (blockType > oDensiestBlockType) {
       oDensiestBlockType = blockType;
     }
-    if (blockType < lightestBlockType) {
-      lightestBlockType = blockType;
+    if (blockType < oLightestBlockType) {
+      oLightestBlockType = blockType;
     }
   }
-  // return hasEmpty && hasFull;
-  return lightestBlockType == kBlockTypeEmpty && oDensiestBlockType != kBlockTypeEmpty;
+  return oLightestBlockType == kBlockTypeEmpty && oDensiestBlockType != kBlockTypeEmpty;
 }
 
 vec3 getNormalByWeight(float[8] weightData) {
@@ -93,8 +92,8 @@ void main() {
     unpackBlockTypeAndWeight(blockTypeData[i], weightData[i], data);
   }
 
-  uint densistBlockType;
-  if (!atInterface(densistBlockType, blockTypeData)) {
+  uint lightestBlockType, densestBlockType;
+  if (!atInterface(lightestBlockType, densestBlockType, blockTypeData)) {
     return;
   }
 
@@ -107,11 +106,14 @@ void main() {
   coordinatesData |= uvi.z << 20;
   ufragment.coordinates = coordinatesData;
 
-  // color and normal
   vec3 normal = getNormalByWeight(weightData);
 
+  if (dot(normal, vec3(0.0, 1.0, 0.0)) < 0.8) {
+    densestBlockType = kBlockTypeRock;
+  }
+
   uint propertiesData = 0;
-  propertiesData |= densistBlockType & 0xFF;
+  propertiesData |= densestBlockType & 0xFF;
   propertiesData |= compressNormal(normal) << 8;
   ufragment.properties = propertiesData;
 
