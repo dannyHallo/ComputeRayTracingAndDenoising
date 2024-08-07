@@ -13,9 +13,11 @@ vec3 getBlockColor(uint blockType) {
   case kBlockTypeRock:
     return vec3(128.0, 128.0, 128.0) / 255.0;
   case kBlockTypeSand:
-    return vec3(255.0, 186.0, 239.0) / 255.0;
+    return vec3(253.0, 255.0, 226.0) / 255.0;
   case kBlockTypeGrass:
     return vec3(86.0, 159.0, 46.0) / 255.0;
+  case kBlockTypeWater:
+    return vec3(53.0, 114.0, 239.0) / 255.0;
   default:
     return vec3(0.0);
   }
