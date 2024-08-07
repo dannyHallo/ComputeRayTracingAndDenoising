@@ -298,6 +298,8 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SliderInt("A-Trous Iteration Count", &stti->aTrousIterationCount, 0, 5);
     ImGui::SliderFloat("Phi Z - Far End", &stti->minPhiZ, 0.0F, 1.0F);
     ImGui::SliderFloat("Phi Z - Near End", &stti->maxPhiZ, 0.0F, 1.0F);
+    ImGui::SliderFloat("PhiC", &stti->phiC, 0.0F, 1.0F);
+    ImGui::Checkbox("Changing Luminance Phi", &stti->changingLuminancePhi);
 
     ///
 
