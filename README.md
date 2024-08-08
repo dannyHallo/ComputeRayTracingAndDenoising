@@ -1,15 +1,14 @@
 # Voxel Lab
 
-This voxel tracing project is originally inspired by John Lin's work here [https://www.youtube.com/watch?v=UHzeQZD9t2s&t=34s]
+This voxel tracing project is originally inspired by John Lin's awesome work
 
-# Roadmap
+# Todos
 
-- [ ] Feat: Terrain dynamic editing
 - [ ] Feat: Ocean
 - [ ] Feat: Rastling grasses
 - [ ] Feat: Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
-- [ ] Fix: TAA flicker
 - [ ] Feat: Clouds https://advances.realtimerendering.com/s2015/index.html
+- [ ] Fix: TAA flicker
 
 # Build this project
 
@@ -30,21 +29,22 @@ VulkanSDK (to support vulkan validation layer)
 
 # Screenshots
 
-![](./misc/imgs/closed-up-planet.png)
-![](./misc/imgs/planar.png)
-![](./misc/imgs/planet.png)
-![](./misc/imgs/retro.png)
-![](./misc/imgs/terrain-with-sphere.png)
+![](./misc/imgs/1.png)
+![](./misc/imgs/2.png)
+![](./misc/imgs/3.png)
+![](./misc/imgs/4.png)
+![](./misc/imgs/5.png)
 
 # Features
 
-- Procedual generation of a finite terrain scene
-- Efficient Sparse Voxel Octree tracing for tracing inside every chunk.
-- Branchless DDA algorithm for tracing into chunks.
-- A simplified version of the A-SVGF denoiser
-- Temporal sample accumulation
+- Dynamic multi-scattering atmosphere
+- Volumetric lighting for the sunlight
+- Efficient Sparse Voxel Octree building and tracing
+- Procedual generation of a finite voxelized terrain scene
+- High performance dynamic terrain editing
+- Branchless DDA algorithm for tracing into different SVO chunks
+- A specialized version of the A-SVGF denoiser, optimized for voxelized scenes
 - TAA Upscaling
-- Implementation of low discrepancy noise
 
 # Hardware Requirements
 
@@ -61,10 +61,7 @@ The user can control the camera scroll and roll angle by using the mouse as inpu
 - **D**: Move the camera right
 - **SPACE**: Move the camera up
 - **CTRL**: Move the camera down
-
-To unlock the mouse and control the terminal, the user can press the **TAB** key. This gives the user the ability to select the denoising techniques freely at run time. To lock the mouse again, the user can press **TAB** again.
-
-To terminate the program, the user can press the **ESC** key.
+- **E**: Toggle setting mode
 
 ## References
 
