@@ -3,8 +3,30 @@
 #include "utils/logger/Logger.hpp"
 
 #include <cassert>
+#include <unordered_set>
 
 namespace {
+std::string _vkPresentModeKHRToString(VkPresentModeKHR presentMode) {
+  switch (presentMode) {
+  case VK_PRESENT_MODE_IMMEDIATE_KHR:
+    return "VK_PRESENT_MODE_IMMEDIATE_KHR";
+  case VK_PRESENT_MODE_MAILBOX_KHR:
+    return "VK_PRESENT_MODE_MAILBOX_KHR";
+  case VK_PRESENT_MODE_FIFO_KHR:
+    return "VK_PRESENT_MODE_FIFO_KHR";
+  case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+    return "VK_PRESENT_MODE_FIFO_RELAXED_KHR";
+  case VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR:
+    return "VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR";
+  case VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR:
+    return "VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR";
+  case VK_PRESENT_MODE_MAX_ENUM_KHR:
+    return "VK_PRESENT_MODE_MAX_ENUM_KHR";
+  default:
+    return "Unknown VkPresentModeKHR";
+  }
+}
+
 VkImageView _createImageView(VkDevice device, const VkImage &image, VkFormat format,
                              VkImageAspectFlags aspectFlags, uint32_t imageDepth,
                              uint32_t layerCount) {
@@ -84,17 +106,17 @@ _chooseSwapSurfaceFormat(Logger *logger, const std::vector<VkSurfaceFormatKHR> &
 VkPresentModeKHR
 _chooseSwapPresentMode(Logger *logger, bool isFramerateLimited,
                        const std::vector<VkPresentModeKHR> &availablePresentModes) {
-  VkPresentModeKHR preferedPresentMode =
+  VkPresentModeKHR preferredPresentMode =
       isFramerateLimited ? VK_PRESENT_MODE_FIFO_RELAXED_KHR : VK_PRESENT_MODE_MAILBOX_KHR;
 
-  // our preferance: Mailbox present mode
-  for (const auto &availablePresentMode : availablePresentModes) {
-    if (availablePresentMode == preferedPresentMode) {
-      return availablePresentMode;
-    }
+  std::unordered_set<VkPresentModeKHR> availablePresentModesSet(availablePresentModes.begin(),
+                                                                availablePresentModes.end());
+
+  if (availablePresentModesSet.find(preferredPresentMode) != availablePresentModesSet.end()) {
+    return preferredPresentMode;
   }
 
-  logger->info("Present mode preferance doesn't meet, switching to FIFO");
+  logger->info("optimized present mode doesn't meet, switching to VK_PRESENT_MODE_FIFO_KHR");
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 
@@ -121,8 +143,16 @@ void ContextCreator::createSwapchain(Logger *logger, bool isFramerateLimited,
   SwapchainSupportDetails swapchainSupport = _querySwapchainSupport(surface, physicalDevice);
   VkSurfaceFormatKHR surfaceFormat = _chooseSwapSurfaceFormat(logger, swapchainSupport.formats);
   swapchainImageFormat             = surfaceFormat.format;
+
+  logger->info("all present modes", swapchainSupport.presentModes.size());
+  for (auto const &mode : swapchainSupport.presentModes) {
+    logger->subInfo("{}", _vkPresentModeKHRToString(mode));
+  }
+  logger->println();
+
   VkPresentModeKHR presentMode =
       _chooseSwapPresentMode(logger, isFramerateLimited, swapchainSupport.presentModes);
+
   swapchainExtent = _getSwapExtent(swapchainSupport.capabilities, logger);
 
   // recommanded: min + 1

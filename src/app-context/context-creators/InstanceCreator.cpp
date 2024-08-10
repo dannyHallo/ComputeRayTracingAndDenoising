@@ -11,12 +11,10 @@
 
 #include <cassert>
 
-namespace {
-
 #ifndef NVALIDATIONLAYERS
 #include <iostream>
 #include <set>
-
+namespace {
 // we can change the color of the debug messages from this callback function!
 // in this case, we change the debug messages to red
 VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -101,9 +99,10 @@ bool _checkInstanceLayerSupport(Logger *logger, const std::vector<const char *> 
   logger->println();
   return false;
 }
-
+} // namespace
 #endif // NVALIDATIONLAYERS
 
+namespace {
 // returns instance required extension names (i.e glfw, validation layers), they
 // are device-irrational extensions
 std::vector<const char *> _getRequiredInstanceExtensions() {

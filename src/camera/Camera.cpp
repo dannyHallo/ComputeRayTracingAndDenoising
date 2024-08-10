@@ -8,6 +8,12 @@
 
 glm::vec3 constexpr kWorldUp = {0.F, 1.F, 0.F};
 
+#ifdef __APPLE__
+#define GLFW_THUMB_KEY GLFW_KEY_LEFT_SUPER
+#else
+#define GLFW_THUMB_KEY GLFW_KEY_LEFT_CONTROL
+#endif
+
 Camera::Camera(Window *window, ConfigContainer *configContainer)
     : _window(window), _configContainer(configContainer) {
   auto const &h   = _configContainer->cameraInfo->initHeight;
@@ -69,7 +75,7 @@ void Camera::processKeyboard(double deltaTime) {
   } else {
     _movementSpeedMultiplier = 1.F;
   }
-  if (ki.isKeyPressed(GLFW_KEY_LEFT_CONTROL)) {
+  if (ki.isKeyPressed(GLFW_THUMB_KEY)) {
     _position -= kWorldUp * velocity;
   }
 }
