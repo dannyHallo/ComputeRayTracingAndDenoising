@@ -46,4 +46,4 @@ fi
 
 # Run the application
 # The equivalent of start /wait /b is to just run the executable in the current shell
-"$PROJECT_EXECUTABLE_PATH/run"
+./$PROJECT_EXECUTABLE_PATH/run
