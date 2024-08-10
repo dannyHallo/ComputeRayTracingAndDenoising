@@ -57,6 +57,7 @@ find_package(VulkanHeaders CONFIG)
 find_package(VulkanMemoryAllocator CONFIG REQUIRED)
 
 set(vcpkg_INCLUDE_DIR "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/")
+message(STATUS "vcpkg include dir: ${vcpkg_INCLUDE_DIR}")
 
 add_subdirectory(src/)
 add_subdirectory(apps/)
