@@ -2,19 +2,24 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "default",
+      "label": "build windows release",
       "type": "shell",
       "command": "${workspaceFolder}/build.bat"
     },
     {
-      "label": "build debug version",
+      "label": "build windows debug",
       "type": "shell",
       "command": "${workspaceFolder}/build.bat --debug"
     },
     {
-      "label": "bootstrap",
+      "label": "build macos release",
       "type": "shell",
-      "command": "${workspaceFolder}/bootstrap.bat"
+      "command": "sh ${workspaceFolder}/build.sh"
+    },
+    {
+      "label": "build macos debug",
+      "type": "shell",
+      "command": "sh ${workspaceFolder}/build.sh --debug"
     }
   ]
 }

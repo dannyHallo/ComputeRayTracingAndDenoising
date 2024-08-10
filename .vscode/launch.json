@@ -5,10 +5,16 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "debug using C/C++ extension",
+      "name": "debug with cppvsdbg, typically for windows",
       "type": "cppvsdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/Debug/apps/run.exe"
+    },
+    {
+      "name": "debug with lldb, typically for macos",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/Debug/apps/run"
     }
   ]
 }
