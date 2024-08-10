@@ -25,7 +25,7 @@ Application::Application(Logger *logger)
       _shaderFileWatchListener(std::make_unique<ShaderChangeListener>(_logger)) {
   _configContainer = std::make_unique<ConfigContainer>(_logger);
 
-  _window = std::make_unique<Window>(WindowStyle::kMaximized);
+  _window = std::make_unique<Window>(WindowStyle::kMaximized, logger);
 
   VulkanApplicationContext::GraphicsSettings settings{};
   settings.isFramerateLimited = _configContainer->applicationInfo->isFramerateLimited;

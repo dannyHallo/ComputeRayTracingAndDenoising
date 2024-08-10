@@ -3,20 +3,25 @@
 #include "application/BlockState.hpp"
 #include "utils/event-dispatcher/GlobalEventDispatcher.hpp"
 #include "utils/event-types/EventType.hpp"
+#include "utils/logger/Logger.hpp"
 
 #include <cassert>
 
-Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowed)
-    : _widthIfWindowed(widthIfWindowed), _heightIfWindowed(heightIfWindowed) {
+Window::Window(WindowStyle windowStyle, Logger *logger, int widthIfWindowed, int heightIfWindowed)
+    : _logger(logger), _widthIfWindowed(widthIfWindowed), _heightIfWindowed(heightIfWindowed) {
   glfwInit();
 
   _monitor = glfwGetPrimaryMonitor();
-  assert(_monitor != nullptr && "failed to get primary monitor");
+  if (_monitor == nullptr) {
+    _logger->error("failed to get primary monitor");
+  }
 
   // get primary monitor for future maximize function
   // may be used to change mode for this program
   const GLFWvidmode *mode = glfwGetVideoMode(_monitor);
-  assert(mode != nullptr && "failed to get video mode");
+  if (mode == nullptr) {
+    _logger->error("failed to get video mode");
+  }
 
   // only OpenGL Api is supported, so no API here
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -32,6 +37,8 @@ Window::Window(WindowStyle windowStyle, int widthIfWindowed, int heightIfWindowe
   glfwGetWindowPos(_window, nullptr, &_titleBarHeight);
   glfwGetFramebufferSize(_window, &_maximizedFullscreenClientWidth,
                          &_maximizedFullscreenClientHeight);
+  _maximizedFullscreenClientWidth /= 2;
+  _maximizedFullscreenClientHeight /= 2;
 
   // change the created window to the desired style
   setWindowStyle(windowStyle);

@@ -16,9 +16,11 @@
 
 enum class WindowStyle { kNone, kFullScreen, kMaximized, kHover };
 
+class Logger;
 class Window {
 public:
-  Window(WindowStyle windowStyle, int widthIfWindowed = 400, int heightIfWindowed = 300);
+  Window(WindowStyle windowStyle, Logger *logger, int widthIfWindowed = 400,
+         int heightIfWindowed = 300);
   ~Window();
 
   // disable move and copy
@@ -94,6 +96,8 @@ public:
 
 private:
   WindowStyle _windowStyle = WindowStyle::kNone;
+
+  Logger *_logger;
 
   int _widthIfWindowed;
   int _heightIfWindowed;
