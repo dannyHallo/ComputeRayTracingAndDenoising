@@ -33,7 +33,7 @@ void CustomMemoryAllocator::_test() {
 
   int constexpr kIt = 100000000;
 
-  std::uniform_real<double> chunkBufferSizeDis(kBufferLowerBound, kBufferUpperBound);
+  std::uniform_real_distribution<double> chunkBufferSizeDis(kBufferLowerBound, kBufferUpperBound);
 
   // this is for selecting a random chunk
   std::uniform_int_distribution<size_t> chunkSelectionDis(0, kInitialChunkSize - 1);
