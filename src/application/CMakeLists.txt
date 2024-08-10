@@ -1,6 +1,5 @@
 add_library(src-application STATIC
     svo-builder/SvoBuilder.cpp
-    svo-builder/VoxLoader.cpp
     svo-tracer/SvoTracer.cpp
     Application.cpp
 )
