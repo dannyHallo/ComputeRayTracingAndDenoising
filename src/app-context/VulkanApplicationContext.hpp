@@ -8,7 +8,11 @@
 // glfw3 will define APIENTRY if it is not defined yet
 #include "GLFW/glfw3.h"
 
-#include "vma/vk_mem_alloc.h"
+#ifdef _WIN32
+#include "vma/vk_mem_alloc.h"  // NO_G3_REWRITE
+#else
+ #include "vk_mem_alloc.h"  // NO_G3_REWRITE
+#endif
 
 #include <vector>
 

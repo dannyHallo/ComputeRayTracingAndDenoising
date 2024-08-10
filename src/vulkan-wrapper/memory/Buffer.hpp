@@ -2,7 +2,11 @@
 
 #include "volk.h"
 
-#include "vma/vk_mem_alloc.h"
+#ifdef _WIN32
+#include "vma/vk_mem_alloc.h" // NO_G3_REWRITE
+#else
+#include "vk_mem_alloc.h" // NO_G3_REWRITE
+#endif
 
 enum class MemoryStyle {
   kDedicated,
