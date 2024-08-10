@@ -9,6 +9,7 @@
 class Logger {
 public:
   Logger();
+  ~Logger();
 
   template <typename... Args> inline void subInfo(std::string format, Args &&...args) {
     std::string formatWithSubInfo = "* " + std::move(format);

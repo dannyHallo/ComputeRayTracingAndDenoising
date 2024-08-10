@@ -72,8 +72,6 @@ void VulkanApplicationContext::onSwapchainResize(bool isFramerateLimited) {
 }
 
 VulkanApplicationContext::~VulkanApplicationContext() {
-  _logger->info("Destroying VulkanApplicationContext");
-
   vkDestroyCommandPool(_device, _commandPool, nullptr);
   vkDestroyCommandPool(_device, _guiCommandPool, nullptr);
 

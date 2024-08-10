@@ -14,3 +14,5 @@ Logger::Logger() {
   _printlnSpdLogger = spdlog::stdout_color_mt("printlnLogger");
   _printlnSpdLogger->set_pattern("%v");
 }
+
+Logger::~Logger() { spdlog::drop_all(); }
