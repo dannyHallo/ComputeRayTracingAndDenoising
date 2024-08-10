@@ -6,8 +6,14 @@
 
 #include "utils/logger/Logger.hpp"
 
-static const std::vector<const char *> validationLayers         = {"VK_LAYER_KHRONOS_validation"};
+static const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
+
+#ifdef __APPLE__
+static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+                                                                   "VK_KHR_portability_subset"};
+#else
 static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+#endif
 
 void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window,
                                     GraphicsSettings *settings) {

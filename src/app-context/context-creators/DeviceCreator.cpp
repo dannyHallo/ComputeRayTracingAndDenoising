@@ -311,7 +311,10 @@ void ContextCreator::createDevice(Logger *logger, VkPhysicalDevice &physicalDevi
     deviceCreateInfo.enabledLayerCount   = 0;
     deviceCreateInfo.ppEnabledLayerNames = nullptr;
 
-    vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
+    VkResult res = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
+    if (res != VK_SUCCESS) {
+      throw std::runtime_error("failed to create logical device!");
+    }
 
     // reduce loading overhead by specifing only one device is used
     volkLoadDevice(device);

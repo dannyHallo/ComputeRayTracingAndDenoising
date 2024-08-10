@@ -7,15 +7,16 @@
 #ifdef APIENTRY
 #undef APIENTRY
 #endif
-// we undefine this to solve conflict with systemLog
+// undefine this to solve conflicts with other headers
 
 #include <cassert>
-#include <iostream>
-#include <set>
 
 namespace {
 
 #ifndef NVALIDATIONLAYERS
+#include <iostream>
+#include <set>
+
 // we can change the color of the debug messages from this callback function!
 // in this case, we change the debug messages to red
 VKAPI_ATTR VkBool32 VKAPI_CALL
@@ -113,6 +114,10 @@ std::vector<const char *> _getRequiredInstanceExtensions() {
   glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
   std::vector<const char *> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
+#ifdef __APPLE__
+  extensions.push_back("VK_KHR_portability_enumeration");
+#endif
+
   // Due to the nature of the Vulkan interface, there is very little error
   // information available to the developer and application. By using the
   // VK_EXT_debug_utils extension, developers can obtain more information. When
@@ -134,6 +139,9 @@ void ContextCreator::createInstance(Logger *logger, VkInstance &instance,
   VkInstanceCreateInfo createInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
 
   createInfo.pApplicationInfo = &appInfo;
+#ifdef __APPLE__
+  createInfo.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
 
   // Get all available extensions
   uint32_t extensionCount = 0;
@@ -175,7 +183,10 @@ void ContextCreator::createInstance(Logger *logger, VkInstance &instance,
 #endif // NDEBUG
 
   // create VK Instance
-  vkCreateInstance(&createInfo, nullptr, &instance);
+  VkResult res = vkCreateInstance(&createInfo, nullptr, &instance);
+  if (res != VK_SUCCESS) {
+    throw std::runtime_error("failed to create instance");
+  }
 
   // load instance-related functions
   volkLoadInstance(instance);
