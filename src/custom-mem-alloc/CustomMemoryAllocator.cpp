@@ -31,8 +31,6 @@ void CustomMemoryAllocator::_test() {
   size_t constexpr kInitialChunkSize = 100;
   double constexpr kBufferGrowSpeed  = 0.0001;
 
-  int constexpr kIt = 100000000;
-
   std::uniform_real_distribution<double> chunkBufferSizeDis(kBufferLowerBound, kBufferUpperBound);
 
   // this is for selecting a random chunk
@@ -44,7 +42,8 @@ void CustomMemoryAllocator::_test() {
     chunks.push_back(allocate(usingBufferSize));
   }
 
-  for (int selectTimes = 0; selectTimes < kIt; ++selectTimes) {
+  int constexpr kIt = 100000000;
+  for (int i = 0; i < kIt; ++i) {
     size_t selectedChunk = chunkSelectionDis(gen);
 
     CustomMemoryAllocationResult &chunk = chunks[selectedChunk];
