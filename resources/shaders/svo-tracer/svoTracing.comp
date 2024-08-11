@@ -19,7 +19,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 #define SEASCAPE_GLSL
 
 /*
- * taken from: https://www.shadertoy.com/view/Ms2SD1 for the noise functions
+ * taken from: https://www.shadertoy.com/view/Ms2SD1 for the _noise functions
  * taken from: https://www.shadertoy.com/view/MdXyzX for the marching functions
  * "Seascape" by Alexander Alekseev aka TDM - 2014
  * License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -35,7 +35,9 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 const int NUM_STEPS = 8;
 const float EPSILON = 1e-3;
-#define WATER_DEPTH 1.0 // how deep is the water
+
+const float kWaterTopHeight    = 0.22;
+const float kWaterBottomHeight = -0.0;
 
 const int ITER_RAYMARCH    = 3;
 const int ITER_NORMAL      = 5;
@@ -48,7 +50,7 @@ const vec3 SEA_WATER_COLOR = vec3(0.8, 0.9, 0.6) * 0.6;
 const mat2 octave_m = mat2(1.6, 1.2, -1.2, 1.6);
 
 // -1.0 - 1.0
-float noise(in vec2 p) {
+float _noise(in vec2 p) {
   vec2 i = floor(p);
   vec2 f = fract(p);
   vec2 u = f * f * (3.0 - 2.0 * f);
@@ -57,9 +59,8 @@ float noise(in vec2 p) {
          1.0;
 }
 
-// sea
-float sea_octave(vec2 uv, float choppy) {
-  uv += noise(uv);
+float _seaOctave(vec2 uv, float choppy) {
+  uv += _noise(uv);
   vec2 wv  = 1.0 - abs(sin(uv));
   vec2 swv = abs(cos(uv));
   wv       = mix(wv, swv, wv);
@@ -67,7 +68,7 @@ float sea_octave(vec2 uv, float choppy) {
 }
 
 // 0.0 - 1.0
-float getWaveHeight(vec2 p, uint iterationCount) {
+float _getWaveHeight01(vec2 p, uint iterationCount) {
   float freq   = SEA_FREQ;
   float amp    = 1.0;
   float choppy = SEA_CHOPPY;
@@ -78,8 +79,8 @@ float getWaveHeight(vec2 p, uint iterationCount) {
   float sumOfAmp = 0.0;
   for (uint i = 0; i < iterationCount; i++) {
     // 0.0 - 1.0
-    d = sea_octave((uv + SEA_TIME) * freq, choppy);
-    d += sea_octave((uv - SEA_TIME) * freq, choppy);
+    d = _seaOctave((uv + SEA_TIME) * freq, choppy);
+    d += _seaOctave((uv - SEA_TIME) * freq, choppy);
     d /= 2.0;
     sumOfAmp += amp;
     h += d * amp;
@@ -93,16 +94,16 @@ float getWaveHeight(vec2 p, uint iterationCount) {
 }
 
 // ray-plane intersection checker
-float intersectPlane(vec3 origin, vec3 direction, vec3 point, vec3 normal) {
+float _intersectPlane(vec3 origin, vec3 direction, vec3 point, vec3 normal) {
   return clamp(dot(point - origin, normal) / dot(direction, normal), -1.0, 9991999.0);
 }
 
 // assertion: water must be hit before calling this function
 // raymarches the ray from top water layer boundary to low water layer boundary
-float raymarchWater(vec3 o, vec3 d, float depth) {
+float _raymarchWater(vec3 o, vec3 d) {
   // calculate intersections and reconstruct positions
-  float tHighPlane = intersectPlane(o, d, vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0));
-  float tLowPlane  = intersectPlane(o, d, vec3(0.0, -depth, 0.0), vec3(0.0, 1.0, 0.0));
+  float tHighPlane = _intersectPlane(o, d, vec3(0.0, kWaterTopHeight, 0.0), vec3(0.0, 1.0, 0.0));
+  float tLowPlane  = _intersectPlane(o, d, vec3(0.0, kWaterBottomHeight, 0.0), vec3(0.0, 1.0, 0.0));
   vec3 start       = o + tHighPlane * d; // high hit position
   vec3 end         = o + tLowPlane * d;  // low hit position
 
@@ -111,8 +112,8 @@ float raymarchWater(vec3 o, vec3 d, float depth) {
   // vec3 dir = normalize(end - start);
 
   for (int i = 0; i < 64; i++) {
-    // -depth - 0
-    float h = getWaveHeight(pos.xz, ITER_RAYMARCH) * depth - depth;
+    float h = mix(kWaterBottomHeight, kWaterTopHeight, _getWaveHeight01(pos.xz, ITER_RAYMARCH));
+
     // proximity hit check
     if (pos.y < h + 1e-2) {
       return t;
@@ -128,13 +129,14 @@ float raymarchWater(vec3 o, vec3 d, float depth) {
 
 // calculate normal at point by calculating the height at the pos and 2 additional points very close
 // to pos
-vec3 normal(vec2 pos, float e, float depth) {
-  vec2 ex = vec2(e, 0);
-  float H = getWaveHeight(pos, ITER_NORMAL) * depth;
-  vec3 a  = vec3(pos.x, H, pos.y);
+vec3 normal(vec2 pos, float e) {
+  vec2 ex     = vec2(e, 0);
+  float depth = kWaterTopHeight - kWaterBottomHeight;
+  float h     = _getWaveHeight01(pos, ITER_NORMAL) * depth;
+  vec3 a      = vec3(pos.x, h, pos.y);
   return normalize(
-      cross(a - vec3(pos.x - e, getWaveHeight(pos - ex.xy, ITER_NORMAL) * depth, pos.y),
-            a - vec3(pos.x, getWaveHeight(pos + ex.yx, ITER_NORMAL) * depth, pos.y + e)));
+      cross(a - vec3(pos.x - e, _getWaveHeight01(pos - ex.xy, ITER_NORMAL) * depth, pos.y),
+            a - vec3(pos.x, _getWaveHeight01(pos + ex.yx, ITER_NORMAL) * depth, pos.y + e)));
 }
 
 bool traceSeascape(out vec3 oColor, out vec3 oPosition, out float oT, vec3 o, vec3 d) {
@@ -147,13 +149,13 @@ bool traceSeascape(out vec3 oColor, out vec3 oPosition, out float oT, vec3 o, ve
   }
 
   // raymatch water and reconstruct the hit pos
-  float dist       = raymarchWater(o, d, WATER_DEPTH);
+  float dist       = _raymarchWater(o, d);
   vec3 waterHitPos = o + d * dist;
 
   // calculate normal at the hit position
-  vec3 N = normal(waterHitPos.xz, 0.01, WATER_DEPTH);
+  vec3 N = normal(waterHitPos.xz, 0.01);
 
-  // smooth the normal with distance to avoid disturbing high frequency noise
+  // smooth the normal with distance to avoid disturbing high frequency _noise
   N = mix(N, vec3(0.0, 1.0, 0.0), 0.8 * min(1.0, sqrt(dist * 0.01) * 1.1));
 
   // calculate fresnel coefficient
@@ -165,14 +167,14 @@ bool traceSeascape(out vec3 oColor, out vec3 oPosition, out float oT, vec3 o, ve
 
   // calculate the reflection and approximate subsurface scattering
   vec3 reflection = skyColor(R, true);
-  vec3 scattering =
-      vec3(0.0293, 0.0698, 0.1717) * 0.1 * (0.2 + (waterHitPos.y + WATER_DEPTH) / WATER_DEPTH);
+  float depth     = kWaterTopHeight - kWaterBottomHeight;
+  vec3 scattering = vec3(0.0293, 0.0698, 0.1717) * 0.1 * (0.2 + (waterHitPos.y + depth) / depth);
 
   // return the combined result
   oColor    = fresnel * reflection + scattering;
   oT        = dist;
   oPosition = waterHitPos;
-  
+
   // oColor = vec3(pow(oPosition.y + 1.0, 200.0));
   return true;
 }
@@ -242,18 +244,18 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
 
   oT += optimizedDistance;
 
-  if (!primaryRayHit) {
-    vec3 color, pos;
-    float t;
-    bool hitSea = traceSeascape(color, pos, t, o, d);
-    if (hitSea) {
-      oColor = color;
-      // oPosition = pos;
-      // oT        = t;
-    } else {
-      oColor = skyColor(d, true);
-    }
+  vec3 seaColor, seaHitPos;
+  float seaT;
+  bool hitSea = traceSeascape(seaColor, seaHitPos, seaT, o, d);
+  if (hitSea && seaT < oT) {
+    oColor = seaColor;
+    // oPosition = pos;
+    // oT        = t;
+    return false;
+  }
 
+  if (!primaryRayHit) {
+    oColor = skyColor(d, true);
     return false;
   }
 
