@@ -249,8 +249,9 @@ void SvoTracer::_createFullSizedImages() {
   _rawImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
                                       VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _godRayImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
-                                         VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
+  _godRayImage =
+      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
+                              VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _depthImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
                                         VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
@@ -515,6 +516,12 @@ void SvoTracer::_recordRenderingCommandBuffers() {
                          nullptr);
 
     _svoTracingPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
+
+    vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
+                         nullptr);
+
+    _godRayPipeline->recordCommand(cmdBuffer, frameIndex, _lowResWidth, _lowResHeight, 1);
 
     vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &memoryBarrier, 0, nullptr, 0,
@@ -854,6 +861,12 @@ void SvoTracer::_createPipelines() {
   _svoTracingPipeline->compileAndCacheShaderModule(false);
   _svoTracingPipeline->build();
 
+  _godRayPipeline = std::make_unique<ComputePipeline>(
+      _appContext, _logger, this, _makeShaderFullPath("godRay.comp"), WorkGroupSize{8, 8, 1},
+      _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
+  _godRayPipeline->compileAndCacheShaderModule(false);
+  _godRayPipeline->build();
+
   _temporalFilterPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("temporalFilter.comp"),
       WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
@@ -894,6 +907,7 @@ void SvoTracer::_updatePipelinesDescriptorBundles() {
 
   _svoCourseBeamPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _svoTracingPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
+  _godRayPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _temporalFilterPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _aTrousPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());
   _backgroundBlitPipeline->updateDescriptorSetBundle(_descriptorSetBundle.get());

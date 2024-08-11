@@ -8,9 +8,9 @@
 #include "../include/svoMarching.glsl"
 
 struct MarchingResult {
-  float t;
   uint iter;
   uint chunkTraversed;
+  float t;
   vec3 color;
   vec3 position;
   vec3 nextTracingPosition;
@@ -24,9 +24,15 @@ bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d) {
   ivec3 chunkIndex;
   bool hitVoxel = false;
 
-  oResult.iter           = 0;
-  oResult.chunkTraversed = 0;
-  oResult.color          = vec3(0);
+  oResult.iter                = 0;
+  oResult.chunkTraversed      = 0;
+  oResult.t                   = 1e10;
+  oResult.color               = vec3(0);
+  oResult.position            = o + d * oResult.t;
+  oResult.nextTracingPosition = oResult.position;
+  oResult.normal              = vec3(0);
+  oResult.voxHash             = 0;
+  oResult.lightSourceHit      = false;
 
   d = max(abs(d), vec3(kEpsilon)) * (step(0.0, d) * 2.0 - 1.0);
 
@@ -47,23 +53,27 @@ bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d) {
             .data[getChunksBufferLinearIndex(uvec3(chunkIndex), sceneInfoBuffer.data.chunksDim)] -
         1;
 
-    uint chunkIterCount;
-    hitVoxel = svoMarching(oResult.t, chunkIterCount, oResult.color, oResult.position,
-                           oResult.nextTracingPosition, oResult.normal, oResult.voxHash,
-                           oResult.lightSourceHit, o + originOffset, d, chunkBufferOffset);
-
-    oResult.position -= originOffset;
-    oResult.nextTracingPosition -= originOffset;
+    uint chunkIterCount, voxHash;
+    vec3 color, pos, nextTracingPos, normal;
+    bool lightSourceHit;
+    float t;
+    hitVoxel = svoMarching(t, chunkIterCount, color, pos, nextTracingPos, normal, voxHash,
+                           lightSourceHit, o + originOffset, d, chunkBufferOffset);
 
     oResult.iter += chunkIterCount;
     oResult.chunkTraversed++;
-
     if (hitVoxel) {
-      break;
+      oResult.t                   = t;
+      oResult.color               = color;
+      oResult.position            = pos - originOffset;
+      oResult.nextTracingPosition = nextTracingPos - originOffset;
+      oResult.normal              = normal;
+      oResult.voxHash             = voxHash;
+      oResult.lightSourceHit      = lightSourceHit;
+      return true;
     }
   }
-
-  return hitVoxel;
+  return false;
 }
 
 #endif // CASCADED_MARCHING_GLSL

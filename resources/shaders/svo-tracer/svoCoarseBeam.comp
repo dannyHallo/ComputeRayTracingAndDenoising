@@ -147,19 +147,10 @@ bool svoMarching(out float oT, out float oSize, vec3 o, vec3 d, float originalSi
   return scale < STACK_SIZE && t_min <= t_max;
 }
 
-struct MarchingResult {
-  float t;
-  float size;
-};
-
 // this marching algorithm fetches leaf properties
-bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d, float originalSize,
-                      float directionalSize) {
+float cascadedMarching(vec3 o, vec3 d, float originalSize, float directionalSize) {
   ivec3 chunkIndex;
   bool hitOrReachedDetails = false;
-
-  oResult.t    = 0.0;
-  oResult.size = 0.0;
 
   d = max(abs(d), vec3(kEpsilon)) * (step(0.0, d) * 2.0 - 1.0);
 
@@ -180,15 +171,15 @@ bool cascadedMarching(out MarchingResult oResult, vec3 o, vec3 d, float original
             .data[getChunksBufferLinearIndex(uvec3(chunkIndex), sceneInfoBuffer.data.chunksDim)] -
         1;
 
-    hitOrReachedDetails = svoMarching(oResult.t, oResult.size, o + originOffset, d, originalSize,
-                                      directionalSize, chunkBufferOffset);
+    float t, size;
+    hitOrReachedDetails =
+        svoMarching(t, size, o + originOffset, d, originalSize, directionalSize, chunkBufferOffset);
 
     if (hitOrReachedDetails) {
-      break;
+      return max(0.0, t - size);
     }
   }
-
-  return hitOrReachedDetails;
+  return 1e10;
 }
 
 vec3 rayGen(vec2 beamOffset) {
@@ -227,9 +218,7 @@ void main() {
   // the directionalSize is the size growth in regarding to how far the ray moves
   float dirSz = 2.0 * max(max(t0, t1), max(t2, t3));
 
-  MarchingResult result;
   float lowestLevelVoxSize = exp2(1.0 - sceneInfoBuffer.data.voxelLevelCount);
-  bool hitOrReachedDetails = cascadedMarching(result, o, d, lowestLevelVoxSize, dirSz);
-  float dist               = hitOrReachedDetails ? max(0.0, result.t - result.size) : 1e10;
-  imageStore(beamDepthImage, uvi, vec4(dist, 0, 0, 0));
+  float nextStartingT      = cascadedMarching(o, d, lowestLevelVoxSize, dirSz);
+  imageStore(beamDepthImage, uvi, vec4(nextStartingT, 0, 0, 0));
 }

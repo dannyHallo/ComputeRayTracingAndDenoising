@@ -18,7 +18,7 @@ void main() {
   vec3 color =
       hit ? imageLoad(aTrousPongImage, uvi).rgb : unpackRgbe(imageLoad(backgroundImage, uvi).x);
 
-  color += unpackRgbe(imageLoad(godRayImage, uvi).x);
+  color += imageLoad(godRayImage, uvi).rgb;
 
   imageStore(blittedImage, uvi, uvec4(packRgbe(color), 0, 0, 0));
 }

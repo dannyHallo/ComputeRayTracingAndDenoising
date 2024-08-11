@@ -196,6 +196,7 @@ private:
   std::unique_ptr<ComputePipeline> _shadowMapPipeline;
   std::unique_ptr<ComputePipeline> _svoCourseBeamPipeline;
   std::unique_ptr<ComputePipeline> _svoTracingPipeline;
+  std::unique_ptr<ComputePipeline> _godRayPipeline;
   std::unique_ptr<ComputePipeline> _temporalFilterPipeline;
   std::unique_ptr<ComputePipeline> _aTrousPipeline;
   std::unique_ptr<ComputePipeline> _backgroundBlitPipeline;

@@ -1,0 +1,82 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+#include "../include/svoTracerDescriptorSetLayouts.glsl"
+
+#include "../include/core/definitions.glsl"
+#include "../include/projection.glsl"
+#include "../include/random.glsl"
+#include "../include/skyColor.glsl"
+
+// subpixOffset ranges from -0.5 to 0.5
+// this is the same as in svoTracing.comp
+void rayGen(out vec3 o, out vec3 d, vec2 subpixOffset) {
+  vec2 screenSpaceUv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5) + subpixOffset) /
+                       vec2(renderInfoUbo.data.lowResSize);
+  o = renderInfoUbo.data.camPosition;
+  d = normalize(projectScreenUvToWorldCamFarPoint(screenSpaceUv, false) -
+                renderInfoUbo.data.camPosition);
+}
+
+// this is only an approximation, the shadow map is not perfect, so this function is only used in
+// the god ray calculation, to avoid frequent tracing into the scene
+bool pointInShadow(vec3 p) {
+  vec2 shadowMapUv           = projectWorldPosToShadowMapUv(p);
+  vec3 shadowMapCamNearPoint = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
+
+  float shadowMapDepth = textureLod(shadowMapTexture, shadowMapUv, 0).r;
+  float dist           = length(shadowMapCamNearPoint - p);
+
+  // shadowMapDepth should only be <= dist, if they are close, then the point is being lit
+  return (dist - shadowMapDepth) < 1e-2;
+}
+
+vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
+  const uint maxSampleCount = 32;
+  const float maxRayDepth   = 1.0;
+  const float stepLen       = maxRayDepth / float(maxSampleCount);
+  const vec3 unitStep       = stepLen * d;
+  const float preOffset     = stbnScalar(seed) * stepLen;
+  const uint raySampleCount =
+      min(maxSampleCount, uint((min(maxRayDepth, validRayDepth) - preOffset) / stepLen));
+
+  vec3 col        = vec3(0.0);
+  vec3 marchedPos = o + preOffset * d;
+  for (uint stepI = 0; stepI < raySampleCount; stepI += 1) {
+    marchedPos += unitStep;
+
+    if (pointInShadow(marchedPos)) {
+      float mistWeight = 1.0 - smoothstep(0.0, 1.0, marchedPos.y);
+      col += mistWeight * stepLen * skyColor(environmentUbo.data.sunDir, true) * 0.04;
+    }
+  }
+  return col;
+}
+
+uvec3 getSeed() {
+  return uvec3(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y, renderInfoUbo.data.currentSample);
+}
+
+void main() {
+  ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(uvi, ivec2(renderInfoUbo.data.lowResSize)))) {
+    return;
+  }
+
+  uvec3 seed = getSeed();
+
+  vec3 o, d;
+  // (-0.5, 0.5)
+  vec2 subpixOffset =
+      bool(tweakableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
+  rayGen(o, d, subpixOffset);
+
+  // bool hit = imageLoad(hitImage, uvi).x != 0;
+
+  float tMin = imageLoad(depthImage, uvi).r;
+
+  vec3 godRayCol = godRayColor(o, d, tMin, seed);
+  imageStore(godRayImage, uvi, vec4(godRayCol, 0.0));
+}

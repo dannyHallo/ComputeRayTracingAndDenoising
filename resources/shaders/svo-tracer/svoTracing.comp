@@ -81,7 +81,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
     oColor    = skyColor(d, true);
     return false;
   }
-  
+
   // TODO: debug feature: show normal
   // return true;
 
@@ -114,41 +114,6 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
   return true;
 }
 
-// this is only an approximation, the shadow map is not perfect, so this function is only used in
-// the god ray calculation, to avoid frequent tracing into the scene
-bool pointInShadow(vec3 p) {
-  vec2 shadowMapUv           = projectWorldPosToShadowMapUv(p);
-  vec3 shadowMapCamNearPoint = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
-
-  float shadowMapDepth = textureLod(shadowMapTexture, shadowMapUv, 0).r;
-  float dist           = length(shadowMapCamNearPoint - p);
-
-  // shadowMapDepth should only be <= dist, if they are close, then the point is being lit
-  return (dist - shadowMapDepth) < 1e-2;
-}
-
-vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
-  const uint maxSampleCount = 64;
-  const float maxRayDepth   = 1.0;
-  const float stepLen       = maxRayDepth / float(maxSampleCount);
-  const vec3 unitStep       = stepLen * d;
-  const float preOffset     = stbnScalar(seed) * stepLen;
-  const uint raySampleCount =
-      min(maxSampleCount, uint((min(maxRayDepth, validRayDepth) - preOffset) / stepLen));
-
-  vec3 col        = vec3(0.0);
-  vec3 marchedPos = o + preOffset * d;
-  for (uint stepI = 0; stepI < raySampleCount; stepI += 1) {
-    marchedPos += unitStep;
-
-    if (pointInShadow(marchedPos)) {
-      float mistWeight = 1.0 - smoothstep(0.0, 1.0, marchedPos.y);
-      col += mistWeight * stepLen * skyColor(environmentUbo.data.sunDir, true) * 0.02;
-    }
-  }
-  return col;
-}
-
 void writeOutputBuffer(ivec2 uvi, bool hitVoxel, vec3 position) {
   // if uvi is not the center pixel, we don't write the output buffer
   if (uvi != ivec2(renderInfoUbo.data.lowResSize) / 2) {
@@ -164,10 +129,8 @@ void main() {
     return;
   }
 
-  // seed gen
   uvec3 seed = getSeed();
 
-  // ray gen
   vec3 o, d;
   // (-0.5, 0.5)
   vec2 subpixOffset =
@@ -199,11 +162,8 @@ void main() {
     imageStore(positionImage, uvi, vec4(position, 0.0));
     imageStore(normalImage, uvi, uvec4(packNormal(normal), 0, 0, 0));
     imageStore(voxHashImage, uvi, uvec4(voxHash, 0, 0, 0));
-    imageStore(depthImage, uvi, vec4(tMin, 0.0, 0.0, 0.0));
   }
-
-  vec3 godRayCol = godRayColor(o, d, tMin, seed);
-  imageStore(godRayImage, uvi, uvec4(packRgbe(godRayCol), 0, 0, 0));
+  imageStore(depthImage, uvi, vec4(tMin, 0.0, 0.0, 0.0));
 
   // calculate the motion here avoids a store - load cycle for the position, and the motion vector
   // can be reused in temporal filter and the taa filter, also, using a motion vector is easier for

@@ -27,11 +27,5 @@ void main() {
 
   MarchingResult result;
   bool hit = cascadedMarching(result, o, d);
-
-  float t = result.t;
-  if (!hit) {
-    t = 1e10;
-  }
-
-  imageStore(shadowMapImage, uvi, vec4(t, 0.0, 0.0, 0.0));
+  imageStore(shadowMapImage, uvi, vec4(result.t, 0.0, 0.0, 0.0));
 }
