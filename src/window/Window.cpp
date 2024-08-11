@@ -37,8 +37,12 @@ Window::Window(WindowStyle windowStyle, Logger *logger, int widthIfWindowed, int
   glfwGetWindowPos(_window, nullptr, &_titleBarHeight);
   glfwGetFramebufferSize(_window, &_maximizedFullscreenClientWidth,
                          &_maximizedFullscreenClientHeight);
+
+  // handles retina display's pixel doubling technique
+#ifdef __APPLE__
   _maximizedFullscreenClientWidth /= 2;
   _maximizedFullscreenClientHeight /= 2;
+#endif
 
   // change the created window to the desired style
   setWindowStyle(windowStyle);
