@@ -73,8 +73,6 @@ void main() {
       bool(tweakableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
   rayGen(o, d, subpixOffset);
 
-  // bool hit = imageLoad(hitImage, uvi).x != 0;
-
   float tMin = imageLoad(depthImage, uvi).r;
 
   vec3 godRayCol = godRayColor(o, d, tMin, seed);
