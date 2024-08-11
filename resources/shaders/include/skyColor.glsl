@@ -59,7 +59,6 @@ vec3 skyColor(vec3 rayDir, bool isSunAdded) {
 
   vec3 skyCol = pow(atmosCol + sunCol, vec3(1.3));
 
-  // tonemapping and gamma. ScamUper ad-hoc, probably a better way to do this
   // skyCol /= (smoothstep(0.0, 0.2, clamp(sunDir.y, 0.0, 1.0)) * 2.0 + 0.15);
 
   return skyCol;
