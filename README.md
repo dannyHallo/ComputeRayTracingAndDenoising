@@ -1,14 +1,15 @@
 # Voxel Lab
 
-This voxel tracing project is originally inspired by John Lin's awesome work
+This voxel tracing project is inspired by John Lin's awesome work
 
 # Todos
 
 - [ ] Feat: Ocean
-- [ ] Feat: Rastling grasses
-- [ ] Feat: Better procedual generation https://www.youtube.com/watch?v=CSa5O6knuwI
-- [ ] Feat: Clouds https://advances.realtimerendering.com/s2015/index.html
-- [ ] Fix: TAA flicker
+- [ ] Feat: Rastling plantations
+- [ ] Feat: Weather system and the clouds https://advances.realtimerendering.com/s2015/index.html https://www.shadertoy.com/view/MdXyzX
+- [ ] Feat: Sounding system
+- [ ] Feat: Adapt to HDR-capable screen 
+- [ ] Feat: Better terrain gen https://www.youtube.com/watch?v=CSa5O6knuwI
 
 # Build this project
 
