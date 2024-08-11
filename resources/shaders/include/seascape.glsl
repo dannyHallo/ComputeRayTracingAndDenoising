@@ -88,7 +88,10 @@ float map(vec3 p, uint iterationCount) {
   return p.y - h;
 }
 
-vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
+vec3 getSeaColor(vec3 p, vec3 n, vec3 eye, float t) {
+  vec3 l    = environmentUbo.data.sunDir;
+  vec3 dist = p + t * eye;
+
   float fresnel = clamp(1.0 - dot(n, -eye), 0.0, 1.0);
   fresnel       = min(pow(fresnel, 3.0), 0.5);
 
@@ -105,8 +108,7 @@ vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {
   return color;
 }
 
-// tracing
-vec3 getNormal(vec3 p, float eps) {
+vec3 _getNormal(vec3 p, float eps) {
   vec3 n;
   n.y = map(p, ITER_FRAGMENT);
   n.x = map(vec3(p.x + eps, p.y, p.z), ITER_FRAGMENT) - n.y;
@@ -115,20 +117,19 @@ vec3 getNormal(vec3 p, float eps) {
   return normalize(n);
 }
 
-float heightMapTracing(out vec3 oP, vec3 o, vec3 d) {
+bool _heightMapTracing(out float oT, vec3 o, vec3 d) {
   float tm = 0.0;
   float tx = 1000.0;
   float hx = map(o + d * tx, ITER_GEOMETRY);
   if (hx > 0.0) {
-    oP = o + d * tx;
-    return tx;
+    oT = tx;
+    return false;
   }
   float hm   = map(o + d * tm, ITER_GEOMETRY);
   float tmid = 0.0;
   for (int i = 0; i < NUM_STEPS; i++) {
     tmid       = mix(tm, tx, hm / (hm - hx));
-    oP         = o + d * tmid;
-    float hmid = map(oP, ITER_GEOMETRY);
+    float hmid = map(o + d * tmid, ITER_GEOMETRY);
     if (hmid < 0.0) {
       tx = tmid;
       hx = hmid;
@@ -137,26 +138,26 @@ float heightMapTracing(out vec3 oP, vec3 o, vec3 d) {
       hm = hmid;
     }
   }
-  return tmid;
+  oT = tmid;
+  return true;
 }
 
 // #define EPSILON_NRM (0.1 / iResolution.x)
-// #define EPSILON_NRM 1e-4
+#define EPSILON_NRM 1e-4
 
-// vec3 getkPixel(in vec2 coord, float time) {
-//   vec2 uv = coord / iResolution.xy;
-//   uv      = uv * 2.0 - 1.0;
-//   uv.x *= iResolution.x / iResolution.y;
+bool traceSeascape(out vec3 oColor, out vec3 oPosition, out float oT, vec3 o, vec3 d) {
+  oColor = vec3(0.0);
 
-//   vec3 p;
-//   heightMapTracing(o, d, p);
-//   vec3 dist  = p - o;
-//   vec3 n     = getNormal(p, dot(dist, dist) * EPSILON_NRM);
-//   vec3 light = normalize(vec3(0.0, 1.0, 0.8));
+  bool hitSea = _heightMapTracing(oT, o, d);
+  if (!hitSea) {
+    return false;
+  }
 
-//   // color
-//   return mix(skyColor(d, true), getSeaColor(p, n, light, d, dist),
-//              pow(smoothstep(0.0, -0.02, d.y), 0.2));
-// }
+  oPosition = o + oT * d;
+  vec3 n    = _getNormal(oPosition, dot(oT, oT) * EPSILON_NRM);
+
+  oColor = getSeaColor(oPosition, n, d, oT);
+  return true;
+}
 
 #endif // SEASCAPE_GLSL
