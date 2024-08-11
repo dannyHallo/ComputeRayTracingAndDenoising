@@ -6,3 +6,5 @@ build/
 .xmake/
 
 shaders/generated/
+
+src/utils/config/RootDir.h
