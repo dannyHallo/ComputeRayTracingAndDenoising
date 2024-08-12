@@ -55,7 +55,7 @@ public:
   }
   [[nodiscard]] inline size_t getSwapchainImagesCount() const { return _swapchainImages.size(); }
   [[nodiscard]] inline const VkFormat &getSwapchainImageFormat() const {
-    return _swapchainImageFormat;
+    return _swapchainSurfaceFormat.format;
   }
   [[nodiscard]] inline const VkExtent2D &getSwapchainExtent() const { return _swapchainExtent; }
   [[nodiscard]] inline uint32_t getSwapchainExtentWidth() const { return _swapchainExtent.width; }
@@ -106,9 +106,9 @@ private:
 
   VkDebugUtilsMessengerEXT _debugMessager = VK_NULL_HANDLE;
 
-  VkSwapchainKHR _swapchain      = VK_NULL_HANDLE;
-  VkFormat _swapchainImageFormat = VK_FORMAT_UNDEFINED;
-  VkExtent2D _swapchainExtent    = {0, 0};
+  VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
+  VkSurfaceFormatKHR _swapchainSurfaceFormat{};
+  VkExtent2D _swapchainExtent = {0, 0};
 
   std::vector<VkImage> _swapchainImages;
   std::vector<VkImageView> _swapchainImageViews;

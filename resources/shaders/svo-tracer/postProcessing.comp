@@ -11,6 +11,10 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 #include "../include/projection.glsl"
 
+// #define RAW
+// #define BLITTED
+// #define SHADOW_MAP
+
 const uint kDotPixelInnerRadius = 4;
 const uint kDotPixelOuterRadius = 5;
 const vec4 kDotColor            = vec4(1, 1, 1, 0.4);
@@ -48,42 +52,25 @@ vec3 debugInfoOverwrite(ivec2 lowResUvi) {
   return imageLoad(octreeVisualizationImage, lowResUvi).rgb;
 }
 
-// #define RAW
-// #define BLITTED
-// #define SHADOW_MAP
-
-void main() {
-  ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
-
+vec3 getColor(ivec2 uvi) {
 #ifdef RAW
   if (all(lessThan(uvi, ivec2(imageSize(rawImage))))) {
-    vec3 col = unpackRgbe(imageLoad(rawImage, uvi).x);
-    imageStore(renderTargetImage, uvi, vec4(col.bgr, 1.0));
-    return;
+    return unpackRgbe(imageLoad(rawImage, uvi).x);
   }
 #endif // RAW
 
 #ifdef BLITTED
   if (all(lessThan(uvi, ivec2(imageSize(blittedImage))))) {
-    vec3 col = unpackRgbe(imageLoad(blittedImage, uvi).x);
-    imageStore(renderTargetImage, uvi, vec4(col.bgr, 1.0));
-    return;
+    return unpackRgbe(imageLoad(blittedImage, uvi).x);
   }
 #endif // BLITTED
 
 #ifdef SHADOW_MAP
   if (all(lessThan(uvi, ivec2(imageSize(shadowMapImage))))) {
     float dist = imageLoad(shadowMapImage, uvi).x;
-    vec3 col   = vec3(exp(-dist * 0.1));
-    imageStore(renderTargetImage, uvi, vec4(col.bgr, 1.0));
-    return;
+    return vec3(exp(-dist * 0.1));
   }
 #endif // SHADOW_MAP
-
-  ivec2 targetSize = imageSize(renderTargetImage);
-  if (any(greaterThanEqual(uvi, targetSize))) {
-    return;
-  }
 
   vec3 hdrColor = imageLoad(taaImage, uvi).rgb;
 
@@ -97,6 +84,15 @@ void main() {
   color += debugInfoOverwrite(lowResUv);
 
   color = blendWithDot(color, uvi);
+  
+  return color;
+}
 
-  imageStore(renderTargetImage, uvi, vec4(color.bgr, 1));
+void main() {
+  ivec2 uvi = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(uvi, imageSize(renderTargetImage)))) {
+    return;
+  }
+
+  imageStore(renderTargetImage, uvi, vec4(getColor(uvi).rgb, 1));
 }

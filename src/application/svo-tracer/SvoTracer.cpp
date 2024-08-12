@@ -336,7 +336,8 @@ void SvoTracer::_createFullSizedImages() {
                               VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _renderTargetImage = std::make_unique<Image>(
-      _appContext, ImageDimensions{_highResWidth, _highResHeight}, VK_FORMAT_R8G8B8A8_UNORM,
+      _appContext, ImageDimensions{_highResWidth, _highResHeight},
+      _appContext->getSwapchainImageFormat(),
       VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
           VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 }

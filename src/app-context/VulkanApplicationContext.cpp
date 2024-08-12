@@ -94,7 +94,7 @@ void VulkanApplicationContext::onSwapchainResize(bool isFramerateLimited) {
 
 void VulkanApplicationContext::_createSwapchain(bool isFramerateLimited) {
   ContextCreator::createSwapchain(_logger, isFramerateLimited, _swapchain, _swapchainImages,
-                                  _swapchainImageViews, _swapchainImageFormat, _swapchainExtent,
+                                  _swapchainImageViews, _swapchainSurfaceFormat, _swapchainExtent,
                                   _surface, _device, _physicalDevice, _queueFamilyIndices);
 }
 
