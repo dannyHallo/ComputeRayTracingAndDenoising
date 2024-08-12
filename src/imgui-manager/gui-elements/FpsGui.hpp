@@ -6,14 +6,19 @@
 struct ConfigContainer;
 
 class VulkanApplicationContext;
+class Logger;
+class Window;
 
 class FpsGui {
 public:
-  FpsGui(ConfigContainer *configContainer);
+  FpsGui(Logger *logger, ConfigContainer *configContainer, Window *window);
   void update(VulkanApplicationContext *appContext, double filteredFps);
 
 private:
+  Logger *_logger;
   ConfigContainer *_configContainer;
+
+  Window *_window;
 
   std::deque<float> _fpsHistory;
 

@@ -54,7 +54,7 @@ void ImguiManager::onSwapchainResize() {
 }
 
 void ImguiManager::init() {
-  _fpsGui = std::make_unique<FpsGui>(_configContainer);
+  _fpsGui = std::make_unique<FpsGui>(_logger, _configContainer, _window);
 
   _createGuiCommandBuffers();
   _createGuiRenderPass();

@@ -35,14 +35,8 @@ Window::Window(WindowStyle windowStyle, Logger *logger, int widthIfWindowed, int
   _window = glfwCreateWindow(mode->width, mode->height, "Voxel Tracer v1.0", nullptr, nullptr);
   glfwMaximizeWindow(_window);
   glfwGetWindowPos(_window, nullptr, &_titleBarHeight);
-  glfwGetFramebufferSize(_window, &_maximizedFullscreenClientWidth,
-                         &_maximizedFullscreenClientHeight);
 
-  // handles retina display's pixel doubling technique
-#ifdef __APPLE__
-  _maximizedFullscreenClientWidth /= 2;
-  _maximizedFullscreenClientHeight /= 2;
-#endif
+  getWindowDimension(_maximizedFullscreenWidth, _maximizedFullscreenHeight);
 
   // change the created window to the desired style
   setWindowStyle(windowStyle);
@@ -105,14 +99,14 @@ void Window::setWindowStyle(WindowStyle newStyle) {
     break;
 
   case WindowStyle::kMaximized:
-    glfwSetWindowMonitor(_window, nullptr, 0, _titleBarHeight, _maximizedFullscreenClientWidth,
-                         _maximizedFullscreenClientHeight, mode->refreshRate);
+    glfwSetWindowMonitor(_window, nullptr, 0, _titleBarHeight, _maximizedFullscreenWidth,
+                         _maximizedFullscreenHeight, mode->refreshRate);
     break;
 
   case WindowStyle::kHover:
-    int hoverWindowX = static_cast<int>(static_cast<float>(_maximizedFullscreenClientWidth) / 2.F -
+    int hoverWindowX = static_cast<int>(static_cast<float>(_maximizedFullscreenWidth) / 2.F -
                                         static_cast<float>(_widthIfWindowed) / 2.F);
-    int hoverWindowY = static_cast<int>(static_cast<float>(_maximizedFullscreenClientHeight) / 2.F -
+    int hoverWindowY = static_cast<int>(static_cast<float>(_maximizedFullscreenHeight) / 2.F -
                                         static_cast<float>(_heightIfWindowed) / 2.F);
     glfwSetWindowMonitor(_window, nullptr, hoverWindowX, hoverWindowY, _widthIfWindowed,
                          _heightIfWindowed, mode->refreshRate);
@@ -125,8 +119,12 @@ void Window::setWindowStyle(WindowStyle newStyle) {
 void Window::showCursor() {
   glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
   _cursorInfo.cursorState = CursorState::kVisible;
-  glfwSetCursorPos(_window, static_cast<float>(getFrameBufferWidth()) / 2.F,
-                   static_cast<float>(getFrameBufferHeight()) / 2.F);
+
+  int windowWidth  = 0;
+  int windowHeight = 0;
+  getWindowDimension(windowWidth, windowHeight);
+  glfwSetCursorPos(_window, static_cast<float>(windowWidth) / 2.F,
+                   static_cast<float>(windowHeight) / 2.F);
 }
 
 void Window::hideCursor() {

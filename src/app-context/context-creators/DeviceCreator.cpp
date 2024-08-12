@@ -313,7 +313,7 @@ void ContextCreator::createDevice(Logger *logger, VkPhysicalDevice &physicalDevi
 
     VkResult res = vkCreateDevice(physicalDevice, &deviceCreateInfo, nullptr, &device);
     if (res != VK_SUCCESS) {
-      throw std::runtime_error("failed to create logical device!");
+      logger->error("failed to create logical device!");
     }
 
     // reduce loading overhead by specifing only one device is used

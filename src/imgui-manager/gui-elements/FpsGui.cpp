@@ -4,13 +4,16 @@
 
 #include "config-container/ConfigContainer.hpp"
 #include "config-container/sub-config/ImguiManagerInfo.hpp"
+#include "utils/logger/Logger.hpp"
+#include "window/Window.hpp"
 
 #include "imgui.h"
 #include "implot.h"
 
 int constexpr kHistSize = 800;
 
-FpsGui::FpsGui(ConfigContainer *configContainer) : _configContainer(configContainer) {
+FpsGui::FpsGui(Logger *logger, ConfigContainer *configContainer, Window *window)
+    : _logger(logger), _configContainer(configContainer), _window(window) {
   // create x array
   _x.resize(kHistSize);
   for (int i = 0; i < kHistSize; ++i) {
@@ -22,22 +25,25 @@ FpsGui::FpsGui(ConfigContainer *configContainer) : _configContainer(configContai
 }
 
 void FpsGui::update(VulkanApplicationContext *appContext, double filteredFps) {
-  auto const kScreenWidth  = static_cast<float>(appContext->getSwapchainExtent().width);
-  auto const kScreenHeight = static_cast<float>(appContext->getSwapchainExtent().height);
+  int windowWidth  = 0;
+  int windowHeight = 0;
+  _window->getWindowDimension(windowWidth, windowHeight);
 
   float constexpr kHoriRatio = 0.3F;
   float constexpr kVertRatio = 0.2F;
 
   float constexpr kGraphPadding = 10.F;
-  float const kWindowWidth      = kScreenWidth * kHoriRatio;
-  float const kWindowHeight     = kScreenHeight * kVertRatio;
+  float const fpsWindowWidth    = windowWidth * kHoriRatio;
+  float const fpsWindowHeight   = windowHeight * kVertRatio;
 
-  ImGui::SetNextWindowSize(ImVec2(kWindowWidth, kWindowHeight));
-  ImGui::SetNextWindowPos(ImVec2(kScreenWidth - kWindowWidth, kScreenHeight - kWindowHeight));
+  ImGui::SetNextWindowSize(ImVec2(fpsWindowWidth, fpsWindowHeight));
+  ImGui::SetNextWindowPos(ImVec2(windowWidth - fpsWindowWidth, windowHeight - fpsWindowHeight));
 
-  ImGui::Begin("Fps", nullptr,
-               ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
-                   ImGuiWindowFlags_NoTitleBar);
+  if (!ImGui::Begin("Fps", nullptr,
+                    ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+                        ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar)) {
+    _logger->error("failed to create fps window!");
+  }
 
   _updateFpsHistData(filteredFps);
 
@@ -48,14 +54,18 @@ void FpsGui::update(VulkanApplicationContext *appContext, double filteredFps) {
 
   float constexpr kYMin   = 0;
   float constexpr kYMax   = 3000.F;
-  float const kGraphSizeX = kWindowWidth - 2 * kGraphPadding;
-  float const kGraphSizeY = kWindowHeight - 2 * kGraphPadding;
+  float const kGraphSizeX = fpsWindowWidth - 2 * kGraphPadding;
+  float const kGraphSizeY = fpsWindowHeight - 2 * kGraphPadding;
 
   ImPlot::SetNextAxisLimits(ImAxis_Y1, kYMin, kYMax);
 
   ImGui::SetCursorPosX(kGraphPadding);
   ImGui::SetCursorPosY(kGraphPadding);
-  ImPlot::BeginPlot("##FpsShadedPlot", ImVec2(kGraphSizeX, kGraphSizeY), ImPlotFlags_NoInputs);
+
+  if (!ImPlot::BeginPlot("##FpsShadedPlot", ImVec2(kGraphSizeX, kGraphSizeY),
+                         ImPlotFlags_NoInputs)) {
+    _logger->error("failed to begin plot!");
+  }
   ImPlot::SetupAxis(ImAxis_X1, nullptr,
                     ImPlotAxisFlags_NoDecorations | ImPlotAxisFlags_NoTickLabels);
   ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);

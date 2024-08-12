@@ -173,13 +173,12 @@ void Application::_drawFrame() {
 }
 
 void Application::_waitForTheWindowToBeResumed() {
-  int width  = _window->getFrameBufferWidth();
-  int height = _window->getFrameBufferHeight();
+  int windowWidth  = 0;
+  int windowHeight = 0;
+  _window->getWindowDimension(windowWidth, windowHeight);
 
-  while (width == 0 || height == 0) {
+  while (windowWidth == 0 || windowHeight == 0) {
     glfwWaitEvents();
-    width  = _window->getFrameBufferWidth();
-    height = _window->getFrameBufferHeight();
   }
 }
 

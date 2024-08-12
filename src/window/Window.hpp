@@ -35,34 +35,16 @@ public:
   [[nodiscard]] WindowStyle getWindowStyle() const { return _windowStyle; }
   [[nodiscard]] CursorState getCursorState() const { return _cursorInfo.cursorState; }
 
-  // be careful to use these two functions, you might want to query the
-  // framebuffer size, not the window size
-  [[nodiscard]] int getWindowWidth() const {
-    int width  = 0;
-    int height = 0;
+  // do take the window dimention and the frame buffer dimention differently! apple's retina display
+  // doubles the framebuffer size of a non-fullscreen (exclusive) window than the original window
+  // dimension, for glfw-releated function, use this function to query for the window dimension
+  // for windows, getWindowDimension and getFrameBufferDimension are the same
+  void getWindowDimension(int &width, int &height) const {
     glfwGetWindowSize(_window, &width, &height);
-    return width;
   }
 
-  [[nodiscard]] int getWindowHeight() const {
-    int width  = 0;
-    int height = 0;
-    glfwGetWindowSize(_window, &width, &height);
-    return height;
-  }
-
-  [[nodiscard]] int getFrameBufferWidth() const {
-    int width  = 0;
-    int height = 0;
+  void getFrameBufferDimension(int &width, int &height) const {
     glfwGetFramebufferSize(_window, &width, &height);
-    return width;
-  }
-
-  [[nodiscard]] int getFrameBufferHeight() const {
-    int width  = 0;
-    int height = 0;
-    glfwGetFramebufferSize(_window, &width, &height);
-    return height;
   }
 
   [[nodiscard]] int getCursorXPos() const {
@@ -109,9 +91,9 @@ private:
   KeyboardInfo _keyboardInfo;
 
   // these are used to restore maximized window to its original size and pos
-  int _titleBarHeight                  = 0;
-  int _maximizedFullscreenClientWidth  = 0;
-  int _maximizedFullscreenClientHeight = 0;
+  int _titleBarHeight            = 0;
+  int _maximizedFullscreenWidth  = 0;
+  int _maximizedFullscreenHeight = 0;
 
   std::vector<std::function<void(CursorMoveInfo)>> _cursorMoveCallbacks;
   std::vector<std::function<void(CursorInfo)>> _cursorButtonCallbacks;

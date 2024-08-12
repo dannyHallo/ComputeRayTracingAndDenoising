@@ -184,7 +184,7 @@ void ContextCreator::createInstance(Logger *logger, VkInstance &instance,
   // create VK Instance
   VkResult res = vkCreateInstance(&createInfo, nullptr, &instance);
   if (res != VK_SUCCESS) {
-    throw std::runtime_error("failed to create instance");
+    logger->error("failed to create instance");
   }
 
   // load instance-related functions
