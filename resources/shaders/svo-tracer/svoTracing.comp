@@ -36,17 +36,14 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 const int NUM_STEPS = 8;
 const float EPSILON = 1e-3;
 
-const float kWaterTopHeight    = 0.22;
-const float kWaterBottomHeight = -0.0;
+const float kWaterTopHeight    = 0.05;
+const float kWaterBottomHeight = 0.01;
 
 const int ITER_RAYMARCH    = 3;
 const int ITER_NORMAL      = 5;
 const float SEA_CHOPPY     = 4.0;
-const float SEA_SPEED      = 1.0;
-const float SEA_FREQ       = 0.16;
-const vec3 SEA_BASE        = vec3(0.0, 0.09, 0.18);
-const vec3 SEA_WATER_COLOR = vec3(0.8, 0.9, 0.6) * 0.6;
-#define SEA_TIME (1.0 + renderInfoUbo.data.time * SEA_SPEED)
+const float SEA_FREQ       = 0.6;
+#define SEA_TIME (1.0 + renderInfoUbo.data.time)
 const mat2 octave_m = mat2(1.6, 1.2, -1.2, 1.6);
 
 // -1.0 - 1.0
@@ -113,9 +110,7 @@ float _raymarchWater(vec3 o, vec3 d) {
   for (int i = 0; i < 64; i++) {
     float h = mix(kWaterBottomHeight, kWaterTopHeight, _getWaveHeight01(pos.xz, ITER_RAYMARCH));
 
-    // proximity hit check, uncomment this for better perf?
-    // if (h + 1e-2 * dist_pos > pos.y) {
-    if (pos.y < h + 1e-2) {
+    if (h + 1e-3 * t > pos.y) {
       return t;
     }
     t += pos.y - h;
@@ -139,7 +134,8 @@ vec3 normal(vec2 pos, float e) {
             a - vec3(pos.x, _getWaveHeight01(pos + ex.yx, ITER_NORMAL) * depth, pos.y + e)));
 }
 
-bool traceSeascape(out vec3 oColor, out vec3 oPosition, out float oT, vec3 o, vec3 d) {
+bool traceSeascape(out vec3 oColor, out vec3 oPosition, out float oT, vec3 o, vec3 d,
+                   float worldT) {
   oColor    = vec3(0.0);
   oT        = 1e10;
   oPosition = o + d * oT;
@@ -168,7 +164,8 @@ bool traceSeascape(out vec3 oColor, out vec3 oPosition, out float oT, vec3 o, ve
   // calculate the reflection and approximate subsurface scattering
   vec3 reflection = skyColor(R, true);
   float depth     = kWaterTopHeight - kWaterBottomHeight;
-  vec3 scattering = vec3(0.0293, 0.0698, 0.1717) * 0.1 * (0.2 + (waterHitPos.y + depth) / depth);
+  vec3 scattering = tweakableParametersUbo.data.debugC1 *
+                    mix(0.6, 1.0, (waterHitPos.y - kWaterBottomHeight) / depth);
 
   // return the combined result
   oColor    = fresnel * reflection + scattering;
@@ -246,7 +243,7 @@ bool getPrimaryRayColor(out float oT, out uint oPrimaryRayIterUsed,
 
   vec3 seaColor, seaHitPos;
   float seaT;
-  bool hitSea = traceSeascape(seaColor, seaHitPos, seaT, o, d);
+  bool hitSea = traceSeascape(seaColor, seaHitPos, seaT, o, d, oT);
   if (hitSea && seaT < oT) {
     oColor = seaColor;
     // oPosition = pos;

@@ -52,16 +52,14 @@ void main() {
   float noise   = computeNoise(globalVoxelPos).x;
   float falloff = islandGradientFalloff(ivec3(chunksInfoBuffer.data.chunksDim), globalVoxelPos);
   // noise -= (1.0 - islandGradientFalloff(ivec3(chunksInfoBuffer.data.chunksDim), globalVoxelPos));
-  noise *= falloff; 
+  noise *= falloff;
 
   float weight = noise - globalVoxelPos.y;
 
   uint blockType = getBlockTypeFromWeight(weight);
 
   if (blockType != kBlockTypeEmpty) {
-    if (globalVoxelPos.y < 0.02) {
-      blockType = kBlockTypeWater;
-    } else if (globalVoxelPos.y < 0.1) {
+    if (globalVoxelPos.y < 0.1) {
       blockType = kBlockTypeSand;
     }
   }

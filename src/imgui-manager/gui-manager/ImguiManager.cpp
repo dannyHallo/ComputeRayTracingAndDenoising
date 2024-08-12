@@ -66,9 +66,14 @@ void ImguiManager::init() {
   ImGui::CreateContext();
   ImPlot::CreateContext();
 
+  int windowWidth  = 0;
+  int windowHeight = 0;
+  _window->getWindowDimension(windowWidth, windowHeight);
+
   ImGuiIO &io = ImGui::GetIO();
   io.Fonts->AddFontFromFileTTF((kPathToResourceFolder + "/fonts/editundo/editundo.ttf").c_str(),
-                               _configContainer->imguiManagerInfo->fontSize);
+                               _configContainer->imguiManagerInfo->fontSize * windowWidth *
+                                   0.0004F);
 
   io.ConfigFlags |= ImGuiWindowFlags_NoNavInputs;
 
