@@ -239,7 +239,8 @@ void SvoBuilder::_editExistingChunk(ChunkIndex chunkIndex) {
   if (it == _chunkIndexToFieldImagesMap.end()) {
     _logger->info("creating new image for chunk");
     _chunkIndexToFieldImagesMap[chunkIndex] =
-        std::make_unique<Image>(ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim + 1,
+        std::make_unique<Image>(_appContext,
+                                ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim + 1,
                                                 _configContainer->terrainInfo->chunkVoxelDim + 1,
                                                 _configContainer->terrainInfo->chunkVoxelDim + 1},
                                 VK_FORMAT_R16_UINT,
@@ -423,7 +424,8 @@ void SvoBuilder::_buildChunkFromNoise(ChunkIndex chunkIndex) {
 
 void SvoBuilder::_createImages() {
   _chunkFieldImage =
-      std::make_unique<Image>(ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim + 1,
+      std::make_unique<Image>(_appContext,
+                              ImageDimensions{_configContainer->terrainInfo->chunkVoxelDim + 1,
                                               _configContainer->terrainInfo->chunkVoxelDim + 1,
                                               _configContainer->terrainInfo->chunkVoxelDim + 1},
                               VK_FORMAT_R16_UINT,
@@ -434,12 +436,13 @@ void SvoBuilder::_createImages() {
 // voxData is passed in to decide the size of some buffers dureing allocation
 void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
   _chunkIndicesBuffer = std::make_unique<Buffer>(
+      _appContext,
       sizeof(uint32_t) * _configContainer->terrainInfo->chunksDim.x *
           _configContainer->terrainInfo->chunksDim.y * _configContainer->terrainInfo->chunksDim.z,
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
-  _counterBuffer = std::make_unique<Buffer>(sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                                            MemoryStyle::kDedicated);
+  _counterBuffer = std::make_unique<Buffer>(
+      _appContext, sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   uint32_t sizeInWorstCase =
       std::ceil(static_cast<float>(_configContainer->terrainInfo->chunkVoxelDim *
@@ -451,18 +454,19 @@ void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
                 static_cast<float>(sizeInWorstCase) / (1024 * 1024));
 
   _chunkOctreeBuffer = std::make_unique<Buffer>(
+      _appContext,
       sizeof(uint32_t) * _configContainer->terrainInfo->chunkVoxelDim *
           _configContainer->terrainInfo->chunkVoxelDim *
           _configContainer->terrainInfo->chunkVoxelDim,
       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       MemoryStyle::kHostVisible);
 
-  _indirectFragLengthBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
+  _indirectFragLengthBuffer = std::make_unique<Buffer>(_appContext, sizeof(G_IndirectDispatchInfo),
                                                        VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
                                                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                                        MemoryStyle::kDedicated);
 
-  _appendedOctreeBuffer = std::make_unique<Buffer>(maximumOctreeBufferSize,
+  _appendedOctreeBuffer = std::make_unique<Buffer>(_appContext, maximumOctreeBufferSize,
                                                    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                                    MemoryStyle::kDedicated);
@@ -470,34 +474,39 @@ void SvoBuilder::_createBuffers(size_t maximumOctreeBufferSize) {
   uint32_t maximumFragmentListBufferSize =
       sizeof(G_FragmentListEntry) * _configContainer->terrainInfo->chunkVoxelDim *
       _configContainer->terrainInfo->chunkVoxelDim * _configContainer->terrainInfo->chunkVoxelDim;
-  _fragmentListBuffer = std::make_unique<Buffer>(
-      maximumFragmentListBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+  _fragmentListBuffer =
+      std::make_unique<Buffer>(_appContext, maximumFragmentListBufferSize,
+                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   _logger->info("fragment list buffer size: {} mb",
                 static_cast<float>(maximumFragmentListBufferSize) / (1024 * 1024));
 
-  _octreeBuildInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_OctreeBuildInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+  _octreeBuildInfoBuffer =
+      std::make_unique<Buffer>(_appContext, sizeof(G_OctreeBuildInfo),
+                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
-  _indirectAllocNumBuffer = std::make_unique<Buffer>(sizeof(G_IndirectDispatchInfo),
+  _indirectAllocNumBuffer = std::make_unique<Buffer>(_appContext, sizeof(G_IndirectDispatchInfo),
                                                      VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
                                                          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                                      MemoryStyle::kDedicated);
 
-  _fragmentListInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_FragmentListInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+  _fragmentListInfoBuffer =
+      std::make_unique<Buffer>(_appContext, sizeof(G_FragmentListInfo),
+                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
-  _chunksInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_ChunksInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+  _chunksInfoBuffer =
+      std::make_unique<Buffer>(_appContext, sizeof(G_ChunksInfo),
+                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
-  _chunkEditingInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_ChunkEditingInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+  _chunkEditingInfoBuffer =
+      std::make_unique<Buffer>(_appContext, sizeof(G_ChunkEditingInfo),
+                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   _octreeBufferLengthBuffer = std::make_unique<Buffer>(
-      sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+      _appContext, sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   _octreeBufferWriteOffsetBuffer = std::make_unique<Buffer>(
-      sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+      _appContext, sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 }
 
 void SvoBuilder::_initBufferData() {

@@ -19,17 +19,16 @@
 class Logger;
 // also, this class should be configed out of class
 class VulkanApplicationContext {
-
 public:
-  static VulkanApplicationContext *getInstance();
-
   struct GraphicsSettings {
     bool isFramerateLimited;
   };
 
+public:
   // use glwindow to init the instance, can be only called once
   void init(Logger *logger, GLFWwindow *glWindow, GraphicsSettings *settings);
 
+  VulkanApplicationContext();
   ~VulkanApplicationContext();
 
   // disable move and copy
@@ -113,8 +112,6 @@ private:
 
   std::vector<VkImage> _swapchainImages;
   std::vector<VkImageView> _swapchainImageViews;
-
-  VulkanApplicationContext() = default; // not allowed to be called outside
 
   void _initWindow(uint8_t windowSize);
 

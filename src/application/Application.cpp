@@ -20,7 +20,7 @@
 
 // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
 Application::Application(Logger *logger)
-    : _appContext(VulkanApplicationContext::getInstance()), _logger(logger),
+    : _appContext(std::make_unique<VulkanApplicationContext>()), _logger(logger),
       _shaderCompiler(std::make_unique<ShaderCompiler>(logger)),
       _shaderFileWatchListener(std::make_unique<ShaderChangeListener>(_logger)) {
   _configContainer = std::make_unique<ConfigContainer>(_logger);
@@ -32,15 +32,15 @@ Application::Application(Logger *logger)
   _appContext->init(_logger, _window->getGlWindow(), &settings);
 
   _svoBuilder =
-      std::make_unique<SvoBuilder>(_appContext, _logger, _shaderCompiler.get(),
+      std::make_unique<SvoBuilder>(_appContext.get(), _logger, _shaderCompiler.get(),
                                    _shaderFileWatchListener.get(), _configContainer.get());
   _svoTracer = std::make_unique<SvoTracer>(
-      _appContext, _logger, _configContainer->applicationInfo->framesInFlight, _window.get(),
+      _appContext.get(), _logger, _configContainer->applicationInfo->framesInFlight, _window.get(),
       _shaderCompiler.get(), _shaderFileWatchListener.get(), _configContainer.get());
 
-  _imguiManager =
-      std::make_unique<ImguiManager>(_appContext, _window.get(), _logger, _configContainer.get());
-  _fpsSink = std::make_unique<FpsSink>();
+  _imguiManager = std::make_unique<ImguiManager>(_appContext.get(), _window.get(), _logger,
+                                                 _configContainer.get());
+  _fpsSink      = std::make_unique<FpsSink>();
 
   _init();
 

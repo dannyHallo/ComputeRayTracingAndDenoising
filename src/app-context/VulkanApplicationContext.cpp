@@ -15,6 +15,32 @@ static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCH
 static const std::vector<const char *> requiredDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 #endif
 
+VulkanApplicationContext::VulkanApplicationContext() = default;
+
+VulkanApplicationContext::~VulkanApplicationContext() {
+  vkDestroyCommandPool(_device, _commandPool, nullptr);
+  vkDestroyCommandPool(_device, _guiCommandPool, nullptr);
+
+  for (auto &swapchainImageView : _swapchainImageViews) {
+    vkDestroyImageView(_device, swapchainImageView, nullptr);
+  }
+
+  vkDestroySwapchainKHR(_device, _swapchain, nullptr);
+
+  vkDestroySurfaceKHR(_vkInstance, _surface, nullptr);
+
+  // this step destroys allocated VkDestroyMemory allocated by VMA when creating
+  // buffers and images, by destroying the global allocator
+  vmaDestroyAllocator(_allocator);
+  vkDestroyDevice(_device, nullptr);
+
+#ifndef NVALIDATIONLAYERS
+  vkDestroyDebugUtilsMessengerEXT(_vkInstance, _debugMessager, nullptr);
+#endif // NDEBUG
+
+  vkDestroyInstance(_vkInstance, nullptr);
+}
+
 void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window,
                                     GraphicsSettings *settings) {
   _logger = logger;
@@ -58,41 +84,12 @@ void VulkanApplicationContext::init(Logger *logger, GLFWwindow *window,
   _createCommandPool();
 }
 
-VulkanApplicationContext *VulkanApplicationContext::getInstance() {
-  static VulkanApplicationContext instance{};
-  return &instance;
-}
-
 void VulkanApplicationContext::onSwapchainResize(bool isFramerateLimited) {
   for (auto &swapchainImageView : _swapchainImageViews) {
     vkDestroyImageView(_device, swapchainImageView, nullptr);
   }
   vkDestroySwapchainKHR(_device, _swapchain, nullptr);
   _createSwapchain(isFramerateLimited);
-}
-
-VulkanApplicationContext::~VulkanApplicationContext() {
-  vkDestroyCommandPool(_device, _commandPool, nullptr);
-  vkDestroyCommandPool(_device, _guiCommandPool, nullptr);
-
-  for (auto &swapchainImageView : _swapchainImageViews) {
-    vkDestroyImageView(_device, swapchainImageView, nullptr);
-  }
-
-  vkDestroySwapchainKHR(_device, _swapchain, nullptr);
-
-  vkDestroySurfaceKHR(_vkInstance, _surface, nullptr);
-
-  // this step destroys allocated VkDestroyMemory allocated by VMA when creating
-  // buffers and images, by destroying the global allocator
-  vmaDestroyAllocator(_allocator);
-  vkDestroyDevice(_device, nullptr);
-
-#ifndef NVALIDATIONLAYERS
-  vkDestroyDebugUtilsMessengerEXT(_vkInstance, _debugMessager, nullptr);
-#endif // NDEBUG
-
-  vkDestroyInstance(_vkInstance, nullptr);
 }
 
 void VulkanApplicationContext::_createSwapchain(bool isFramerateLimited) {

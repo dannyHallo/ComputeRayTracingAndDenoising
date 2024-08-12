@@ -13,10 +13,12 @@ enum class MemoryStyle {
   kHostVisible,
 };
 
+class VulkanApplicationContext;
 // the wrapper class of VkBuffer, handles memory allocation and data filling
 class Buffer {
 public:
-  Buffer(VkDeviceSize size, VkBufferUsageFlags bufferUsageFlags, MemoryStyle memoryStyle);
+  Buffer(VulkanApplicationContext *appContext, VkDeviceSize size,
+         VkBufferUsageFlags bufferUsageFlags, MemoryStyle memoryStyle);
   ~Buffer();
 
   // default copy and move
@@ -52,6 +54,8 @@ public:
   }
 
 private:
+  VulkanApplicationContext *_appContext;
+
   VkDeviceSize _size; // total size of buffer
 
   MemoryStyle _memoryStyle;
@@ -70,5 +74,5 @@ private:
 
   // create a staging buffer that is both allowed to be transferred to and from
   [[nodiscard]] StagingBufferHandle _createStagingBuffer() const;
-  static void _destroyStagingBuffer(StagingBufferHandle &stagingBufferHandle);
+  void _destroyStagingBuffer(StagingBufferHandle &stagingBufferHandle);
 };

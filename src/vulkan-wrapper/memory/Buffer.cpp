@@ -23,21 +23,21 @@ VmaAllocationCreateFlags _decideAllocationCreateFlags(MemoryStyle memoryAccessin
 }
 } // namespace
 
-Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags bufferUsageFlags, MemoryStyle memoryStyle)
-    : _size(size), _memoryStyle(memoryStyle) {
+Buffer::Buffer(VulkanApplicationContext *appContext, VkDeviceSize size,
+               VkBufferUsageFlags bufferUsageFlags, MemoryStyle memoryStyle)
+    : _appContext(appContext), _size(size), _memoryStyle(memoryStyle) {
   _allocate(bufferUsageFlags);
 }
 
 Buffer::~Buffer() {
   if (_vkBuffer != VK_NULL_HANDLE) {
-    vmaDestroyBuffer(VulkanApplicationContext::getInstance()->getAllocator(), _vkBuffer,
-                     _bufferAllocation);
+    vmaDestroyBuffer(_appContext->getAllocator(), _vkBuffer, _bufferAllocation);
     _vkBuffer = VK_NULL_HANDLE;
   }
 }
 
 void Buffer::_allocate(VkBufferUsageFlags bufferUsageFlags) {
-  VmaAllocator allocator = VulkanApplicationContext::getInstance()->getAllocator();
+  VmaAllocator allocator = _appContext->getAllocator();
 
   // all dedicated allocations are allowed to be trandferred on both directions, jfor simplicity
   if (_memoryStyle == MemoryStyle::kDedicated) {
@@ -66,22 +66,20 @@ void Buffer::_allocate(VkBufferUsageFlags bufferUsageFlags) {
 VkBufferMemoryBarrier Buffer::getMemoryBarrier(VkAccessFlags srcAccessMask,
                                                VkAccessFlags dstAccessMask) {
   VkBufferMemoryBarrier memoryBarrier{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};
-  memoryBarrier.srcAccessMask = srcAccessMask;
-  memoryBarrier.dstAccessMask = dstAccessMask;
-  memoryBarrier.buffer        = _vkBuffer;
-  memoryBarrier.size          = _size;
-  memoryBarrier.offset        = 0;
-  memoryBarrier.srcQueueFamilyIndex =
-      VulkanApplicationContext::getInstance()->getGraphicsQueueIndex();
-  memoryBarrier.dstQueueFamilyIndex =
-      VulkanApplicationContext::getInstance()->getGraphicsQueueIndex();
+  memoryBarrier.srcAccessMask       = srcAccessMask;
+  memoryBarrier.dstAccessMask       = dstAccessMask;
+  memoryBarrier.buffer              = _vkBuffer;
+  memoryBarrier.size                = _size;
+  memoryBarrier.offset              = 0;
+  memoryBarrier.srcQueueFamilyIndex = _appContext->getGraphicsQueueIndex();
+  memoryBarrier.dstQueueFamilyIndex = _appContext->getGraphicsQueueIndex();
   return memoryBarrier;
 }
 
 Buffer::StagingBufferHandle Buffer::_createStagingBuffer() const {
   StagingBufferHandle stagingBufferHandle{};
 
-  VmaAllocator allocator = VulkanApplicationContext::getInstance()->getAllocator();
+  VmaAllocator allocator = _appContext->getAllocator();
 
   VkBufferCreateInfo stagingBufCreateInfo = {VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
   stagingBufCreateInfo.size               = _size;
@@ -102,17 +100,17 @@ Buffer::StagingBufferHandle Buffer::_createStagingBuffer() const {
 }
 
 void Buffer::_destroyStagingBuffer(StagingBufferHandle &stagingBufferHandle) {
-  vmaDestroyBuffer(VulkanApplicationContext::getInstance()->getAllocator(),
-                   stagingBufferHandle.vkBuffer, stagingBufferHandle.bufferAllocation);
+  vmaDestroyBuffer(_appContext->getAllocator(), stagingBufferHandle.vkBuffer,
+                   stagingBufferHandle.bufferAllocation);
   stagingBufferHandle.vkBuffer         = VK_NULL_HANDLE;
   stagingBufferHandle.bufferAllocation = VK_NULL_HANDLE;
   stagingBufferHandle.mappedAddr       = nullptr;
 }
 
 void Buffer::fillData(const void *data) {
-  auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
-  auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
-  auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
+  auto const &device      = _appContext->getDevice();
+  auto const &queue       = _appContext->getGraphicsQueue();
+  auto const &commandPool = _appContext->getCommandPool();
 
   switch (_memoryStyle) {
   case MemoryStyle::kHostVisible: {
@@ -142,9 +140,9 @@ void Buffer::fillData(const void *data) {
 }
 
 void Buffer::fetchData(void *data) {
-  auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
-  auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
-  auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
+  auto const &device      = _appContext->getDevice();
+  auto const &queue       = _appContext->getGraphicsQueue();
+  auto const &commandPool = _appContext->getCommandPool();
 
   switch (_memoryStyle) {
   case MemoryStyle::kHostVisible: {

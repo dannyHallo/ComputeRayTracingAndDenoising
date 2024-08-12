@@ -7,12 +7,12 @@
 
 class BufferBundle {
 public:
-  BufferBundle(size_t bundleSize, VkDeviceSize perBufferSize, VkBufferUsageFlags bufferUsageFlags,
-               MemoryStyle memoryAccessingStyle) {
+  BufferBundle(VulkanApplicationContext *appContext, size_t bundleSize, VkDeviceSize perBufferSize,
+               VkBufferUsageFlags bufferUsageFlags, MemoryStyle memoryAccessingStyle) {
     _buffers.reserve(bundleSize);
     for (size_t i = 0; i < bundleSize; i++) {
-      _buffers.emplace_back(
-          std::make_unique<Buffer>(perBufferSize, bufferUsageFlags, memoryAccessingStyle));
+      _buffers.emplace_back(std::make_unique<Buffer>(appContext, perBufferSize, bufferUsageFlags,
+                                                     memoryAccessingStyle));
     }
   }
 

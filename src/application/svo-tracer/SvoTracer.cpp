@@ -159,7 +159,7 @@ void SvoTracer::_createSamplers() {
     settings.addressModeU = Sampler::AddressMode::kClampToEdge;
     settings.addressModeV = Sampler::AddressMode::kClampToEdge;
     settings.addressModeW = Sampler::AddressMode::kClampToEdge;
-    _defaultSampler       = std::make_unique<Sampler>(settings);
+    _defaultSampler       = std::make_unique<Sampler>(_appContext, settings);
   }
 
   {
@@ -168,7 +168,7 @@ void SvoTracer::_createSamplers() {
     settings.addressModeU = Sampler::AddressMode::kRepeat;
     settings.addressModeV = Sampler::AddressMode::kClampToEdge;
     settings.addressModeW = Sampler::AddressMode::kClampToEdge;
-    _skyLutSampler        = std::make_unique<Sampler>(settings);
+    _skyLutSampler        = std::make_unique<Sampler>(_appContext, settings);
   }
 }
 
@@ -192,8 +192,8 @@ void SvoTracer::_createBlueNoiseImages() {
       filenames.emplace_back(kPathToResourceFolder + "/textures/stbn/" + stbnPath +
                              std::to_string(i) + ".png");
     }
-    noiseImage = std::make_unique<Image>(filenames, VK_IMAGE_USAGE_STORAGE_BIT |
-                                                        VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+    noiseImage = std::make_unique<Image>(
+        _appContext, filenames, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
   };
 
   _loadNoise(_scalarBlueNoise, "scalar_2d_1d_1d/stbn_scalar_2Dx1Dx1D_128x128x64x1_");
@@ -205,22 +205,24 @@ void SvoTracer::_createBlueNoiseImages() {
 
 void SvoTracer::_createSkyLutImages() {
   _transmittanceLutImage = std::make_unique<Image>(
-      ImageDimensions{kTransmittanceLutWidth, kTransmittanceLutHeight},
+      _appContext, ImageDimensions{kTransmittanceLutWidth, kTransmittanceLutHeight},
       VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
       _defaultSampler->getVkSampler());
 
   _multiScatteringLutImage = std::make_unique<Image>(
-      ImageDimensions{kMultiScatteringLutWidth, kMultiScatteringLutHeight},
+      _appContext, ImageDimensions{kMultiScatteringLutWidth, kMultiScatteringLutHeight},
       VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
       _defaultSampler->getVkSampler());
 
   _skyViewLutImage = std::make_unique<Image>(
-      ImageDimensions{kSkyViewLutWidth, kSkyViewLutHeight}, VK_FORMAT_R16G16B16A16_SFLOAT,
-      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, _skyLutSampler->getVkSampler());
+      _appContext, ImageDimensions{kSkyViewLutWidth, kSkyViewLutHeight},
+      VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+      _skyLutSampler->getVkSampler());
 }
 
 void SvoTracer::_createShadowMapImage() {
   _shadowMapImage = std::make_unique<Image>(
+      _appContext,
       ImageDimensions{_configContainer->svoTracerInfo->shadowMapResolution,
                       _configContainer->svoTracerInfo->shadowMapResolution},
       VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -230,11 +232,13 @@ void SvoTracer::_createShadowMapImage() {
 // https://docs.vulkan.org/spec/latest/chapters/formats.html
 void SvoTracer::_createFullSizedImages() {
   // the sky hdr view is very sensitive to gradient, so a high precision format is a must
-  _backgroundImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
-                                             VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
+  _backgroundImage =
+      std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
+                              VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   // w = 16 -> 3, w = 17 -> 4
   _beamDepthImage = std::make_unique<Image>(
+      _appContext,
       ImageDimensions{
           static_cast<uint32_t>(
               std::ceil(static_cast<float>(_lowResWidth) /
@@ -246,92 +250,93 @@ void SvoTracer::_createFullSizedImages() {
               1)},
       VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _rawImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
+  _rawImage = std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                                       VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _godRayImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
+      std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                               VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _depthImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
+  _depthImage = std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                                         VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _octreeVisualizationImage = std::make_unique<Image>(
-      ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_B10G11R11_UFLOAT_PACK32,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _hitImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
+  _hitImage = std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                                       VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _temporalHistLengthImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
-                                                     VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
+  _temporalHistLengthImage =
+      std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
+                              VK_FORMAT_R8_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _motionImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
+  _motionImage = std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                                          VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT);
-  _normalImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _lastNormalImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _normalImage = std::make_unique<Image>(
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _lastNormalImage = std::make_unique<Image>(
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   _positionImage = std::make_unique<Image>(
-      ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32G32B32A32_SFLOAT,
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32G32B32A32_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
   _lastPositionImage = std::make_unique<Image>(
-      ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32G32B32A32_SFLOAT,
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32G32B32A32_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _voxHashImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _lastVoxHashImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _voxHashImage = std::make_unique<Image>(
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _lastVoxHashImage = std::make_unique<Image>(
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   // precision issues occurred when using VK_FORMAT_B10G11R11_UFLOAT_PACK32 to store hdr accumed
   // results, it can be observed when using a very low alpha blending value.
   // so either use VK_FORMAT_R32_UINT with custom RGBE packer / unpacker
-  _accumedImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-  _lastAccumedImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _accumedImage = std::make_unique<Image>(
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _lastAccumedImage = std::make_unique<Image>(
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
-  _godRayAccumedImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _godRayAccumedImage = std::make_unique<Image>(
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 
-  _lastGodRayAccumedImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
-                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+  _lastGodRayAccumedImage = std::make_unique<Image>(
+      _appContext, ImageDimensions{_lowResWidth, _lowResHeight}, VK_FORMAT_R32_UINT,
+      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 
   // same for taa images, use VK_FORMAT_R16G16B16A16_SFLOAT to enable accelerated sampling
-  _taaImage     = std::make_unique<Image>(ImageDimensions{_highResWidth, _highResHeight},
-                                          VK_FORMAT_R16G16B16A16_SFLOAT,
-                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+  _taaImage = std::make_unique<Image>(_appContext, ImageDimensions{_highResWidth, _highResHeight},
+                                      VK_FORMAT_R16G16B16A16_SFLOAT,
+                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
   _lastTaaImage = std::make_unique<Image>(
-      ImageDimensions{_highResWidth, _highResHeight}, VK_FORMAT_R16G16B16A16_SFLOAT,
+      _appContext, ImageDimensions{_highResWidth, _highResHeight}, VK_FORMAT_R16G16B16A16_SFLOAT,
       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
       _defaultSampler->getVkSampler());
 
-  _blittedImage = std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
+  _blittedImage = std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                                           VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
   // both of the ping and pong can be dumped to the render target image and the lastAccumedImage
   _aTrousPingImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
+      std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                               VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
   // also serves as the output image
   _aTrousPongImage =
-      std::make_unique<Image>(ImageDimensions{_lowResWidth, _lowResHeight},
+      std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                               VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
   _renderTargetImage = std::make_unique<Image>(
-      ImageDimensions{_highResWidth, _highResHeight}, VK_FORMAT_R8G8B8A8_UNORM,
+      _appContext, ImageDimensions{_highResWidth, _highResHeight}, VK_FORMAT_R8G8B8A8_UNORM,
       VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
           VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 }
@@ -375,42 +380,45 @@ void SvoTracer::_createImageForwardingPairs() {
 // so we need to create multiple copies of them, they are fairly small though
 void SvoTracer::_createBuffersAndBufferBundles() {
   // buffers
-  _sceneInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_SceneInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+  _sceneInfoBuffer =
+      std::make_unique<Buffer>(_appContext, sizeof(G_SceneInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                               MemoryStyle::kDedicated);
 
-  _aTrousIterationBuffer = std::make_unique<Buffer>(
-      sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-      MemoryStyle::kDedicated);
+  _aTrousIterationBuffer = std::make_unique<Buffer>(_appContext, sizeof(uint32_t),
+                                                    VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                                                        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                                    MemoryStyle::kDedicated);
 
   _aTrousIterationStagingBuffers.clear();
   _aTrousIterationStagingBuffers.reserve(_configContainer->svoTracerInfo->aTrousSizeMax);
   for (int i = 0; i < _configContainer->svoTracerInfo->aTrousSizeMax; i++) {
     _aTrousIterationStagingBuffers.emplace_back(std::make_unique<Buffer>(
-        sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryStyle::kDedicated));
+        _appContext, sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, MemoryStyle::kDedicated));
   }
 
-  _outputInfoBuffer = std::make_unique<Buffer>(
-      sizeof(G_OutputInfo), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
+  _outputInfoBuffer =
+      std::make_unique<Buffer>(_appContext, sizeof(G_OutputInfo),
+                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, MemoryStyle::kDedicated);
 
   // buffer bundles
   _renderInfoBufferBundle =
-      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_RenderInfo),
+      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_RenderInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
   _environmentInfoBufferBundle =
-      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_EnvironmentInfo),
+      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_EnvironmentInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
   _tweakableParametersBufferBundle =
-      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_TweakableParameters),
+      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_TweakableParameters),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
   _temporalFilterInfoBufferBundle =
-      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_TemporalFilterInfo),
+      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_TemporalFilterInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
   _spatialFilterInfoBufferBundle =
-      std::make_unique<BufferBundle>(_framesInFlight, sizeof(G_SpatialFilterInfo),
+      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_SpatialFilterInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 }
 

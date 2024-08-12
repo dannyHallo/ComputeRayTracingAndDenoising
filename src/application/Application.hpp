@@ -36,7 +36,8 @@ public:
   void run();
 
 private:
-  VulkanApplicationContext *_appContext;
+  std::unique_ptr<VulkanApplicationContext> _appContext;
+
   Logger *_logger;
 
   std::unique_ptr<ConfigContainer> _configContainer;

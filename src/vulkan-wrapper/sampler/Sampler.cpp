@@ -2,7 +2,8 @@
 
 #include "app-context/VulkanApplicationContext.hpp"
 
-Sampler::Sampler(Sampler::Settings const &settings) {
+Sampler::Sampler(VulkanApplicationContext *appContext, Sampler::Settings const &settings)
+    : _appContext(appContext) {
   VkSamplerCreateInfo samplerInfo{VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
   samplerInfo.magFilter               = VK_FILTER_LINEAR; // For bilinear interpolation
   samplerInfo.minFilter               = VK_FILTER_LINEAR; // For bilinear interpolation
@@ -21,11 +22,11 @@ Sampler::Sampler(Sampler::Settings const &settings) {
   samplerInfo.addressModeV = static_cast<VkSamplerAddressMode>(settings.addressModeV);
   samplerInfo.addressModeW = static_cast<VkSamplerAddressMode>(settings.addressModeW);
 
-  auto const &device = VulkanApplicationContext::getInstance()->getDevice();
+  auto const &device = _appContext->getDevice();
   vkCreateSampler(device, &samplerInfo, nullptr, &_vkSampler);
 }
 
 Sampler::~Sampler() {
-  auto const &device = VulkanApplicationContext::getInstance()->getDevice();
+  auto const &device = _appContext->getDevice();
   vkDestroySampler(device, _vkSampler, nullptr);
 }

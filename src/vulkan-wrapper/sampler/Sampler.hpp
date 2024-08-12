@@ -2,6 +2,7 @@
 
 #include "volk.h"
 
+class VulkanApplicationContext;
 class Sampler {
 public:
   // see the difference at: https://learnopengl.com/Getting-started/Textures
@@ -18,7 +19,7 @@ public:
     AddressMode addressModeW;
   };
 
-  Sampler(Settings const &settings);
+  Sampler(VulkanApplicationContext *appContext, Settings const &settings);
   ~Sampler();
 
   // disable move and copy
@@ -30,5 +31,7 @@ public:
   inline VkSampler &getVkSampler() { return _vkSampler; }
 
 private:
+  VulkanApplicationContext *_appContext;
+
   VkSampler _vkSampler = VK_NULL_HANDLE;
 };

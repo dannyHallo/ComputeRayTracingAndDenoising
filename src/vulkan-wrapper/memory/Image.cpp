@@ -43,25 +43,25 @@ unsigned char *_loadImageFromPath(const std::string &path, int &width, int &heig
 void _freeImageData(unsigned char *imageData) { stbi_image_free(imageData); }
 } // namespace
 
-Image::Image(ImageDimensions dimensions, VkFormat format, VkImageUsageFlags usage,
-             VkSampler sampler, VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
-             VkImageTiling tiling, VkImageAspectFlags aspectFlags)
-    : _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1),
-      _format(format), _dimensions(dimensions) {
+Image::Image(VulkanApplicationContext *appContext, ImageDimensions dimensions, VkFormat format,
+             VkImageUsageFlags usage, VkSampler sampler, VkImageLayout initialImageLayout,
+             VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags)
+    : _appContext(appContext), _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED),
+      _layerCount(1), _format(format), _dimensions(dimensions) {
   _createImage(numSamples, tiling, usage);
 
   if (initialImageLayout != VK_IMAGE_LAYOUT_UNDEFINED) {
     _transitionImageLayout(initialImageLayout);
   }
-  _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
-                                 format, aspectFlags, _dimensions.depth, _layerCount);
+  _vkImageView = createImageView(_appContext->getDevice(), _vkImage, format, aspectFlags,
+                                 _dimensions.depth, _layerCount);
 }
 
-Image::Image(const std::string &filename, VkImageUsageFlags usage, VkSampler sampler,
-             VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
-             VkImageTiling tiling, VkImageAspectFlags aspectFlags)
-    : _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED), _layerCount(1),
-      _format(VK_FORMAT_R8G8B8A8_UNORM) {
+Image::Image(VulkanApplicationContext *appContext, const std::string &filename,
+             VkImageUsageFlags usage, VkSampler sampler, VkImageLayout initialImageLayout,
+             VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags)
+    : _appContext(appContext), _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED),
+      _layerCount(1), _format(VK_FORMAT_R8G8B8A8_UNORM) {
   // load image from path
   int width       = 0;
   int height      = 0;
@@ -87,14 +87,14 @@ Image::Image(const std::string &filename, VkImageUsageFlags usage, VkSampler sam
     _transitionImageLayout(initialImageLayout);
   }
 
-  _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
-                                 _format, aspectFlags, _dimensions.depth, _layerCount);
+  _vkImageView = createImageView(_appContext->getDevice(), _vkImage, _format, aspectFlags,
+                                 _dimensions.depth, _layerCount);
 }
 
-Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage, VkSampler sampler,
-             VkImageLayout initialImageLayout, VkSampleCountFlagBits numSamples,
-             VkImageTiling tiling, VkImageAspectFlags aspectFlags)
-    : _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED),
+Image::Image(VulkanApplicationContext *appContext, const std::vector<std::string> &filenames,
+             VkImageUsageFlags usage, VkSampler sampler, VkImageLayout initialImageLayout,
+             VkSampleCountFlagBits numSamples, VkImageTiling tiling, VkImageAspectFlags aspectFlags)
+    : _appContext(appContext), _vkSampler(sampler), _currentImageLayout(VK_IMAGE_LAYOUT_UNDEFINED),
       _layerCount(static_cast<uint32_t>(filenames.size())), _format(VK_FORMAT_R8G8B8A8_UNORM) {
   std::vector<unsigned char *> imageDatas{};
 
@@ -126,15 +126,15 @@ Image::Image(const std::vector<std::string> &filenames, VkImageUsageFlags usage,
     _transitionImageLayout(initialImageLayout);
   }
 
-  _vkImageView = createImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImage,
-                                 _format, aspectFlags, _dimensions.depth, _layerCount);
+  _vkImageView = createImageView(_appContext->getDevice(), _vkImage, _format, aspectFlags,
+                                 _dimensions.depth, _layerCount);
 }
 
 Image::~Image() {
   if (_vkImage != VK_NULL_HANDLE) {
-    vkDestroyImageView(VulkanApplicationContext::getInstance()->getDevice(), _vkImageView, nullptr);
-    vkDestroyImage(VulkanApplicationContext::getInstance()->getDevice(), _vkImage, nullptr);
-    vmaFreeMemory(VulkanApplicationContext::getInstance()->getAllocator(), _allocation);
+    vkDestroyImageView(_appContext->getDevice(), _vkImageView, nullptr);
+    vkDestroyImage(_appContext->getDevice(), _vkImage, nullptr);
+    vmaFreeMemory(_appContext->getAllocator(), _allocation);
   }
 }
 
@@ -145,10 +145,10 @@ void Image::clearImage(VkCommandBuffer commandBuffer) {
 }
 
 void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
-  auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
-  auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
-  auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
-  auto const &allocator   = VulkanApplicationContext::getInstance()->getAllocator();
+  auto const &device      = _appContext->getDevice();
+  auto const &queue       = _appContext->getGraphicsQueue();
+  auto const &commandPool = _appContext->getCommandPool();
+  auto const &allocator   = _appContext->getAllocator();
 
   const uint32_t imagePixelCount = _dimensions.width * _dimensions.height * _dimensions.depth;
   // the channel count is ignored here, because the VkFormat is enough
@@ -198,8 +198,7 @@ void Image::_copyDataToImage(unsigned char *imageData, uint32_t layerToCopyTo) {
   endSingleTimeCommands(device, commandPool, queue, commandBuffer);
 
   // Clean up the staging buffer
-  vmaDestroyBuffer(VulkanApplicationContext::getInstance()->getAllocator(), stagingBuffer,
-                   stagingBufferAllocation);
+  vmaDestroyBuffer(_appContext->getAllocator(), stagingBuffer, stagingBufferAllocation);
 }
 
 VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling tiling,
@@ -224,8 +223,8 @@ VkResult Image::_createImage(VkSampleCountFlagBits numSamples, VkImageTiling til
       // sizes
       VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
-  return vmaCreateImage(VulkanApplicationContext::getInstance()->getAllocator(), &imageInfo,
-                        &vmaallocInfo, &_vkImage, &_allocation, nullptr);
+  return vmaCreateImage(_appContext->getAllocator(), &imageInfo, &vmaallocInfo, &_vkImage,
+                        &_allocation, nullptr);
 }
 
 VkImageView Image::createImageView(VkDevice device, const VkImage &image, VkFormat format,
@@ -269,9 +268,9 @@ VkDescriptorImageInfo Image::getDescriptorInfo(VkImageLayout imageLayout) const 
 }
 
 void Image::_transitionImageLayout(VkImageLayout newLayout) {
-  auto const &device      = VulkanApplicationContext::getInstance()->getDevice();
-  auto const &queue       = VulkanApplicationContext::getInstance()->getGraphicsQueue();
-  auto const &commandPool = VulkanApplicationContext::getInstance()->getCommandPool();
+  auto const &device      = _appContext->getDevice();
+  auto const &queue       = _appContext->getGraphicsQueue();
+  auto const &commandPool = _appContext->getCommandPool();
 
   VkCommandBuffer commandBuffer = beginSingleTimeCommands(device, commandPool);
 
