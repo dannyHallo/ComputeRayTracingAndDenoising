@@ -109,12 +109,12 @@ float _raymarchWater(vec3 o, vec3 d) {
 
   float t  = tHighPlane;
   vec3 pos = start;
-  // vec3 dir = normalize(end - start);
 
   for (int i = 0; i < 64; i++) {
     float h = mix(kWaterBottomHeight, kWaterTopHeight, _getWaveHeight01(pos.xz, ITER_RAYMARCH));
 
-    // proximity hit check
+    // proximity hit check, uncomment this for better perf?
+    // if (h + 1e-2 * dist_pos > pos.y) {
     if (pos.y < h + 1e-2) {
       return t;
     }
@@ -127,8 +127,8 @@ float _raymarchWater(vec3 o, vec3 d) {
   return tHighPlane;
 }
 
-// calculate normal at point by calculating the height at the pos and 2 additional points very close
-// to pos
+// calculate normal at point by calculating the height at the pos and 2 additional points very
+// close to pos
 vec3 normal(vec2 pos, float e) {
   vec2 ex     = vec2(e, 0);
   float depth = kWaterTopHeight - kWaterBottomHeight;
