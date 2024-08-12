@@ -7,5 +7,7 @@ build/
 
 shaders/generated/
 
+imgui.ini
+
 src/utils/config/RootDir.h
 resources/configs/CustomConfig.toml
