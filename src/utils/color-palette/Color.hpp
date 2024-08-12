@@ -4,6 +4,7 @@
 
 class Color {
 public:
+  Color() = default;
   Color(int r, int g, int b) : _r(r), _g(g), _b(b) {}
 
   [[nodiscard]] ImVec4 getImVec4() const { return {getR(), getG(), getB(), 1.F}; }

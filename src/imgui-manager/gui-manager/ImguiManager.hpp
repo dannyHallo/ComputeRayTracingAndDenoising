@@ -13,7 +13,6 @@ class VulkanApplicationContext;
 class Window;
 class Logger;
 class FpsSink;
-class ColorPalette;
 
 class ImguiManager {
 public:
@@ -49,7 +48,6 @@ private:
   bool _showFpsGraph = false;
 
   std::unique_ptr<FpsGui> _fpsGui;
-  std::unique_ptr<ColorPalette> _colorPalette;
 
   VkDescriptorPool _guiDescriptorPool = VK_NULL_HANDLE;
   VkRenderPass _guiPass               = VK_NULL_HANDLE;
@@ -57,9 +55,6 @@ private:
   std::vector<VkCommandBuffer> _guiCommandBuffers;
 
   void _cleanupFrameBuffers();
-
-  void _buildColorPalette();
-  void _setImguiPalette();
 
   void _createGuiDescripterPool();
   void _createGuiCommandBuffers();

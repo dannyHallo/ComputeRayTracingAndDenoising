@@ -7,7 +7,6 @@
 #include "../imgui-backends/imgui_impl_glfw.h"
 #include "../imgui-backends/imgui_impl_vulkan.h"
 #include "app-context/VulkanApplicationContext.hpp"
-#include "utils/color-palette/ColorPalette.hpp"
 #include "utils/config/RootDir.h"
 #include "utils/fps-sink/FpsSink.hpp"
 #include "utils/logger/Logger.hpp"
@@ -22,8 +21,7 @@
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
                            ConfigContainer *configContainer)
     : _appContext(appContext), _window(window), _logger(logger), _configContainer(configContainer),
-      _framesInFlight(configContainer->applicationInfo->framesInFlight),
-      _colorPalette(std::make_unique<ColorPalette>()) {}
+      _framesInFlight(configContainer->applicationInfo->framesInFlight) {}
 
 ImguiManager::~ImguiManager() {
   for (auto &guiCommandBuffer : _guiCommandBuffers) {
@@ -44,14 +42,6 @@ ImguiManager::~ImguiManager() {
   ImGui::DestroyContext();
 }
 
-void ImguiManager::_buildColorPalette() {
-  // https://colorhunt.co/palette/1d2b537e2553ff004dfaef5d
-  _colorPalette->addColor("DarkBlue", Color(29, 43, 83));
-  _colorPalette->addColor("DarkPurple", Color(126, 37, 83));
-  _colorPalette->addColor("LightRed", Color(255, 0, 77));
-  _colorPalette->addColor("LightYellow", Color(250, 239, 39)); // NOLINT
-}
-
 void ImguiManager::_cleanupFrameBuffers() {
   for (auto &guiFrameBuffer : _guiFrameBuffers) {
     vkDestroyFramebuffer(_appContext->getDevice(), guiFrameBuffer, nullptr);
@@ -64,9 +54,7 @@ void ImguiManager::onSwapchainResize() {
 }
 
 void ImguiManager::init() {
-  _buildColorPalette();
-
-  _fpsGui = std::make_unique<FpsGui>(_colorPalette.get());
+  _fpsGui = std::make_unique<FpsGui>(_configContainer);
 
   _createGuiCommandBuffers();
   _createGuiRenderPass();
@@ -84,7 +72,12 @@ void ImguiManager::init() {
 
   io.ConfigFlags |= ImGuiWindowFlags_NoNavInputs;
 
-  _setImguiPalette();
+  ImGuiStyle &style           = ImGui::GetStyle();
+  style.Colors[ImGuiCol_Text] = ImVec4(1.0F, 1.0F, 1.0F, 1.0F);
+  style.Colors[ImGuiCol_MenuBarBg] =
+      _configContainer->imguiManagerInfo->menuBarBackgroundColor.getImVec4();
+  style.Colors[ImGuiCol_PopupBg] =
+      _configContainer->imguiManagerInfo->popupBackgroundColor.getImVec4();
 
   // Setup Platform/Renderer bindings
   ImGui_ImplGlfw_InitForVulkan(_window->getGlWindow(), true);
@@ -340,16 +333,6 @@ void ImguiManager::_syncMousePosition() {
   // so we set it manually here
   io.MousePos = ImVec2(static_cast<float>(_window->getCursorXPos()),
                        static_cast<float>(_window->getCursorYPos()));
-}
-
-void ImguiManager::_setImguiPalette() {
-  auto const &darkBlue   = _colorPalette->getColorByName("DarkBlue");
-  auto const &darkPurple = _colorPalette->getColorByName("DarkPurple");
-
-  ImGuiStyle &style                = ImGui::GetStyle();
-  style.Colors[ImGuiCol_Text]      = ImVec4(1.0F, 1.0F, 1.0F, 1.0F);
-  style.Colors[ImGuiCol_MenuBarBg] = darkPurple.getImVec4();
-  style.Colors[ImGuiCol_PopupBg]   = darkBlue.getImVec4();
 }
 
 void ImguiManager::draw(FpsSink *fpsSink) {

@@ -3,16 +3,18 @@
 #include <deque>
 #include <vector>
 
+struct ConfigContainer;
+
 class VulkanApplicationContext;
-class ColorPalette;
 
 class FpsGui {
 public:
-  FpsGui(ColorPalette *colorPalette);
+  FpsGui(ConfigContainer *configContainer);
   void update(VulkanApplicationContext *appContext, double filteredFps);
 
 private:
-  ColorPalette *_colorPalette;
+  ConfigContainer *_configContainer;
+
   std::deque<float> _fpsHistory;
 
   std::vector<float> _x{};

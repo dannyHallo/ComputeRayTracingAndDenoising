@@ -637,10 +637,10 @@ ContextCreator::SwapchainSupportDetails _querySwapchainSupport(VkSurfaceKHR surf
 VkSurfaceFormatKHR
 _chooseSwapSurfaceFormat(Logger *logger, const std::vector<VkSurfaceFormatKHR> &availableFormats) {
   for (const auto &availableFormat : availableFormats) {
+    // see issue: https://github.com/ocornut/imgui/issues/6611
     // format: VK_FORMAT_B8G8R8A8_SRGB
-    // this is actually irretional due to imgui impl
-    if (availableFormat.format == VK_FORMAT_R16G16B16A16_SFLOAT &&
-        availableFormat.colorSpace == VK_COLOR_SPACE_HDR10_HLG_EXT) {
+    if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+        availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
       return availableFormat;
     }
   }
@@ -683,9 +683,9 @@ void ContextCreator::createSwapchain(Logger *logger, bool isFramerateLimited,
                                      VkSwapchainKHR &swapchain,
                                      std::vector<VkImage> &swapchainImages,
                                      std::vector<VkImageView> &swapchainImageViews,
-                                     VkSurfaceFormatKHR &surfaceFormat,
-                                     VkExtent2D &swapchainExtent, const VkSurfaceKHR &surface,
-                                     const VkDevice &device, const VkPhysicalDevice &physicalDevice,
+                                     VkSurfaceFormatKHR &surfaceFormat, VkExtent2D &swapchainExtent,
+                                     const VkSurfaceKHR &surface, const VkDevice &device,
+                                     const VkPhysicalDevice &physicalDevice,
                                      const QueueFamilyIndices &queueFamilyIndices) {
   SwapchainSupportDetails swapchainSupport = _querySwapchainSupport(surface, physicalDevice);
 
@@ -765,7 +765,7 @@ void ContextCreator::createSwapchain(Logger *logger, bool isFramerateLimited,
   vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages.data());
 
   for (size_t i = 0; i < imageCount; i++) {
-    swapchainImageViews[i] = _createImageView(
-        device, swapchainImages[i], surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1, 1);
+    swapchainImageViews[i] = _createImageView(device, swapchainImages[i], surfaceFormat.format,
+                                              VK_IMAGE_ASPECT_COLOR_BIT, 1, 1);
   }
 }

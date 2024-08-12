@@ -1,14 +1,16 @@
 #include "FpsGui.hpp"
 
 #include "app-context/VulkanApplicationContext.hpp"
-#include "utils/color-palette/ColorPalette.hpp"
+
+#include "config-container/ConfigContainer.hpp"
+#include "config-container/sub-config/ImguiManagerInfo.hpp"
 
 #include "imgui.h"
 #include "implot.h"
 
 int constexpr kHistSize = 800;
 
-FpsGui::FpsGui(ColorPalette *colorPalette) : _colorPalette(colorPalette) {
+FpsGui::FpsGui(ConfigContainer *configContainer) : _configContainer(configContainer) {
   // create x array
   _x.resize(kHistSize);
   for (int i = 0; i < kHistSize; ++i) {
@@ -58,7 +60,7 @@ void FpsGui::update(VulkanApplicationContext *appContext, double filteredFps) {
                     ImPlotAxisFlags_NoDecorations | ImPlotAxisFlags_NoTickLabels);
   ImPlot::SetupAxis(ImAxis_Y1, nullptr, ImPlotAxisFlags_AutoFit);
   ImPlot::PushStyleColor(ImPlotCol_Fill,
-                         _colorPalette->getColorByName("DarkPurple").getImVec4()); // fill color
+                         _configContainer->imguiManagerInfo->fpsGuiColor.getImVec4()); // fill color
   ImPlot::PlotShaded("", _x.data(), _y.data(), kHistSize, 0, ImPlotShadedFlags_None);
   ImPlot::EndPlot();
 

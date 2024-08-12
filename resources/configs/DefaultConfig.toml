@@ -25,6 +25,9 @@ strength = 0.001
 
 [ImguiManager]
 fontSize = 20
+fpsGuiColor = [ 126, 37, 83 ]
+menuBarBackgroundColor = [ 126, 37, 83 ]
+popupBackgroundColor = [ 29, 43, 83]
 
 [Terrain]
 # the voxel dimension within a chunk
