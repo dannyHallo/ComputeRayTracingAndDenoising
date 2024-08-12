@@ -8,3 +8,4 @@ build/
 shaders/generated/
 
 src/utils/config/RootDir.h
+resources/configs/CustomConfig.toml
