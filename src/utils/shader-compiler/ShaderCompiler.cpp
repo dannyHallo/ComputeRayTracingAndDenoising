@@ -38,11 +38,9 @@ ShaderCompiler::ShaderCompiler(Logger *logger) : _logger(logger) {
   _defaultOptions.SetOptimizationLevel(shaderc_optimization_level_performance);
 }
 
-// TODO: but why this function needs to provide the file name?
 std::optional<std::vector<uint32_t>>
 ShaderCompiler::compileComputeShader(const std::string &fullPathToFile,
                                      std::string const &sourceCode) {
-  // auto const fullPathToShaderCode = kRootDir + "src/shaders/" ...
   auto const fullDirAndFileName = _getFullDirAndFileName(fullPathToFile, _logger);
 
   _fileIncluder->setIncludeDir(fullDirAndFileName.fullPathToDir);
@@ -50,6 +48,9 @@ ShaderCompiler::compileComputeShader(const std::string &fullPathToFile,
   std::optional<std::vector<uint32_t>> res = std::nullopt;
   shaderc_shader_kind const kind           = shaderc_glsl_compute_shader;
 
+  // from shaderc's doc:
+  // the input_file_name is used as a tag to identify the source string in cases like emitting error
+  // messages, it doesn't have to be a file name
   shaderc::SpvCompilationResult compilationResult = this->CompileGlslToSpv(
       sourceCode, kind, fullDirAndFileName.fileName.c_str(), _defaultOptions);
 
