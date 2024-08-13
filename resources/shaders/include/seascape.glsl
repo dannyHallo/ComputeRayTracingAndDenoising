@@ -27,7 +27,7 @@ const int ITER_RAYMARCH = 3;
 const int ITER_NORMAL   = 5;
 const float SEA_CHOPPY  = 4.0;
 const float SEA_FREQ    = 0.6;
-#define SEA_TIME (1.0 + renderInfoUbo.data.time)
+#define SEA_TIME (1.0 + renderInfoUbo.data.time * 0.5)
 const mat2 octave_m = mat2(1.6, 1.2, -1.2, 1.6);
 
 // -1.0 - 1.0
@@ -108,19 +108,17 @@ float _raymarchWater(vec3 o, vec3 d) {
 
 // calculate normal at point by calculating the height at the pos and 2 additional points very
 // close to pos
-vec3 normal(vec2 pos, float e) {
-  vec2 ex     = vec2(e, 0);
+vec3 normalCalc(vec2 pos, float eps) {
+  vec2 ex     = vec2(eps, 0);
   float depth = kWaterTopHeight - kWaterBottomHeight;
   float h     = _getWaveHeight01(pos, ITER_NORMAL) * depth;
   vec3 a      = vec3(pos.x, h, pos.y);
   return normalize(
-      cross(a - vec3(pos.x - e, _getWaveHeight01(pos - ex.xy, ITER_NORMAL) * depth, pos.y),
-            a - vec3(pos.x, _getWaveHeight01(pos + ex.yx, ITER_NORMAL) * depth, pos.y + e)));
+      cross(a - vec3(pos.x - eps, _getWaveHeight01(pos - ex.xy, ITER_NORMAL) * depth, pos.y),
+            a - vec3(pos.x, _getWaveHeight01(pos + ex.yx, ITER_NORMAL) * depth, pos.y + eps)));
 }
 
-bool traceSeascape(out vec3 oColor, out vec3 oPosition, out float oT, vec3 o, vec3 d,
-                   float worldT) {
-  oColor    = vec3(0.0);
+bool traceSeascape(out vec3 oPosition, out vec3 oNormal, out float oT, vec3 o, vec3 d) {
   oT        = 1e10;
   oPosition = o + d * oT;
 
@@ -132,28 +130,15 @@ bool traceSeascape(out vec3 oColor, out vec3 oPosition, out float oT, vec3 o, ve
   float dist       = _raymarchWater(o, d);
   vec3 waterHitPos = o + d * dist;
 
-  // calculate normal at the hit position
-  vec3 N = normal(waterHitPos.xz, 0.01);
+  vec3 N = normalCalc(waterHitPos.xz, 0.01);
 
-  // smooth the normal with distance to avoid disturbing high frequency _noise
-  N = mix(N, vec3(0.0, 1.0, 0.0), 0.8 * min(1.0, sqrt(dist * 0.01) * 1.1));
+  // float fresnel = (0.04 + (1.0 - 0.04) * (pow(1.0 - max(0.0, dot(-N, d)), 5.0)));
 
-  // calculate fresnel coefficient
-  float fresnel = (0.04 + (1.0 - 0.04) * (pow(1.0 - max(0.0, dot(-N, d)), 5.0)));
-
-  // reflect the ray and make sure it bounces up
-  vec3 R = normalize(reflect(d, N));
-  R.y    = abs(R.y);
-
-  // calculate the reflection and approximate subsurface scattering
-  vec3 reflection = skyColor(R, true);
-  float depth     = kWaterTopHeight - kWaterBottomHeight;
-  vec3 scattering = tweakableParametersUbo.data.debugC1 *
-                    mix(0.6, 1.0, (waterHitPos.y - kWaterBottomHeight) / depth);
-
-  oColor    = fresnel * reflection + scattering;
   oT        = dist;
   oPosition = waterHitPos;
+
+  // smooth the normal with distance to avoid disturbing high frequency _noise
+  oNormal = mix(N, vec3(0.0, 1.0, 0.0), 0.8 * min(1.0, sqrt(dist * 0.01) * 1.1));
 
   return true;
 }
