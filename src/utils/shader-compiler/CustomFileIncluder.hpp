@@ -2,13 +2,15 @@
 
 #include "shaderc/shaderc.hpp"
 
+#include <functional>
 #include <string>
 
 class Logger;
 
 class CustomFileIncluder : public shaderc::CompileOptions::IncluderInterface {
 public:
-  CustomFileIncluder(Logger *logger);
+  CustomFileIncluder(Logger *logger,
+                     std::function<void(std::string const &)> includeCallback = nullptr);
 
   shaderc_include_result *GetInclude(const char *requested_source, shaderc_include_type type,
                                      const char *requesting_source, size_t include_depth) override;
@@ -21,5 +23,7 @@ public:
 
 private:
   Logger *_logger;
-  std::string _includeDir;
+  std::function<void(std::string const &)> _includeCallback;
+
+  std::string _includeDir{};
 };

@@ -36,25 +36,22 @@ public:
   void run();
 
 private:
-  std::unique_ptr<VulkanApplicationContext> _appContext;
-
   Logger *_logger;
 
-  std::unique_ptr<ConfigContainer> _configContainer;
-
-  std::unique_ptr<FpsSink> _fpsSink;
-  std::unique_ptr<ImguiManager> _imguiManager;
-  std::unique_ptr<Window> _window;
-  std::unique_ptr<ShaderCompiler> _shaderCompiler;
-  std::unique_ptr<ShaderChangeListener> _shaderFileWatchListener;
-
-  std::unique_ptr<SvoBuilder> _svoBuilder;
-  std::unique_ptr<SvoTracer> _svoTracer;
+  std::unique_ptr<VulkanApplicationContext> _appContext          = nullptr;
+  std::unique_ptr<ConfigContainer> _configContainer              = nullptr;
+  std::unique_ptr<ShaderChangeListener> _shaderFileWatchListener = nullptr;
+  std::unique_ptr<ShaderCompiler> _shaderCompiler                = nullptr;
+  std::unique_ptr<Window> _window                                = nullptr;
+  std::unique_ptr<SvoBuilder> _svoBuilder                        = nullptr;
+  std::unique_ptr<SvoTracer> _svoTracer                          = nullptr;
+  std::unique_ptr<ImguiManager> _imguiManager                    = nullptr;
+  std::unique_ptr<FpsSink> _fpsSink                              = nullptr;
 
   // semaphores and fences for synchronization
-  std::vector<VkSemaphore> _imageAvailableSemaphores;
-  std::vector<VkSemaphore> _renderFinishedSemaphores;
-  std::vector<VkFence> _framesInFlightFences;
+  std::vector<VkSemaphore> _imageAvailableSemaphores{};
+  std::vector<VkSemaphore> _renderFinishedSemaphores{};
+  std::vector<VkFence> _framesInFlightFences{};
 
   // BlockState _blockState = BlockState::kUnblocked;
   uint32_t _blockStateBits = 0;

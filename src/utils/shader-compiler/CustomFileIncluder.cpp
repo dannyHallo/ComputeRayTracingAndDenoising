@@ -3,7 +3,9 @@
 #include "utils/io/ShaderFileReader.hpp"
 #include "utils/logger/Logger.hpp"
 
-CustomFileIncluder::CustomFileIncluder(Logger *logger) : _logger(logger) {}
+CustomFileIncluder::CustomFileIncluder(Logger *logger,
+                                       std::function<void(std::string const &)> includeCallback)
+    : _logger(logger), _includeCallback(includeCallback) {}
 
 shaderc_include_result *MakeErrorIncludeResult(const char *message) {
   return new shaderc_include_result{"", 0, message, strlen(message)};
@@ -19,7 +21,12 @@ shaderc_include_result *CustomFileIncluder::GetInclude(const char *requested_sou
                                                        const char * /*requesting_source*/,
                                                        size_t /*include_depth*/) {
   std::string fullPath = _includeDir + requested_source;
-  std::string content  = ShaderFileReader::readShaderSourceCode(fullPath, _logger);
+
+  if (_includeCallback != nullptr) {
+    _includeCallback(fullPath);
+  }
+
+  std::string content = ShaderFileReader::readShaderSourceCode(fullPath, _logger);
   // store the pointer created in a pointer for destroying later on, eww!
   auto *info = new FileInfo{fullPath, content};
   return new shaderc_include_result{fullPath.c_str(), fullPath.size(), info->content.c_str(),

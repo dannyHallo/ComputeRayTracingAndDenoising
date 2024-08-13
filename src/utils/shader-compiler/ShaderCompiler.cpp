@@ -25,8 +25,8 @@ PathInfo _getFullDirAndFileName(const std::string &fullPath, Logger *logger) {
 }
 }; // namespace
 
-ShaderCompiler::ShaderCompiler(Logger *logger) : _logger(logger) {
-  std::unique_ptr<CustomFileIncluder> fileIncluder = std::make_unique<CustomFileIncluder>(logger);
+ShaderCompiler::ShaderCompiler(Logger *logger, std::function<void(std::string const &)> includeCallback) : _logger(logger) {
+  std::unique_ptr<CustomFileIncluder> fileIncluder = std::make_unique<CustomFileIncluder>(logger, includeCallback);
 
   // _defaultOptions takes the ownership of fileIncluder, but doesn't provide a way to retrieve it,
   // so we need to store it as a raw pointer

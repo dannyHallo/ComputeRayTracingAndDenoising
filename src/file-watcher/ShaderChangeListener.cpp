@@ -40,8 +40,8 @@ ShaderChangeListener::ShaderChangeListener(Logger *logger)
 
 ShaderChangeListener::~ShaderChangeListener() { GlobalEventDispatcher::get().disconnect(this); }
 
-void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std::string &dir,
-                                            const std::string &filename, efsw::Action action,
+void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, std::string const &dir,
+                                            std::string const &filename, efsw::Action action,
                                             std::string /*oldFilename*/) {
   if (action != efsw::Actions::Modified) {
     return;
@@ -105,11 +105,8 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
   // then the render loop can be continued
 }
 
-void ShaderChangeListener::addWatchingPipeline(Pipeline *pipeline) {
-  auto const fullPathToShaderFile = pipeline->getFullPathToShaderSourceCode();
-
-  _logger->info("file added to change watch list: {}", fullPathToShaderFile);
-
+void ShaderChangeListener::_addWatchingFile(Pipeline *pipeline,
+                                            std::string const &&fullPathToShaderFile) {
   auto it = _shaderFileNameToPipelines.find(fullPathToShaderFile);
   if (it == _shaderFileNameToPipelines.end()) {
     _shaderFileNameToPipelines[fullPathToShaderFile] = std::unordered_set<Pipeline *>{};
@@ -122,6 +119,17 @@ void ShaderChangeListener::addWatchingPipeline(Pipeline *pipeline) {
 
   _shaderFileNameToPipelines[fullPathToShaderFile].insert(pipeline);
   _pipelineToShaderFileNames[pipeline].insert(fullPathToShaderFile);
+
+  _logger->info("file added to change watch list: {}", fullPathToShaderFile);
+}
+
+void ShaderChangeListener::addWatchingPipeline(Pipeline *pipeline) {
+  _addWatchingFile(pipeline, pipeline->getFullPathToShaderSourceCode());
+}
+
+void ShaderChangeListener::appendShaderFileToLastWatchedPipeline(
+    std::string const &&fullPathToShaderFile) {
+  _addWatchingFile(_lastPipeline, std::move(fullPathToShaderFile));
 }
 
 void ShaderChangeListener::removeWatchingPipeline(Pipeline *pipeline) {
