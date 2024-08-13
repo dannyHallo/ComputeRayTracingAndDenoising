@@ -128,7 +128,7 @@ void ShaderChangeListener::addWatchingPipeline(Pipeline *pipeline) {
 }
 
 void ShaderChangeListener::appendShaderFileToLastWatchedPipeline(
-    std::string const &&fullPathToShaderFile) {
+    std::string const &fullPathToShaderFile) {
   _addWatchingFile(_lastPipeline, std::move(fullPathToShaderFile));
 }
 

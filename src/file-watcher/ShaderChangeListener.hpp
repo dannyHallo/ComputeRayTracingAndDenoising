@@ -29,7 +29,7 @@ public:
   void addWatchingPipeline(Pipeline *pipeline);
 
   // used to include headers
-  void appendShaderFileToLastWatchedPipeline(std::string const &&fullPathToShaderFile);
+  void appendShaderFileToLastWatchedPipeline(std::string const &fullPathToShaderFile);
 
   void removeWatchingPipeline(Pipeline *pipeline);
 
