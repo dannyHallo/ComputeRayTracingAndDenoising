@@ -8,7 +8,7 @@
 #include <unordered_set>
 
 class Logger;
-class Scheduler;
+class PipelineScheduler;
 class Pipeline;
 
 class ShaderChangeListener : public efsw::FileWatchListener {

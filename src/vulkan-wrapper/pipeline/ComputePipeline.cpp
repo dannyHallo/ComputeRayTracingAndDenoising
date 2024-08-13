@@ -8,7 +8,8 @@
 #include "utils/shader-compiler/ShaderCompiler.hpp"
 
 ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *logger,
-                                 Scheduler *scheduler, std::string fullPathToShaderSourceCode,
+                                 PipelineScheduler *scheduler,
+                                 std::string fullPathToShaderSourceCode,
                                  WorkGroupSize workGroupSize,
                                  DescriptorSetBundle *descriptorSetBundle,
                                  ShaderCompiler *shaderCompiler,

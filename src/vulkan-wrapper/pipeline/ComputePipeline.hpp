@@ -12,9 +12,10 @@ class ShaderCompiler;
 
 class ComputePipeline : public Pipeline {
 public:
-  ComputePipeline(VulkanApplicationContext *appContext, Logger *logger, Scheduler *scheduler,
-                  std::string fullPathToShaderSourceCode, WorkGroupSize workGroupSize,
-                  DescriptorSetBundle *descriptorSetBundle, ShaderCompiler *shaderCompiler,
+  ComputePipeline(VulkanApplicationContext *appContext, Logger *logger,
+                  PipelineScheduler *scheduler, std::string fullPathToShaderSourceCode,
+                  WorkGroupSize workGroupSize, DescriptorSetBundle *descriptorSetBundle,
+                  ShaderCompiler *shaderCompiler,
                   ShaderChangeListener *shaderChangeListener = nullptr);
 
   ~ComputePipeline() override;

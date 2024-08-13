@@ -11,12 +11,12 @@ class Image;
 class BufferBundle;
 class VulkanApplicationContext;
 class DescriptorSetBundle;
-class Scheduler;
+class PipelineScheduler;
 class ShaderChangeListener;
 
 class Pipeline {
 public:
-  Pipeline(VulkanApplicationContext *appContext, Logger *logger, Scheduler *scheduler,
+  Pipeline(VulkanApplicationContext *appContext, Logger *logger, PipelineScheduler *scheduler,
            std::string fullPathToShaderSourceCode, DescriptorSetBundle *descriptorSetBundle,
            VkShaderStageFlags shaderStageFlags,
            ShaderChangeListener *shaderChangeListener = nullptr);
@@ -40,12 +40,12 @@ public:
     return _fullPathToShaderSourceCode;
   }
 
-  [[nodiscard]] Scheduler *getScheduler() const { return _scheduler; }
+  [[nodiscard]] PipelineScheduler *getScheduler() const { return _scheduler; }
 
 protected:
   VulkanApplicationContext *_appContext;
   Logger *_logger;
-  Scheduler *_scheduler;
+  PipelineScheduler *_scheduler;
   ShaderChangeListener *_shaderChangeListener;
   VkShaderModule _cachedShaderModule = VK_NULL_HANDLE;
 

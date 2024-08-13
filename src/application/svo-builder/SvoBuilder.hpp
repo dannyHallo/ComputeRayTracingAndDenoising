@@ -20,7 +20,7 @@ class Image;
 class ShaderCompiler;
 class ShaderChangeListener;
 
-class SvoBuilder : public Scheduler {
+class SvoBuilder : public PipelineScheduler {
 private:
   struct ChunkIndex {
     uint32_t x;
@@ -54,7 +54,7 @@ public:
   SvoBuilder &operator=(SvoBuilder &&)      = delete;
 
   void init();
-  void update() override;
+  void onPipelineRebuilt() override;
 
   void buildScene();
 

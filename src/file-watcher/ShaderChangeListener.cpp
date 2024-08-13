@@ -76,7 +76,7 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
 
   std::string rebuildFailedNames;
 
-  std::unordered_set<Scheduler *> schedulersNeededToBeUpdated{};
+  std::unordered_set<PipelineScheduler *> schedulersNeededToBeUpdated{};
 
   // rebuild pipelines
   for (auto const &pipeline : _pipelinesToRebuild) {
@@ -94,9 +94,9 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
     _logger->error("shaders building failed and are not cached: {}", rebuildFailedNames);
   }
 
-  // update schedulers
+  // update affected schedulers
   for (auto const &scheduler : schedulersNeededToBeUpdated) {
-    scheduler->update();
+    scheduler->onPipelineRebuilt();
   }
 
   // clear the cache
@@ -106,13 +106,13 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
 }
 
 void ShaderChangeListener::addWatchingPipeline(Pipeline *pipeline) {
-  auto const fullPathToFile = pipeline->getFullPathToShaderSourceCode();
+  auto const fullPathToShaderFile = pipeline->getFullPathToShaderSourceCode();
 
-  _logger->info("file added to change watch list: {}", fullPathToFile);
+  _logger->info("file added to change watch list: {}", fullPathToShaderFile);
 
-  auto it = _shaderFileNameToPipelines.find(fullPathToFile);
+  auto it = _shaderFileNameToPipelines.find(fullPathToShaderFile);
   if (it == _shaderFileNameToPipelines.end()) {
-    _shaderFileNameToPipelines[fullPathToFile] = std::unordered_set<Pipeline *>{};
+    _shaderFileNameToPipelines[fullPathToShaderFile] = std::unordered_set<Pipeline *>{};
   }
 
   auto it2 = _pipelineToShaderFileNames.find(pipeline);
@@ -120,8 +120,8 @@ void ShaderChangeListener::addWatchingPipeline(Pipeline *pipeline) {
     _pipelineToShaderFileNames[pipeline] = std::unordered_set<std::string>{};
   }
 
-  _shaderFileNameToPipelines[fullPathToFile].insert(pipeline);
-  _pipelineToShaderFileNames[pipeline].insert(fullPathToFile);
+  _shaderFileNameToPipelines[fullPathToShaderFile].insert(pipeline);
+  _pipelineToShaderFileNames[pipeline].insert(fullPathToShaderFile);
 }
 
 void ShaderChangeListener::removeWatchingPipeline(Pipeline *pipeline) {

@@ -151,7 +151,7 @@ void SvoTracer::_createTaaSamplingOffsets() {
   }
 }
 
-void SvoTracer::update() { _recordRenderingCommandBuffers(); }
+void SvoTracer::onPipelineRebuilt() { _recordRenderingCommandBuffers(); }
 
 void SvoTracer::_createSamplers() {
   {

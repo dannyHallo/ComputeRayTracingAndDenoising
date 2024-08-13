@@ -13,9 +13,10 @@ static const std::map<VkShaderStageFlags, VkPipelineBindPoint> kShaderStageFlags
     {VK_SHADER_STAGE_FRAGMENT_BIT, VK_PIPELINE_BIND_POINT_GRAPHICS},
     {VK_SHADER_STAGE_COMPUTE_BIT, VK_PIPELINE_BIND_POINT_COMPUTE}};
 
-Pipeline::Pipeline(VulkanApplicationContext *appContext, Logger *logger, Scheduler *scheduler,
-                   std::string fullPathToShaderSourceCode, DescriptorSetBundle *descriptorSetBundle,
-                   VkShaderStageFlags shaderStageFlags, ShaderChangeListener *shaderChangeListener)
+Pipeline::Pipeline(VulkanApplicationContext *appContext, Logger *logger,
+                   PipelineScheduler *scheduler, std::string fullPathToShaderSourceCode,
+                   DescriptorSetBundle *descriptorSetBundle, VkShaderStageFlags shaderStageFlags,
+                   ShaderChangeListener *shaderChangeListener)
     : _appContext(appContext), _logger(logger), _scheduler(scheduler),
       _shaderChangeListener(shaderChangeListener), _descriptorSetBundle(descriptorSetBundle),
       _fullPathToShaderSourceCode(std::move(fullPathToShaderSourceCode)),

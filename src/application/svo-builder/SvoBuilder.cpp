@@ -62,7 +62,7 @@ void SvoBuilder::init() {
   _recordCommandBuffers();
 }
 
-void SvoBuilder::update() {
+void SvoBuilder::onPipelineRebuilt() {
   _recordCommandBuffers();
 
   _chunkBufferMemoryAllocator->freeAll();

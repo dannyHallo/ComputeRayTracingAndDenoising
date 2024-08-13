@@ -1,16 +1,16 @@
 #pragma once
 
-class Scheduler {
+class PipelineScheduler {
 public:
-  Scheduler()          = default;
-  virtual ~Scheduler() = default;
+  PipelineScheduler()          = default;
+  virtual ~PipelineScheduler() = default;
 
   // disable copy and move
-  Scheduler(const Scheduler &)            = delete;
-  Scheduler &operator=(const Scheduler &) = delete;
-  Scheduler(Scheduler &&)                 = delete;
-  Scheduler &operator=(Scheduler &&)      = delete;
+  PipelineScheduler(const PipelineScheduler &)            = delete;
+  PipelineScheduler &operator=(const PipelineScheduler &) = delete;
+  PipelineScheduler(PipelineScheduler &&)                 = delete;
+  PipelineScheduler &operator=(PipelineScheduler &&)      = delete;
 
   // called by listeners when some of the pipelines are changed
-  virtual void update() = 0;
+  virtual void onPipelineRebuilt() = 0;
 };

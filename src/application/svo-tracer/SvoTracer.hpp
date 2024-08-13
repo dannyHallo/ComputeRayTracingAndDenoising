@@ -27,7 +27,7 @@ class Window;
 class ShaderCompiler;
 class ShaderChangeListener;
 
-class SvoTracer : public Scheduler {
+class SvoTracer : public PipelineScheduler {
 public:
   SvoTracer(VulkanApplicationContext *appContext, Logger *logger, size_t framesInFlight,
             Window *window, ShaderCompiler *shaderCompiler,
@@ -41,7 +41,7 @@ public:
   SvoTracer &operator=(SvoTracer &&)      = delete;
 
   void init(SvoBuilder *svoBuilder);
-  void update() override;
+  void onPipelineRebuilt() override;
 
   void onSwapchainResize();
   VkCommandBuffer getTracingCommandBuffer(size_t currentFrame) {
