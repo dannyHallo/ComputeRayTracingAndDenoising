@@ -3,6 +3,45 @@
 #include "utils/io/ShaderFileReader.hpp"
 #include "utils/logger/Logger.hpp"
 
+#include <sstream>
+#include <string>
+#include <vector>
+
+namespace {
+// compresses path like: /a/b/../c/d.glsl into
+// /a/c/d.glsl
+
+std::string _compressPath(std::string const &originalPath) {
+  std::vector<std::string> pathStack;
+  std::stringstream ss(originalPath);
+  std::string token;
+
+  while (std::getline(ss, token, '/')) {
+    if (token == "" || token == ".") {
+      // skip empty tokens and current directory markers
+      continue;
+    } else if (token == "..") {
+      // go up one level if possible
+      if (!pathStack.empty()) {
+        pathStack.pop_back();
+      }
+    } else {
+      // normal directory or file, add to stack
+      pathStack.push_back(token);
+    }
+  }
+
+  // Reconstruct the path
+  std::string compressedPath;
+  for (const auto &part : pathStack) {
+    compressedPath += "/" + part;
+  }
+
+  // If the path was empty, return root "/"
+  return compressedPath.empty() ? "/" : compressedPath;
+}
+} // namespace
+
 CustomFileIncluder::CustomFileIncluder(Logger *logger,
                                        std::function<void(std::string const &)> includeCallback)
     : _logger(logger), _includeCallback(includeCallback) {}
@@ -21,6 +60,7 @@ shaderc_include_result *CustomFileIncluder::GetInclude(const char *requested_sou
                                                        const char * /*requesting_source*/,
                                                        size_t /*include_depth*/) {
   std::string fullPath = _includeDir + requested_source;
+  fullPath             = _compressPath(fullPath);
 
   if (_includeCallback != nullptr) {
     _includeCallback(fullPath);

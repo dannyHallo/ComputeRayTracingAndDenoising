@@ -49,6 +49,8 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, std::stri
 
   std::string normalizedPathToFile = _normalizePath(dir + '/' + filename);
 
+  _logger->info("noticed raw shader file change: {}", normalizedPathToFile);
+
   auto it = _shaderFileNameToPipelines.find(normalizedPathToFile);
   if (it == _shaderFileNameToPipelines.end()) {
     return;
@@ -121,6 +123,8 @@ void ShaderChangeListener::_addWatchingFile(Pipeline *pipeline,
   _pipelineToShaderFileNames[pipeline].insert(fullPathToShaderFile);
 
   _logger->info("file added to change watch list: {}", fullPathToShaderFile);
+
+  _lastPipeline = pipeline;
 }
 
 void ShaderChangeListener::addWatchingPipeline(Pipeline *pipeline) {
@@ -129,6 +133,8 @@ void ShaderChangeListener::addWatchingPipeline(Pipeline *pipeline) {
 
 void ShaderChangeListener::appendShaderFileToLastWatchedPipeline(
     std::string const &fullPathToShaderFile) {
+  assert(_lastPipeline != nullptr &&
+         "appendShaderFileToLastWatchedPipeline should be called after another _addWatchingFile");
   _addWatchingFile(_lastPipeline, std::move(fullPathToShaderFile));
 }
 

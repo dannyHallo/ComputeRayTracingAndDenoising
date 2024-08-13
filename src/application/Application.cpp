@@ -26,8 +26,8 @@ Application::Application(Logger *logger) : _logger(logger) {
 
   _shaderCompiler = std::make_unique<ShaderCompiler>(
       logger, [this](std::string const &fullPathToIncludedShaderFile) {
-        // _shaderFileWatchListener->appendShaderFileToLastWatchedPipeline(
-        //     fullPathToIncludedShaderFile);
+        _shaderFileWatchListener->appendShaderFileToLastWatchedPipeline(
+            fullPathToIncludedShaderFile);
       });
 
   _window = std::make_unique<Window>(WindowStyle::kMaximized, logger);
