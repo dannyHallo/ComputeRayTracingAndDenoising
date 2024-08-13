@@ -49,7 +49,7 @@ vec3 godRayColor(vec3 o, vec3 d, float validRayDepth, uvec3 seed) {
 
     if (pointInShadow(marchedPos)) {
       float mistWeight = 1.0 - smoothstep(0.0, 1.0, marchedPos.y);
-      col += mistWeight * stepLen * skyColor(environmentUbo.data.sunDir, true) * 0.02;
+      col += mistWeight * stepLen * skyColor(environmentUbo.data.sunDir, true) * 0.03;
     }
   }
   return col;

@@ -132,8 +132,6 @@ bool traceSeascape(out vec3 oPosition, out vec3 oNormal, out float oT, vec3 o, v
 
   vec3 N = normalCalc(waterHitPos.xz, 0.01);
 
-  // float fresnel = (0.04 + (1.0 - 0.04) * (pow(1.0 - max(0.0, dot(-N, d)), 5.0)));
-
   oT        = dist;
   oPosition = waterHitPos;
 
