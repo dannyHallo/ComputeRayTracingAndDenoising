@@ -837,74 +837,50 @@ void SvoTracer::_createPipelines() {
   _transmittanceLutPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("transmittanceLut.comp"),
       WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _transmittanceLutPipeline->compileAndCacheShaderModule(false);
-  _transmittanceLutPipeline->build();
 
   _multiScatteringLutPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("multiScatteringLut.comp"),
       WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _multiScatteringLutPipeline->compileAndCacheShaderModule(false);
-  _multiScatteringLutPipeline->build();
 
   _skyViewLutPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("skyViewLut.comp"), WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _skyViewLutPipeline->compileAndCacheShaderModule(false);
-  _skyViewLutPipeline->build();
 
   _shadowMapPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("shadowMap.comp"), WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _shadowMapPipeline->compileAndCacheShaderModule(false);
-  _shadowMapPipeline->build();
 
   _svoCourseBeamPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("svoCoarseBeam.comp"), WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _svoCourseBeamPipeline->compileAndCacheShaderModule(false);
-  _svoCourseBeamPipeline->build();
 
   _svoTracingPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("svoTracing.comp"), WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _svoTracingPipeline->compileAndCacheShaderModule(false);
-  _svoTracingPipeline->build();
 
   _godRayPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("godRay.comp"), WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _godRayPipeline->compileAndCacheShaderModule(false);
-  _godRayPipeline->build();
 
   _temporalFilterPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("temporalFilter.comp"),
       WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _temporalFilterPipeline->compileAndCacheShaderModule(false);
-  _temporalFilterPipeline->build();
 
   _aTrousPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("aTrous.comp"), WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _aTrousPipeline->compileAndCacheShaderModule(false);
-  _aTrousPipeline->build();
 
   _backgroundBlitPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("backgroundBlit.comp"),
       WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _backgroundBlitPipeline->compileAndCacheShaderModule(false);
-  _backgroundBlitPipeline->build();
 
   _taaUpscalingPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("taaUpscaling.comp"), WorkGroupSize{8, 8, 1},
       _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _taaUpscalingPipeline->compileAndCacheShaderModule(false);
-  _taaUpscalingPipeline->build();
 
   _postProcessingPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("postProcessing.comp"),
       WorkGroupSize{8, 8, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _postProcessingPipeline->compileAndCacheShaderModule(false);
-  _postProcessingPipeline->build();
 }
 
 void SvoTracer::_updatePipelinesDescriptorBundles() {

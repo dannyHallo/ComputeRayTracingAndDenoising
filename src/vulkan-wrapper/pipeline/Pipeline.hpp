@@ -31,10 +31,8 @@ public:
   virtual void build() = 0;
 
   // build the shader module and cache it
-  // if allowBuildFail is set to true, function returns if the shader module is built successfully
-  // if allowBuildFail is set to false, the entire program exits if the shader module is not built
-  // successfully
-  virtual bool compileAndCacheShaderModule(bool allowBuildFail) = 0;
+  // returns of the shader has been compiled and cached correctly
+  virtual bool compileAndCacheShaderModule() = 0;
 
   void updateDescriptorSetBundle(DescriptorSetBundle *descriptorSetBundle);
 

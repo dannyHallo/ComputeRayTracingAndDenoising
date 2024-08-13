@@ -3,7 +3,6 @@
 #include "utils/io/ShaderFileReader.hpp"
 #include "utils/logger/Logger.hpp"
 
-
 CustomFileIncluder::CustomFileIncluder(Logger *logger) : _logger(logger) {}
 
 shaderc_include_result *MakeErrorIncludeResult(const char *message) {

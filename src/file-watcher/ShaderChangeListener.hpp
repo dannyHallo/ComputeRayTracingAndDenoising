@@ -26,16 +26,16 @@ public:
                         const std::string &filename, efsw::Action action,
                         std::string oldFilename) override;
 
-  void addWatchingItem(Pipeline *pipeline);
-  void removeWatchingItem(Pipeline *pipeline);
+  void addWatchingPipeline(Pipeline *pipeline);
+  void removeWatchingPipeline(Pipeline *pipeline);
 
 private:
   Logger *_logger;
-
-  std::unordered_map<std::string, Pipeline *> _shaderFileNameToPipeline;
-  std::unordered_set<Pipeline *> _pipelinesToRebuild;
-
   std::unique_ptr<efsw::FileWatcher> _fileWatcher;
+
+  std::unordered_map<std::string, std::unordered_set<Pipeline *>> _shaderFileNameToPipelines{};
+  std::unordered_map<Pipeline *, std::unordered_set<std::string>> _pipelineToShaderFileNames{};
+  std::unordered_set<Pipeline *> _pipelinesToRebuild{};
 
   void _onRenderLoopBlocked();
 };

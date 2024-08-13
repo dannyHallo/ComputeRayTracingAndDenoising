@@ -15,9 +15,29 @@ ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *l
                                  ShaderChangeListener *shaderChangeListener)
     : Pipeline(appContext, logger, scheduler, std::move(fullPathToShaderSourceCode),
                descriptorSetBundle, VK_SHADER_STAGE_COMPUTE_BIT, shaderChangeListener),
-      _workGroupSize(workGroupSize), _shaderCompiler(shaderCompiler) {}
+      _workGroupSize(workGroupSize), _shaderCompiler(shaderCompiler) {
+  if (!compileAndCacheShaderModule()) {
+    _logger->error("pipeline: {} is failed to compile!");
+    exit(0);
+  }
+  build();
+}
 
 ComputePipeline::~ComputePipeline() = default;
+
+bool ComputePipeline::compileAndCacheShaderModule() {
+  auto const sourceCode =
+      ShaderFileReader::readShaderSourceCode(_fullPathToShaderSourceCode, _logger);
+  auto const compiledCode =
+      _shaderCompiler->compileComputeShader(_fullPathToShaderSourceCode, sourceCode);
+
+  if (compiledCode.has_value()) {
+    _cleanupShaderModule();
+    _cachedShaderModule = _createShaderModule(compiledCode.value());
+    return true;
+  }
+  return false;
+}
 
 // the shader module must be cached before this step
 void ComputePipeline::build() {
@@ -50,25 +70,6 @@ void ComputePipeline::build() {
 
   vkCreateComputePipelines(_appContext->getDevice(), VK_NULL_HANDLE, 1, &computePipelineCreateInfo,
                            nullptr, &_pipeline);
-}
-
-bool ComputePipeline::compileAndCacheShaderModule(bool allowBuildFailure) {
-  auto const sourceCode =
-      ShaderFileReader::readShaderSourceCode(_fullPathToShaderSourceCode, _logger);
-  auto const compiledCode =
-      _shaderCompiler->compileComputeShader(_fullPathToShaderSourceCode, sourceCode);
-
-  if (!allowBuildFailure && !compiledCode.has_value()) {
-    _logger->error("failed to compile the shader: {}", _fullPathToShaderSourceCode);
-    exit(0);
-  }
-
-  if (compiledCode.has_value()) {
-    _cleanupShaderModule();
-    _cachedShaderModule = _createShaderModule(compiledCode.value());
-    return true;
-  }
-  return false;
 }
 
 void ComputePipeline::recordCommand(VkCommandBuffer commandBuffer, uint32_t currentFrame,

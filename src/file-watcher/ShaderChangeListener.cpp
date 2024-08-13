@@ -49,15 +49,15 @@ void ShaderChangeListener::handleFileAction(efsw::WatchID /*watchid*/, const std
 
   std::string normalizedPathToFile = _normalizePath(dir + '/' + filename);
 
-  auto it = _shaderFileNameToPipeline.find(normalizedPathToFile);
-  if (it == _shaderFileNameToPipeline.end()) {
+  auto it = _shaderFileNameToPipelines.find(normalizedPathToFile);
+  if (it == _shaderFileNameToPipelines.end()) {
     return;
   }
 
   // here, is some editors, (vscode, notepad++), when a file is saved, it might be saved twice
   // simultaneously, so the block request is sent twice, however, when the render loop is blocked,
   // the pipelines will be rebuilt only once, a caching mechanism is used to avoid duplicates
-  _pipelinesToRebuild.insert(_shaderFileNameToPipeline[normalizedPathToFile]);
+  _pipelinesToRebuild.insert(it->second.begin(), it->second.end());
 
   // request to block the render loop, when the render loop is blocked, the pipelines will be
   // rebuilt
@@ -82,7 +82,7 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
   for (auto const &pipeline : _pipelinesToRebuild) {
     // if shader module is rebuilt, then rebuild the pipeline, this is fail safe, because a valid
     // shader module is previously built and cached when initializing
-    if (pipeline->compileAndCacheShaderModule(true)) {
+    if (pipeline->compileAndCacheShaderModule()) {
       pipeline->build();
       schedulersNeededToBeUpdated.insert(pipeline->getScheduler());
       continue;
@@ -105,21 +105,36 @@ void ShaderChangeListener::_onRenderLoopBlocked() {
   // then the render loop can be continued
 }
 
-void ShaderChangeListener::addWatchingItem(Pipeline *pipeline) {
+void ShaderChangeListener::addWatchingPipeline(Pipeline *pipeline) {
   auto const fullPathToFile = pipeline->getFullPathToShaderSourceCode();
 
   _logger->info("file added to change watch list: {}", fullPathToFile);
 
-  if (_shaderFileNameToPipeline.find(fullPathToFile) != _shaderFileNameToPipeline.end()) {
-    _logger->error("shader file: {} called to be watched twice!", fullPathToFile);
-    exit(0);
+  auto it = _shaderFileNameToPipelines.find(fullPathToFile);
+  if (it == _shaderFileNameToPipelines.end()) {
+    _shaderFileNameToPipelines[fullPathToFile] = std::unordered_set<Pipeline *>{};
   }
 
-  _shaderFileNameToPipeline[fullPathToFile] = pipeline;
+  auto it2 = _pipelineToShaderFileNames.find(pipeline);
+  if (it2 == _pipelineToShaderFileNames.end()) {
+    _pipelineToShaderFileNames[pipeline] = std::unordered_set<std::string>{};
+  }
+
+  _shaderFileNameToPipelines[fullPathToFile].insert(pipeline);
+  _pipelineToShaderFileNames[pipeline].insert(fullPathToFile);
 }
 
-void ShaderChangeListener::removeWatchingItem(Pipeline *pipeline) {
-  auto const fullPathToFile = pipeline->getFullPathToShaderSourceCode();
-
-  _shaderFileNameToPipeline.erase(fullPathToFile);
+void ShaderChangeListener::removeWatchingPipeline(Pipeline *pipeline) {
+  auto it = _pipelineToShaderFileNames.find(pipeline);
+  assert(it != _pipelineToShaderFileNames.end());
+  auto const &associatedShaderFileNames = it->second;
+  for (auto const &fn : associatedShaderFileNames) {
+    auto it2 = _shaderFileNameToPipelines.find(fn);
+    assert(it2 != _shaderFileNameToPipelines.end());
+    auto &pls = it2->second;
+    auto it3  = pls.find(pipeline);
+    assert(it3 != pls.end());
+    pls.erase(it3);
+  }
+  _pipelineToShaderFileNames.erase(pipeline);
 }

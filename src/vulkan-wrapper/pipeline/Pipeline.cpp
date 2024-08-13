@@ -22,16 +22,16 @@ Pipeline::Pipeline(VulkanApplicationContext *appContext, Logger *logger, Schedul
       _shaderStageFlags(shaderStageFlags) {
 
   if (_shaderChangeListener != nullptr) {
-    _shaderChangeListener->addWatchingItem(this);
+    _shaderChangeListener->addWatchingPipeline(this);
   }
 }
 
 Pipeline::~Pipeline() {
-  vkDestroyShaderModule(_appContext->getDevice(), _cachedShaderModule, nullptr);
+  _cleanupShaderModule();
   _cleanupPipelineAndLayout();
 
   if (_shaderChangeListener != nullptr) {
-    _shaderChangeListener->removeWatchingItem(this);
+    _shaderChangeListener->removeWatchingPipeline(this);
   }
 }
 

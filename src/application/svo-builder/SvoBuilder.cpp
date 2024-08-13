@@ -544,56 +544,38 @@ void SvoBuilder::_createPipelines() {
   _chunkIndicesBufferUpdaterPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("chunkIndicesBufferUpdater.comp"),
       WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _chunkIndicesBufferUpdaterPipeline->compileAndCacheShaderModule(false);
-  _chunkIndicesBufferUpdaterPipeline->build();
 
   _chunkFieldConstructionPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("chunkFieldConstruction.comp"),
       WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _chunkFieldConstructionPipeline->compileAndCacheShaderModule(false);
-  _chunkFieldConstructionPipeline->build();
 
   _chunkFieldModificationPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("chunkFieldModification.comp"),
       WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _chunkFieldModificationPipeline->compileAndCacheShaderModule(false);
-  _chunkFieldModificationPipeline->build();
 
   _chunkVoxelCreationPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("chunkVoxelCreation.comp"),
       WorkGroupSize{8, 8, 8}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _chunkVoxelCreationPipeline->compileAndCacheShaderModule(false);
-  _chunkVoxelCreationPipeline->build();
 
   _chunkModifyArgPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("chunkModifyArg.comp"),
       WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _chunkModifyArgPipeline->compileAndCacheShaderModule(false);
-  _chunkModifyArgPipeline->build();
 
   _initNodePipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("octreeInitNode.comp"),
       WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _initNodePipeline->compileAndCacheShaderModule(false);
-  _initNodePipeline->build();
 
   _tagNodePipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("octreeTagNode.comp"),
       WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _tagNodePipeline->compileAndCacheShaderModule(false);
-  _tagNodePipeline->build();
 
   _allocNodePipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("octreeAllocNode.comp"),
       WorkGroupSize{64, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _allocNodePipeline->compileAndCacheShaderModule(false);
-  _allocNodePipeline->build();
 
   _modifyArgPipeline = std::make_unique<ComputePipeline>(
       _appContext, _logger, this, _makeShaderFullPath("octreeModifyArg.comp"),
       WorkGroupSize{1, 1, 1}, _descriptorSetBundle.get(), _shaderCompiler, _shaderChangeListener);
-  _modifyArgPipeline->compileAndCacheShaderModule(false);
-  _modifyArgPipeline->build();
 }
 
 void SvoBuilder::_recordCommandBuffers() { _recordOctreeCreationCommandBuffer(); }
