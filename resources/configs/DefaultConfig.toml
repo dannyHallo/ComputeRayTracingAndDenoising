@@ -32,7 +32,7 @@ popupBackgroundColor = [ 29, 43, 83]
 [Terrain]
 # the voxel dimension within a chunk
 chunkVoxelDim = 256
-chunkDim = [ 5, 2, 5 ]
+chunkDim = [ 8, 1, 8 ]
 
 [SvoTracer]
 aTrousSizeMax = 5

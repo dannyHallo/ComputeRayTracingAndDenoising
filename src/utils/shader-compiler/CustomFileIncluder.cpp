@@ -31,13 +31,18 @@ std::string _compressPath(std::string const &originalPath) {
     }
   }
 
-  // Reconstruct the path
+  // reconstruct the path
   std::string compressedPath;
   for (const auto &part : pathStack) {
     compressedPath += "/" + part;
   }
 
-  // If the path was empty, return root "/"
+  // for windows platform: if original path is not beginned with /, delete the first /
+  if (originalPath[0] != '/') {
+    compressedPath.erase(0, 1);
+  }
+
+  // if the path was empty, return root "/"
   return compressedPath.empty() ? "/" : compressedPath;
 }
 } // namespace
