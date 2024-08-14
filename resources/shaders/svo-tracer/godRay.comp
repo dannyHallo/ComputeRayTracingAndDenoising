@@ -76,5 +76,8 @@ void main() {
   float tMin = imageLoad(depthImage, uvi).r;
 
   vec3 godRayCol = godRayColor(o, d, tMin, seed);
-  imageStore(godRayImage, uvi, vec4(godRayCol, 0.0));
+
+  vec4 instantColor = imageLoad(instantImage, uvi);
+  instantColor.rgb += godRayCol;
+  imageStore(instantImage, uvi, instantColor);
 }

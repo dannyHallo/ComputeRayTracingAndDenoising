@@ -113,7 +113,7 @@ private:
   std::unique_ptr<Image> _backgroundImage;
   std::unique_ptr<Image> _beamDepthImage;
   std::unique_ptr<Image> _rawImage;
-  std::unique_ptr<Image> _godRayImage;
+  std::unique_ptr<Image> _instantImage;
   std::unique_ptr<Image> _depthImage;
   std::unique_ptr<Image> _octreeVisualizationImage;
   std::unique_ptr<Image> _hitImage;

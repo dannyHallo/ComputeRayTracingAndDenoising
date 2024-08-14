@@ -27,7 +27,7 @@ const int ITER_RAYMARCH = 3;
 const int ITER_NORMAL   = 5;
 const float SEA_CHOPPY  = 4.0;
 const float SEA_FREQ    = 0.6;
-#define SEA_TIME (1.0 + renderInfoUbo.data.time * 0.5)
+#define SEA_TIME (1.0 + renderInfoUbo.data.time * 0.2)
 const mat2 octave_m = mat2(1.6, 1.2, -1.2, 1.6);
 
 // -1.0 - 1.0

@@ -253,7 +253,7 @@ void SvoTracer::_createFullSizedImages() {
   _rawImage = std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                                       VK_FORMAT_R32_UINT, VK_IMAGE_USAGE_STORAGE_BIT);
 
-  _godRayImage =
+  _instantImage =
       std::make_unique<Image>(_appContext, ImageDimensions{_lowResWidth, _lowResHeight},
                               VK_FORMAT_B10G11R11_UFLOAT_PACK32, VK_IMAGE_USAGE_STORAGE_BIT);
 
@@ -785,7 +785,7 @@ void SvoTracer::_createDescriptorSetBundle() {
   _descriptorSetBundle->bindStorageImage(10, _backgroundImage.get());
   _descriptorSetBundle->bindStorageImage(11, _beamDepthImage.get());
   _descriptorSetBundle->bindStorageImage(12, _rawImage.get());
-  _descriptorSetBundle->bindStorageImage(13, _godRayImage.get());
+  _descriptorSetBundle->bindStorageImage(13, _instantImage.get());
   _descriptorSetBundle->bindStorageImage(14, _depthImage.get());
   _descriptorSetBundle->bindStorageImage(15, _octreeVisualizationImage.get());
   _descriptorSetBundle->bindStorageImage(16, _hitImage.get());
