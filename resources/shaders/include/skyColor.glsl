@@ -7,7 +7,7 @@
 #include "../include/core/postProcessing.glsl"
 #include "../include/random.glsl"
 
-const float kSunAngleReal    = 0.01;
+const float kSunAngleReal    = 0.016;
 const float kCosSunAngleReal = cos(kSunAngleReal);
 const float kTanSunAngleReal = tan(kSunAngleReal);
 
@@ -17,20 +17,25 @@ vec3 getRandomShadowRay(uvec3 seed) {
 }
 
 float _sunLuminance(vec3 rayDir) {
-  const float dropoffFac    = 600.0;
-  const float dropoffPreset = 0.02; // this should be fixed
+  const float dropoffFac    = 20000.0;
+  const float dropoffPreset = 0.02; // this should be a fixed value
   const float cutoff        = 5e-3;
 
   float cosTheta = dot(rayDir, environmentUbo.data.sunDir);
-  if (cosTheta >= kCosSunAngleReal) {
+  // if (cosTheta >= kCosSunAngleReal) {
+  //   return 1.0;
+  // }
+
+  // // calculate dropoff
+  // float offset = kCosSunAngleReal - cosTheta;
+
+  // float lum = 1.0 / (dropoffPreset + offset * dropoffFac) * dropoffPreset;
+  // return max(0.0, lum - cutoff);
+  
+  if(cosTheta >= kCosSunAngleReal) {
     return 1.0;
   }
-
-  // calculate dropoff
-  float offset = kCosSunAngleReal - cosTheta;
-
-  float lum = 1.0 / (dropoffPreset + offset * dropoffFac) * dropoffPreset;
-  return max(0.0, lum - cutoff);
+  return 0.0;
 }
 
 vec3 _sunColor(vec3 rayDir) {
@@ -54,7 +59,7 @@ vec3 skyColor(vec3 rayDir, bool isSunAdded) {
 
   vec3 sunCol = vec3(0.0);
   if (isSunAdded) {
-    sunCol = _sunColor(rayDir) * environmentUbo.data.sunLuminance * 10.0;
+    sunCol = _sunColor(rayDir) * environmentUbo.data.sunLuminance * 10000.0;
   }
 
   vec3 skyCol = pow(atmosCol + sunCol, vec3(1.3));

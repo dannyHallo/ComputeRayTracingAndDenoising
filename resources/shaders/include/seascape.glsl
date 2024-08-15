@@ -15,7 +15,6 @@
 // #include "../include/core/cnoise.glsl"
 #include "../include/core/definitions.glsl"
 #include "../include/core/hash.glsl"
-#include "../include/skyColor.glsl"
 
 const int NUM_STEPS = 8;
 const float EPSILON = 1e-3;

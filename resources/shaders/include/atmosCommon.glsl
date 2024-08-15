@@ -1,6 +1,8 @@
 #ifndef ATMOS_COMMON_GLSL
 #define ATMOS_COMMON_GLSL
 
+#include "../include/svoTracerDescriptorSetLayouts.glsl"
+
 #include "../include/core/definitions.glsl"
 
 // phase function: describes the directionality of scattering.
@@ -13,7 +15,7 @@ const float kAtmosphereRadiusMm = 6.46;
 
 const vec3 kCamPos = vec3(0.0, 6.3602, 0.0);
 
-const vec3 kGroundAlbedo = vec3(0.3);
+vec3 kGroundAlbedo = tweakableParametersUbo.data.debugC1;
 
 // found in sec 4, table 1
 // the configuables are located in the environment UBO
@@ -58,7 +60,7 @@ void getScatteringValues(vec3 pos, out vec3 oRayleighScattering, out float oMieS
 
   // the following magic values can be found in sec 4 (1 / 8 = 0.125 and 1 / 1.2
   // = 0.833)
-  float rayleighDensity = exp(-altitudeKM * 0.125);
+  float rayleighDensity = exp(-altitudeKM * tweakableParametersUbo.data.debugF1);
   float mieDensity      = exp(-altitudeKM * 0.833);
 
   oRayleighScattering = environmentUbo.data.rayleighScatteringBase * rayleighDensity;
