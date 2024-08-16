@@ -101,8 +101,6 @@ vec3 getMulScattValues(vec3 pos, vec3 sunDir) {
         vec3 hitPos = pos + groundDist * rayDir;
         if (dot(pos, sunDir) > 0.0) {
           vec2 lookupUv = getLookupUv1(hitPos, sunDir);
-          //   vec3 valRead  = imageLoad(transmittanceLutImage, ivec2(lookupUv *
-          //   imageSize(transmittanceLutImage))).rgb;
           vec3 valRead = textureLod(transmittanceLutTexture, lookupUv, 0).rgb;
           dSecondOrderLum += dUpToDateTransmittance * kGroundAlbedo * valRead;
         }

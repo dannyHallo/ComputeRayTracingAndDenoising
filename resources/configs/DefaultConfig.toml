@@ -43,10 +43,11 @@ upscaleRatio = 2.0
 
 [SvoTracerTweakingData]
 debugB1 = false
-debugF1 = 0.0
+debugF1 = 0.125
 debugI1 = 0
-debugC1 = [ 1.0, 1.0, 1.0 ]
-explosure = 6.5
+# 38 25 77
+debugC1 = [ 0.0, 0.153, 0.41 ]
+explosure = 15.0
 visualizeChunks = false
 visualizeOctree = false
 beamOptimization = true
@@ -57,8 +58,8 @@ sunAzimuth = 0.0
 rayleighScatteringBase = [ 5.802, 13.558, 33.1 ]
 mieScatteringBase = 3.996
 mieAbsorptionBase = 4.4
-ozoneAbsorptionBase = [ 0.650, 1.881, 0.085 ]
-# ozoneAbsorptionBase = [ 1.0, 4.0, 0.0 ]
+# ozoneAbsorptionBase = [ 0.650, 1.881, 0.085 ]
+ozoneAbsorptionBase = [ 0.650, 3.0, 0.085 ]
 sunLuminance = 0.5
 atmosLuminance = 0.5
 sunSize = 0.5
