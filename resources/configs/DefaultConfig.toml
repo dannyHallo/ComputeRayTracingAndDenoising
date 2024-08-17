@@ -42,24 +42,25 @@ shadowMapResolution = 1024
 upscaleRatio = 2.0
 
 [AtmosInfo]
-sunAltitude = 20.0
+sunAltitude = 4.15
 sunAzimuth = 0.0
 rayleighScatteringBase = [ 5.802, 13.558, 33.1 ]
 mieScatteringBase = 3.996
 mieAbsorptionBase = 4.4
 # ozoneAbsorptionBase = [ 0.650, 1.881, 0.085 ]
 ozoneAbsorptionBase = [ 0.650, 3.0, 0.085 ]
-sunLuminance = 0.5
-atmosLuminance = 0.5
+sunLuminance = 1.0
+atmosLuminance = 1.0
 sunSize = 0.5
 rayleighDropoffFac = 0.125
-mieDropoffFac = 0.833
+# mieDropoffFac = 0.833
+mieDropoffFac = 0.625
 
 [DebugInfo]
 debugB1 = false
-debugF1 = 0.125
+debugF1 = 0.0
 debugI1 = 0
-debugC1 = [ 0.0, 0.153, 0.41 ]
+debugC1 = [ 0.0, 0.26, 0.84 ]
 
 [PostProcessingInfo]
 temporalAlpha = 0.04
