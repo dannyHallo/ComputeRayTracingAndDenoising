@@ -14,9 +14,12 @@
 
 #include "config-container/ConfigContainer.hpp"
 #include "config-container/sub-config/ApplicationInfo.hpp"
+#include "config-container/sub-config/AtmosInfo.hpp"
 #include "config-container/sub-config/BrushInfo.hpp"
+#include "config-container/sub-config/DebugInfo.hpp"
 #include "config-container/sub-config/ImguiManagerInfo.hpp"
-#include "config-container/sub-config/SvoTracerTweakingInfo.hpp"
+#include "config-container/sub-config/PostProcessingInfo.hpp"
+#include "config-container/sub-config/TracingInfo.hpp"
 
 ImguiManager::ImguiManager(VulkanApplicationContext *appContext, Window *window, Logger *logger,
                            ConfigContainer *configContainer)
@@ -251,60 +254,47 @@ void ImguiManager::recordCommandBuffer(size_t currentFrame, uint32_t imageIndex)
 
 void ImguiManager::_drawConfigMenuItem() {
   if (ImGui::BeginMenu("Config")) {
-
-    ///
-
-    auto &stti = _configContainer->svoTracerTweakingInfo;
-    auto &bi   = _configContainer->brushInfo;
-
     ImGui::SeparatorText("Debug");
-    ImGui::Checkbox("Debug B1", &stti->debugB1);
-    ImGui::SliderFloat("Debug F1", &stti->debugF1, 0.0F, 1.0F);
-    ImGui::SliderInt("Debug I1", &stti->debugI1, 0, 10);
-    ImGui::ColorEdit3("Debug C1", &stti->debugC1.x);
-
-    ///
+    auto &di = _configContainer->debugInfo;
+    ImGui::Checkbox("Debug B1", &di->debugB1);
+    ImGui::SliderFloat("Debug F1", &di->debugF1, 0.0F, 1.0F);
+    ImGui::SliderInt("Debug I1", &di->debugI1, 0, 10);
+    ImGui::ColorEdit3("Debug C1", &di->debugC1.x);
 
     ImGui::SeparatorText("Brush");
+    auto &bi = _configContainer->brushInfo;
     ImGui::SliderFloat("Brush Size", &bi->size, 0.0F, 0.2F);
     ImGui::SliderFloat("Brush Strength", &bi->strength, 0.001F, 0.01F);
 
     ImGui::SeparatorText("Atmos");
-    ImGui::SliderFloat("Sun Altitude", &stti->sunAltitude, 0.F, 180.F);
-    ImGui::SliderFloat("Sun Azimuth", &stti->sunAzimuth, -180.F, 180.F);
-    ImGui::InputFloat3("Rayleigh Scattering Base", &stti->rayleighScatteringBase.x);
-    ImGui::SliderFloat("Mie Scattering Base", &stti->mieScatteringBase, 0.0F, 10.0F);
-    ImGui::SliderFloat("Mie Absorption Base", &stti->mieAbsorptionBase, 0.0F, 10.0F);
-    ImGui::InputFloat3("Ozone Absorption Base", &stti->ozoneAbsorptionBase.x);
-    ImGui::SliderFloat("Sun Luminance", &stti->sunLuminance, 0.0F, 10.0F);
-    ImGui::SliderFloat("Atmos Luminance", &stti->atmosLuminance, 0.0F, 10.0F);
-    ImGui::SliderFloat("Sun Size", &stti->sunSize, 0.0F, 100.0F);
-
-    ///
+    auto &ai = _configContainer->atmosInfo;
+    ImGui::SliderFloat("Sun Altitude", &ai->sunAltitude, 0.F, 180.F);
+    ImGui::SliderFloat("Sun Azimuth", &ai->sunAzimuth, -180.F, 180.F);
+    ImGui::InputFloat3("Rayleigh Scattering Base", &ai->rayleighScatteringBase.x);
+    ImGui::SliderFloat("Mie Scattering Base", &ai->mieScatteringBase, 0.0F, 10.0F);
+    ImGui::SliderFloat("Mie Absorption Base", &ai->mieAbsorptionBase, 0.0F, 10.0F);
+    ImGui::InputFloat3("Ozone Absorption Base", &ai->ozoneAbsorptionBase.x);
+    ImGui::SliderFloat("Sun Luminance", &ai->sunLuminance, 0.0F, 10.0F);
+    ImGui::SliderFloat("Atmos Luminance", &ai->atmosLuminance, 0.0F, 10.0F);
+    ImGui::SliderFloat("Sun Size", &ai->sunSize, 0.0F, 100.0F);
 
     ImGui::SeparatorText("Tracing");
-    ImGui::Checkbox("Visualize Chunks", &stti->visualizeChunks);
-    ImGui::Checkbox("Visualize Octree", &stti->visualizeOctree);
-    ImGui::Checkbox("Beam Optimization", &stti->beamOptimization);
-    ImGui::Checkbox("Trace Indirect Ray", &stti->traceIndirectRay);
+    auto &ti = _configContainer->tracingInfo;
+    ImGui::Checkbox("Visualize Chunks", &ti->visualizeChunks);
+    ImGui::Checkbox("Visualize Octree", &ti->visualizeOctree);
+    ImGui::Checkbox("Beam Optimization", &ti->beamOptimization);
+    ImGui::Checkbox("Trace Indirect Ray", &ti->traceIndirectRay);
 
-    ///
-
-    ImGui::SeparatorText("Filtering");
-    ImGui::Checkbox("TAA", &stti->taa);
-    ImGui::SliderFloat("Temporal Alpha", &stti->temporalAlpha, 0.0F, 1.0F);
-    ImGui::SliderInt("A-Trous Iteration Count", &stti->aTrousIterationCount, 0, 5);
-    ImGui::SliderFloat("Phi Z - Far End", &stti->minPhiZ, 0.0F, 1.0F);
-    ImGui::SliderFloat("Phi Z - Near End", &stti->maxPhiZ, 0.0F, 1.0F);
-    ImGui::SliderFloat("PhiC", &stti->phiC, 0.0F, 1.0F);
-    ImGui::Checkbox("Changing Luminance Phi", &stti->changingLuminancePhi);
-
-    ///
-
-    ImGui::SeparatorText("Post Processing");
-    ImGui::SliderFloat("Explosure", &stti->explosure, 0.0F, 20.0F);
-
-    ///
+    ImGui::SeparatorText("Post Processing - Filtering");
+    auto &ppi = _configContainer->postProcessingInfo;
+    ImGui::SliderFloat("Temporal Alpha", &ppi->temporalAlpha, 0.0F, 1.0F);
+    ImGui::SliderInt("A-Trous Iteration Count", &ppi->aTrousIterationCount, 0, 5);
+    ImGui::SliderFloat("Phi Z - Far End", &ppi->minPhiZ, 0.0F, 1.0F);
+    ImGui::SliderFloat("Phi Z - Near End", &ppi->maxPhiZ, 0.0F, 1.0F);
+    ImGui::SliderFloat("PhiC", &ppi->phiC, 0.0F, 1.0F);
+    ImGui::Checkbox("Changing Luminance Phi", &ppi->changingLuminancePhi);
+    ImGui::Checkbox("TAA", &ppi->taa);
+    ImGui::SliderFloat("Explosure", &ppi->explosure, 0.0F, 20.0F);
 
     ImGui::EndMenu();
   }

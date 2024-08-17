@@ -41,18 +41,7 @@ taaSamplingOffsetSize = 64
 shadowMapResolution = 1024
 upscaleRatio = 2.0
 
-[SvoTracerTweakingData]
-debugB1 = false
-debugF1 = 0.125
-debugI1 = 0
-# 38 25 77
-debugC1 = [ 0.0, 0.153, 0.41 ]
-explosure = 15.0
-visualizeChunks = false
-visualizeOctree = false
-beamOptimization = true
-traceIndirectRay = true
-taa = false
+[AtmosInfo]
 sunAltitude = 20.0
 sunAzimuth = 0.0
 rayleighScatteringBase = [ 5.802, 13.558, 33.1 ]
@@ -63,6 +52,14 @@ ozoneAbsorptionBase = [ 0.650, 3.0, 0.085 ]
 sunLuminance = 0.5
 atmosLuminance = 0.5
 sunSize = 0.5
+
+[DebugInfo]
+debugB1 = false
+debugF1 = 0.125
+debugI1 = 0
+debugC1 = [ 0.0, 0.153, 0.41 ]
+
+[PostProcessingInfo]
 temporalAlpha = 0.04
 temporalPositionPhi = 0.99
 aTrousIterationCount = 3
@@ -73,3 +70,12 @@ minPhiZ = 0.35
 maxPhiZ = 0.62
 phiZStableSampleCount = 0.05
 changingLuminancePhi = true
+taa = false
+explosure = 15.0
+
+[TracingInfo]
+visualizeChunks = false
+visualizeOctree = false
+beamOptimization = true
+traceIndirectRay = true
+

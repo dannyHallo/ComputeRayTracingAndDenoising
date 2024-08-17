@@ -66,7 +66,7 @@ vec3 computeRawSurfaceCol(vec3 surfacePoint, vec3 normal, uvec3 seed) {
     shadowRayColor *= dot(shadowRayDir, normal) / shadowRayPdf;
   }
 
-  if (tweakableParametersUbo.data.traceIndirectRay == 0u) {
+  if (tracingInfoUbo.data.traceIndirectRay == 0u) {
     return shadowRayColor;
   }
 
@@ -189,7 +189,7 @@ void main() {
   vec3 o, d;
   // (-0.5, 0.5)
   vec2 subpixOffset =
-      bool(tweakableParametersUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
+      bool(postProcessingUbo.data.taa) ? renderInfoUbo.data.subpixOffset : vec2(0);
   rayGen(o, d, subpixOffset);
 
   vec3 seaHitPos, seaNormal;
@@ -199,7 +199,7 @@ void main() {
   float optimizedDistance = 0;
 
   // beam optimization
-  if (bool(tweakableParametersUbo.data.beamOptimization)) {
+  if (bool(tracingInfoUbo.data.beamOptimization)) {
     ivec2 beamUv      = ivec2(gl_GlobalInvocationID.xy / sceneInfoBuffer.data.beamResolution);
     float t1          = imageLoad(beamDepthImage, beamUv).r;
     float t2          = imageLoad(beamDepthImage, beamUv + ivec2(1, 0)).r;
@@ -248,10 +248,10 @@ void main() {
   const vec3 chunkTraversedColor = vec3(0.2, 0.4, 1) * 0.2 * float(primaryRayChunkTraversed);
 
   vec3 overlappingColor = vec3(0);
-  if (bool(tweakableParametersUbo.data.visualizeOctree)) {
+  if (bool(tracingInfoUbo.data.visualizeOctree)) {
     overlappingColor += iterUsedColor;
   }
-  if (bool(tweakableParametersUbo.data.visualizeChunks)) {
+  if (bool(tracingInfoUbo.data.visualizeChunks)) {
     overlappingColor += chunkTraversedColor;
   }
 

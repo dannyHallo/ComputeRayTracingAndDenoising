@@ -23,7 +23,7 @@ bool isConsistent(vec3 normal, vec3 lastNormal, vec3 position, vec3 lastPosition
 
   // position test is useful for disocclusions happened in some distance
   float positionFac       = exp(-distance(position, lastPosition));
-  bool positionConsistent = positionFac > temporalFilterInfoUbo.data.temporalPositionPhi;
+  bool positionConsistent = positionFac > postProcessingUbo.data.temporalPositionPhi;
 
   return normalConsistent && positionConsistent;
 }
@@ -79,7 +79,7 @@ void main() {
     sumOfHistLengths /= sumOfWeights;
     sumOfWeightedColors /= sumOfWeights;
     histLength     = min(255.0, sumOfHistLengths + 1.0);
-    float alphaFac = max(temporalFilterInfoUbo.data.temporalAlpha, 1.0 / histLength);
+    float alphaFac = max(postProcessingUbo.data.temporalAlpha, 1.0 / histLength);
     thisFrameColor = mix(sumOfWeightedColors, rawColor, alphaFac);
   } else {
     histLength     = 1.0;

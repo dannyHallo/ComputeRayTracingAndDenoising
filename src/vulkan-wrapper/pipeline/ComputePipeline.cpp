@@ -18,7 +18,7 @@ ComputePipeline::ComputePipeline(VulkanApplicationContext *appContext, Logger *l
                descriptorSetBundle, VK_SHADER_STAGE_COMPUTE_BIT, shaderChangeListener),
       _workGroupSize(workGroupSize), _shaderCompiler(shaderCompiler) {
   if (!compileAndCacheShaderModule()) {
-    _logger->error("pipeline: {} is failed to compile!");
+    _logger->error("pipeline: {} is failed to compile!", _fullPathToShaderSourceCode);
     exit(0);
   }
   build();

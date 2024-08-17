@@ -3,8 +3,6 @@
 
 #include "../include/blockType.glsl"
 
-// for debugging: return tweakableParametersUbo.data.debugC1;
-
 // https://colorhunt.co/palette/973131e0a75ef9d689f5e7b2
 vec3 getBlockColor(uint blockType) {
   switch (blockType) {

@@ -16,8 +16,11 @@
 #include "vulkan-wrapper/sampler/Sampler.hpp"
 
 #include "config-container/ConfigContainer.hpp"
+#include "config-container/sub-config/AtmosInfo.hpp"
+#include "config-container/sub-config/DebugInfo.hpp"
+#include "config-container/sub-config/PostProcessingInfo.hpp"
 #include "config-container/sub-config/SvoTracerInfo.hpp"
-#include "config-container/sub-config/SvoTracerTweakingInfo.hpp"
+#include "config-container/sub-config/TracingInfo.hpp"
 
 #include <string>
 
@@ -406,20 +409,20 @@ void SvoTracer::_createBuffersAndBufferBundles() {
       std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_RenderInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
-  _environmentInfoBufferBundle =
-      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_EnvironmentInfo),
+  _atmosInfoBufferBundle =
+      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_AtmosInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
-  _tweakableParametersBufferBundle =
-      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_TweakableParameters),
+  _debugInfoBufferBundle =
+      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_DebugInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
-  _temporalFilterInfoBufferBundle =
-      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_TemporalFilterInfo),
+  _tracingInfoBufferBundle =
+      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_TracingInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 
-  _spatialFilterInfoBufferBundle =
-      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_SpatialFilterInfo),
+  _postProcessingInfoBufferBundle =
+      std::make_unique<BufferBundle>(_appContext, _framesInFlight, sizeof(G_PostProcessingInfo),
                                      VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, MemoryStyle::kHostVisible);
 }
 
@@ -651,8 +654,8 @@ void SvoTracer::drawFrame(size_t currentFrame) {
 }
 
 void SvoTracer::_updateShadowMapCamera() {
-  glm::vec3 sunDir = _getSunDir(_configContainer->svoTracerTweakingInfo->sunAltitude,
-                                _configContainer->svoTracerTweakingInfo->sunAzimuth);
+  glm::vec3 sunDir =
+      _getSunDir(_configContainer->atmosInfo->sunAltitude, _configContainer->atmosInfo->sunAzimuth);
   _shadowMapCamera->updateCameraVectors(_camera->getPosition(), sunDir);
 }
 
@@ -716,47 +719,46 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
   vpMatPrev    = vpMat;
   vpMatPrevInv = vpMatInv;
 
-  SvoTracerTweakingInfo const &td = *_configContainer->svoTracerTweakingInfo;
-  glm::vec3 sunDir                = _getSunDir(td.sunAltitude, td.sunAzimuth);
-  G_EnvironmentInfo environmentInfo{};
-  environmentInfo.sunDir                 = sunDir;
-  environmentInfo.rayleighScatteringBase = td.rayleighScatteringBase;
-  environmentInfo.mieScatteringBase      = td.mieScatteringBase;
-  environmentInfo.mieAbsorptionBase      = td.mieAbsorptionBase;
-  environmentInfo.ozoneAbsorptionBase    = td.ozoneAbsorptionBase;
-  environmentInfo.sunLuminance           = td.sunLuminance;
-  environmentInfo.atmosLuminance         = td.atmosLuminance;
-  environmentInfo.sunSize                = td.sunSize;
-  _environmentInfoBufferBundle->getBuffer(currentFrame)->fillData(&environmentInfo);
+  G_AtmosInfo gAi{};
+  gAi.sunDir =
+      _getSunDir(_configContainer->atmosInfo->sunAltitude, _configContainer->atmosInfo->sunAzimuth);
+  gAi.rayleighScatteringBase = _configContainer->atmosInfo->rayleighScatteringBase;
+  gAi.mieScatteringBase      = _configContainer->atmosInfo->mieScatteringBase;
+  gAi.mieAbsorptionBase      = _configContainer->atmosInfo->mieAbsorptionBase;
+  gAi.ozoneAbsorptionBase    = _configContainer->atmosInfo->ozoneAbsorptionBase;
+  gAi.sunLuminance           = _configContainer->atmosInfo->sunLuminance;
+  gAi.atmosLuminance         = _configContainer->atmosInfo->atmosLuminance;
+  gAi.sunSize                = _configContainer->atmosInfo->sunSize;
+  _atmosInfoBufferBundle->getBuffer(currentFrame)->fillData(&gAi);
 
-  G_TweakableParameters tweakableParameters{};
-  tweakableParameters.debugB1          = td.debugB1;
-  tweakableParameters.debugF1          = td.debugF1;
-  tweakableParameters.debugI1          = td.debugI1;
-  tweakableParameters.debugC1          = td.debugC1;
-  tweakableParameters.explosure        = td.explosure;
-  tweakableParameters.visualizeChunks  = td.visualizeChunks;
-  tweakableParameters.visualizeOctree  = td.visualizeOctree;
-  tweakableParameters.beamOptimization = td.beamOptimization;
-  tweakableParameters.traceIndirectRay = td.traceIndirectRay;
-  tweakableParameters.taa              = td.taa;
-  _tweakableParametersBufferBundle->getBuffer(currentFrame)->fillData(&tweakableParameters);
+  G_DebugInfo gDi{};
+  gDi.debugB1 = _configContainer->debugInfo->debugB1;
+  gDi.debugF1 = _configContainer->debugInfo->debugF1;
+  gDi.debugI1 = _configContainer->debugInfo->debugI1;
+  gDi.debugC1 = _configContainer->debugInfo->debugC1;
+  _debugInfoBufferBundle->getBuffer(currentFrame)->fillData(&gDi);
 
-  G_TemporalFilterInfo temporalFilterInfo{};
-  temporalFilterInfo.temporalAlpha       = td.temporalAlpha;
-  temporalFilterInfo.temporalPositionPhi = td.temporalPositionPhi;
-  _temporalFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&temporalFilterInfo);
+  G_TracingInfo gTi{};
+  gTi.visualizeChunks  = _configContainer->tracingInfo->visualizeChunks;
+  gTi.visualizeOctree  = _configContainer->tracingInfo->visualizeOctree;
+  gTi.beamOptimization = _configContainer->tracingInfo->beamOptimization;
+  gTi.traceIndirectRay = _configContainer->tracingInfo->traceIndirectRay;
+  _tracingInfoBufferBundle->getBuffer(currentFrame)->fillData(&gTi);
 
-  G_SpatialFilterInfo spatialFilterInfo{};
-  spatialFilterInfo.aTrousIterationCount  = static_cast<uint32_t>(td.aTrousIterationCount);
-  spatialFilterInfo.phiC                  = td.phiC;
-  spatialFilterInfo.phiN                  = td.phiN;
-  spatialFilterInfo.phiP                  = td.phiP;
-  spatialFilterInfo.minPhiZ               = td.minPhiZ;
-  spatialFilterInfo.maxPhiZ               = td.maxPhiZ;
-  spatialFilterInfo.phiZStableSampleCount = td.phiZStableSampleCount;
-  spatialFilterInfo.changingLuminancePhi  = td.changingLuminancePhi;
-  _spatialFilterInfoBufferBundle->getBuffer(currentFrame)->fillData(&spatialFilterInfo);
+  G_PostProcessingInfo gPpi{};
+  gPpi.temporalAlpha         = _configContainer->postProcessingInfo->temporalAlpha;
+  gPpi.temporalPositionPhi   = _configContainer->postProcessingInfo->temporalPositionPhi;
+  gPpi.aTrousIterationCount  = _configContainer->postProcessingInfo->aTrousIterationCount;
+  gPpi.phiC                  = _configContainer->postProcessingInfo->phiC;
+  gPpi.phiN                  = _configContainer->postProcessingInfo->phiN;
+  gPpi.phiP                  = _configContainer->postProcessingInfo->phiP;
+  gPpi.minPhiZ               = _configContainer->postProcessingInfo->minPhiZ;
+  gPpi.maxPhiZ               = _configContainer->postProcessingInfo->maxPhiZ;
+  gPpi.phiZStableSampleCount = _configContainer->postProcessingInfo->phiZStableSampleCount;
+  gPpi.changingLuminancePhi  = _configContainer->postProcessingInfo->changingLuminancePhi;
+  gPpi.taa                   = _configContainer->postProcessingInfo->taa;
+  gPpi.explosure             = _configContainer->postProcessingInfo->explosure;
+  _postProcessingInfoBufferBundle->getBuffer(currentFrame)->fillData(&gPpi);
 
   currentSample++;
 }
@@ -772,10 +774,10 @@ void SvoTracer::_createDescriptorSetBundle() {
                                                                VK_SHADER_STAGE_COMPUTE_BIT);
 
   _descriptorSetBundle->bindUniformBufferBundle(0, _renderInfoBufferBundle.get());
-  _descriptorSetBundle->bindUniformBufferBundle(1, _environmentInfoBufferBundle.get());
-  _descriptorSetBundle->bindUniformBufferBundle(2, _tweakableParametersBufferBundle.get());
-  _descriptorSetBundle->bindUniformBufferBundle(3, _temporalFilterInfoBufferBundle.get());
-  _descriptorSetBundle->bindUniformBufferBundle(4, _spatialFilterInfoBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(1, _atmosInfoBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(2, _debugInfoBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(3, _tracingInfoBufferBundle.get());
+  _descriptorSetBundle->bindUniformBufferBundle(4, _postProcessingInfoBufferBundle.get());
 
   _descriptorSetBundle->bindStorageImage(5, _scalarBlueNoise.get());
   _descriptorSetBundle->bindStorageImage(6, _vec2BlueNoise.get());

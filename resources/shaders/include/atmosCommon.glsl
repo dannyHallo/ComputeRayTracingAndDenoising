@@ -15,7 +15,7 @@ const float kAtmosphereRadiusMm = 6.46;
 
 const vec3 kCamPos = vec3(0.0, 6.3602, 0.0);
 
-vec3 kGroundAlbedo = tweakableParametersUbo.data.debugC1;
+vec3 kGroundAlbedo = debugInfoUbo.data.debugC1;
 
 // found in sec 4, table 1
 // the configuables are located in the environment UBO
@@ -60,17 +60,17 @@ void getScatteringValues(vec3 pos, out vec3 oRayleighScattering, out float oMieS
 
   // the following magic values can be found in sec 4 (1 / 8 = 0.125 and 1 / 1.2
   // = 0.833)
-  float rayleighDensity = exp(-altitudeKM * tweakableParametersUbo.data.debugF1);
+  float rayleighDensity = exp(-altitudeKM * debugInfoUbo.data.debugF1);
   float mieDensity      = exp(-altitudeKM * 0.833);
 
-  oRayleighScattering = environmentUbo.data.rayleighScatteringBase * rayleighDensity;
+  oRayleighScattering = atmosInfoUbo.data.rayleighScatteringBase * rayleighDensity;
 
-  oMieScattering      = environmentUbo.data.mieScatteringBase * mieDensity;
-  float mieAbsorption = environmentUbo.data.mieAbsorptionBase * mieDensity;
+  oMieScattering      = atmosInfoUbo.data.mieScatteringBase * mieDensity;
+  float mieAbsorption = atmosInfoUbo.data.mieAbsorptionBase * mieDensity;
 
   // ozone does not scatter
   vec3 ozoneAbsorption =
-      environmentUbo.data.ozoneAbsorptionBase * max(0.0, 1.0 - abs(altitudeKM - 25.0) / 15.0);
+      atmosInfoUbo.data.ozoneAbsorptionBase * max(0.0, 1.0 - abs(altitudeKM - 25.0) / 15.0);
 
   // the sum of all scattering and obsorbtion
   oExtinction = oRayleighScattering + oMieScattering + mieAbsorption + ozoneAbsorption;

@@ -28,7 +28,7 @@ struct G_RenderInfo {
   float time;
 };
 
-struct G_EnvironmentInfo {
+struct G_AtmosInfo {
   vec3 sunDir;
   vec3 rayleighScatteringBase;
   float mieScatteringBase;
@@ -39,31 +39,24 @@ struct G_EnvironmentInfo {
   float sunSize;
 };
 
-struct G_TweakableParameters {
+struct G_DebugInfo {
   uint debugB1; // bool
   float debugF1;
   uint debugI1;
   vec3 debugC1;
-  float explosure;
+};
+
+struct G_TracingInfo {
   uint visualizeChunks;  // bool
   uint visualizeOctree;  // bool
   uint beamOptimization; // bool
   uint traceIndirectRay; // bool
-  uint taa;              // bool
 };
 
-struct G_SceneInfo {
-  uint beamResolution;
-  uint voxelLevelCount;
-  uvec3 chunksDim;
-};
-
-struct G_TemporalFilterInfo {
+struct G_PostProcessingInfo {
   float temporalAlpha;
   float temporalPositionPhi;
-};
 
-struct G_SpatialFilterInfo {
   uint aTrousIterationCount;
   float phiC;
   float phiN;
@@ -72,6 +65,16 @@ struct G_SpatialFilterInfo {
   float maxPhiZ;
   float phiZStableSampleCount;
   uint changingLuminancePhi; // bool
+
+  uint taa; // bool
+
+  float explosure;
+};
+
+struct G_SceneInfo {
+  uint beamResolution;
+  uint voxelLevelCount;
+  uvec3 chunksDim;
 };
 
 struct G_OutputInfo {

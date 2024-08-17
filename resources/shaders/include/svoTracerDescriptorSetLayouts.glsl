@@ -7,14 +7,14 @@
 
 layout(binding = 0) uniform RenderInfoUniformBuffer { G_RenderInfo data; }
 renderInfoUbo;
-layout(binding = 1) uniform EnvironmentUniformBuffer { G_EnvironmentInfo data; }
-environmentUbo;
-layout(binding = 2) uniform TweakableParametersUniformBuffer { G_TweakableParameters data; }
-tweakableParametersUbo;
-layout(binding = 3) uniform TemporalFilterInfoUniformBuffer { G_TemporalFilterInfo data; }
-temporalFilterInfoUbo;
-layout(binding = 4) uniform SpatialFilterInfoUniformBuffer { G_SpatialFilterInfo data; }
-spatialFilterInfoUbo;
+layout(binding = 1) uniform AtmosInfoUniformBuffer { G_AtmosInfo data; }
+atmosInfoUbo;
+layout(binding = 2) uniform DebugInfoUniformBuffer { G_DebugInfo data; }
+debugInfoUbo;
+layout(binding = 3) uniform TracingInfoUniformBuffer { G_TracingInfo data; }
+tracingInfoUbo;
+layout(binding = 4) uniform PostProcessingUniformBuffer { G_PostProcessingInfo data; }
+postProcessingUbo;
 
 layout(binding = 5) readonly uniform image2DArray scalarBlueNoise;
 layout(binding = 6) readonly uniform image2DArray vec2BlueNoise;

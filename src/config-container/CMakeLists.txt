@@ -1,12 +1,15 @@
 add_library(src-config-container STATIC
     sub-config/ApplicationInfo.cpp
+    sub-config/AtmosInfo.cpp
     sub-config/BrushInfo.cpp
     sub-config/CameraInfo.cpp
+    sub-config/DebugInfo.cpp
     sub-config/ImguiManagerInfo.cpp
+    sub-config/PostProcessingInfo.cpp
     sub-config/ShadowMapCameraInfo.cpp
-    sub-config/TerrainInfo.cpp
     sub-config/SvoTracerInfo.cpp
-    sub-config/SvoTracerTweakingInfo.cpp
+    sub-config/TerrainInfo.cpp
+    sub-config/TracingInfo.cpp
     ConfigContainer.cpp
 )
 

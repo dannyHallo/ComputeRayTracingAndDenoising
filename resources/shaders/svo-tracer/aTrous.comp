@@ -66,8 +66,8 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
                        currentIteration);
 
   // WEIGHT_C
-  float phiC = spatialFilterInfoUbo.data.phiC;
-  if (bool(spatialFilterInfoUbo.data.changingLuminancePhi)) {
+  float phiC = postProcessingUbo.data.phiC;
+  if (bool(postProcessingUbo.data.changingLuminancePhi)) {
     phiC *= pow(2.0, -float(currentIteration));
   }
 
@@ -75,16 +75,16 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
   float weightC = exp(-colDiff / phiC);
 
   // WEIGHT_N
-  float weightN = max(0., pow(dot(normalAtUv, normalAtSample), spatialFilterInfoUbo.data.phiN));
+  float weightN = max(0., pow(dot(normalAtUv, normalAtSample), postProcessingUbo.data.phiN));
 
   // WEIGHT_P
-  float weightP = exp(-distance(positionAtSample, positionAtUv) / spatialFilterInfoUbo.data.phiP);
+  float weightP = exp(-distance(positionAtSample, positionAtUv) / postProcessingUbo.data.phiP);
 
   // WEIGHT_Z: default is to blur across different voxels
   float weightZ            = 1.0;
   const float depthFalloff = exp(-depthAtUv);
-  const float minPhiZ      = spatialFilterInfoUbo.data.minPhiZ;
-  const float maxPhiZ      = max(minPhiZ, spatialFilterInfoUbo.data.maxPhiZ);
+  const float minPhiZ      = postProcessingUbo.data.minPhiZ;
+  const float maxPhiZ      = max(minPhiZ, postProcessingUbo.data.maxPhiZ);
 
   // if depth is short, we should avoid blur across different voxel
   // however, if the hist sample is low, we should still blur across them to get rid of noise
@@ -98,7 +98,7 @@ void blurKernel(inout float weightSum, inout vec3 sumOfWeightedColors, ivec2 uvi
       float distWeight = smoothstep(minPhiZ, maxPhiZ, depthFalloff);
 
       // combine with hist weight, if the hist is low, we should still blur across different voxels
-      distWeight *= smoothstep(0.0, spatialFilterInfoUbo.data.phiZStableSampleCount * 256.0, hist);
+      distWeight *= smoothstep(0.0, postProcessingUbo.data.phiZStableSampleCount * 256.0, hist);
 
       weightZ = 1.0 - distWeight;
     }
@@ -122,7 +122,7 @@ void main() {
 
   // this counts from 0
   uint currentIteration = aTrousIterationBuffer.data;
-  if (currentIteration >= spatialFilterInfoUbo.data.aTrousIterationCount) {
+  if (currentIteration >= postProcessingUbo.data.aTrousIterationCount) {
     return;
   }
 
@@ -144,7 +144,7 @@ void main() {
   vec3 weightedColor = sumOfWeightedColors / weightSum;
 
   // dump image if this is the last iteration
-  if (currentIteration == spatialFilterInfoUbo.data.aTrousIterationCount - 1) {
+  if (currentIteration == postProcessingUbo.data.aTrousIterationCount - 1) {
     imageStore(aTrousPongImage, uvi, vec4(weightedColor, 0));
     return;
   }

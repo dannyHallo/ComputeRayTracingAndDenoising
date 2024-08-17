@@ -12,7 +12,7 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 void rayGen(out vec3 o, out vec3 d) {
   vec2 shadowMapUv = (vec2(gl_GlobalInvocationID.xy) + vec2(0.5)) / vec2(imageSize(shadowMapImage));
   o                = projectShadowMapUvToShadowMapCamNearPoint(shadowMapUv);
-  d                = -environmentUbo.data.sunDir;
+  d                = -atmosInfoUbo.data.sunDir;
 }
 
 void main() {

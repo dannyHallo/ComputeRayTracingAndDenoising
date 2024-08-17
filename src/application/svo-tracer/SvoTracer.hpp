@@ -172,10 +172,10 @@ private:
   // https://www.reddit.com/r/vulkan/comments/10io2l8/is_framesinflight_fif_method_really_worth_it/
 
   std::unique_ptr<BufferBundle> _renderInfoBufferBundle;
-  std::unique_ptr<BufferBundle> _environmentInfoBufferBundle;
-  std::unique_ptr<BufferBundle> _tweakableParametersBufferBundle;
-  std::unique_ptr<BufferBundle> _temporalFilterInfoBufferBundle;
-  std::unique_ptr<BufferBundle> _spatialFilterInfoBufferBundle;
+  std::unique_ptr<BufferBundle> _atmosInfoBufferBundle;
+  std::unique_ptr<BufferBundle> _debugInfoBufferBundle;
+  std::unique_ptr<BufferBundle> _tracingInfoBufferBundle;
+  std::unique_ptr<BufferBundle> _postProcessingInfoBufferBundle;
 
   std::unique_ptr<Buffer> _sceneInfoBuffer;
   std::unique_ptr<Buffer> _aTrousIterationBuffer;
