@@ -729,6 +729,8 @@ void SvoTracer::_updateUboData(size_t currentFrame) {
   gAi.sunLuminance           = _configContainer->atmosInfo->sunLuminance;
   gAi.atmosLuminance         = _configContainer->atmosInfo->atmosLuminance;
   gAi.sunSize                = _configContainer->atmosInfo->sunSize;
+  gAi.rayleighDropoffFac     = _configContainer->atmosInfo->rayleighDropoffFac;
+  gAi.mieDropoffFac          = _configContainer->atmosInfo->mieDropoffFac;
   _atmosInfoBufferBundle->getBuffer(currentFrame)->fillData(&gAi);
 
   G_DebugInfo gDi{};

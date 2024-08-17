@@ -52,6 +52,8 @@ ozoneAbsorptionBase = [ 0.650, 3.0, 0.085 ]
 sunLuminance = 0.5
 atmosLuminance = 0.5
 sunSize = 0.5
+rayleighDropoffFac = 0.125
+mieDropoffFac = 0.833
 
 [DebugInfo]
 debugB1 = false

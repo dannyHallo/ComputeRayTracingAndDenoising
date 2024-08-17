@@ -277,6 +277,8 @@ void ImguiManager::_drawConfigMenuItem() {
     ImGui::SliderFloat("Sun Luminance", &ai->sunLuminance, 0.0F, 10.0F);
     ImGui::SliderFloat("Atmos Luminance", &ai->atmosLuminance, 0.0F, 10.0F);
     ImGui::SliderFloat("Sun Size", &ai->sunSize, 0.0F, 100.0F);
+    ImGui::SliderFloat("Rayleigh Dropoff Fac", &ai->rayleighDropoffFac, 0.0F, 5.0F);
+    ImGui::SliderFloat("Mie Dropoff Fac", &ai->mieDropoffFac, 0.0F, 5.0F);
 
     ImGui::SeparatorText("Tracing");
     auto &ti = _configContainer->tracingInfo;

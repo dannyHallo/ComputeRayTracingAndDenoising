@@ -60,8 +60,8 @@ void getScatteringValues(vec3 pos, out vec3 oRayleighScattering, out float oMieS
 
   // the following magic values can be found in sec 4 (1 / 8 = 0.125 and 1 / 1.2
   // = 0.833)
-  float rayleighDensity = exp(-altitudeKM * debugInfoUbo.data.debugF1);
-  float mieDensity      = exp(-altitudeKM * 0.833);
+  float rayleighDensity = exp(-altitudeKM * atmosInfoUbo.data.rayleighDropoffFac);
+  float mieDensity      = exp(-altitudeKM * atmosInfoUbo.data.mieDropoffFac);
 
   oRayleighScattering = atmosInfoUbo.data.rayleighScatteringBase * rayleighDensity;
 

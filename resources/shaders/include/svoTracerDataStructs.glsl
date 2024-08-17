@@ -37,6 +37,8 @@ struct G_AtmosInfo {
   float sunLuminance;
   float atmosLuminance;
   float sunSize;
+  float rayleighDropoffFac;
+  float mieDropoffFac;
 };
 
 struct G_DebugInfo {

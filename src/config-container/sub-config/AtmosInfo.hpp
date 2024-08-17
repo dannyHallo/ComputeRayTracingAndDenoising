@@ -14,6 +14,8 @@ struct AtmosInfo {
   float sunLuminance{};
   float atmosLuminance{};
   float sunSize{};
+  float rayleighDropoffFac{};
+  float mieDropoffFac{};
 
   void loadConfig(TomlConfigReader *tomlConfigReader);
 };

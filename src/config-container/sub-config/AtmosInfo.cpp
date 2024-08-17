@@ -16,4 +16,6 @@ void AtmosInfo::loadConfig(TomlConfigReader *tomlConfigReader) {
   sunLuminance        = tomlConfigReader->getConfig<float>("AtmosInfo.sunLuminance");
   atmosLuminance      = tomlConfigReader->getConfig<float>("AtmosInfo.atmosLuminance");
   sunSize             = tomlConfigReader->getConfig<float>("AtmosInfo.sunSize");
+  rayleighDropoffFac  = tomlConfigReader->getConfig<float>("AtmosInfo.rayleighDropoffFac");
+  mieDropoffFac       = tomlConfigReader->getConfig<float>("AtmosInfo.mieDropoffFac");
 }
