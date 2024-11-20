@@ -1,3 +1,16 @@
+```plaintext
+As the sun breathes across the voxel land,  
+Unveiling worlds with each radiant beam,  
+Warmth pulses through every pixel strand,  
+Animating dreams within the digital stream.
+
+Every block a story told,  
+Infinite as skies above,  
+In Voxel Lab, behold  
+A universe of coded love.
+```
+
+
 # Voxel Lab
 
 This voxel tracing project is inspired by John Lin's awesome work
